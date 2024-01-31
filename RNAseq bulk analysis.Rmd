@@ -1,0 +1,1871 @@
+---
+title: "RNAseq bulk analysis"
+author: "Wasim"
+date: "2023-06-20"
+output: html_document
+editor_options: 
+  chunk_output_type: inline
+---
+
+# Preparação dos dados
+
+## Baixar pacotes
+
+```{r eval=FALSE, include=FALSE}
+install.packages("forcats") # útil para agrupar e manipular dados categóricos em análises de RNA-seq.
+install.packages("stringr") # útil para trabalhar com strings no R, o que pode ser útil para manipular e filtrar nomes de genes, por exemplo.
+install.packages("ggplot2") # criação de visualizações de dados
+install.packages("ggbeeswarm")
+install.packages("ggrepel") #é um pacote que fornece uma alternativa ao pacote ggplot2 para ajudar a evitar sobreposição de textos em gráficos.
+install.packages("readr") #importação de arquivos de dados no R, como arquivos CSV, TSV e outros formatos
+install.packages("tidyr") #limpar e organizar dados no R
+install.packages("survminer") #visualização e análise de dados de sobrevivência
+install.packages("Seurat") #pré-processamento de dados, como filtragem, normalização e detecção de células duplas, bem como análises de expressão diferencial, clusterização, visualização de dimensões reduzidas e identificação de marcadores de células
+install.packages("dplyr") # manipulação de dados em R, útil para filtrar, selecionar, ordenar, agrupar e resumir dados
+install.packages("org.Hs.eg.db")
+install.packages("RColorBrewer") #paletas
+install.packages("plotly") #Gráficos interativos
+install.packages("msigdbr")
+install.packages("ape")
+install.packages("sva")
+install.packages("readxl")
+install.packages("gplots")
+install.packages("tibble")
+install.packages("metaRNASeq")
+
+#Instale os pacotes do BioConductor.
+
+if (!require("BiocManager", quietly = TRUE))
+    install.packages("BiocManager") #
+
+BiocManager::install("GEOquery") # baixar e processar dados do Gene Expression Omnibus (GEO)
+
+BiocManager::install("limma") #análise de dados de microarray e RNA-seq, incluindo análise de expressão diferencial e enriquecimento de vias metabólicas.
+
+BiocManager::install("pheatmap") # criação de mapas de calor no R, que podem ser usados para visualização de padrões de expressão gênica em dados de RNA-seq.
+
+BiocManager::install("org.Hs.eg.db") #é um pacote do Bioconductor que contém anotações do genoma humano, incluindo informações sobre a localização dos genes e seus nomes oficiais. Pode ser útil para a anotação dos resultados de análises de RNA-seq.
+
+BiocManager::install("deseq2")
+
+BiocManager::install("biomaRt") #Anotações de genes
+
+BiocManager::install("celldex") # anotações de genes por tipo celular
+
+BiocManager::install("Glimma") #Visualização interativa de resultados de análise de expressão diferencial.
+
+BiocManager::install("edgeR") # Para análise diferencial de expressão
+
+BiocManager::install("NMF") #análise de fatorização de matrizes não negativas (NMF) em dados de expressão genética.
+
+BiocManager::install("BiasedUrn") #Algoritmos para inferência de enriquecimento de conjuntos de genes utilizando métodos de urna viciada.
+
+BiocManager::install("GSVA") # Análise de enriquecimento de vias genéticas usando a variação da atividade de genes ao longo de um conjunto de amostras.
+
+BiocManager::install("sva") #Métodos para ajustar fatores de confusão em análises de expressão genética
+
+BiocManager::install("clusterProfiler") #Fornece ferramentas para análise de enriquecimento funcional e perfilagem de conjuntos de genes
+
+BiocManager::install("pheatmap") #Criação de heatmaps personalizados para visualização de dados de expressão genética.
+
+BiocManager::install("org.Hs.eg.db") #Anotações de genes
+
+BiocManager::install("msigdbr", update = FALSE)
+
+BiocManager::install("EnhancedVolcano")
+
+BiocManager::install("AnnotationDbi")
+
+```
+
+## Bibliotecas
+
+```{r eval=FALSE, include=FALSE}
+library(readr)
+library(Seurat)
+library(GEOquery)
+library(Matrix)
+library(ggplot2)
+library(dplyr)
+library(RColorBrewer)
+library(celldex)
+library(biomaRt)
+library(org.Hs.eg.db)
+library(plotly)
+library(DESeq2)
+library(edgeR)
+library(limma)
+library(Glimma)
+library(DESeq2)   
+library(msigdbr)
+library(ape)
+library(GSVA)
+library(sva)
+library(readxl)
+library(clusterProfiler)
+library(pheatmap)
+library(gplots)
+library(EnhancedVolcano)
+library(metaRNASeq)
+library(ggbeeswarm)
+
+
+```
+
+# Seleção de estudos
+
+## Baixar uma série de datasets de uma vez
+
+```{r eval=FALSE, include=FALSE}
+#Baixar dados de uma lista de estudos
+
+lista_estudos <- c("GSE206023",
+"GSE174621",
+"GSE189039",
+"GSE198549",
+"GSE202262",
+"GSE205402",
+"GSE199750",
+"GSE201533",
+"GSE201642",
+"GSE216811",
+"GSE173488")
+
+#Quais estudos estão relacionados a uma classe de vacinas?
+
+mRNAvac_only_studies <- c("GSE174621",
+"GSE189039",
+"GSE198549",
+"GSE202262",
+"GSE205402")
+
+mRNAvac_ChAdOx1_studies <- c("GSE199750",
+"GSE201533")
+ChAdOx1_only_studies <- c("GSE201642",
+"GSE216811")
+Spike_studies <- c("GSE173488")
+Innvac_only <- c("GSE206023")
+
+## Loop através de cada string na lista
+for (str in lista_estudos) {assign(tolower(str), getGEO(str))}
+
+# Baixar arquivos suplementares do estudo. 
+## Baixar individualmente. Arquivos grandes devem ser baixados direto do navegador.
+getGEOSuppFiles('GSE206023') # ok. tpm of 48 samples (txt)
+getGEOSuppFiles('GSE174621') # ok. RAW.tar
+getGEOSuppFiles('GSE189039') # ok. RAW.tar
+getGEOSuppFiles('GSE198549') # ok. RAW.tar
+getGEOSuppFiles('GSE202262') # ok. data.txt.
+getGEOSuppFiles('GSE205402') # grande. RAW.tar.
+getGEOSuppFiles('GSE199750') # grande. RAW.tar.
+getGEOSuppFiles('GSE201533') # ok. RAW.tar.
+getGEOSuppFiles('GSE201642') # ok. RAW.tar.
+getGEOSuppFiles('GSE216811') # ok. arquivos em xlsx (raw reads e DEGs)
+getGEOSuppFiles('GSE173488') # ok. DESeq2 normalized counts (txt)
+
+##Baixar em lista
+## Loop através de cada string na lista. Pode dar erro no download de alguns datasets pelo tamanho. Assim, baixe individualmente estes. No caso, foram os arquivos GSE205402.
+for (str in lista_estudos) {assign(tolower(str), getGEOSuppFiles(str))}
+
+
+#Acessar pasta com os arquivos suplementares baixados. Defina como working directory enquanto estiver descompactando. De vez em quando, rodar uma linha de código por aqui não funciona, então copie e cole no console e rode.
+## Arquivos tar.
+untar('GSE174621_RAW.tar') # ok. RAW.tar. Descompactado.
+untar('GSE189039_RAW.tar') # ok. RAW.tar. Descompactado.
+untar('GSE198549_RAW.tar') # ok. RAW.tar. Descompactado.
+untar('GSE205402_RAW.tar') # grande. RAW.tar. Não descompactado ainda.
+untar('GSE199750_RAW.tar') # grande. RAW.tar. Descompactado.
+untar('GSE201533_RAW.tar') # ok. RAW.tar. Descompactado.
+untar('GSE201642_RAW.tar') # ok. RAW.tar.
+
+
+## Arquivos em gunzip (.gz)
+
+gunzip("GSE206023/GSE206023_tpm_of_48_samples.txt.gz") #descompactado
+GSE202262 #descompactado
+GSE173488 #descompactado
+```
+
+### Reveja se você baixou todos os arquivos RAW.
+
+O arquivo de alguns datasets são enormes, como o GSE199750, então pode ter baixado parcialmente e a análise não seguirá funcionando.
+
+# GSE199750: COVIRS study
+
+Antes de analisar os dados do estudo, leia-o. O primeiro estudo analisado (COVIRS) aqui é descrito em artigo e em um site: <https://bitbucket.org/lynnlab/covirs/src/master/>. Código de análise multiomics: <https://bitbucket.org/lynnlab/covirs/src/master/COVIRS_analysis%2016%2008%202022.R>. Este estudo já contém um arquivo .rds com as contagens de genes integrado ("raw_RNASeq_counts") para baixar. No entanto, abaixo, faremos direto baixando os arquivos do GEO.
+
+## Sample information
+
+1)  Adults living in South Australia, 2021, absence of SARS-CoV-2 community transmission (strict quarantine).
+
+2)  Sex = 70% female, 30% Male
+
+3)  Age = 39 +- 11 years
+
+####Sample size N total = 102 participants 1 + 2 doses = 86 (2x BNT162b2) + 16 (2X ChAdOx1) 3 doses = 38 (BNT162b2) + 14 (mRNA-1273)
+
+### **Timepoints**
+
+COVIRS participants were profilled longitudinally. Blood samples were collected at the following timepoints:
+
+-   V0 - Pre-vaccination
+
+-   V1 - 5-7 days post dose 1 (Either BNT162b2 or ChAdOx1-S)
+
+-   V2A - 1-2 days post dose 2 (Either BNT162b2 or ChAdOx1-S)
+
+-   V2B - 28 days post dose 2 (Either BNT162b2 or ChAdOx1-S)
+
+-   V3A - 1-2 days post dose 3 (Either BNT162b2 or mRNA-1273)
+
+-   V3B - 28 days post dose 3 (Either BNT162b2 or mRNA-1273)
+
+-   Gene expression measured by RNASeq at V0, V1, V2A, V3A (Total RNA from peripheral blood). \>12B reads (2x150bp) across 260 samples. (See GEO GSE199750 for raw data). 1
+
+## Baixar e processar arquivos
+
+```{r eval=FALSE, include=FALSE}
+#Baixar dados sobre o estudo. 
+
+gse199750 <- getGEO("GSE199750", GSEMatrix = TRUE) #Use GSEMatrix = TRUE para obter metadados de cada amostra
+gse199750 <- gse199750[[1]] #Analisar o primeiro objeto da lista. Este é o dataset de uma plataforma, mas é possivel em um único estudo terem mais plataformas.
+
+#Analisar informações sobre amostras
+gse199750_sampleinfo <- pData(gse199750) #Informações sobre amostras
+colnames(gse199750_sampleinfo) #Veja quais colunas são interessantes: geo_accession, source_name_ch1, "age:ch1"                  "first/second vaccine:ch1",  "run:ch1", "sample number:ch1"        "Sex:ch1"                 , "subject_id:ch1"           "third vaccine:ch1"        "timepoint:ch1", "tissue:ch1", "vaccine:ch1"         
+
+gse199750_sampleinfo <- select(gse199750_sampleinfo,"geo_accession", "sample number:ch1", "subject_id:ch1", "age:ch1", "Sex:ch1",  "vaccine:ch1", "first/second vaccine:ch1", "third vaccine:ch1", "timepoint:ch1", "tissue:ch1", "run:ch1")  #selecionar colunas de interesse e ordenar.
+
+colnames(gse199750_sampleinfo) <- c("GEO","SampleN", "SubjectID", "Age", "Sex", "Vaccine", "FirstSecondVaccine", "ThirdVaccine", "Timepoint", "Tissue", "Run") #Renomear
+
+#Na tabela, é possível perceber que há duas colunas parecidas. A primeira, "Vaccine", pode estar preenchida, mas a segunda "FirstSecondVaccine" não, e vice versa. Logo, uma deve ser igual a outra. Assim, unifique as colunas.
+gse199750_sampleinfo$FirstSecondDose <- ifelse(is.na(gse199750_sampleinfo$FirstSecondVaccine), gse199750_sampleinfo$Vaccine, gse199750_sampleinfo$FirstSecondVaccine)
+
+
+#Excluir colunas 
+
+#Modo 1
+gse199750_sampleinfo <- gse199750_sampleinfo[, !(colnames(gse199750_sampleinfo) %in% c("Vaccine", "FirstSecondVaccine"))]
+
+#Modo 2
+gse199750_sampleinfo <- select(gse199750_sampleinfo, -"Vaccine", -"FirstSecondVaccine") 
+
+#Reordenar colunas
+col_order <- c("GEO", "SampleN", "SubjectID", "Age", "Sex", "Timepoint", "FirstSecondDose", "ThirdVaccine", "Tissue", "Run") # Reordenar as colunas
+gse199750_sampleinfo <- gse199750_sampleinfo[, col_order]  # Reordenar as colunas conforme o col_order
+
+#Salvar arquivo
+write.csv(gse199750_sampleinfo, file="metadata_gse199750.csv")
+saveRDS(gse199750_sampleinfo, file="metadata_gse199750.rds")
+```
+
+```{r eval=FALSE, include=FALSE}
+#Ler arquivos e transformar em tabela.
+
+##Definir qual será analisado primeiro. Escolhi o GSE199750 por conter a maior quantidade de amostras (260). Abra a lista do estudo e analise as informações sobre o estudo. Ao descompactar, surgem diversos arquivos .featureCounts.txt.gz, que devem ser descompactados. Para descompactar a lista toda, use um loop.
+
+diretorio_GSE199750 <- "G:/Meu Drive/USP/Doutorado/Experimentos/Imunoinformatica/RNAseq/Bulk/GSE199750"
+arquivos_gz_GSE199750 <- list.files(path = diretorio_GSE199750, pattern = "*.gz$", full.names = TRUE)
+for(arquivo_gz in arquivos_gz_GSE199750) {gunzip(arquivo_gz)}
+
+##Ler arquivos e criar tabela
+arquivos_txt_GSE199750 <- list.files(path = diretorio_GSE199750, pattern = "*.txt$", full.names = TRUE)
+lista_dados_GSE199750 <- list()
+
+#Se estiver usando o RStudio, vá para o working directory no painel à direita, defina como working directory de novo, copie o código abaixo e cole no console.
+for(i in seq_along(arquivos_txt_GSE199750)) {
+  # Leia o arquivo e armazene os dados na lista
+  lista_dados_GSE199750[[i]] <- read.table(arquivos_txt_GSE199750[i], header = TRUE, sep = "\t")
+}
+
+#Analise as informações de cada ítem da lista
+View(lista_dados_GSE199750)
+
+```
+
+## Anotação de genes
+
+```{r eval=FALSE, include=FALSE}
+#Foram geradas 58 dataframes, cada um com 60671 e 7 colunas descrevendo cada gene. No entanto, cada gene está nomeado com seu EnsembleID. Então, converta em simbolos usando o pacote "org.Hs.eg.db" ou o biomaRt. Anote as principais informações sobre cada gene, como biotipo e id Entrez.
+
+library("biomaRt")
+
+# Selecione o banco de dados Ensembl
+mart <- useMart("ensembl")
+
+# Selecione o conjunto de dados para humanos
+mart <- useDataset("hsapiens_gene_ensembl", mart)
+
+
+# Loop através de cada dataframe na lista
+for(i in seq_along(lista_dados_GSE199750)) {
+  # Obtenha os Ensembl IDs do dataframe
+  ensembl_ids <- lista_dados_GSE199750[[i]]$Geneid
+  
+  # Obtenha as informações do gene do banco de dados Ensembl
+  gene_info <- getBM(attributes = c("gene_biotype", "entrezgene_id", "hgnc_symbol"), 
+                   filters = "ensembl_gene_id", 
+                   values = ensembl_ids, 
+                   mart = mart)
+  
+  # Mescle as informações do gene com o dataframe
+  lista_dados_GSE199750[[i]] <- merge(lista_dados_GSE199750[[i]], gene_info, by.x = "Geneid", by.y = "ensembl_gene_id")
+}
+
+
+```
+
+### Lista de sample counts para um único dataframe
+
+As linhas correspondem aos genes e as colunas, a cada amostra/dataframe.
+
+```{r eval=FALSE, include=FALSE}
+# Obtenha o número total de linhas nos dataframes
+total_linhas <- max(sapply(lista_dados_GSE199750, nrow))
+
+# Crie um dataframe vazio com nomes de colunas corretos
+counts_gse199750 <- data.frame(matrix(NA, nrow = total_linhas, ncol = length(lista_dados_GSE199750)))
+
+colnames(counts_gse199750) <- paste0("GSM", seq_along(lista_dados_GSE199750) + 5983812) #Trocar o nome das colunas (ex. "X21.01684.hisat2.bam") pelos códigos GSM correspondentes, que no caso começam com GSM5983813. Isso facilitará a integração dos dados.
+
+# Percorra a lista de dataframes e preencha as colunas correspondentes
+for (i in seq_along(lista_dados_GSE199750)) {
+  df <- lista_dados_GSE199750[[i]]
+  coluna_sétima <- df[, 7]
+  counts_gse199750[, i] <- coluna_sétima[1:total_linhas]
+}
+
+# Verifique o dataframe resultante
+print(counts_gse199750)
+
+#colnames(counts_gse199750) <- paste0("Sample_", seq_along(lista_dados_GSE199750)) # Defina os nomes das colunas no dataframe resultante, caso queira mudar.
+
+# Adicione uma coluna a mais, criando um merge com outro dataset
+colunas_descritivas <- lista_dados_GSE199750[[1]][c("Geneid", "hgnc_symbol", "gene_biotype")]
+
+counts_gse199750 <- cbind(counts_gse199750, colunas_descritivas) #Adicione as colunas dos genes ao dataframe com as counts
+
+counts_gse199750 <- counts_gse199750[, c((ncol(counts_gse199750) - 2):ncol(counts_gse199750), 1:(ncol(counts_gse199750) - 3))] # Reordenar
+
+counts_gse199750[is.na(counts_gse199750)] <- 0 # Substituir valores NA por 0 em todo o dataframe
+
+#Crie uma lista com os dois dataframes de contagem e de infos sobre cada amostra
+
+counts_sample_info <- list(counts_gse199750, gse199750_sampleinfo)
+
+```
+
+### Salvar dataframes
+
+Salve os dataframes de counts e de metadados em arquivos .rds.
+
+Isto é interessante caso você queira retomar as análises sem precisar processar todos os dados novamente. Isso é importante para economizar espaço.
+
+```{r eval=FALSE, include=FALSE}
+
+#Talvez, seja necessário copiar e colar este código no Console, porque não gera o arquivo sozinho.
+saveRDS(counts_sample_info, file = "metadata_and_counts_gse199750.rds")
+write.csv(counts_sample_info, file="metadata_gse199750.csv")
+saveRDS(counts_gse199750, file = "counts_gse199750.rds")
+write.csv(counts_gse199750, file = "counts_gse199750.csv")
+
+write.csv(metadata_and_counts_gse199750[2], file="metadata_gse199750.csv")
+write.csv(counts_gse199750, file="counts_gse199750.csv")
+
+
+```
+
+## Análise de dados
+
+### Análise de expressão genica diferencial
+
+Aqui, eu fiz a análise com a tabela de counts baixado do site do estudo oficial e rodei o código do site abaixo.
+
+<https://combine-australia.github.io/RNAseq-R/06-rnaseq-day1.html>
+
+```{r eval=FALSE, include=FALSE}
+
+############## Caso use os arquivos gerados pelos códigos acima ##############
+#Para este protocolo, exclua as colunas de hgnc_symbol e gene_biotype
+counts_gse199750 <- select(counts_gse199750, -"hgnc_symbol", -"gene_biotype") 
+colnames(counts_gse199750) <- counts_gse199750[-1,]
+
+############## Preparação dos arquivos fornecidos ##############
+#Aqui, como os 260 arquivos do dataset não foram baixados por conta da conexão, usaremos os arquivos fornecidos pelo próprio repositório do estudo. O arquivo é do tipo .rds e não é facilmente manipulável.
+
+write.csv(raw_RNASeq_counts, file="raw_RNASeq_counts.csv")
+write.csv(Sample_meta_data_RNASeq, file="Sample_meta_data_RNASeq.csv")
+```
+
+###Anotação de genes
+
+```{r eval=FALSE, include=FALSE}
+#############Anotação de genes##############
+
+library("biomaRt")
+
+# Selecione o banco de dados Ensembl
+mart <- useMart("ensembl")
+
+# Selecione o conjunto de dados para humanos
+mart <- useDataset("hsapiens_gene_ensembl", mart)
+
+#Obtenha os Ensembl IDs
+ensembl_ids <- raw_RNASeq_counts[[1]]
+
+colnames(raw_RNASeq_counts)[1] <- "ensembl_ids"
+
+
+# Obtenha as informações do gene do banco de dados Ensembl
+gene_info <- getBM(attributes = c("entrezgene_id", "hgnc_symbol"), 
+                   filters = "ensembl_gene_id",
+                   values = ensembl_ids, 
+                   mart = mart)
+
+# Fundir as informações com raw_RNASeq_counts
+raw_RNASeq_counts_ann <- merge(raw_RNASeq_counts, gene_info, by.x = "ensembl_ids", all.x = TRUE)
+
+# Preencher as células vazias na coluna 'hgnc_symbol' com os valores correspondentes da coluna 'Geneid'
+raw_RNASeq_counts_ann$hgnc_symbol <- ifelse(is.na(raw_RNASeq_counts_ann$hgnc_symbol), raw_RNASeq_counts_ann$Geneid, raw_RNASeq_counts_ann$hgnc_symbol)
+
+# Remover linhas duplicadas (mantendo apenas a primeira ocorrência)
+raw_RNASeq_counts_ann <- subset(raw_RNASeq_counts_ann, !duplicated(hgnc_symbol))
+
+#Organizar colunas
+
+## Remover colunas desnecessárias
+raw_RNASeq_counts_ann <- subset(raw_RNASeq_counts_ann, select = -Geneid)
+
+## Mover a coluna "hgnc_symbol" para a primeira posição. 
+hgnc_symbol_index <- which(names(raw_RNASeq_counts_ann) == "hgnc_symbol") # Obtenha o índice da coluna "hgnc_symbol"
+raw_RNASeq_counts_ann <- raw_RNASeq_counts_ann %>% 
+  select(hgnc_symbol, everything()) # Mover a coluna "hgnc_symbol" para a primeira posição
+
+#Salvar .csv
+write.csv(raw_RNASeq_counts_ann, file="raw_RNASeq_counts_annGenes.csv")
+
+```
+
+
+### Padronizando tabela de counts
+
+```{r eval=FALSE, include=FALSE}
+#Converta o arquivo de counts em dataframe e transforme a primeira coluna em rownames. Isso retirará a coluna como variável e resultará em números iguais de obs (metadata) e variables (counts)
+
+raw_RNASeq_counts_annGenes <- as.data.frame(raw_RNASeq_counts_annGenes)
+raw_RNASeq_counts_annGenes <- raw_RNASeq_counts_annGenes[, -1] # Remova a primeira coluna de índices
+rownames(raw_RNASeq_counts_annGenes) <- raw_RNASeq_counts_annGenes$hgnc_symbol # Defina a primeira coluna como os rownames
+raw_RNASeq_counts_annGenes <- raw_RNASeq_counts_annGenes[, -1] # Remova a coluna de symbols, pois está definida agora como rownames
+
+#Ordenar tabela 
+
+gse199750_counts_ready = t(gse199750_counts_ready)
+# Obter a ordem dos índices das linhas em ordem crescente dos rownames
+ordem_indices <- order(rownames(gse199750_counts_ready))
+
+# Reorganizar as linhas do data frame com base na ordem dos índices
+gse199750_counts_ready <- gse199750_counts_ready[ordem_indices, ]
+
+#Retranspor tabela
+gse199750_counts_ready = t(gse199750_counts_ready)
+
+# Salvar arquivo com rownames
+saveRDS(gse199750_counts_ready, file="gse199750_counts_ready.rds")
+
+
+#########Caso a tabela apresente valores NA na coluna de hgnc_symbol, execute este comando ############
+# Verificar se há valores NA na coluna que será usada como rownames
+any_na <- any(is.na(raw_RNASeq_counts_annGenes$hgnc_symbol))
+print(any_na)  # Será TRUE se houver valores NA
+
+# Verificar se há duplicatas na coluna que será usada como rownames
+any_duplicates <- any(duplicated(raw_RNASeq_counts_annGenes$hgnc_symbol))
+print(any_duplicates)  # Será TRUE se houver duplicatas
+
+
+# Verificar quais linhas possuem NA na coluna "hgnc_symbol"
+rows_with_na <- which(is.na(raw_RNASeq_counts_annGenes$hgnc_symbol))
+
+# Exibir as linhas que possuem NA
+print(rows_with_na) #Neste caso, somente a linha 1599 apresentou NA.
+
+# Selecionar apenas as linhas completas (sem NA) na coluna "hgnc_symbol"
+raw_RNASeq_counts_annGenes <- raw_RNASeq_counts_annGenes[complete.cases(raw_RNASeq_counts_annGenes$hgnc_symbol), ]
+
+# Verificar se ainda há valores NA na coluna "hgnc_symbol" (deve retornar FALSE)
+any_na <- any(is.na(raw_RNASeq_counts_annGenes$hgnc_symbol))
+print(any_na)
+
+```
+
+### Metadata - Adaptando do estudo
+
+A tabela de counts fornecida pelo estudo é nomeada com o Subject ID + Timepoint e não com o codigo GSM. Por isso, teremos de tratar a tabela de metadados. Além disso, ela não possui a coluna de idade. É possível manipular estes dados no excel.
+
+#### Manipulando Subject IDs para Timepoint
+```{r eval=FALSE, include=FALSE}
+######### No R #########
+# Crie a nova coluna "Subject_Timepoint" usando a função paste()
+gse199750_metadata$Subject_Timepoint <- paste(gse199750_metadata$SubjectID, gse199750_metadata$Timepoint, sep = "_")
+
+# Reorganize as colunas do dataframe com select()
+gse199750_metadata <- gse199750_metadata %>%
+  select(Subject_Timepoint, everything())
+
+# Defina a primeira coluna como os rownames
+rownames(gse199750_metadata) <- gse199750_metadata$Subject_Timepoint
+
+gse199750_metadata <- gse199750_metadata[, -1] # Remova a coluna de symbols, pois está definida agora como rownames
+
+# Salvar arquivo com rownames
+saveRDS(gse199750_metadata, file="gse199750_metadata.rds")
+
+######### No Excel #########
+#Depois de manipular as tabelas no Excel, salve como .csv, importe no R, transforme em dataframe e defina os nomes das amostras como rownames.
+gse199750_metadata = as.data.frame(gse199750_metadata)
+rownames(gse199750_metadata) = gse199750_metadata$Samples
+
+
+```
+
+#### Manipulando idades
+```{r eval=FALSE, include=FALSE}
+#### A coluna Age contém números e não é possível ser analisada pelo DESeq2. Para isso, será necessário discriminar as idades. 
+
+# Definir os intervalos para as faixas etárias
+Age_ranges <- c(0, 18, 30, 45, 60, 70, 80, Inf)
+
+# Definir os rótulos para as faixas etárias
+Age <- c("<18", "18-29", "30-44", "45-59", "60-69", "70-79", "80>")
+
+# Adicionar uma nova coluna com as faixas etárias ao data frame
+gse199750_metadata$Age_ranges <- cut(gse199750_metadata$Age, breaks = Age_ranges, labels = Age, right = FALSE)
+
+#Salvar
+write_csv(gse199750_metadata, file="gse199750_metadata_Ages.csv")
+saveRDS(gse199750_metadata, file="gse199750_metadata_Ages.rds")
+
+```
+
+### DESEQ2
+
+Recomendo fazer com as tabelas de counts e metadados fornecidas pelo [estudo](https://bitbucket.org/lynnlab/covirs/src/master/). Somente trate a tabela de counts com anotações dos genes e adicione a coluna de Age dos metadados obtidos diretamente do GEO, pois por algum motivo não é fornecida pelo repositório do estudo.
+
+#### Preparando dados
+
+
+##### Tabela de counts
+```{r eval=FALSE, include=FALSE}
+#####Dividir tabela de counts em vacinas diferentes. 
+#Transpor tabela e transformar em dataframe para facilitar manipulaçao no dplyr
+gse199750_counts_merged_transposed = t(gse199750_counts_merged)
+#Transformar em dataframe
+gse199750_counts_merged_transposed = as.data.frame(gse199750_counts_merged_transposed)
+
+# Filtrar amostras com as duas primeiras imunizações com a BNT162b2
+gse199750_counts_merged_BNT <- filter(gse199750_counts_merged_transposed, first.second.vaccine == "BNT162b2")
+write.csv(gse199750_counts_merged_BNT, file = "gse199750_counts_metadata_BNT.csv")
+
+# Filtrar amostras com as duas primeiras imunizações com a ChAdOx1
+gse199750_counts_merged_AZ <- filter(gse199750_counts_merged_transposed, first.second.vaccine == "ChAdOx1")
+write.csv(gse199750_counts_merged_AZ, file = "gse199750_counts_metadata_AZ.csv")
+
+#Retranspor tabela de counts para formato do DESEQ2
+gse199750_counts_merged_AZ = t(gse199750_counts_merged_AZ)
+gse199750_counts_merged_BNT = t(gse199750_counts_merged_BNT)
+
+#Excluir colunas de metadados
+gse199750_counts_merged_AZ = gse199750_counts_merged_AZ[-c(1:7),]
+gse199750_counts_merged_BNT = gse199750_counts_merged_BNT[-c(1:7),]
+
+#Salvar tabelas
+write.csv(gse199750_counts_merged_AZ, file = "gse199750_counts_AZ.csv") #Salvar em CSV
+write.csv(gse199750_counts_merged_BNT, file = "gse199750_counts_PF.csv") #Salvar em CSV
+
+saveRDS(gse199750_counts_merged_BNT, file="gse199750_counts_PF.rds") #Salvar em RDS
+saveRDS(gse199750_counts_merged_AZ, file="gse199750_counts_AZ.rds") #Salvar em RDS
+```
+
+
+###DESEQ2 - PF versus AZ
+
+```{r}
+###DESEQ2 - PF versus AZ, PF em diferentes tempos, AZ em diferentes tempos
+
+####Definindo design
+
+###### Padronize as variáveis 
+countData <- gse199750_counts_ready
+colData <- gse199750_metadata
+
+###### Defina os fatores ###### 
+colData$Timepointf <- factor(colData$Timepoint)
+colData$Agef <- factor(colData$Age_ranges)
+colData$Sexf <- factor(colData$Sex)
+colData$FirstSecondDosef <- factor(colData$first.second.vaccine)
+colData$ThirdDosef <- factor(colData$third.vaccine)
+colData$Group_I_II = factor(paste0(colData$FirstSecondDosef, colData$Timepointf))
+colData$Group_II_III = factor(paste0(colData$ThirdDosef, colData$FirstSecondDosef))
+
+
+###### Crie o objeto DESeqDataSet ######
+# O design deve incluir todos os fatores que podem influenciar significativamente os dados. Coloque por último o fator de interesse principal - no caso, o fator de primeira ou segunda doses, pois nesta primeira etapa não serão analisados os efeitos de uma terceira dose de vacina heteróloga.
+
+dds <- DESeqDataSetFromMatrix(countData = countData, 
+                              colData = colData, 
+                              design = ~ Sexf + Agef + Group_I_II)
+
+
+
+###### Definir grupo referência ######
+# O timepoint sempre terá como referência o tempo 0, mas os outros grupos serão definidos por ordem alfabética. Como quero avaliar as DEGs de uma vacina contra a outra, defino uma vacina como controle. Faça isso novamente usando a outra vacina como referência, para avaliar as DEGs da vacina isolada pelo tempo.
+
+###### Pré-filtragem ######
+#Mantenha os genes com pelo menos 10 leituras no total.
+
+#Pfizer
+keep <- rowSums(counts(dds)) >= 10
+dds <- dds[keep,]
+
+```
+
+####Executando DESEQ2
+
+```{r}
+###### Executar DESeq ######
+
+#Executar DESeq com método Likelihood-ratio test. Nele, todos os grupos são comparados e influenciados entre si. Ao definir o design reduzido, selecione os fatores menos importantes.
+dds <- DESeq(dds, test = 'LRT', reduced = ~ Sexf + Agef)
+write_rds(dds,file="gse199750_dds_DESeq2_Groups_I-II_Sex-Age.rds")
+
+###### Obter comparações realizadas ######
+resultsNames(dds)
+
+###### Obtendo os DEGs totais ######
+res <- results(dds)
+res <- subset(res, padj < 0.05) #Filtrar genes com padj < 5%
+res <- subset(res, log2FoldChange > 1.0 | log2FoldChange < -1.0) #Filtrar genes com L2FC > 1 e < -1
+#res <- subset(res, FDR < 0.05) #Filtrar genes com False discovery rate < 5% (????? como add)
+res <- res[order(res$padj),]
+summary(res)
+
+# Criar uma tabela de DEGs
+res_degs_table <- data.frame(Gene = rownames(res),
+                          log2FoldChange = res$log2FoldChange,
+                          pvalue = res$pvalue,
+                          padj = res$padj)
+#Salvar tabela
+write.csv(res_degs_table, file = "GSE199750_T0-T1_DEGs-All_Age-Sex_I-II.csv", row.names = FALSE)
+
+######### RESULTADOS #########
+#RES all DEGs
+#Filtro aplicado: LFC > 1 e < -1, padj < 0.05
+#LFC > 0 (up)       : 1044, 80%
+#LFC < 0 (down)     : 265, 20%
+
+```
+
+####Comparando tempos
+
+Nesta comparação, são encontradas DEGs de cada vacina individual nos diferentes tempos. Para comparar uma vacina com a outra em diferentes tempos, é necessário usar contrast = e name =
+
+
+#### BNT162b2
+
+##### Tempos 0 e 1
+
+```{r}
+######### PFIZER ######### 
+
+######### Tempos 1 versus 0 ######### 
+
+# Obter comparação
+res_1_0_bnt <- results(dds, contrast= c("Group_I_II", "BNT162b2V1", "BNT162b2V0")) # Acessar comparação
+res_1_0_bnt <- subset(res_1_0_bnt, padj < 0.05) #excluir genes com padj > 5%
+res_1_0_bnt <- subset(res_1_0_bnt, log2FoldChange > 1.0 | log2FoldChange < -1.0)
+res_1_0_bnt <- res_1_0_bnt[order(res_1_0_bnt$padj),]  #ordenar por padj
+summary(res_1_0_bnt) #Up e Down
+
+# Criar uma tabela de DEGs
+res_1_0_bnt_degs_table <- data.frame(Gene = rownames(res_1_0_bnt),
+                          log2FoldChange = res_1_0_bnt$log2FoldChange,
+                          pvalue = res_1_0_bnt$pvalue,
+                          padj = res_1_0_bnt$padj)
+#Salvar tabela
+write.csv(res_1_0_bnt_degs_table, file = "GSE199750_T0-T1_DEGs-PF_Age-Sex.csv", row.names = FALSE)
+```
+
+##### Tempos 0 e 2
+```{r}
+######### Tempos 2 versus 0 ######### 
+
+# Obter comparação
+res_2_0_bnt <- results(dds, contrast= c("Group_I_II","BNT162b2V2A","BNT162b2V0")) # Acessar comparação usando contrast. O valor referencia é sempre o segundo termo definido.
+res_2_0_bnt <- subset(res_2_0_bnt, padj < 0.05) #excluir genes com padj > 5%
+res_2_0_bnt <- subset(res_2_0_bnt, log2FoldChange > 1.0 | log2FoldChange < -1.0)
+res_2_0_bnt <- res_2_0_bnt[order(res_1_0_bnt$padj),]  #ordenar por padj
+summary(res_2_0_bnt) #Up e Down
+
+# Criar uma tabela de DEGs
+res_2_0_bnt_degs_table <- data.frame(Gene = rownames(res_2_0_bnt),
+                          log2FoldChange = res_2_0_bnt$log2FoldChange,
+                          pvalue = res_2_0_bnt$pvalue,
+                          padj = res_2_0_bnt$padj)
+#Salvar tabela
+write.csv(res_2_0_bnt_degs_table, file = "GSE199750_T0-T2_DEGs-PF_Age-Sex.csv", row.names = FALSE)
+```
+
+##### Tempos 1 e 2
+
+```{r}
+######### Tempos 2 versus 1 ######### 
+# Obter comparação
+res_2_1_bnt <- results(dds, contrast= c("Group_I_II","BNT162b2V2A","BNT162b2V1")) # Acessar comparação usando contrast. O valor referencia é sempre o segundo termo definido.
+res_2_1_bnt <- subset(res_2_1_bnt, padj < 0.05) # Excluir genes com padj > 5%
+res_2_1_bnt <- subset(res_2_1_bnt, log2FoldChange > 1.0 | log2FoldChange < -1.0)
+res_2_1_bnt <- res_2_1_bnt[order(res_2_1_bnt$padj),]  #ordenar por padj
+summary(res_2_1_bnt) #Up e Down
+
+# Criar uma tabela de DEGs
+res_2_1_bnt_degs_table <- data.frame(Gene = rownames(res_2_1_bnt),
+                          log2FoldChange = res_2_1_bnt$log2FoldChange,
+                          pvalue = res_2_1_bnt$pvalue,
+                          padj = res_2_1_bnt$padj)
+#Salvar tabela
+write.csv(res_2_1_bnt_degs_table, file = "GSE199750_T1-T2_DEGs-PF_Age-Sex.csv", row.names = FALSE)
+```
+
+#### ASTRAZENECA
+
+##### Tempos 0 e 1
+```{r}
+######### ASTRAZENECA ######### 
+# Obter comparação
+res_1_0_chad <- results(dds, contrast= c("Group_I_II","ChAdOx1V1","ChAdOx1V0")) # Acessar comparação usando contrast. O valor referencia é sempre o segundo termo definido.
+res_1_0_chad <- subset(res_1_0_chad, padj < 0.05) #excluir genes com padj (=False discovery rate) > 5%
+res_1_0_chad <- subset(res_1_0_chad, log2FoldChange > 1.0 | log2FoldChange < -1.0)
+res_1_0_chad <- res_1_0_chad[order(res_1_0_chad$padj),]  #ordenar por padj
+summary(res_1_0_chad) #Up e Down
+
+# Criar uma tabela de DEGs
+res_1_0_chad_degs_table <- data.frame(Gene = rownames(res_1_0_chad),
+                          log2FoldChange = res_1_0_chad$log2FoldChange,
+                          pvalue = res_1_0_chad$pvalue,
+                          padj = res_1_0_chad$padj)
+#Salvar tabela
+write.csv(res_1_0_chad_degs_table, file = "GSE199750_T0-T1_DEGs-AZ_Age-Sex.csv", row.names = FALSE)
+```
+
+
+##### Tempos 0 e 2
+```{r}
+######### Tempos 2 versus 0 ######### 
+# Obter comparação
+res_2_0_chad <- results(dds, contrast= c("Group_I_II","ChAdOx1V2A","ChAdOx1V0")) # Acessar comparação usando contrast. O valor referencia é sempre o segundo termo definido.
+res_2_0_chad <- subset(res_2_0_chad, padj < 0.05) #excluir genes com padj > 5%
+res_2_0_chad <- subset(res_2_0_chad, log2FoldChange > 1.0 | log2FoldChange < -1.0)
+res_2_0_chad <- res_2_0_chad[order(res_2_0_chad$padj),]  #ordenar por padj
+summary(res_2_0_chad) #Up e Down
+
+# Criar uma tabela de DEGs
+res_2_0_chad_degs_table <- data.frame(Gene = rownames(res_2_0_chad),
+                          log2FoldChange = res_2_0_chad$log2FoldChange,
+                          pvalue = res_2_0_chad$pvalue,
+                          padj = res_2_0_chad$padj)
+#Salvar tabela
+write.csv(res_2_0_chad_degs_table, file = "GSE199750_T0-T2_DEGs-AZ_Age-Sex.csv", row.names = FALSE)
+```
+
+##### Tempos 1 e 2
+
+```{r}
+######### Tempos 2 versus 1 ######### 
+# Obter comparação
+res_2_1_chad <- results(dds, contrast= c("Group_I_II","ChAdOx1V2A","ChAdOx1V1")) # Acessar comparação usando contrast. O valor referencia é sempre o segundo termo definido.
+res_2_1_chad <- subset(res_2_1_chad, padj < 0.05) #excluir genes com padj > 5%
+res_2_1_chad <- subset(res_2_1_chad, log2FoldChange > 1.0 | log2FoldChange < -1.0)
+res_2_1_chad <- res_2_1_chad[order(res_2_1_chad$padj),]  #ordenar por padj
+summary(res_2_1_chad) #Up e Down
+
+# Criar uma tabela de DEGs
+res_2_1_chad_degs_table <- data.frame(Gene = rownames(res_2_1_chad),
+                          log2FoldChange = res_2_1_chad$log2FoldChange,
+                          pvalue = res_2_1_chad$pvalue,
+                          padj = res_2_1_chad$padj)
+#Salvar tabela
+write.csv(res_2_1_chad_degs_table, file = "GSE199750_T1-T2_DEGs-AZ_Age-Sex.csv", row.names = FALSE)
+
+```
+
+#### Visualização
+
+##### Comparando DEGs - Dois genes
+
+Os boxplots das counts ficaram iguais às da publicação original!
+
+```{r}
+#Não há diferença de um dds com relevels diferentes, pois o plot será criado com a tabela de counts normalizada, sem a analise diferencial entre vacinas e tempo realizada com o deseq(). Logo, use dds_chad ou dds_bnt.
+
+STAT1 = plotCounts(dds, gene = "STAT1",
+                  intgroup = c("Timepointf", "FirstSecondDosef"), returnData = T)
+
+CXCL10 <- plotCounts(dds, gene = "CXCL10",
+                  intgroup = c("Timepointf", "FirstSecondDosef"), returnData = T)
+
+#Plot 1
+res_boxplot_STAT1 <- ggplot(STAT1, aes(x = Timepointf, y = count, fill = FirstSecondDosef)) +
+  geom_boxplot() +
+  scale_y_log10() +
+  labs(title = "STAT1", x = "Timepointf", y = "Contagem")
+
+#Plot 2
+res_boxplot_CXCL10 <- ggplot(CXCL10, aes(x = Timepointf, y = count, fill = FirstSecondDosef)) +
+  geom_boxplot() +
+  scale_y_log10() +
+  labs(title = "CXCL10", x = "Timepointf", y = "Contagem")
+
+# Plot 1 + 2
+library(cowplot)
+grid_plot <- plot_grid(res_boxplot_STAT1, res_boxplot_CXCL10, ncol = 1)  # Define ncol = 2 para colocar lado a lado
+
+# Visualize o grid
+grid_plot
+
+# Salvando o gráfico como PNG
+ggsave("STAT1-CXCL10.png", plot = grid_plot)
+```
+
+## Visualização de dados
+
+### Volcanoplot
+
+Os volcanoplots das duas vacinas são os mesmos, mas espelhados. Isso significa que definir o nivel de referencia no fator de vacinas é importante para determinar as DEGs up e down. \#### ASTRAZENECA
+
+##### Astrazeneca 
+
+```{r}
+
+#All
+volcano_res <- EnhancedVolcano(res, 
+                                    lab = rownames(res),
+                                    x = 'log2FoldChange',
+                                    y = 'pvalue',
+                                    title='Differential expression of genes - All timepoints - ChAdOx1')
+# Save the plot as a PNG file
+png("gse199750_volcanoplot_DEGs_allfactores_AZ.png", width = 800, height = 600)
+print(volcano_res_chad)
+dev.off()
+
+#T1-T0
+volcano_res_chad_1_0 <- EnhancedVolcano(res_1_0_chad, 
+                                    lab = rownames(res_1_0_chad),
+                                    x = 'log2FoldChange',
+                                    y = 'pvalue',
+                                    title='Differential expression of genes - D1 vs. D0 - ChAdOx1')
+# Save the plot as a PNG file
+png("gse199750_volcanoplot_DEGs_D0-D1_AZ.png", width = 800, height = 600)
+print(volcano_res_chad_1_0)
+dev.off()
+
+#T2-T0
+volcano_res_chad_2_0 <- EnhancedVolcano(res_time0_time2_chad, 
+                                    lab = rownames(res_time0_time2_chad),
+                                    x = 'log2FoldChange',
+                                    y = 'pvalue',
+                                    title='Differential expression of genes - D2 vs. D0 - ChAdOx1')
+# Save the plot as a PNG file
+png("gse199750_volcanoplot_DEGs_D0-D2_AZ.png", width = 800, height = 600)
+print(volcano_res_chad_2_0)
+dev.off()
+
+#Plotar mais de um gráfico
+plot_grid(volcano_res_chad, volcano_res_chad_1_0, volcano_res_chad_2_0, ncol = 3) 
+
+```
+
+#### PFIZER
+
+
+```{r}
+volcano_res_1_0_bnt = EnhancedVolcano(res_1_0_bnt,
+    lab = rownames(res_1_0_bnt),
+    x = 'log2FoldChange',
+    y = 'pvalue',
+    title='Differential expression of genes - D0, D1')
+
+# Save the plot as a PNG file
+png("gse199750_volcanoplot_DEGs_v0-v1.png", width = 800, height = 600)
+print(plot)
+dev.off()
+
+EnhancedVolcano(res_2_0_bnt,
+    lab = rownames(res_2_0_bnt),
+    x = 'log2FoldChange',
+    y = 'pvalue',
+    title='Differential expression of genes - D0, D2')
+
+# Save the plot as a PNG file
+png("gse199750_volcanoplot_DEGs_v0-v2.png", width = 800, height = 600)
+print(plot)
+dev.off()
+
+
+
+
+```
+
+###Heatmap
+
+```{r}
+install.packages("genefilter")
+install.packages("pheatmap")
+library("genefilter")
+library(pheatmap)
+
+# teste heatmap
+head(res)
+
+#Obter DEGs do estudo
+heat_test = data.frame(res)
+heat_test$genes = rownames(res)
+
+#Obter counts dos DEGs
+heat_count = countData
+heat_count$genes = rownames(countData) 
+
+#Unir tabelas
+###A tabela agora possui os valores de counts e outras estatísticas do objeto deseq2 pareadas pelos DEGs.
+merged_heat = merge(heat_test, heat_count, by = 'genes')
+merged_head = merged_heat[order(merged_heat$padj),] #ordenar
+```
+
+
+```{r}
+
+BiocManager::install("ComplexHeatmap")
+library(ComplexHeatmap)
+
+#Cores
+tp_cols = c("V0" = "steelblue2", "V1" = "goldenrod","V2A"="firebrick3","V3A"="grey44")
+v_cols = c("ChAdOx1" = "violetred2", "BNT162b2" = "deepskyblue2","mRNA-1273" = "goldenrod")
+
+# Transformar as counts dos DEGs em matriz e normalizar 
+data2plot = as.matrix(merged_heat[,8:267])
+zzz <- t(scale(t(data2plot))) #Scale to Z scores by Row. 
+zzz <- pmin(pmax(zzz, -3), 3)
+
+#Transformar em dataframe
+test = data.frame(zzz)
+test$genes = merged_heat$genes
+test = test |> tidyr::gather("samples", "expression", -genes)
+tail(test)
+
+zzz_filtered = subset(test, expression > 2 & samples == 'COVIRS_41_V0')
+dim(zzz_filtered)
+head(zzz_filtered)
+#clusterizar com euclidean distance
+#exportar tabela
+# filtra com GOs
+
+
+ha = HeatmapAnnotation(df = colData[,c("Timepoint","FirstSecondDosef")],
+                       col = list(Timepoint = tp_cols,
+                                  FirstSecondDosef = v_cols))
+
+
+Heatmap(zzz,show_row_names = FALSE,
+        show_column_names = FALSE,cluster_rows=TRUE,cluster_columns = TRUE,
+        top_annotation = ha,col=c("darkgreen","azure2","darkorchid4"),column_split=colData$Timepoint,
+        column_title="Heatplot")
+
+```
+
+##Análise de enriquecimento
+
+### Gene ontology
+
+BP = Biological process MF = Molecular function CC = Cell compartment <https://uclouvain-cbio.github.io/WSBIM2122/sec-gsea.html> <https://rpubs.com/jrgonzalezISGlobal/enrichment>
+
+####Por tempo
+
+```{r}
+gene_list_res <- rownames(res)
+ego_res <- enrichGO(gene          = gene_list_res,
+                OrgDb        = org.Hs.eg.db,
+                ont          = "BP", 
+                keyType = "SYMBOL",
+                pAdjustMethod = "BH",
+                pvalueCutoff  = 0.05,
+                qvalueCutoff  = 0.05)
+
+ego_res_table <- data.frame(ego_res)
+write.csv(ego_res_table, file = "GSE199750_alldegs_EnrGO_DEGs.csv", row.names = FALSE)
+
+
+#Tempos 0 e 1
+gene_list_0_1 <- rownames(res_time0_time1)
+ego_res_0_1 <- enrichGO(gene          = gene_list_0_1,
+                OrgDb        = org.Hs.eg.db,
+                ont          = "BP", 
+                keyType = "SYMBOL",
+                pAdjustMethod = "BH",
+                pvalueCutoff  = 0.05,
+                qvalueCutoff  = 0.05)
+ego_res_0_1_table <- data.frame(ego_res_0_1)
+write.csv(ego_res_0_1_table, file = "GSE199750_T0-T1_EnrGO_DEGs.csv", row.names = FALSE)
+
+#Tempos 0 e 2
+gene_list_0_2 <- rownames(res_time0_time2)
+ego_res_0_2 <- enrichGO(gene          = gene_list_0_2,
+                OrgDb        = org.Hs.eg.db,
+                ont          = "BP", 
+                keyType = "SYMBOL",
+                pAdjustMethod = "BH",
+                pvalueCutoff  = 0.05,
+                qvalueCutoff  = 0.05)
+
+ego_res_0_2_table <- data.frame(ego_res_0_2)
+write.csv(ego_res_0_2_table, file = "GSE199750_T0-T2_EnrGO_DEGs.csv", row.names = FALSE)
+
+
+
+
+
+
+ego_res_plot <- dotplot(ego_res, showCategory=15) + ggtitle("GO - All_res")
+ggsave("GO-Res_all.png", plot = ego_res_plot)
+
+ego_res_0_1_plot <- dotplot(ego_res_0_1, showCategory=15) + ggtitle("GO - V0-V1")
+ggsave("GO-V0-V1.png", plot = ego_res_0_1_plot)
+
+ego_res_0_2_plot <- dotplot(ego_res_0_2, showCategory=15) + ggtitle("GO - V0-V2")
+ggsave("GO-V0-V2.png", plot = ego_res_0_2_plot)
+
+ego_res_1_2_plot <- dotplot(ego_res_1_2, showCategory=15) + ggtitle("GO - V1-V2")
+ggsave("GO-V1-V2.png", plot = ego_res_1_2_plot)
+
+
+# Crie o grid com os dois plots
+grid_plot_1 <- plot_grid(ego_res_0_1_plot, ego_res_0_2_plot, ncol=2)  # Define ncol = 2 para colocar lado a lado
+
+# Crie o grid com os dois plots
+grid_plot_2 <- plot_grid(ego_res_plot, ego_res_1_2_plot, ncol=2)  # Define ncol = 2 para colocar lado a lado
+```
+
+###Por vacina
+
+```{r}
+gene_list_res_PF_AZ <- rownames(res_PF_AZ)
+ego_res_PF_AZ <- enrichGO(gene          = gene_list_res_PF_AZ,
+                OrgDb        = org.Hs.eg.db,
+                ont          = "BP", 
+                keyType = "SYMBOL",
+                pAdjustMethod = "BH",
+                pvalueCutoff  = 0.05,
+                qvalueCutoff  = 0.05)
+
+ego_res_PF_AZ_plot <- dotplot(ego_res_PF_AZ, showCategory=15) + ggtitle("GO - All_res - PF-AZ")
+ggsave("GO-Res_all.png", plot = ego_res_plot)
+```
+
+```{r}
+library(enrichplot)
+barplot(ego_res, showCategory=15) + ggtitle("GO - All_res")
+ggsave("GO-All_barplot.png", plot = {barplot(ego_res, showCategory=15) + ggtitle("GO - All_res")})
+ggsave("GO-V0-V1_barplot.png", plot = {barplot(ego_res_0_1, showCategory=15) + ggtitle("GO - V0-V1")})
+ggsave("GO-V0-V2_barplot.png", plot = {barplot(ego_res_0_2, showCategory=15) + ggtitle("GO - V0-V2")})
+ggsave("GO-V1-V2_barplot.png", plot = {barplot(ego_res_1_2, showCategory=15) + ggtitle("GO - V1-V2")})
+```
+
+### GSEA
+
+#### Celltype
+
+```{r}
+
+#Obter genes de um conjunto específico diretamente do MSigDB. Neste caso, usar o C8 para tipos celulares.
+msig_C8 <- msigdbr(species = "Homo sapiens", category = "C8")
+gene_list_res <- rownames(res)
+
+# Mapear gene symbols para Entrez IDs
+mapped_gene_ids <- bitr(gene_list_res,
+                         fromType = "SYMBOL",
+                         toType = "ENTREZID",
+                         OrgDb = org.Hs.eg.db)
+
+
+# Realize o enriquecimento de ontologia com a lista de genes mapeados
+gse_results <- gseGO(geneList = mapped_gene_ids,
+                     keyType = "ENTREZID",
+                     OrgDb = org.Hs.eg.db)
+
+# Visualize os resultados
+print(gse_results)
+
+
+msig_C8$entrez_gene
+
+
+
+
+```
+
+teste enrich gsea
+
+```{r}
+library("msigdbr")
+msig_c8 <- msigdbr(species = "Homo sapiens", category = "c8") %>%
+    dplyr::select(gs_name, entrez_gene) %>%
+    dplyr::rename(ont = gs_name, gene = entrez_gene)
+msig_h
+
+
+```
+
+###Principal component analysis
+
+```{r}
+# Create a PCA plot based on p-values
+pca_data <- prcomp(t(assay(dds)))  # Perform PCA on the transposed count or normalized data
+
+# Create a dataframe with PCA components and Timepointf and FirstSecondDosef
+pca_df <- data.frame(PC1 = pca_data$x[, 1], PC2 = pca_data$x[, 2],
+                     Timepointf = colData(dds)$Timepointf,
+                     FirstSecondDosef = colData(dds)$FirstSecondDosef)
+
+# Plot the PCA using ggplot2
+ggplot(pca_df, aes(x = PC1, y = PC2, color = Timepointf, shape = FirstSecondDosef)) +
+  geom_point(size = 3) +
+  labs(title = "PCA Plot", x = "PC1", y = "PC2") +
+  theme_minimal()
+
+
+
+```
+
+# GSE206023
+
+Este estudo descreve o efeito da vacinação com a terceira dose em indivíduos vacinados com as duas primeiras doses da vacina inativada BBIBP. Os participantes foram divididos em dois grupos, um com a terceira dose homóloga e outra com a heteróloga (vacina de subunidade). Logo, para discriminar a resposta de uma segunda dose para as amostras coletadas pós vacinação com a terceira, usaremos a amostra coletada pré-terceira dose. (?)
+
+## Baixar e processar arquivos
+
+```{r}
+#Baixar dados sobre o estudo.  
+
+gse206023 <- getGEO("GSE206023", GSEMatrix = TRUE) #Use GSEMatrix = TRUE para obter metadados de cada amostra
+gse206023 <- gse206023[[1]] #Analisar o primeiro objeto da lista. Este é o dataset de uma plataforma, mas é possivel em um único estudo terem mais plataformas.
+
+#Analisar informações sobre amostras
+gse206023_metadata <- pData(gse206023) #Informações sobre amostras
+colnames(gse206023_metadata) #Veja quais colunas são interessantes: "title", geo_accession", "source_name_ch1", "organism_ch1", "time:ch1", "treatment:ch1".
+
+# É importante que a coluna title seja importada, porque as amostras na matriz de contagem são nomeadas dessa forma e precisam ser iguais para criar o objeto DESeq2.
+
+gse206023_metadata <- select(gse206023_metadata,"title", "geo_accession", "source_name_ch1", "organism_ch1", "time:ch1", "treatment:ch1"  )  #selecionar colunas de interesse e ordenar.
+
+colnames(gse206023_metadata) <- c("Sample name", "GEO", "Sample type", "Organism", "Timepoints", "Vaccine") #Renomear
+
+#Salvar arquivo
+write.csv(gse206023_metadata, file="gse206023_metadata.csv")
+saveRDS(gse206023_metadata, file="gse206023_metadata.rds")
+```
+
+## Importar matriz de contagem
+
+```{r}
+# A matriz fornecida no GEO está em formato .txt tab delim, com decimais definidos por ".". Assim, use o read.delim e salve o arquivo.
+gse206023_counts <- read.delim(file="GSE206023_tpm_of_48_samples.txt", header = TRUE, sep = "\t", dec = ".")
+write.csv(gse206023_counts, file="gse206023_counts.csv")
+saveRDS(gse206023_counts, file = "gse206023_counts.rds")
+```
+
+## Anotação de genes
+
+Os genes já estão anotados com os nomes oficiais.
+
+### Salvar dataframes Salve os dataframes de counts e de metadados em arquivos .rds.
+
+Isto é interessante caso você queira retomar as análises sem precisar processar todos os dados novamente. Isso é importante para economizar espaço.
+
+```{r}
+
+#Talvez, seja necessário copiar e colar este código no Console, porque não gera o arquivo sozinho.
+saveRDS(gse206023_counts, file = "counts_gse206023.rds")
+
+```
+
+## Análise de dados
+
+### Análise de expressão genica diferencial
+
+#### Padronizar dados para DESeq2
+
+```{r}
+#Converta o arquivo de counts em dataframe e transforme a primeira coluna em rownames. Isso retirará a coluna como variável e resultará em números iguais de obs (metadata) e variables (counts)
+
+
+############ Matrix counts ############
+
+gse206023_counts <- as.data.frame(gse206023_counts)
+rownames(gse206023_counts) <- gse206023_counts$Name # Defina a primeira coluna como os rownames
+gse206023_counts <- gse206023_counts[, -1] # Remova a primeira coluna de índices
+
+gse206023_counts <- gse206023_counts[, -1] # Remova a coluna de Name, pois está definida agora como rownames
+
+# Salvar arquivo com rownames
+saveRDS(gse206023_counts, file="gse206023_counts_ready.rds")
+
+########## Metadata #############
+
+gse206023_metadata <- as.data.frame(gse206023_metadata)
+rownames(gse206023_metadata) <- gse206023_metadata$`Sample name` # Defina a primeira coluna como os rownames
+
+gse206023_metadata <- gse206023_metadata[, -1] # Remova a coluna de Name, pois está definida agora como rownames
+
+# Salvar arquivo com rownames
+saveRDS(gse206023_metadata, file="gse206023_metadata_ready.rds")
+```
+
+```{r}
+#########Caso a tabela apresente valores NA na coluna de hgnc_symbol, execute este comando ############
+# Verificar se há valores NA na coluna que será usada como rownames
+any_na <- any(is.na(raw_RNASeq_counts_annGenes$hgnc_symbol))
+print(any_na)  # Será TRUE se houver valores NA
+
+# Verificar se há duplicatas na coluna que será usada como rownames
+any_duplicates <- any(duplicated(raw_RNASeq_counts_annGenes$hgnc_symbol))
+print(any_duplicates)  # Será TRUE se houver duplicatas
+
+
+# Verificar quais linhas possuem NA na coluna "hgnc_symbol"
+rows_with_na <- which(is.na(raw_RNASeq_counts_annGenes$hgnc_symbol))
+
+# Exibir as linhas que possuem NA
+print(rows_with_na) #Neste caso, somente a linha 1599 apresentou NA.
+
+# Selecionar apenas as linhas completas (sem NA) na coluna "hgnc_symbol"
+raw_RNASeq_counts_annGenes <- raw_RNASeq_counts_annGenes[complete.cases(raw_RNASeq_counts_annGenes$hgnc_symbol), ]
+
+# Verificar se ainda há valores NA na coluna "hgnc_symbol" (deve retornar FALSE)
+any_na <- any(is.na(raw_RNASeq_counts_annGenes$hgnc_symbol))
+print(any_na)
+
+
+```
+
+#### Criar objeto DESeq2
+
+```{r}
+##Defina as variáveis
+countData <- gse206023_counts_ready
+colData <- gse206023_metadata #coloque metadata_ready caso faça o upload direto
+
+## Padronize as variáveis. Para que o objeto DESeq seja criado, os valores da matriz de contagem devem ser inteiros. 
+
+# Verifique se os valores em countData são números inteiros
+if (!all(is.integer(countData))) {
+  # Se os valores não forem inteiros, faça a conversão
+  countData <- as.matrix(round(countData))
+}
+
+# Defina os fatores. 
+colData$Timepointf <- factor(colData$Timepoints)
+colData$Vaccinef <- factor(colData$Vaccine)
+
+# Crie o objeto DESeqDataSet. O design deve incluir todos os fatores que podem influenciar significativamente os dados. Coloque por último o fator de interesse principal, que no caso considera a interação entre fatores, já que são comparadas vacinas em diferentes timepoints. 
+
+dds <- DESeqDataSetFromMatrix(countData = countData, colData = colData, design = ~Timepointf + Vaccinef + Timepointf:Vaccinef)
+
+
+#Pré-filtragem. Mantenha os genes com pelo menos 10 leituras no total.
+keep <- rowSums(counts(dds)) >= 10
+dds <- dds[keep,]
+
+# Executar DESeq
+dds <- DESeq(dds)
+write_rds(dds,file="gse206023_dds_DESeq2_time_vaccine.rds")
+
+# Obtendo os genes diferencialmente expressos:
+res <- results(dds)
+res
+
+# Para obter informações sobre quais variáveis e testes foram usados e quantos genes foram significativamente up (LFC > 0) e down (LFC < 0)regulados:
+summary (res)
+
+#Salvar tabela deseq
+write_rds(res,file="gse206023_res_DESeq2_time_vaccine.rds")
+
+```
+
+#### Volcanoplot
+
+```{r}
+#Visualização do volcanoplot
+
+plot <- EnhancedVolcano(res,
+    lab = rownames(res),
+    x = 'log2FoldChange',
+    y = 'pvalue',
+    title='Differential expression of genes - GSE206023')
+plot
+
+# Save the plot as a PNG file
+png("gse206023_volcanoplot_DEGs_allfactores.png", width = 800, height = 600)
+print(plot)
+dev.off()
+
+```
+
+# GSE201533 - Fazer
+
+## Baixar e processar arquivos
+
+```{r}
+#Baixar dados sobre o estudo.  
+
+gse201533 <- getGEO("GSE201533", GSEMatrix = TRUE) #Use GSEMatrix = TRUE para obter metadados de cada amostra
+gse201533 <- gse201533[[1]] #Analisar o primeiro objeto da lista. Este é o dataset de uma plataforma, mas é possivel em um único estudo terem mais plataformas.
+
+#Analisar informações sobre amostras
+gse201533_metadata <- pData(gse201533) #Informações sobre amostras
+colnames(gse201533_metadata) #Veja quais colunas são interessantes: ""title", "geo_accession", "source_name_ch1", "organism_ch1", "age:ch1", "vaccine:ch1".
+
+# É importante que a coluna title seja importada, porque as amostras na matriz de contagem são nomeadas dessa forma e precisam ser iguais para criar o objeto DESeq2.
+
+gse201533_metadata <- select(gse201533_metadata,"title", "geo_accession", "source_name_ch1", "organism_ch1", "age:ch1", "vaccine:ch1" )  #selecionar colunas de interesse e ordenar.
+
+colnames(gse201533_metadata) <- c("Sample name", "GEO", "Sample type", "Organism", "Age", "Vaccine_dose") #Renomear
+
+########## dividir a coluna de vaccine_dose separado por ,
+
+#Salvar arquivo
+write.csv(gse201533_metadata, file="gse201533_metadata.csv")
+saveRDS(gse201533_metadata, file="gse201533_metadata.rds")
+```
+
+## Importar matriz de contagem
+
+```{r}
+#Ler arquivos e transformar em tabela.
+
+##Abra a lista do estudo e analise as informações sobre o estudo. Ao descompactar, surgem diversos arquivos *.txt.gz, que devem ser descompactados. Para descompactar a lista toda, use um loop com gunzip. É recomendado copiar e colar isto no console, em vez de rodar pelo R studio.
+
+arquivos_gz_gse201533 <- list.files(pattern = "*txt.gz$", full.names = TRUE)
+for(arquivo_gz in arquivos_gz_gse201533) {gunzip(arquivo_gz)} #Isto deve demorar, então confia
+
+##Ler arquivos e criar tabela. Copie e cole no console.
+arquivos_txt_gse201533 <- list.files(pattern = "*.txt$", full.names = TRUE)
+lista_dados_gse201533 <- list()
+
+#Se estiver usando o RStudio, vá para o working directory no painel à direita, defina como working directory de novo, copie o código abaixo e cole no console.
+for(i in seq_along(arquivos_txt_gse201533)) {
+  # Leia o arquivo e armazene os dados na lista
+  lista_dados_gse201533[[i]] <- read.table(arquivos_txt_gse201533[i], header = TRUE, sep = "\t")
+}
+
+#Analise as informações de cada ítem da lista
+View(lista_dados_gse201533)
+
+```
+
+### Lista de dataframes para um único dataframe
+
+As linhas correspondem aos genes e as colunas, a cada amostra/dataframe.
+
+```{r}
+# Obtenha o número total de linhas nos dataframes
+total_linhas <- max(sapply(lista_dados_gse201533, nrow))
+
+# Crie um dataframe vazio com nomes de colunas corretos
+counts_gse201533 <- data.frame(matrix(NA, nrow = total_linhas, ncol = length(lista_dados_gse201533)))
+
+colnames(counts_gse201533) <- paste0("GSM", seq_along(lista_dados_gse201533) + 6066177) #Trocar o nome das colunas (ex. "X21.01684.hisat2.bam") pelos códigos GSM correspondentes, que no caso começam com GSM6066178. Isso facilitará a integração dos dados.
+
+# Percorra a lista de dataframes e preencha as colunas correspondentes
+for (i in seq_along(lista_dados_gse201533)) {
+  df <- lista_dados_gse201533[[i]]
+  coluna_2 <- df[, 2]
+  counts_gse201533[, i] <- coluna_2[1:total_linhas]
+}
+
+# Verifique o dataframe resultante
+print(counts_gse201533)
+
+#colnames(counts_gse201533) <- paste0("Sample_", seq_along(lista_dados_gse201533)) # Defina os nomes das colunas no dataframe resultante, caso queira mudar.
+
+# Adicione uma coluna a mais, criando um merge com outro dataset
+colunas_descritivas <- lista_dados_gse201533[[1]][,1]
+
+counts_gse201533 <- cbind(counts_gse201533, colunas_descritivas) #Adicione as colunas dos genes ao dataframe com as counts
+
+#Reordenar
+counts_gse201533 <- counts_gse201533[, c(ncol(counts_gse201533), 1:(ncol(counts_gse201533) - 1))]
+
+#Mudar nomes
+counts_gse201533$colunas_descritivas <- counts_gse201533[, 1]
+names(counts_gse201533)[1] <- "geneid"
+
+# Substituir valores NA por 0 em todo o dataframe
+counts_gse201533[is.na(counts_gse201533)] <- 0 
+
+#Crie uma lista com os dois dataframes de contagem e de infos sobre cada amostra
+
+counts_sample_info <- list(counts_gse201533, gse201533_sampleinfo)
+
+```
+
+## Anotação de genes
+
+Os genes já estão anotados com os nomes oficiais.
+
+### Salvar dataframes Salve os dataframes de counts e de metadados em arquivos .rds.
+
+Isto é interessante caso você queira retomar as análises sem precisar processar todos os dados novamente. Isso é importante para economizar espaço.
+
+```{r}
+
+#Talvez, seja necessário copiar e colar este código no Console, porque não gera o arquivo sozinho.
+saveRDS(counts_gse201533, file = "gse201533_counts.rds")
+write.csv(counts_gse201533, file="gse201533_counts.csv")
+
+```
+
+## Análise de dados
+
+### Análise de expressão genica diferencial
+
+#### Padronizar dados para DESeq2
+
+```{r}
+#Converta o arquivo de counts em dataframe e transforme a primeira coluna em rownames. Isso retirará a coluna como variável e resultará em números iguais de obs (metadata) e variables (counts)
+
+
+############ Matrix counts ############
+
+gse201533_counts <- as.data.frame(counts_gse201533)
+rownames(gse201533_counts) <- gse201533_counts$geneid # Defina a primeira coluna como os rownames
+gse201533_counts <- gse201533_counts[, -1] # Remova a coluna de geneid, pois está definida agora como rownames
+
+# Salvar arquivo com rownames
+saveRDS(gse201533_counts, file="gse201533_counts_ready.rds")
+
+########## Metadata #############
+
+gse201533_metadata <- as.data.frame(gse201533_metadata)
+rownames(gse201533_metadata) <- gse201533_metadata$`GEO` # Defina GEO como os rownames
+
+#A coluna de Sample name corresponde aos timepoints da coleta de amostra pós vacinacao. Por isso, vamos extrair somente o numero do timepoint (0,2,3,4,7)
+# Extrair somente o padrão "0, 4, 7"
+gse201533_metadata$Timepoint <- sub(".*(0|2|3|4|7).*", "\\1", gse201533_metadata$`Sample name`)
+
+# Visualizando o resultado
+head(gse201533_metadata)
+
+# Remova as colunas indesejadas
+gse201533_metadata <- gse201533_metadata[, -2] #Remover coluna Sample names
+gse201533_metadata <- gse201533_metadata[, -1] # Remover coluna GEO
+
+# Salvar arquivo com rownames
+saveRDS(gse201533_metadata, file="gse201533_metadata_ready.rds")
+```
+
+#Troubleshooting
+
+```{r}
+#########Caso a tabela apresente valores NA na coluna de hgnc_symbol, execute este comando ############
+# Verificar se há valores NA na coluna que será usada como rownames
+any_na <- any(is.na(gse201533_counts$geneid))
+print(any_na)  # Será TRUE se houver valores NA
+
+# Verificar se há duplicatas na coluna que será usada como rownames
+any_duplicates <- any(duplicated(gse201533_counts$geneid))
+print(any_duplicates)  # Será TRUE se houver duplicatas
+
+# Verificar quais linhas possuem NA na coluna "geneid"
+rows_with_na <- which(is.na(gse201533_counts$geneid))
+
+# Exibir as linhas que possuem NA
+print(rows_with_na) #nenhuma linha apresentou NA
+
+# Selecionar apenas as linhas completas (sem NA) na coluna "hgnc_symbol"
+raw_RNASeq_counts_annGenes <- raw_RNASeq_counts_annGenes[complete.cases(raw_RNASeq_counts_annGenes$hgnc_symbol), ]
+
+# Verificar se ainda há valores NA na coluna "hgnc_symbol" (deve retornar FALSE)
+any_na <- any(is.na(raw_RNASeq_counts_annGenes$hgnc_symbol))
+print(any_na)
+
+
+```
+
+#### Criar objeto DESeq2
+
+```{r}
+##Defina as variáveis
+countData <- gse201533_counts_ready #use a gse201533_counts_ready caso abra o R studio aqui
+colData <- gse201533_metadata_ready #coloque metadata_ready caso faça o upload direto
+
+## Padronize as variáveis. Para que o objeto DESeq seja criado, os valores da matriz de contagem devem ser inteiros. 
+
+# Verifique se os valores em countData são números inteiros
+if (!all(is.integer(countData))) {
+  # Se os valores não forem inteiros, faça a conversão
+  countData <- as.matrix(round(countData))
+}
+
+
+# Defina os fatores. 
+colData$Dosef <- factor(colData$Dose)
+colData$Vaccinef <- factor(colData$Vaccine)
+colData$Timepointf <- factor(colData$Timepoint)
+
+
+# Crie o objeto DESeqDataSet. O design deve incluir todos os fatores que podem influenciar significativamente os dados. Coloque por último o fator de interesse principal, que no caso considera a interação entre fatores, já que são comparadas vacinas em diferentes timepoints. 
+
+dds <- DESeqDataSetFromMatrix(countData = countData, colData = colData, design = ~Timepointf + Dosef + Vaccinef)
+
+
+#Pré-filtragem. Mantenha os genes com pelo menos 10 leituras no total.
+keep <- rowSums(counts(dds)) >= 10
+dds <- dds[keep,]
+
+# Executar DESeq
+dds <- DESeq(dds)
+write_rds(dds,file="gse201533_dds_DESeq2_time_vaccine.rds")
+
+# Obtendo os genes diferencialmente expressos:
+res <- results(dds)
+
+# Para obter informações sobre quais variáveis e testes foram usados e quantos genes foram significativamente up (LFC > 0) e down (LFC < 0)regulados:
+summary (res)
+
+#Salvar tabela deseq
+write_rds(res,file="gse201533_res_DESeq2_vaccine.rds")
+
+```
+
+#### Volcanoplot
+
+```{r}
+#Visualização do volcanoplot
+
+plot <- EnhancedVolcano(res,
+    lab = rownames(res),
+    x = 'log2FoldChange',
+    y = 'pvalue',
+    title='Differential expression of genes - GSE201533')
+plot
+
+# Save the plot as a PNG file
+png("gse201533_volcanoplot_DEGs_allfactores.png", width = 800, height = 600)
+print(plot)
+dev.off()
+
+```
+
+# GSE205402 - Não rolou
+
+## Informações sobre o estudo
+
+**Summary:** Bulk mRNA sequencing of whole blood from health-care professionals aged 28-65 years was perfomed in samples collected before and three days after the second dose of BNT162b2, in order to analyze the human immune response to dual mRNA immunization with the mRNA BNT162b2 vaccine.
+
+**Abstract:** In our study, we used whole-RNA sequencing along with detailed immunophenotyping of antigen-specific T cells and humoral RBD-specific response to dual immunization with the Pfizer--BioNTech mRNA vaccine (BNT162b2) and correlated them with response to an additional dose, administered 10 months later, in order to comprehensively profile the immune response of healthy volunteers to BNT162b2.
+
+**Referência**: SARS-CoV-2 mRNA Dual Immunization Induces Innate Transcriptional Signatures, Establishes T-Cell Memory and Coordinates the Response to Booster. PMID: 36679948
+
+**Dados sobre as amostras**\
+- Participants: 18 - Sample number: 22 - Sample type: human whole blood - Sample collection: samples before and after vaccination with the second dose of the mRNA BNT162b2 vaccine - Vaccine: BNT162b2 mRNA - Vaccine regimen: Homologous, 2 doses, 3 weeks apart.\
+- D1, 3 weeks, D2, 10 monts, D3.\
+- Sample collection timepoints: 1 dbv (day 21), 3 dp2v (day 24). dbv = day before vaccination, dp2v = days post-second vaccine dose. No dataset, está somente como "Pre" e "Post".
+
+## Baixar e processar arquivos
+
+```{r}
+#Baixar dados sobre o estudo.  
+
+gse205402 <- getGEO("GSE205402", GSEMatrix = TRUE) #Use GSEMatrix = TRUE para obter metadados de cada amostra
+gse205402 <- gse205402[[1]] #Analisar o primeiro objeto da lista. Este é o dataset de uma plataforma, mas é possivel em um único estudo terem mais plataformas.
+
+#Analisar informações sobre amostras
+gse205402_metadata <- pData(gse205402) #Informações sobre amostras
+colnames(gse205402_metadata) #Veja quais colunas são interessantes: "title", "geo_accession", "source_name_ch1", "organism_ch1", "description", "age:ch1", "gender:ch1", "status:ch1".
+
+# É importante que a coluna title seja importada, porque as amostras na matriz de contagem são nomeadas dessa forma e precisam ser iguais para criar o objeto DESeq2.
+
+gse205402_metadata <- select(gse205402_metadata, "title", "geo_accession", "source_name_ch1", "organism_ch1", "description", "age:ch1", "gender:ch1", "status:ch1")  #selecionar colunas de interesse e ordenar.
+
+colnames(gse205402_metadata) <- c("Sample name", "GEO", "Sample type", "Organism", "Description", "Age", "Sex", "Timepoint") #Renomear
+
+#Salvar arquivo
+write.csv(gse205402_metadata, file="gse205402_metadata.csv")
+saveRDS(gse205402_metadata, file="gse205402_metadata.rds")
+```
+
+## Importar matriz de contagem - Não consegui
+
+Baixe a matrix de contagem pelo GEO diretamente, pois o arquivo .tar é pesado.
+
+```{r}
+# A matriz fornecida no GEO está em formato bedGraph.bigWig, com arquivos para cada amostra. Logo, é um arquivo bedGraph convertido para bigWig. Teremos de converter estes arquivos para uma matriz de contagem. Existe um protocolo aqui: http://lcolladotor.github.io/protocols/bigwig_DEanalysis/
+
+BiocManager::install("derfinder")
+library('derfinder')
+
+# Instalar e carregar os pacotes necessários,
+install.packages("GenomicFeatures")
+BiocManager::install("TxDb.Hsapiens.UCSC.hg38.knownGene") # De acordo com o dataset, a anotação foi feita usando a versão hg38.
+
+library(GenomicFeatures)
+library(TxDb.Hsapiens.UCSC.hg38.knownGene)
+
+# Carregar o banco de dados de anotação do genoma humano hg38
+txdb <- TxDb.Hsapiens.UCSC.hg38.knownGene
+
+# Obter todos os exons do genoma
+exons <- exonsBy(txdb, by="gene")
+
+class(exons)
+# Verificar os exons obtidos
+print(exons)
+
+## Import data and create count matrix
+library('rtracklayer')
+
+## Locate bigWig files. Primeiro, defina seu diretório manualmente e cole o código de listagem de arquivos abaixo no console.
+
+# Listar os arquivos no diretório de trabalho atual
+files <- list.files(pattern = "\\.bedGraph\\.bigWig$", full.names = TRUE)
+files <- gsub('\\.bedGraph.bigWig', '', files) # Remover a extensão ".bigWig" dos nomes dos arquivos
+
+# Dividir os arquivos em grupos de 10
+n <- 10
+file_groups <- split(files, ceiling(seq_along(files)/n))
+
+# Inicializar a matriz de contagem
+counts_exons <- matrix(NA, nrow = length(exons), ncol = length(files))
+colnames(counts_exons) <- files
+
+# Loop para processar os arquivos em grupos
+for (group in file_groups) {
+  bw <- BigWigFileList(paste0(group, ".bedGraph.bigWig"))
+  for (i in seq_len(length(bw))) {
+    coverage <- import(bw[[i]], as = 'RleList')
+    counts_exons[, group[i]] <- sum(Views(coverage, ranges(exons)))
+  }
+  Sys.sleep(10)  # Intervalo de espera de 2 segundos entre cada grupo de arquivos
+}
+
+## Divide by read length and round to integer numbers
+counts <- round(counts / 76, 0)
+
+## Explore a little portion of the count matrix 
+dim(counts)
+
+
+
+
+
+
+
+
+
+## Load the data from disk
+fullCov <- fullCoverage(
+    files = files, chrs = c("chr1"))
+
+
+?fullCoverage
+
+
+gse205402_counts <- untar(file="gse205402_RAW.tar", header = TRUE, sep = "\t", dec = ".")
+write.csv(gse205402_counts, file="gse205402_counts.csv")
+saveRDS(gse205402_counts, file = "gse205402_counts.rds")
+```
+
+## Anotação de genes
+
+Os genes já estão anotados com os nomes oficiais.
+
+### Salvar dataframes Salve os dataframes de counts e de metadados em arquivos .rds.
+
+Isto é interessante caso você queira retomar as análises sem precisar processar todos os dados novamente. Isso é importante para economizar espaço.
+
+```{r}
+
+#Talvez, seja necessário copiar e colar este código no Console, porque não gera o arquivo sozinho.
+saveRDS(gse205402_counts, file = "counts_gse205402.rds")
+
+```
+
+## Análise de dados
+
+### Análise de expressão genica diferencial
+
+#### Padronizar dados para DESeq2
+
+```{r}
+#Converta o arquivo de counts em dataframe e transforme a primeira coluna em rownames. Isso retirará a coluna como variável e resultará em números iguais de obs (metadata) e variables (counts)
+
+
+############ Matrix counts ############
+
+gse205402_counts <- as.data.frame(gse205402_counts)
+rownames(gse205402_counts) <- gse205402_counts$Name # Defina a primeira coluna como os rownames
+gse205402_counts <- gse205402_counts[, -1] # Remova a primeira coluna de índices
+
+gse205402_counts <- gse205402_counts[, -1] # Remova a coluna de Name, pois está definida agora como rownames
+
+# Salvar arquivo com rownames
+saveRDS(gse205402_counts, file="gse205402_counts_ready.rds")
+
+########## Metadata #############
+
+gse205402_metadata <- as.data.frame(gse205402_metadata)
+rownames(gse205402_metadata) <- gse205402_metadata$`Sample name` # Defina a primeira coluna como os rownames
+
+gse205402_metadata <- gse205402_metadata[, -1] # Remova a coluna de Name, pois está definida agora como rownames
+
+# Salvar arquivo com rownames
+saveRDS(gse205402_metadata, file="gse205402_metadata_ready.rds")
+```
+
+```{r}
+#########Caso a tabela apresente valores NA na coluna de hgnc_symbol, execute este comando ############
+# Verificar se há valores NA na coluna que será usada como rownames
+any_na <- any(is.na(raw_RNASeq_counts_annGenes$hgnc_symbol))
+print(any_na)  # Será TRUE se houver valores NA
+
+# Verificar se há duplicatas na coluna que será usada como rownames
+any_duplicates <- any(duplicated(raw_RNASeq_counts_annGenes$hgnc_symbol))
+print(any_duplicates)  # Será TRUE se houver duplicatas
+
+
+# Verificar quais linhas possuem NA na coluna "hgnc_symbol"
+rows_with_na <- which(is.na(raw_RNASeq_counts_annGenes$hgnc_symbol))
+
+# Exibir as linhas que possuem NA
+print(rows_with_na) #Neste caso, somente a linha 1599 apresentou NA.
+
+# Selecionar apenas as linhas completas (sem NA) na coluna "hgnc_symbol"
+raw_RNASeq_counts_annGenes <- raw_RNASeq_counts_annGenes[complete.cases(raw_RNASeq_counts_annGenes$hgnc_symbol), ]
+
+# Verificar se ainda há valores NA na coluna "hgnc_symbol" (deve retornar FALSE)
+any_na <- any(is.na(raw_RNASeq_counts_annGenes$hgnc_symbol))
+print(any_na)
+
+
+```
+
+#### Criar objeto DESeq2
+
+```{r}
+##Defina as variáveis
+countData <- gse205402_counts_ready
+colData <- gse205402_metadata #coloque metadata_ready caso faça o upload direto
+
+## Padronize as variáveis. Para que o objeto DESeq seja criado, os valores da matriz de contagem devem ser inteiros. 
+
+# Verifique se os valores em countData são números inteiros
+if (!all(is.integer(countData))) {
+  # Se os valores não forem inteiros, faça a conversão
+  countData <- as.matrix(round(countData))
+}
+
+
+# Defina os fatores. 
+colData$Timepointf <- factor(colData$Timepoints)
+colData$Vaccinef <- factor(colData$Vaccine)
+
+# Crie o objeto DESeqDataSet. O design deve incluir todos os fatores que podem influenciar significativamente os dados. Coloque por último o fator de interesse principal, que no caso considera a interação entre fatores, já que são comparadas vacinas em diferentes timepoints. 
+
+dds <- DESeqDataSetFromMatrix(countData = countData, colData = colData, design = ~Timepointf + Vaccinef + Timepointf:Vaccinef)
+
+
+#Pré-filtragem. Mantenha os genes com pelo menos 10 leituras no total.
+keep <- rowSums(counts(dds)) >= 10
+dds <- dds[keep,]
+
+# Executar DESeq
+dds <- DESeq(dds)
+write_rds(dds,file="gse205402_dds_DESeq2_time_vaccine.rds")
+
+# Obtendo os genes diferencialmente expressos:
+res <- results(dds)
+res
+
+# Para obter informações sobre quais variáveis e testes foram usados e quantos genes foram significativamente up (LFC > 0) e down (LFC < 0)regulados:
+summary (res)
+
+#Salvar tabela deseq
+write_rds(res,file="gse205402_res_DESeq2_time_vaccine.rds")
+
+```
+
+#### Volcanoplot
+
+```{r}
+#Visualização do volcanoplot
+
+plot <- EnhancedVolcano(res,
+    lab = rownames(res),
+    x = 'log2FoldChange',
+    y = 'pvalue',
+    title='Differential expression of genes - gse205402')
+plot
+
+# Save the plot as a PNG file
+png("gse205402_volcanoplot_DEGs_allfactores.png", width = 800, height = 600)
+print(plot)
+dev.off()
+
+```
+
+
+
+
+
+
+#Express analyst
+
+```{r}
+
+#Obter tabela de counts e metadata
+gse199750_counts = gse199750_counts_ready
+gse199750_metadata = gse199750_Sample_meta_data_RNASeq
+
+#Transpor tabela
+gse199750_metadata = t(gse199750_metadata)
+
+#Unir tabela de metadata com counts
+gse199750_counts_merged <- rbind(gse199750_metadata, gse199750_counts)
+View(gse199750_counts_merged)
+
+#Padronizar os nomes dos rownames da tabela
+
+#Obter os metadados
+head((gse199750_counts_merged), 10)
+
+#Mudar nomes das linhas
+row.names(gse199750_counts_merged)[row.names(gse199750_counts_merged) == "Run"] <- "#CLASS:RUN"
+row.names(gse199750_counts_merged)[row.names(gse199750_counts_merged) == "Timepoint"] <- "#CLASS:TIME"
+row.names(gse199750_counts_merged)[row.names(gse199750_counts_merged) == "Participant.ID"] <- "#CLASS:PARTICIPANT"
+row.names(gse199750_counts_merged)[row.names(gse199750_counts_merged) == "Sex"] <- "#CLASS:SEX"
+row.names(gse199750_counts_merged)[row.names(gse199750_counts_merged) == "first.second.vaccine"] <- "#CLASS:FIRSTVACCINES"
+row.names(gse199750_counts_merged)[row.names(gse199750_counts_merged) == "third.vaccine"] <- "#CLASS:THIRDVACCINE"
+row.names(gse199750_counts_merged)[row.names(gse199750_counts_merged) == "libraryID"] <- "#CLASS:ID"
+
+#Transformar rownames em coluna, pois não abre em csv
+gse199750_counts_merged$"#NAME" <- row.names(gse199750_counts_merged)
+
+#Mover coluna
+gse199750_counts_merged <- gse199750_counts_merged %>% relocate("#NAME", .before = NAME)
+
+#Salvar tabela
+write_csv(gse199750_counts_merged, file="gse199750_counts_metadata.csv")
+```
+
+
+
+
+
+
+

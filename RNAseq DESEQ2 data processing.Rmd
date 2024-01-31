@@ -1,0 +1,2326 @@
+---
+title: "RNAseq Analysis - Generic commands"
+output: html_notebook
+---
+
+---
+title: "RNAseq bulk analysis"
+author: "Wasim"
+date: "2023-06-20"
+output: html_document
+editor_options: 
+  chunk_output_type: inline
+---
+
+# 1. Preparação dos dados
+
+##### Baixar pacotes
+
+```{r eval=FALSE, include=FALSE}
+install.packages("forcats") # útil para agrupar e manipular dados categóricos em análises de RNA-seq.
+install.packages("stringr") # útil para trabalhar com strings no R, o que pode ser útil para manipular e filtrar nomes de genes, por exemplo.
+install.packages("ggplot2") # criação de visualizações de dados
+install.packages("ggbeeswarm")
+install.packages("ggrepel") #é um pacote que fornece uma alternativa ao pacote ggplot2 para ajudar a evitar sobreposição de textos em gráficos.
+install.packages("readr") #importação de arquivos de dados no R, como arquivos CSV, TSV e outros formatos
+install.packages("tidyr") #limpar e organizar dados no R
+install.packages("survminer") #visualização e análise de dados de sobrevivência
+install.packages("Seurat") #pré-processamento de dados, como filtragem, normalização e detecção de células duplas, bem como análises de expressão diferencial, clusterização, visualização de dimensões reduzidas e identificação de marcadores de células
+install.packages("dplyr") # manipulação de dados em R, útil para filtrar, selecionar, ordenar, agrupar e resumir dados
+install.packages("org.Hs.eg.db")
+install.packages("RColorBrewer") #paletas
+install.packages("plotly") #Gráficos interativos
+install.packages("msigdbr")
+install.packages("ape")
+install.packages("sva")
+install.packages("readxl")
+install.packages("gplots")
+install.packages("tibble")
+install.packages("metaRNASeq")
+
+#Instale os pacotes do BioConductor.
+
+if (!require("BiocManager", quietly = TRUE))
+    install.packages("BiocManager") #
+
+BiocManager::install("GEOquery") # baixar e processar dados do Gene Expression Omnibus (GEO)
+
+BiocManager::install("limma") #análise de dados de microarray e RNA-seq, incluindo análise de expressão diferencial e enriquecimento de vias metabólicas.
+
+BiocManager::install("pheatmap") # criação de mapas de calor no R, que podem ser usados para visualização de padrões de expressão gênica em dados de RNA-seq.
+
+BiocManager::install("org.Hs.eg.db") #é um pacote do Bioconductor que contém anotações do genoma humano, incluindo informações sobre a localização dos genes e seus nomes oficiais. Pode ser útil para a anotação dos resultados de análises de RNA-seq.
+
+BiocManager::install("deseq2")
+
+BiocManager::install("biomaRt") #Anotações de genes
+
+BiocManager::install("celldex") # anotações de genes por tipo celular
+
+BiocManager::install("Glimma") #Visualização interativa de resultados de análise de expressão diferencial.
+
+BiocManager::install("edgeR") # Para análise diferencial de expressão
+
+BiocManager::install("NMF") #análise de fatorização de matrizes não negativas (NMF) em dados de expressão genética.
+
+BiocManager::install("BiasedUrn") #Algoritmos para inferência de enriquecimento de conjuntos de genes utilizando métodos de urna viciada.
+
+BiocManager::install("GSVA") # Análise de enriquecimento de vias genéticas usando a variação da atividade de genes ao longo de um conjunto de amostras.
+
+BiocManager::install("sva") #Métodos para ajustar fatores de confusão em análises de expressão genética
+
+BiocManager::install("clusterProfiler") #Fornece ferramentas para análise de enriquecimento funcional e perfilagem de conjuntos de genes
+
+BiocManager::install("pheatmap") #Criação de heatmaps personalizados para visualização de dados de expressão genética.
+
+BiocManager::install("org.Hs.eg.db") #Anotações de genes
+
+BiocManager::install("msigdbr", update = FALSE)
+
+BiocManager::install("EnhancedVolcano")
+
+BiocManager::install("AnnotationDbi")
+
+```
+
+### Bibliotecas
+
+```{r eval=FALSE, include=FALSE}
+library(readr)
+library(qvalue)
+library(explore)
+library(maditr)
+library(GEOquery)
+library(Matrix)
+library(RColorBrewer)
+library(celldex)
+library(biomaRt)
+library(org.Hs.eg.db)
+library(plotly)
+library(DESeq2)
+library(msigdbr)
+library(ape)
+library(GSVA)
+library(sva)
+library(readxl)
+library(clusterProfiler)
+library(pheatmap)
+library(gplots)
+library(EnhancedVolcano)
+library(metaRNASeq)
+library(ggbeeswarm)
+library(editData)
+library(tidyverse)
+library(corrr)
+library(ggcorrplot)
+library(FactoMineR)
+library(factoextra)
+library(esquisse)
+library(corto)
+library(circlize)
+library(ComplexHeatmap)
+library(janitor)
+
+```
+
+## 2. Definir padrões de figuras
+
+#### 2.1. Cores
+```{r}
+# Definir variáveis de cores
+vaxcolors = c(
+  "BBIBP" = "#ffd000",
+  "BNT" = "#56cfe1",
+  "ChAd" = "#80ffdb",
+  "ChAd-BNT" = "#72efdd",
+  "ZF2001" = "#b5179e")
+
+dose_colors = c(
+    "1" = "#56cfe1",
+    "2" = "#5978d4",
+    "3" = "#b5179e")
+
+day_colors = c(
+    "1" = "#caf0f8",
+    "3" = "#90e0ef",
+    "6" = "#00b4d8",
+    "7" = "#0077b6",
+    "14" = "#023e8a",
+    "28" = "#03045e")
+
+type_colors = c('IN'= "#ffd000", #First generation vaccines
+           'LA' = "#ffff3f",
+           'CONJ' = "#f4a261",
+           'VLP' = "#da1e37", #Second generation vaccines
+           'SU' = "#ff4d6d",
+           'PEP' = "#f48498",
+           'VV' = "#72efdd", #Third generation vaccines
+           'RNA' = "#56cfe1",
+           'VV-RNA' = "#5e60ce",
+           'IN-SU' = "#b5179e")
+
+regimen_colors = c('HO' = "#56cfe1",
+              'HE' = "#5e60ce")
+
+immune_system_colors = c(
+    "Innate" = "#faedcd",
+    "Adaptive" = "#ffb5a7",
+    "General" = "#99d98c",
+    "Other" = "#e5e5e5",
+    "Complement" = "#7400b8")
+
+immune_subsystem_colors = c(
+    "Adaptive" = "#ffb5a7",
+    "Cellular" = "#ff758f",
+    "Humoral" = "#ff758f",
+    "Antibacterial" = "#4895ef",
+    "Antifungal" = "#4361ee",
+    "Antimicrobial" = "#7400b8",
+    "General" = "#99d98c",
+    "Antigen presentation" = "#e4c4a5",
+    "APC" = "#ccd5ae",
+    "Eosinophil" = "#faedcd",
+    "Granulocyte" = "#faedcd",
+    "Leukocyte" = "#ffb5a7",
+    "Neutrophil" = "#ccd5ae",
+    "Innate immune response" = "#faedcd",
+    "Interferon" = "#a4c3b2",
+    "Antiviral" = "#60495a",
+    "Pattern recognition receptor" = "#f4f4d5",
+    "Natural killer" = "#fedd96",
+    "Mucosa" = "#c3dfe0",
+    "Erythrocyte" = "#4895ef")
+
+
+
+########## Colors dictionary
+
+#Vaccines
+ann_colors = list(
+  Vaccine = c(
+  "BBIBP" = "#ffd000",
+  "BNT" = "#56cfe1",
+  "ChAd" = "#80ffdb",
+  "ChAd-BNT" = "#5e60ce",
+  "ZF2001" = "#b5179e"),
+  Dose = c(
+    "0" = "gray96",
+    "1" = "#56cfe1",
+    "2" = "#5978d4",
+    "3" = "#b5179e"),
+  Day = c(
+    "0" = "gray96",
+    "1" = "#caf0f8",
+    "3" = "#90e0ef",
+    "6" = "#00b4d8",
+    "7" = "#0077b6",
+    "14" = "#023e8a",
+    "28" = "#03045e"),
+  Type = c('IN'= "#ffd000", #First generation vaccines
+           'LA' = "#ffff3f",
+           'CONJ' = "#f4a261",
+           'VLP' = "#da1e37", #Second generation vaccines
+           'SU' = "#ff4d6d",
+           'PEP' = "#f48498",
+           'VV' = "#72efdd", #Third generation vaccines
+           'RNA' = "#56cfe1",
+           'VV-RNA' = "#5e60ce", #Heterologous
+           'IN-SU' = "#b5179e"),
+  Regimen = c('HO' = "#56cfe1",
+              'HE' = "#5e60ce"))
+
+
+#Rows
+# ann_genesets_heatmap
+ann_colors_rows = list(
+  `immune_system` = c(
+    "Innate" = "#faedcd",
+    "Adaptive" = "#ffb5a7",
+    "General" = "#99d98c",
+    "Other" = "#e5e5e5",
+    "Complement" = "#7400b8",
+    "No enrichment" = "gray90"
+  ),
+  `immune_sub_system` = c(
+    "Adaptive" = "#ffb5a7",
+    "Cellular" = "#ff758f",
+    "Humoral" = "#ff758f",
+    "Antibacterial" = "#4895ef",
+    "Antifungal" = "#4361ee",
+    "Antimicrobial" = "#7400b8",
+    "General" = "#99d98c",
+    "Antigen presentation" = "#e4c4a5",
+    "APC" = "#ccd5ae",
+    "Eosinophil" = "#faedcd",
+    "Granulocyte" = "#faedcd",
+    "Leukocyte" = "#ffb5a7",
+    "Neutrophil" = "#ccd5ae",
+    "Innate immune response" = "#faedcd",
+    "Interferon" = "#a4c3b2",
+    "Antiviral" = "#60495a",
+    "Pattern recognition receptor" = "#f4f4d5",
+    "Natural killer" = "#fedd96",
+    "Mucosa" = "#c3dfe0",
+    "Erythrocyte" = "#4895ef",
+    "No enrichment" = "gray90"
+  )
+)
+
+```
+
+
+
+# 3. Seleção de estudos
+
+## 3.1 Baixar dados
+
+```{r eval=FALSE, include=FALSE}
+#Baixar dados de uma lista de estudos
+
+############ Obter Tabela de counts
+#GEO supplementary files. Baixar individualmente. Arquivos grandes devem ser baixados direto do navegador.
+getGEOSuppFiles('GSE199750') # Baixar tabela de counts
+untar('GSE199750_RAW.tar') # Descompactar tar zipped
+gunzip("GSE206023/GSE206023_tpm_of_48_samples.txt.gz") # Descompactar gunzip (.gz)
+
+
+############ Metadados
+
+filename = "GSE199750"
+gse199750 <- getGEO("GSE199750", GSEMatrix = TRUE) #Use GSEMatrix = TRUE para obter metadados de cada amostra
+gse199750 <- gse199750[[1]] #Analisar o primeiro objeto da lista. Este é o dataset de uma plataforma, mas é possivel em um único estudo terem mais plataformas.
+
+#############Analisar informações sobre amostras. 
+
+gse199750_sampleinfo.ready = gse199750 %>% 
+  pData() %>% #Informações sobre amostras 
+  select( #Selecionar e renomear colunas de interesse
+    GEO = "geo_accession", SampleN = "sample number:ch1", 
+    SubjectID = "subject_id:ch1", Age = "age:ch1", 
+    Sex = "Sex:ch1", Vaccine = "vaccine:ch1", 
+    FirstSecondVaccine = "first/second vaccine:ch1", 
+    ThirdVaccine = "third vaccine:ch1", 
+    Timepoint = "timepoint:ch1", Tissue = "tissue:ch1", 
+    Run = "run:ch1"
+  ) %>%
+  clean_names() %>% #Padronizar nomes das colunas
+  mutate(first_second_dose = coalesce(first_second_vaccine, vaccine),) %>% #Toda linha com valor NA será substituída pelo valor da outra coluna 
+  select(-first_second_vaccine, - vaccine) %>% #Deletar colunas
+  mutate(first_second_dose = case_when( #Padronizar nomes
+                              grepl("BNT", first_second_dose, ignore.case = TRUE) ~ "BNT",
+                              grepl("ChAdOx1", first_second_dose, ignore.case = TRUE) ~ "ChAd",
+                              TRUE ~ first_second_dose),
+        third_vaccine = case_when(
+                              grepl("mRNA-1273", third_vaccine, ignore.case = TRUE) ~ "MO",
+                              grepl("BNT", third_vaccine, ignore.case = TRUE) ~ "BNT",
+                              grepl("N/A", third_vaccine, ignore.case = TRUE) ~ "NA",
+                              TRUE ~ third_vaccine)) %>% 
+  mutate(vac1_2 = factor(paste0(first_second_dose, sep = "_", timepoint)), #Agrupar vacina e timepoint
+         vac2_3 = factor(paste0(vac1_2, sep="_", third_vaccine )))
+  
+#Salvar arquivos
+write.csv(gse199750_sampleinfo, file= paste0(filename, sep= "_metadata.csv"))
+saveRDS(gse199750_sampleinfo, file= paste0(filename, sep= "_metadata.rds"))
+```
+
+
+
+*Ler arquivos e transformar em tabela*
+
+Abra a lista do estudo e analise suas informações. Ao descompactar, surgem diversos arquivos ".featureCounts.txt.gz", que devem ser descompactados. Para descompactar a lista de arquivos, use um loop.
+
+```{r eval=FALSE, include=FALSE}
+diretorio_GSE199750 <- "G:/Meu Drive/USP/Doutorado/Experimentos/Imunoinformatica/RNAseq/Bulk/GSE199750"
+arquivos_gz_GSE199750 <- list.files(path = diretorio_GSE199750, pattern = "*.gz$", full.names = TRUE)
+for(arquivo_gz in arquivos_gz_GSE199750) {gunzip(arquivo_gz)}
+
+##Ler arquivos e criar tabela
+arquivos_txt_GSE199750 <- list.files(path = diretorio_GSE199750, pattern = "*.txt$", full.names = TRUE)
+lista_dados_GSE199750 <- list()
+for(i in seq_along(arquivos_txt_GSE199750)) {
+  lista_dados_GSE199750[[i]] <- read.table(arquivos_txt_GSE199750[i], header = TRUE, sep = "\t")
+}
+
+```
+
+## 3.2. Anotação de genes
+
+```{r eval=FALSE, include=FALSE}
+#Foram geradas 58 dataframes, cada um com 60671 e 7 colunas descrevendo cada gene. No entanto, cada gene está nomeado com seu EnsembleID. Então, converta em simbolos usando o pacote "org.Hs.eg.db" ou o biomaRt. Anote as principais informações sobre cada gene, como biotipo e id Entrez.
+
+library("biomaRt")
+mart <- useMart("ensembl") # Selecione o banco de dados Ensembl
+mart <- useDataset("hsapiens_gene_ensembl", mart) # Selecione o conjunto de dados para humanos
+
+
+# Loop através de cada dataframe na lista
+for(i in seq_along(lista_dados_GSE199750)) {
+  ensembl_ids <- lista_dados_GSE199750[[i]]$Geneid # Obtenha os Ensembl IDs do dataframe
+  gene_info <- getBM(attributes = c("gene_biotype", "entrezgene_id", "hgnc_symbol"), 
+                   filters = "ensembl_gene_id", 
+                   values = ensembl_ids, 
+                   mart = mart)
+  # Mescle as informações do gene com o dataframe
+  lista_dados_GSE199750[[i]] <- merge(lista_dados_GSE199750[[i]], 
+                                      gene_info, 
+                                      by.x = "Geneid", 
+                                      by.y = "ensembl_gene_id")
+}
+```
+
+
+## 3.3. Organizar tabelas
+Lista de sample counts para um único dataframe
+
+As linhas correspondem aos genes e as colunas, a cada amostra/dataframe.
+
+```{r eval=FALSE, include=FALSE}
+# Criar um tibble com nomes de colunas corretos
+counts_gse199750 <- bind_cols(lista_dados_GSE199750) %>%
+  as_tibble() %>%
+  rename_all(~paste0("GSM", seq_along(lista_dados_GSE199750) + 5983812))
+
+# Adicionar coluna descritiva
+colunas_descritivas <- lista_dados_GSE199750[[1]] %>%
+  select(Geneid, hgnc_symbol, gene_biotype)
+
+counts_gse199750 <- bind_cols(counts_gse199750, colunas_descritivas)
+
+# Reordenar colunas
+counts_gse199750 <- counts_gse199750 %>%
+  select(-(ncol(counts_gse199750) - 2):ncol(counts_gse199750), 1:(ncol(counts_gse199750) - 3))
+
+# Substituir NAs por 0
+counts_gse199750[is.na(counts_gse199750)] <- 0
+
+# Criar uma lista com os dois dataframes
+counts_sample_info <- list(counts_gse199750, gse199750_sampleinfo)
+
+```
+
+*Salvar dataframes*
+
+Salve os dataframes de counts e de metadados em arquivos .rds.
+
+Isto é interessante caso você queira retomar as análises sem precisar processar todos os dados novamente. Isso é importante para economizar espaço.
+
+```{r eval=FALSE, include=FALSE}
+
+#Talvez, seja necessário copiar e colar este código no Console, porque não gera o arquivo sozinho.
+saveRDS(counts_sample_info, file = "metadata_and_counts_gse199750.rds")
+write.csv(counts_sample_info, file="metadata_gse199750.csv")
+saveRDS(counts_gse199750, file = "counts_gse199750.rds")
+write.csv(counts_gse199750, file = "counts_gse199750.csv")
+write.csv(metadata_and_counts_gse199750[2], file="metadata_gse199750.csv")
+write.csv(counts_gse199750, file="counts_gse199750.csv")
+```
+
+# 4. Análise de dados
+
+## 4.1. Análise de expressão genica diferencial
+
+Aqui, eu fiz a análise com a tabela de counts baixado do site do estudo oficial e rodei o código do site abaixo.
+
+<https://combine-australia.github.io/RNAseq-R/06-rnaseq-day1.html>
+
+```{r eval=FALSE, include=FALSE}
+
+############## Caso use os arquivos gerados pelos códigos acima ##############
+#Para este protocolo, exclua as colunas de hgnc_symbol e gene_biotype
+counts_gse199750 <- counts_gse199750 %>% 
+  select(-hgnc_symbol, -gene_biotype) 
+colnames(counts_gse199750) <- counts_gse199750[-1,]
+
+############## Preparação dos arquivos fornecidos ##############
+#Aqui, como os 260 arquivos do dataset não foram baixados por conta da conexão, usaremos os arquivos fornecidos pelo próprio repositório do estudo. O arquivo é do tipo .rds e não é facilmente manipulável.
+
+write.csv(raw_RNASeq_counts, file="raw_RNASeq_counts.csv")
+write.csv(Sample_meta_data_RNASeq, file="Sample_meta_data_RNASeq.csv")
+```
+
+*Anotação de genes*
+
+```{r eval=FALSE, include=FALSE}
+#############Anotação de genes##############
+
+mart <- useMart("ensembl")
+mart <- useDataset("hsapiens_gene_ensembl", mart)
+
+raw_RNASeq_counts_ann <- raw_RNASeq_counts %>% 
+  rename(ensembl_ids = `coluna_original_com_os_ids`) %>% # Substitua 'coluna_original_com_os_ids' pelo nome real
+  left_join(getBM(attributes = c("entrezgene_id", "hgnc_symbol"), 
+                  filters = "ensembl_gene_id",
+                  values = ensembl_ids, 
+                  mart = mart),
+            by = c("ensembl_ids" = "ensembl_gene_id")) %>% 
+  mutate(hgnc_symbol = coalesce(hgnc_symbol, Geneid)) %>% 
+  distinct(hgnc_symbol, .keep_all = TRUE)
+
+# Organizar colunas
+raw_RNASeq_counts_ann <- raw_RNASeq_counts_ann[, c("hgnc_symbol", setdiff(names(raw_RNASeq_counts_ann), "hgnc_symbol"))]
+
+#Salvar .csv
+write.csv(raw_RNASeq_counts_ann, file="raw_RNASeq_counts_annGenes.csv")
+
+```
+
+
+*Padronizando tabela de counts*
+
+```{r eval=FALSE, include=FALSE}
+#Converta o arquivo de counts em dataframe e transforme a primeira coluna em rownames. Isso retirará a coluna como variável e resultará em números iguais de obs (metadata) e variables (counts)
+
+raw_RNASeq_counts_annGenes <- raw_RNASeq_counts_annGenes %>%
+  select(-`...1`) %>%
+  column_to_rownames(var = "hgnc_symbol")
+
+# Ordenar tabela
+gse199750_counts_ready <- gse199750_counts_ready %>%
+  t() %>%
+  arrange_all()
+
+# Salvar arquivo com rownames
+saveRDS(t(gse199750_counts_ready), file = "gse199750_counts_ready.rds")
+
+# Verificar e corrigir valores NA na coluna "hgnc_symbol"
+raw_RNASeq_counts_annGenes <- raw_RNASeq_counts_annGenes %>%
+  filter(!is.na(hgnc_symbol)) %>%
+  distinct(hgnc_symbol, .keep_all = TRUE)
+
+```
+
+*Metadata*
+
+A tabela de counts fornecida pelo estudo é nomeada com o Subject ID + Timepoint e não com o codigo GSM. Por isso, teremos de tratar a tabela de metadados. Além disso, ela não possui a coluna de idade. É possível manipular estes dados no excel.
+
+*Manipulando Subject IDs para Timepoint*
+```{r eval=FALSE, include=FALSE}
+######### No R #########
+# Crie a nova coluna "Subject_Timepoint" usando a função paste()
+gse199750_metadata = gse199750_metadata %>% 
+  mutate(subject_timepoint = paste0(subject_id, sep = "_", timepoint))
+
+# Reorganize as colunas do dataframe com select()
+gse199750_metadata <- gse199750_metadata %>%
+  select(Subject_Timepoint, everything()) %>% 
+  column_to_rownames(var="timepoint")
+
+# Salvar arquivo com rownames
+saveRDS(gse199750_metadata, file="gse199750_metadata.rds")
+
+gse199750_metadata = gse199750_metadata %>% 
+  as.data.frame() %>% 
+  column_to_rownames(var="Samples")
+
+```
+
+
+*DESEQ2*
+
+Recomendo fazer com as tabelas de counts e metadados fornecidas pelo [estudo](https://bitbucket.org/lynnlab/covirs/src/master/). Somente trate a tabela de counts com anotações dos genes e adicione a coluna de Age dos metadados obtidos diretamente do GEO, pois por algum motivo não é fornecida pelo repositório do estudo.
+
+*Preparando dados*
+
+Tabela de counts
+```{r eval=FALSE, include=FALSE}
+#####Dividir tabela de counts em vacinas diferentes. 
+#Transpor tabela e transformar em dataframe para facilitar manipulaçao no dplyr
+gse199750_counts_merged_BNT = gse199750_counts_merged %>% 
+  t() %>% 
+  as.data.frame() %>% 
+  filter(first.second.vaccine == "BNT162b2")
+
+write.csv(gse199750_counts_merged_BNT, file = "gse199750_counts_metadata_BNT.csv")
+
+# Filtrar amostras com as duas primeiras imunizações com a ChAdOx1
+gse199750_counts_merged_AZ <- gse199750_counts_merged_transposed %>% 
+  filter(first_second_vaccine == "ChAdOx1")
+
+write.csv(gse199750_counts_merged_AZ, file = "gse199750_counts_metadata_AZ.csv")
+
+#Retranspor tabela de counts para formato do DESEQ2
+gse199750_counts_merged_AZ = t(gse199750_counts_merged_AZ)
+gse199750_counts_merged_BNT = t(gse199750_counts_merged_BNT)
+
+#Excluir colunas de metadados
+gse199750_counts_merged_AZ = gse199750_counts_merged_AZ[-c(1:7),]
+gse199750_counts_merged_BNT = gse199750_counts_merged_BNT[-c(1:7),]
+
+#Salvar tabelas
+write.csv(gse199750_counts_merged_AZ, file = "gse199750_counts_AZ.csv") #Salvar em CSV
+write.csv(gse199750_counts_merged_BNT, file = "gse199750_counts_PF.csv") #Salvar em CSV
+
+saveRDS(gse199750_counts_merged_BNT, file="gse199750_counts_PF.rds") #Salvar em RDS
+saveRDS(gse199750_counts_merged_AZ, file="gse199750_counts_AZ.rds") #Salvar em RDS
+```
+
+
+*PF versus AZ*
+
+```{r}
+###DESEQ2 - PF versus AZ, PF em diferentes tempos, AZ em diferentes tempos
+
+####Definindo design
+
+###### Padronize as variáveis 
+countData <- gse199750_counts_ready
+colData <- gse199750_metadata %>%
+  mutate(
+    Timepointf = factor(Timepoint),
+    Agef = factor(Age_ranges),
+    Sexf = factor(Sex),
+    FirstSecondDosef = factor(first.second.vaccine),
+    ThirdDosef = factor(third.vaccine),
+    Group_I_II = factor(paste0(FirstSecondDosef, Timepointf)),
+    Group_II_III = factor(paste0(ThirdDosef, FirstSecondDosef))
+  )
+
+
+###### Crie o objeto DESeqDataSet ######
+# O design deve incluir todos os fatores que podem influenciar significativamente os dados. Coloque por último o fator de interesse principal - no caso, o fator de primeira ou segunda doses, pois nesta primeira etapa não serão analisados os efeitos de uma terceira dose de vacina heteróloga.
+
+dds <- DESeqDataSetFromMatrix(countData = countData, 
+                              colData = colData, 
+                              design = ~ Group_I_II)
+
+###### Pré-filtragem ######
+#Mantenha os genes com pelo menos 10 leituras no total.
+
+#Pfizer
+keep <- rowSums(counts(dds)) >= 10
+dds <- dds[keep,]
+
+```
+
+*Executando DESEQ2*
+
+```{r}
+###### Executar DESeq ######
+
+#Executar DESeq com método Likelihood-ratio test. Nele, todos os grupos são comparados e influenciados entre si. Ao definir o design reduzido, selecione os fatores menos importantes.
+dds <- DESeq(dds, test = 'LRT', reduced = ~ Sexf + Agef)
+
+#Salvar
+write_rds(dds,file="gse199750_dds_DESeq2_Groups_I-II_Sex-Age.rds")
+
+###### Obter comparações realizadas ######
+resultsNames(dds)
+
+###### Obtendo os DEGs totais ######
+res <- results(dds) %>%
+  filter(padj < 0.05, #Filtrar por significância
+         abs(log2FoldChange) > 1.0) %>% #E por regulação
+  arrange(padj) #Ordenar
+
+# Criar uma tabela de DEGs
+res_degs_table <- data.frame(Gene = rownames(res),
+                          log2FoldChange = res$log2FoldChange,
+                          pvalue = res$pvalue,
+                          padj = res$padj)
+#Salvar tabela
+write.csv(res_degs_table, file = "GSE199750_T0-T1_DEGs-All_Age-Sex_I-II.csv", row.names = FALSE)
+
+```
+
+*Comparando tempos*
+
+Nesta comparação, são encontradas DEGs de cada vacina individual nos diferentes tempos. Para comparar uma vacina com a outra em diferentes tempos, é necessário usar contrast = e name =
+
+*Exemplo - PFIZER*
+
+```{r}
+######### PFIZER ######### 
+
+######### Tempos 1 versus 0 ######### 
+
+# Obter comparação
+res_1_0_bnt <- results(dds, contrast= c("Group_I_II", "BNT162b2V1", "BNT162b2V0")) %>% # Acessar comparação
+  subset(padj < 0.05, #Excluir genes com padj > 5%
+         abs(log2FoldChange) > 1.0) %>% #E por regulação
+  arrange(padj) #ordenar por padj
+
+summary(res_1_0_bnt) #Up e Down
+
+# Criar uma tabela de DEGs
+res_1_0_bnt_degs_table <- data.frame(Gene = rownames(res_1_0_bnt),
+                          log2FoldChange = res_1_0_bnt$log2FoldChange,
+                          pvalue = res_1_0_bnt$pvalue,
+                          padj = res_1_0_bnt$padj)
+#Salvar tabela
+write.csv(res_1_0_bnt_degs_table, file = "GSE199750_T0-T1_DEGs-PF.csv", row.names = FALSE)
+```
+
+## 4.2 Unir raw datasets 
+```{r}
+########## GSE199750
+
+gse199750_metadata = gse199750_sampleinfo.ready %>% 
+  select(!c(sample_n, tissue, run)) %>% 
+  mutate(sample = paste0(subject_id, sep="_", timepoint)) %>% 
+  mutate(
+    timepoint = case_when(
+      timepoint == "V0" ~ "(V1, D0)",
+      timepoint == "V1" ~ "(V1, D6)",
+      timepoint == "V2A" ~ "(V2, D1)",
+      timepoint == "V3A" ~ "(V3, D1)",
+      TRUE ~ timepoint),
+    condition = paste0(first_second_dose, sep=" ", timepoint, third_vaccine),
+    condition = gsub("NA", "", condition),
+    condition = case_when(
+      condition == "BNT (V3, D1)MO" ~ "BNT-MO (V3, D1)",
+      condition == "ChAd (V3, D1)BNT" ~ "ChAd-BNT (V3, D1)",
+      condition == "BNT (V1, D0)Missing" ~ "BNT (V1, D0)",
+      condition == "BNT (V3, D1)BNT" ~ "BNT (V3, D1)",
+      condition == "BNT (V1, D0)BNT" ~ "BNT (V1, D0)",
+      condition == "BNT (V1, D0)MO" ~ "BNT-MO (V1, D0)",
+    TRUE ~ condition)) %>%
+  separate(timepoint, into = c("dose", "day"), sep = ", ", remove =  F) %>%
+  mutate(dose = str_extract(dose, "\\d+"),
+         day = str_extract(day, "\\d+")) 
+
+#write.csv(gse199750_metadata, file = "gse199750_metadata_annotated_14-11-23.csv")
+
+gse199750_metadata.annotated = gse199750_metadata %>% 
+  select(sample, condition, sex, age, dose, day) %>% 
+  rownames_to_column(var="delete") %>% 
+  select(-delete)
+
+
+gse199750_counts_long = gse199750_counts_ready %>% 
+  as.data.frame() %>% 
+  rownames_to_column("genes") %>% 
+  pivot_longer(!genes, names_to = "sample", values_to = "counts") %>% 
+  mutate(study = "GSE199750") %>% 
+  select(study, sample, genes, counts) %>% 
+  merge(gse199750_metadata.annotated, by = "sample") %>% 
+  merge(ann_vaccines, by = "condition", all.y=F)
+
+gse199750_counts_long = gse199750_counts_long %>% 
+  select(!ends_with(".y")) %>% 
+  rename(vaccine = vaccine.x,
+         type = type.x,
+         regimen = regimen.x) %>% 
+  select(genes, counts, condition, study, vaccine, sample, type, regimen, day, dose, sex, age)
+
+write.csv(gse199750_counts_long, file = "gse199750_counts_long_annotated.csv")
+
+########## GSE201533
+gse201533_metadata = gse201533_metadata_ready %>%
+  rownames_to_column(var = "sample") %>%
+  clean_names() %>%
+  select(sample, age, dose, timepoint, vaccine) %>%
+  mutate(vaccine = case_when(
+    vaccine == "BNT162b2" ~ "BNT",
+    vaccine == "ChAdOx1" ~ "ChAd",
+    TRUE ~ vaccine
+  ),
+  timepoint = case_when(
+    timepoint == "4" ~ "3",
+    timepoint == "2" ~ "3",
+    TRUE ~ timepoint
+  )) %>%
+  mutate(condition = paste0(vaccine, " (V", dose, ", D", timepoint, ")")) %>% 
+  merge(ann_vaccines, by.x= "condition", by.y="Condition", all.y=F, all.x=T) %>% 
+  rename(day = timepoint) %>% 
+  select(!c(Adjuvant))
+
+#write.csv(gse201533_metadata, file = "gse201533_metadata_long_annotated_14-11_23.csv") 
+
+#Anotar manualmente no excel
+gse201533_metadata_long_annotated <- gse201533_metadata_long_annotated_14_11_23 %>% 
+  clean_names() %>% 
+  select(condition:age) %>% 
+  mutate(condition = str_replace(condition, "\\bBNT\\b", "ChAd-BNT")) %>% 
+  merge(ann_vaccines, by = "condition", all.y= F) %>% 
+  select(-participants)
+  
+write.csv(gse201533_metadata_long_annotated, file = "gse201533_metadata_long_annotated_27-11-23.csv")
+
+gse201533_counts_long = gse201533_counts_ready %>% 
+  as.data.frame() %>% 
+  rownames_to_column("genes") %>% 
+  pivot_longer(!genes, names_to = "sample", values_to = "counts")  %>% 
+  mutate(study = "GSE201533") %>% 
+  merge(gse201533_metadata_long_annotated, by="sample") %>% 
+  mutate(sex = "NA") %>% 
+  select(genes, counts, condition, study, vaccine, sample, type, regimen, day, dose, sex, age)
+
+write.csv(gse201533_counts_long, file = "gse201533_counts_long_annotated_14-11-23.csv")
+
+########## GSE206023
+
+#Anotar genes
+Genes_ann_GSE206023 = gse206023_degs_table_notfiltered_annotated %>%
+  filter(grepl("\\.", Gene_original)) %>% 
+  arrange(desc(Gene_original)) %>% 
+  select(Gene_original, Gene_simplified, Symbol) %>% 
+  distinct() %>% 
+  arrange(desc(Gene_original)) %>% 
+  separate(Gene_original, c("genbank_ac", "version"), sep = "\\.", remove=F) %>% 
+  group_by(Gene_original) %>% 
+  filter(!(Gene_original == Symbol)) %>% 
+  group_by(Symbol) %>% 
+  select(Symbol, everything()) %>% 
+  arrange(desc(version), .by_group = T) %>% 
+  filter(version == max(version, na.rm = TRUE)) %>% 
+  select(Gene_original, genbank_ac, version)
+
+
+#Anotar metadata
+ann_vaccines.BBIBP = ann_vaccines %>% filter(Vaccine == "BBIBP")
+ann_vaccines.ZF2001 = ann_vaccines %>% filter(Vaccine == "ZF2001")
+
+gse206023_metadata.BBIBP = gse206023_metadata_ready %>% 
+  rownames_to_column(var="sample") %>% 
+  clean_names() %>% 
+  select(sample, timepoints, vaccine) %>% 
+  filter(vaccine == "BBIBP") %>% 
+  separate(timepoints, into = c("dose", "day"), sep = "_", convert = TRUE) %>% 
+  mutate(dose = as.numeric(sub("^V", "", dose)),
+         study = "GSE206023") %>% 
+  merge(ann_vaccines.BBIBP, by.x= "day", by.y="Day")
+
+gse206023_metadata.ZF2001 = gse206023_metadata_ready %>% 
+  rownames_to_column(var="sample") %>% 
+  clean_names() %>% 
+  select(sample, timepoints, vaccine) %>% 
+  filter(vaccine == "ZF2001") %>% 
+  separate(timepoints, into = c("dose", "day"), sep = "_", convert = TRUE) %>% 
+  mutate(dose = as.numeric(sub("^V", "", dose)),
+         study = "GSE206023") %>% 
+  merge(ann_vaccines.ZF2001, by.x= "day", by.y="Day") 
+
+gse206023_metadata.annotated = rbind(gse206023_metadata.BBIBP,
+                                     gse206023_metadata.ZF2001)
+
+gse206023_metadata.annotated.2 = gse206023_metadata.annotated %>% 
+  clean_names() %>% 
+  select(!c(vaccine_2, dose_2, adjuvant, efficacy)) %>% 
+  select(condition, study, vaccine, sample, type, regimen, day, dose) %>% 
+  mutate(age = "NA",
+         sex= "NA")
+
+
+gse206023_metadata_ready.correct 
+
+gse206023_counts_long %>% 
+  select(condition:age) %>% 
+  distinct() %>% 
+  write.csv(file = 'gse206023_metadata_ready_correct.csv')
+```
+
+
+```{r}
+######## Unir tabelas de metadados de samples
+
+samples_metadata = bind_rows(gse201533_metadata_long_annotated,
+                             gse206023_metadata_ready,
+                             gse199750_metadata_annotated) %>% 
+  select(-participants)
+
+write.csv(samples_metadata, file = "ann_vaccines_samples_27-11-23.csv")
+
+
+ann_vaccines = samples_metadata %>% 
+  select(condition, vaccine:gse) %>% 
+  group_by(condition) %>% 
+  summarise(participants = n()) %>% 
+  merge(ann_vaccines, by = "condition") %>% 
+  select(everything(), participants)
+
+write.csv(ann_vaccines, file = "ann_vaccines.csv")
+
+```
+
+
+```{r}
+#Anotar tabela de counts
+gse206023_counts_long = gse206023_counts_ready %>%
+  select(-genes) %>% 
+  rename(genes = '...1') %>% 
+  merge(Genes_ann_GSE206023, by.x = "genes", by.y = "Gene_original", all.x=F, all.y=F) %>% 
+  relocate(Symbol:Gene_simplified, .before = everything()) %>% 
+  select(!c(genes, genbank_ac, version, Gene_simplified)) %>% 
+  rename(genes=Symbol) %>% 
+  pivot_longer(!genes, names_to = "sample", values_to = "counts") %>% 
+  mutate(study = "GSE206023") %>% 
+  merge(gse206023_metadata_ready, by = "sample", all = T) %>% 
+  rename(study = study.x) %>% 
+  select(genes, counts, condition, study, vaccine, sample, type, regimen, day, dose, sex, age)
+
+write.csv(gse206023_counts_long, file = "gse206023_counts_long_annotated_14-11-23.csv")
+
+########### UNITE
+
+
+gse199750_counts_long = read_csv("DESeq2 - Processing/gse199750_counts_long_annotated_14-11-23.csv")
+gse206023_counts_long = read_csv("DESeq2 - Processing/gse206023_counts_long_annotated_14-11-23.csv")
+gse206023_counts_long = read_csv("DESeq2 - Processing/gse206023_counts_long_annotated_14-11-23.csv")
+
+gse199750_counts_long.2 = gse199750_counts_long %>% 
+  mutate(counts = format(counts, scientific = TRUE)) %>% 
+  select(genes, counts, sample, condition) %>% 
+   mutate(counts = as.numeric(counts))
+
+gse201533_counts_long.2 = gse201533_counts_long %>% 
+  select(genes, counts, sample, condition) %>% 
+  mutate(counts = format(counts, scientific = TRUE)) %>% 
+   mutate(counts = as.numeric(counts))
+
+gse206023_counts_long.2 = gse206023_counts_long %>% 
+  mutate(counts = format(counts, scientific = TRUE)) %>% 
+  select(genes, counts, sample, condition) %>% 
+  mutate(counts = as.numeric(counts)) 
+
+#Unir
+GSE_united = bind_rows(gse199750_counts_long.2,
+                   gse201533_counts_long.2,
+                   gse206023_counts_long.2)
+#Salvar
+write.csv(GSE_united, file = "studies_gse199750_206023_201533_united.csv")
+
+#Selecionar genes do sistema imunológico (todos)
+immune_go_genes = ImmuneGO_Annotated_Genes_Nested_Interesting %>% 
+  select(genes) %>% 
+  distinct()
+
+#Selecionar somente os genes do sistema imune
+GSE_united.immunego = GSE_united %>% 
+  merge(immune_go_genes, by="genes", all.x=F) %>% 
+  select(sample, genes, counts) %>% 
+  pivot_wider(names_from = sample, values_from = counts, values_fn = mean) %>% 
+  replace(is.na(.), 0)
+#Salvar
+write.csv(GSE_united.immunego, file = "GSE_united.immunego.csv")
+
+
+```
+
+
+
+# 5. Visualização de dados
+
+## 5.1. Volcanoplot
+
+Os volcanoplots das duas vacinas são os mesmos, mas espelhados. Isso significa que definir o nivel de referencia no fator de vacinas é importante para determinar as DEGs up e down. \#### ASTRAZENECA
+
+*Astrazeneca* 
+
+```{r}
+
+#All
+volcano_res <- EnhancedVolcano(res, 
+                                    lab = rownames(res),
+                                    x = 'log2FoldChange',
+                                    y = 'pvalue',
+                                    title='Differential expression of genes - All timepoints - ChAdOx1')
+# Save the plot as a PNG file
+png("gse199750_volcanoplot_DEGs_allfactores_AZ.png", width = 800, height = 600)
+print(volcano_res_chad)
+dev.off()
+
+#T1-T0
+volcano_res_chad_1_0 <- EnhancedVolcano(res_1_0_chad, 
+                                    lab = rownames(res_1_0_chad),
+                                    x = 'log2FoldChange',
+                                    y = 'pvalue',
+                                    title='Differential expression of genes - D1 vs. D0 - ChAdOx1')
+# Save the plot as a PNG file
+png("gse199750_volcanoplot_DEGs_D0-D1_AZ.png", width = 800, height = 600)
+print(volcano_res_chad_1_0)
+dev.off()
+
+#T2-T0
+volcano_res_chad_2_0 <- EnhancedVolcano(res_time0_time2_chad, 
+                                    lab = rownames(res_time0_time2_chad),
+                                    x = 'log2FoldChange',
+                                    y = 'pvalue',
+                                    title='Differential expression of genes - D2 vs. D0 - ChAdOx1')
+# Save the plot as a PNG file
+png("gse199750_volcanoplot_DEGs_D0-D2_AZ.png", width = 800, height = 600)
+print(volcano_res_chad_2_0)
+dev.off()
+
+#Plotar mais de um gráfico
+plot_grid(volcano_res_chad, volcano_res_chad_1_0, volcano_res_chad_2_0, ncol = 3) 
+
+```
+
+## 5.2. Heatmap
+
+```{r}
+# teste heatmap
+head(res)
+
+#Obter DEGs do estudo
+heat_test = res %>% 
+  as.data.frame() %>% 
+  rownames_to_column(var="genes")
+
+#Obter counts dos DEGs
+heat_count = countData %>% 
+  rownames_to_column(var = "genes")
+
+#Unir tabelas
+###A tabela agora possui os valores de counts e outras estatísticas do objeto deseq2 pareadas pelos DEGs.
+merged_heat = heat_test %>% 
+  merge(heat_count, by = 'genes') %>% 
+  arrange(padj)
+
+#Cores
+tp_cols = c("V0" = "steelblue2", "V1" = "goldenrod","V2A"="firebrick3","V3A"="grey44")
+v_cols = c("ChAdOx1" = "violetred2", "BNT162b2" = "deepskyblue2","mRNA-1273" = "goldenrod")
+
+# Transformar as counts dos DEGs em matriz e normalizar 
+data2plot <- as.matrix(merged_heat[, 8:267])
+zzz <- scale(t(data2plot)) %>%
+  pmin(-3) %>%
+  pmax(3))
+
+#Transformar em dataframe
+test <- zzz %>%
+  as.data.frame() %>%
+  mutate(genes = merged_heat$genes) %>%
+  tidyr::gather("samples", "expression", -genes)
+tail(test)
+
+zzz_filtered = test %>% 
+  subset(expression > 2 & samples == 'COVIRS_41_V0')
+dim(zzz_filtered)
+head(zzz_filtered)
+
+#Heatmap annotation
+ha = HeatmapAnnotation(df = colData[,c("timepoint","first_second_dosef")],
+                       col = list(Timepoint = tp_cols,
+                                  FirstSecondDosef = v_cols))
+
+
+Heatmap(zzz, 
+        show_row_names = FALSE,
+        show_column_names = FALSE,
+        cluster_rows=TRUE,
+        cluster_columns = TRUE,
+        top_annotation = ha,
+        col=c("darkgreen","azure2","darkorchid4"),
+        column_split=colData$Timepoint,
+        column_title="Heatplot")
+
+```
+
+
+
+## 5.3. Diagrama de Venn com Heatmap
+
+*Tabela de overlaps de DEGs com teste exato de fisher*
+
+Determinar a proporção de DEGs compartilhadas entre condições diferentes e sua significância. O código abaixo deve ter como input uma tabela longa chamada "degs_all" (coluna 1: condicoes/vacinas, coluna 2: DEGs). O output será uma tabela longa com as colunas Vacina 1, Vacina 2, shared degs, not shared vacina 1, not shared vacina 2, lista com nomes das degs, valor p de fisher (teste exato de fisher).
+
+```{r}
+#Converter tabela de DEGs Up and Down em tabela longa
+degs_all_updown = degs_allstudies_updown_filter %>% 
+  filter(filter == "p<0.05",
+         Direction != "NEUTRAL") %>% 
+  rename(genes=Genes) %>% 
+  merge(ann_vaccines, by.x="study", by.y="Condition") 
+
+#Salvar
+write.csv(degs_all_updown, file= "degs_updown_p<05.csv")
+
+# Tabela de dados
+
+#Up vs Up
+degs_venn_up = degs_all_updown %>% 
+  filter(Direction == "UP") %>%
+  mutate(Direction_study = study) %>% 
+  select(Direction_study, genes)
+degs_venn_up$comparison = "UP-UP"
+
+#Down vs Down
+degs_venn_down = degs_all_updown %>% 
+  filter(Direction == "DOWN") %>%
+  mutate(Direction_study = study) %>% 
+  select(Direction_study, genes)
+
+
+# DOWN-UP ALL
+degs_venn_updown = degs_all_updown %>% 
+  filter(Direction %in% c("UP", "DOWN")) %>%
+  mutate(Direction_study = study) %>% 
+  select(Direction_study, genes)
+
+#Up vs Down
+degs_venn_up_vs_down = degs_all_updown %>% 
+  mutate(Direction_study = paste(study, Direction, sep = " ")) %>% 
+  select(Direction_study, genes)
+
+```
+
+
+```{r}
+#Input
+data = degs_venn_down
+filename = "degs_venn_down"
+
+# Função para calcular a sobreposição entre pares de vacinas e a porcentagem de genes compartilhados
+overlap_genes <- function(cond1, cond2, data) {
+  genes_cond1 <- data$genes[data$Direction_study == cond1] #Trocar coluna
+  genes_cond2 <- data$genes[data$Direction_study == cond2] #Trocar coluna
+  genes_shared <- intersect(genes_cond1, genes_cond2)
+  genes_notshared_cond1 <- setdiff(genes_cond1, genes_cond2)
+  genes_notshared_cond2 <- setdiff(genes_cond2, genes_cond1)
+  
+  total_genes_cond1 <- length(genes_cond1)
+  total_genes_cond2 <- length(genes_cond2)
+  
+  percentage_shared_cond1 <- length(genes_shared) / total_genes_cond1 * 100
+  percentage_shared_cond2 <- length(genes_shared) / total_genes_cond2 * 100
+  
+  shared_genes <- data.frame(
+    Cond1 = cond1,
+    Cond2 = cond2,
+    Shared = length(genes_shared),
+    NotShared_cond1 = length(genes_notshared_cond1),
+    NotShared_cond2 = length(genes_notshared_cond2),
+    Total_Genes_Cond1 = total_genes_cond1,
+    Total_Genes_Cond2 = total_genes_cond2,
+    Genes_Names = paste(genes_shared, collapse = ", "),
+    Percentage_Shared_Cond1 = percentage_shared_cond1,
+    Percentage_Shared_Cond2 = percentage_shared_cond2
+  )
+  
+  return(shared_genes)
+}
+# Obtenha uma lista de todas as vacinas únicas
+unique_cond <- unique(data$Direction_study)  #trocar "study" pelo nome da coluna de interesse
+
+# Inicialize um dataframe para armazenar os resultados
+shared_genes_df <- data.frame()
+
+# Calcular a sobreposição e porcentagem para cada par de vacinas
+for (i in 1:(length(unique_cond) - 1)) {
+  for (j in (i + 1):length(unique_cond)) {
+    resultado_temp <- overlap_genes(unique_cond[i], unique_cond[j], data)
+    shared_genes_df <- bind_rows(shared_genes_df, resultado_temp)
+  }
+}
+
+# Função para realizar o teste exato de Fisher
+fisher_exact_test <- function(shared, notshared1, notshared2) {
+  cont_table <- matrix(c(shared, notshared1, notshared2, 0), nrow = 2)
+  results_fisher <- fisher.test(cont_table)
+  return(results_fisher$p.value)
+}
+
+# Aplicar a função a cada linha da tabela de resultados
+shared_genes_df$pvalue <- mapply(fisher_exact_test, 
+                                    shared_genes_df$Shared, 
+                                    shared_genes_df$NotShared_cond1, 
+                                    shared_genes_df$NotShared_cond2)
+
+
+# Calcular qvalue (BH) e -log(FDR)
+shared_genes_df <- shared_genes_df %>%
+  mutate(qvalue = qvalue(pvalue)$qvalues)
+
+# Calcular -log(q)
+shared_genes_df$`log_q`= -log(shared_genes_df$qvalue, 10)
+
+
+#Duplicar e trocar colunas (Vacina 1 e Vacina 2)
+shared_genes_df2 = shared_genes_df
+shared_genes_df2[, c("Cond1", "Cond2")] <- shared_genes_df2[, c("Cond2", "Cond1")]
+
+#Unir datasets com os dados espelhados
+shared_genes_df_mirror = rbind(shared_genes_df, shared_genes_df2)
+
+#Converter NA, NaNe inf em 0
+shared_genes_df_mirror[is.na(shared_genes_df_mirror)] <- 0
+shared_genes_df_mirror<- replace(shared_genes_df_mirror, shared_genes_df_mirror == "Inf", 0)
+
+#Arredondar porcentagens
+shared_genes_df_mirror = shared_genes_df_mirror %>%
+  mutate(Percentage_Shared_Cond1 = round(Percentage_Shared_Cond1, 2),
+         Percentage_Shared_Cond2 = round(Percentage_Shared_Cond2, 2))
+
+#Salvar resultados
+write.csv(shared_genes_df_mirror, file = paste0("shared_", filename, "_fisher_pvalue10.csv")) #Alterar
+
+#Filtrar
+shared_genes_df_mirror_q10 = shared_genes_df_mirror %>% 
+  filter(qvalue < 0.10)
+write.csv(shared_genes_df_mirror_p10, file = paste0("shared_", filename, "_fisher_p<10_qvalue10.csv"))
+
+#Display
+print(shared_genes_df_mirror_p10)
+```
+
+
+*pHeatmap*
+
+```{r}
+#Matriz
+shared_heatmap = shared_genes_df_mirror_q10 %>% 
+  dcast(Cond1 ~ Cond2, 
+        value.var = "Percentage_Shared_Cond1", 
+        fun.aggregate = mean) %>% 
+  replace(is.na(.), 0) %>% 
+  column_to_rownames("Cond1") %>% 
+  as.matrix()
+
+
+#Anotar colunas
+shared_heatmap.ann = shared_heatmap %>% 
+  as.data.frame() %>% 
+  rownames_to_column("Condition")
+
+ann_vaccines_pheatmap = ann_vaccines %>% 
+  merge(shared_heatmap.ann, by="Condition", all.x = F) %>% 
+  column_to_rownames("Condition") %>% 
+  select(Vaccine, Day, Dose, Type, Regimen) %>% 
+  mutate(Day = as.factor(Day))
+
+
+#Plotar
+
+library(pheatmap)
+
+pheatmap_shared = pheatmap(shared_heatmap,
+         main= paste0("Shared %", filename, "_q<0.10_rows_vs_cols"),
+         color = rev(hcl.colors(50, "Reds 3")),
+         breaks = c(seq(0, 10, length.out = 0),  # Low values
+                    seq(10, 50, length.out = 50), # Mid values
+                    seq(50, 100, length.out = 50)), # High values,, 
+         cluster_rows = T,
+         cluster_cols = T,
+         cutree_rows = 2,
+         cutree_cols = 2,
+         treeheight_row = 0, #altura do dendrograma, 0 para não mostrar
+         treeheight_col = 0,
+         display_numbers = T,
+         number_color = "black",
+         fontsize_number = 4,
+         fontsize_row = 6, 
+         fontsize_col = 6,
+         na_col = "black",
+         show_colnames = T,
+         annotation_col = ann_vaccines_pheatmap,
+         annotation_row = ann_vaccines_pheatmap,
+         annotation_colors = ann_colors,
+         annotation_legend = TRUE)
+
+#Salvar imagem
+png(file= paste0("shared", filename, "_p<10_qvalue10_PHEATMAP.png"), 
+    width=3000, 
+    height=2000, 
+    res=315, 
+    pointsize=10)
+print(pheatmap_shared)
+dev.off()
+```
+
+
+*Chord diagram*
+
+```{r}
+#Chord diagram
+install.packages("circlize")
+library(circlize)
+
+# sharedDEGs_UPDOWN_fisher_pvalue10
+# sharedDEGs_UP_fisher_p_10_pvalue10
+# sharedDEGs_DOWN_fisher_p_10_pvalue10
+
+#Input
+shared_genes_df_mirror_p10 = sharedDEGs_UP_fisher_p_10_pvalue10
+
+
+#All doses
+circos_alldoses = shared_genes_df_mirror_p10 %>% 
+  select(Cond1, Cond2, Shared) %>% 
+  mutate(Shared = as.numeric(Shared)) %>%  
+  merge(ann_vaccines, by.x = "Cond1", by.y="Condition", all.x=T, all.y=F) %>%
+  merge(ann_vaccines, by.x = "Cond2", by.y="Condition", all.x=T, all.y=F) %>% 
+  select(Cond1, Cond2, Shared,Dose.x, Dose.y) %>% 
+  rename(cond1_dose = Dose.x,
+         cond2_dose = Dose.y) %>% 
+  filter(Shared != 0)
+
+circos_alldoses_mirror = circos_alldoses %>% 
+  mutate(Cond1A = Cond2,
+         Cond2A = Cond1) %>% 
+  select(Cond1A, Cond2A, Shared, cond1_dose, cond2_dose) %>% 
+  rename(Cond1 = Cond1A,
+         Cond2 = Cond2A) %>% 
+  rbind(circos_alldoses)
+
+write.csv(circos_alldoses_mirror, file = "Circos_DOWN_Alldoses_pvalue10_dose1.csv")
+
+
+#Dose 1
+circos_dose1 = shared_genes_df_mirror_p10 %>% 
+  select(Cond1, Cond2, Shared) %>% 
+  mutate(Shared = as.numeric(Shared)) %>%  
+  merge(ann_vaccines, by.x = "Cond1", by.y="Condition", all.x=T, all.y=F) %>%
+  merge(ann_vaccines, by.x = "Cond2", by.y="Condition", all.x=T, all.y=F) %>% 
+  select(Cond1, Cond2, Shared,Dose.x, Dose.y) %>% 
+  rename(cond1_dose = Dose.x,
+         cond2_dose = Dose.y) %>% 
+  filter(cond1_dose == 1,
+         cond2_dose == 1)
+
+circos_dose1_mirror = circos_dose1 %>% 
+  mutate(Cond1A = Cond2,
+         Cond2A = Cond1) %>% 
+  select(Cond1A, Cond2A, Shared, cond1_dose, cond2_dose) %>% 
+  rename(Cond1 = Cond1A,
+         Cond2 = Cond2A) %>% 
+  rbind(circos_dose1)
+
+write.csv(circos_dose1_mirror, file = "Circos_DOWN_pvalue10_dose1.csv")
+
+#Dose 2
+circos_dose2 = shared_genes_df_mirror_p10 %>% 
+  select(Cond1, Cond2, Shared) %>% 
+  mutate(Shared = as.numeric(Shared)) %>%  
+  merge(ann_vaccines, by.x = "Cond1", by.y="Condition", all.x=T, all.y=F) %>%
+  merge(ann_vaccines, by.x = "Cond2", by.y="Condition", all.x=T, all.y=F) %>% 
+  select(Cond1, Cond2, Shared,Dose.x, Dose.y) %>% 
+  rename(cond1_dose = Dose.x,
+         cond2_dose = Dose.y) %>% 
+  filter(cond1_dose == 2,
+         cond2_dose == 2)
+circos_dose2_mirror = circos_dose2 %>% 
+  mutate(Cond1A = Cond2,
+         Cond2A = Cond1) %>% 
+  select(Cond1A, Cond2A, Shared, cond1_dose, cond2_dose) %>% 
+  rename(Cond1 = Cond1A,
+         Cond2 = Cond2A) %>% 
+  rbind(circos_dose2) 
+
+write.csv(circos_dose2_mirror, file = "Circos_DOWN_pvalue10_dose2.csv")
+
+#Dose 3
+circos_dose3 = shared_genes_df_mirror_p10 %>% 
+  select(Cond1, Cond2, Shared) %>% 
+  mutate(Shared = as.numeric(Shared)) %>%  
+  merge(ann_vaccines, by.x = "Cond1", by.y="Condition", all.x=T, all.y=F) %>%
+  merge(ann_vaccines, by.x = "Cond2", by.y="Condition", all.x=T, all.y=F) %>% 
+  select(Cond1, Cond2, Shared,Dose.x, Dose.y) %>% 
+  rename(cond1_dose = Dose.x,
+         cond2_dose = Dose.y) %>% 
+  filter(cond1_dose == 3,
+         cond2_dose == 3)
+
+ circos_dose3_mirror = circos_dose3 %>% 
+  mutate(Cond1A = Cond2,
+         Cond2A = Cond1) %>% 
+  select(Cond1A, Cond2A, Shared, cond1_dose, cond2_dose) %>% 
+  rename(Cond1 = Cond1A,
+         Cond2 = Cond2A) %>% 
+  rbind(circos_dose3) 
+
+write.csv(circos_dose3_mirror, file = "Circos_DOWN_pvalue10_dose3.csv")
+
+```
+
+### Visualização
+
+Dotplot
+
+```{r}
+#### Identidade e -log(q)
+install.packages("ggdendro")
+library(ggdendro)
+library(cowplot)
+library(ggtree)
+library(patchwork) 
+
+#Filtrar valores com -log(p) >= 1
+sharedDEGs_UP_DOWN_fisher_filtered <- sharedDEGs_UP_DOWN_fisher %>%
+  mutate(`Significance -log(p)` = cut(`-log(p)`, 
+                        breaks = c(-Inf, 1, 1.3, 2, Inf), 
+                        labels = c("<1", "1-1.3", "1.3-2", ">2"))) %>%
+  filter(Percentage_Shared_Cond1 >= 1, Percentage_Shared_Cond2 >= 1, `Significance -log(p)` != "<1")
+
+#Salvar
+write.csv(sharedDEGs_UP_DOWN_fisher_filtered, file = "sharedDEGs_UP_DOWN_fisher_filtered.csv")
+
+#Visualizar
+plot = ggplot(sharedDEGs_UP_DOWN_fisher, aes(x = Cond1, y = Cond2, color = Percentage_Shared_Cond1, size = Percentage_Shared_Cond1)) + 
+  geom_point() +
+  scale_size_continuous(range = c(2, 8)) +
+  geom_text(aes(label = sprintf("%.f", Percentage_Shared_Cond1)), vjust = 0.5, hjust = 0.5, size = 2, color = "black")  +
+  cowplot::theme_cowplot() + 
+  theme(axis.line = element_blank(),
+        axis.text.x = element_text(angle = 45, vjust = 1, hjust = 1, size = 10),
+        axis.text.y = element_text(size = 10)) +
+  scale_color_gradient(low = "white", high = "#ef233c", limits = c(0, 60)) +
+  ggtitle("%Identity between vaccines, Up and Down-Regulated, pvalue < 0.05" ) +
+  ylab('Cond2') +
+  theme(axis.ticks = element_blank()) +
+  guides(color = FALSE, size = FALSE)
+
+#Salvar
+ggsave(plot, file = "sharedDEGs_UP_DOWN_fisher.png")
+
+#Display
+plot
+```
+
+
+
+
+
+
+# Single Sample GSEA (ssGSEA)
+
+```{r}
+
+##### Unir countdata de todos os datasets
+
+gse189039_counts_ready_long = gse189039_counts_ready %>% 
+  rownames_to_column("genes") %>% 
+  pivot_longer(-genes, 
+               names_to = "condition", 
+               values_to = "counts") %>% 
+  mutate(study = "GSE189039")
+
+gse201530_counts_ready_long = gse201530_counts_ready %>% 
+    as.data.frame() %>% 
+    rownames_to_column("genes") %>% 
+  pivot_longer(-genes, 
+               names_to = "condition", 
+               values_to = "counts") %>% 
+    mutate(study = "GSE201530")
+
+gse201533_counts_ready_long = gse201533_counts_ready %>% 
+    as.data.frame() %>% 
+    rownames_to_column("genes") %>% 
+  pivot_longer(-genes, 
+               names_to = "condition", 
+               values_to = "counts")  %>% 
+    mutate(study = "GSE201533")
+
+gse199750_counts_ready_long = gse199750_counts_ready %>% 
+  as.data.frame() %>% 
+  rownames_to_column("genes") %>% 
+  pivot_longer(-genes, 
+               names_to = "condition", 
+               values_to = "counts") %>% 
+    mutate(study = "GSE199750")
+
+gse_counts_all_long = bind_rows(gse189039_counts_ready_long, 
+                           gse201530_counts_ready_long,
+                           gse201533_counts_ready_long,
+                           gse199750_counts_ready_long)
+
+gse_counts_all_matrix = gse_counts_all_long %>% 
+  select(-study) %>% 
+  pivot_wider(names_from = "condition", values_from = "counts")
+
+
+write.csv(gse_counts_all_long, file = "gse_counts_all_long.csv")
+
+# Unir metadata 
+
+
+```
+
+
+
+
+
+## ImmuneGO
+```{r}
+library(corto)
+############## Arquivos necessários
+
+#CellMarker_ImmuneCells.csv 
+#ImmuneGO_Annotated_Genes_Nested_Interesting.csv
+ann_vaccines #Anotação das vacinas
+
+############## GSE199750
+gse199750_metadata_annotated	= gse199750_metadata_annotated_16_11_23 %>% 
+  mutate(condition = case_when(
+    condition == "BNT (V1, D6)BNT" ~ "BNT (V1, D6)",
+    condition == "BNT (V1, D6)MO" ~ "BNT-MO (V1, D6)",
+    TRUE ~ condition)) %>% 
+  select(sample, condition, geo, day, dose, age, sex)
+
+#Salvar
+write.csv(gse199750_metadata_annotated, file = "gse199750_metadata_annotated_22-11-23.csv")
+
+gse199750_counts_ready #matriz de expressão
+
+
+############## GSE201533
+
+gse201533_metadata_annotated = gse201533_metadata_long_annotated_14_11_23 %>% #Metadados
+  select(condition:vaccine)
+
+gse201533_counts_ready #Matriz de expressão
+
+
+############## GSE206023
+gse206023_metadata_ready = gse206023_counts_long_annotated_14_11_23 %>%  #Metadados
+  select(condition:age) %>% 
+  distinct() %>% 
+  mutate(type = if_else(type=="HO", "IN", type))
+
+write.csv(gse206023_metadata_ready, file = "gse206023_metadata_ready.csv")
+
+#Matriz de expressão
+gse206023_counts_ready = gse206023_counts_long_annotated_14_11_23 %>% 
+  mutate(counts = as.numeric(counts)) %>% 
+  select(genes, sample, counts) %>% 
+  pivot_wider(names_from = sample, values_from = counts, values_fn = mean) %>% 
+  column_to_rownames("genes")
+
+write.csv(gse206023_counts_ready, file = "gse206023_counts_ready.rds")
+
+```
+
+
+```{r}
+############## Inputs
+
+ssgsea_gene = gse_counts_all_matrix %>%  #Criar variável
+  column_to_rownames("genes")
+metadata = ann_vaccines_samples_4_12_23
+filename = "gse_counts_all_matrix"
+go_dataset = "ImmuneGO"
+go_enrich = ImmuneGO_Annotated_Genes_Interesting
+
+#Extrair sample names. O ssGSEA perde o nome no resultado.
+sample_names = ssgsea_gene %>% 
+  as.data.frame() %>% 
+  colnames() %>% 
+  as.data.frame() %>% 
+  rename(sample_names = '.')
+
+#Tabela com genes de interesse (geral) convertida em listas 
+
+genelist = ImmuneGO_Annotated_Genes_Interesting %>% #CellMarker_ImmuneCells.csv
+  select(process, genes)
+genelist = split(genelist$genes, genelist$process) 
+
+############## Análise 
+
+# Run ssGSEA
+nesmat = ssgsea(ssgsea_gene, genelist)
+
+#Padronizar resultado
+nesmat.result = nesmat %>% 
+  as.data.frame() %>% 
+  t() %>% 
+  as.data.frame() %>% 
+  rownames_to_column("sample") %>% 
+  relocate(sample, .before = everything()) %>% 
+  cbind(sample_names) %>% 
+  select(-sample) %>% 
+  column_to_rownames("sample_names") %>% 
+  t() %>% 
+  as.data.frame() %>% 
+  rownames_to_column("process") %>% 
+  relocate(process, .before=everything()) %>% 
+  pivot_longer(cols = -process, names_to = "sample", values_to = "nes") %>% 
+  mutate(pvalue = z2p(nes), #Converter NES em pvalue
+         qvalue = p.adjust(pvalue, method = "BH"), #ajustar para qvalue 
+         logq = - log10(qvalue)) %>%  #Calcular -log(q)
+  merge(metadata, by="sample", all.x=T) %>% #Unir com metadata
+  merge(go_enrich, by ="process", all.x=T) %>% 
+  select(-"...1", - genes) %>% 
+  distinct() 
+
+#Salvar
+write.csv(nesmat.result, file = paste0(filename, sep = "_", go_dataset, "_ssgsea_result.csv"))
+
+View(nesmat.result)
+```
+
+*Unir resultados, caso tenha feito separado*
+
+```{r}
+
+############### Unir resultados
+GSE199750_CellMarker_ssgsea_result = GSE199750_CellMarker_ssgsea_result %>%
+  clean_names() %>% 
+  select(cell_name:type, -marker) %>% 
+  distinct()
+
+GSE201533_CellMarker_ssgsea_result = GSE201533_CellMarker_ssgsea_result %>% 
+  clean_names() %>% 
+  select(cell_name:type, -marker) %>% 
+  distinct()
+
+GSE206023_CellMarker_ssgsea_result = GSE206023_CellMarker_ssgsea_result %>% 
+  clean_names() %>% 
+  select(cell_name:type, -marker) %>% 
+  distinct() 
+  
+  
+GSE206023_CellMarker_ssgsea_result = GSE206023_CellMarker_ssgsea_result %>% 
+  mutate(age = as.double(age))
+
+ssgsea_results_unified = bind_rows(GSE199750_CellMarker_ssgsea_result,
+          GSE201533_CellMarker_ssgsea_result,
+          GSE206023_CellMarker_ssgsea_result)
+
+ssgsea_results_unified = ssgsea_results_unified %>% 
+  select(cell_name:immune_system) %>% 
+  merge(ann_vaccines, by.x = "condition", by.y = "Condition")
+
+#Salvar
+write.csv(ssgsea_results_unified, file = paste0(go_dataset, "_ssgsea_results_unified.csv"))
+
+```
+
+
+### Visualização
+
+```{r}
+
+# INPUT
+nesmat.result = nesmat.result
+
+#Filtrar
+
+#Lista de processos
+
+ssgsea_interesting = nesmat.result %>% 
+  filter(qvalue <= 0.10) %>% 
+  distinct()
+
+
+esquisser(ssgsea_interesting)
+
+#Boxplot (NES)
+NES_plot = ggplot(ssgsea_interesting) +
+  aes(x = condition, y = nes, fill = vaccine) +
+  geom_boxplot() +
+  scale_fill_hue(direction = 1) +
+  theme_minimal() +
+  facet_grid(vars(process), vars(vaccine), scales = "free_x") +
+ labs(title = paste0(filename, "_ImmuneGO ssGSEA"), 
+      fill = "vaccine") +
+ theme_bw() +
+ theme(plot.title = element_text(size = 20L, face = "bold", hjust = 0.5),
+       axis.text.x = element_text(angle = 45, vjust = 1, hjust=1, size = 7)) 
+
+#Salvar
+ggsave(NES_plot, file= paste0(filename, "_ssGSEA_NES_qvalue010.png"), width = 10, height = 20)
+```
+
+
+```{r}
+ssgsea_interesting.unified = ssgsea_results_unified %>% 
+  filter(!condition %in% c("BNT-MO (V1, D0)", "BNT-MO (V2, D0)")) %>% 
+  mutate(day = as.factor(day),
+         dose = as.factor(dose))
+
+ssgsea_interesting.general.unified = ssgsea_interesting.unified %>% 
+  filter(process %in% c("ADAPTIVE IMMUNE SYSTEM", 
+                        "CELLULAR ADAPTIVE IMMUNE SYSTEM", 
+                        "INNATE IMMUNE SYSTEM", 
+                        "INFLAMMATION"),
+         pvalue <= 0.10)
+
+ssgsea_interesting.specific.unified = ssgsea_interesting.unified %>% 
+  filter(!process %in% c("ADAPTIVE IMMUNE SYSTEM", 
+                         "CELLULAR ADAPTIVE IMMUNE SYSTEM", 
+                         "INNATE IMMUNE SYSTEM", 
+                         "INFLAMMATION"),
+         pvalue <= 0.10)
+
+
+data = ssgsea_results_unified
+filename.unified = "ssgsea_results_unified"
+```
+
+
+```{r}
+#All conditions divided by dose, time on x-axis
+
+# Filtrar os dados antes de passar para ggplot
+filtered_data <- data %>%
+  group_by(cell_name, Vaccine, condition) %>%
+  summarise(n = n()) %>%
+  filter(n < 5) %>%
+  pull(condition)
+
+
+NES_plot_unified_dayx <- ggplot(data) +
+  aes(x = day, y = nes, fill = Vaccine) +
+  geom_boxplot(outlier.alpha = 1) +
+  geom_point(data = subset(data, day %in% filtered_data),
+             aes(x = day, y = nes, color = Vaccine),
+             position = position_jitter(width = 0.2), alpha = 1) +
+  scale_fill_manual(values = vaxcolors) +
+  scale_color_manual(values = c(BBIBP = "#ffd000", 
+                                ZF2001 = "#b5179e",
+                                BNT = "#56cfe1",
+                                ChAd = "#80ffdb" ,
+                                "ChAd-BNT" = "#72efdd")) +
+  labs(
+    title = "ssGSEA - All studies",
+    subtitle = "General ImmuneGO, by dose",
+    caption = "Vaccine",
+    fill = "Vaccines"
+  ) + 
+  theme_minimal() +
+  facet_grid(vars(Type), vars(dose), scales = "free_x") +
+  theme(plot.title = element_text(size = 20L, face = "bold", hjust = 0.5),
+        strip.text.y = element_text(angle = 0, vjust = 1, hjust = 1, size = 5),
+        strip.text.x = element_text(size = 10))
+
+#Salvar
+ggsave(NES_plot_unified_dayx, file = paste0(filename.unified, "_ssGSEA_NES_qvalue010_2.png"), width = 10, height = 10)
+
+print(NES_plot_unified_dayx)
+
+```
+
+
+
+```{r}
+#All conditions divided by vaccine, time on x-axis
+
+# Criar o gráfico
+NES_plot_unified_dayx_vax <- ggplot(data) +
+  aes(x = condition, y = nes, fill = dose) +
+  geom_boxplot(outlier.alpha = 0.5) +
+  geom_point(data = subset(data, condition %in% filtered_data),
+             aes(x = condition, y = nes, color = "black"),
+             position = position_jitter(width = 0.2), alpha = 1) +
+  scale_fill_manual(values = dose_colors) +
+  scale_color_manual(values = dose_colors) +
+  labs(
+    title = "ssGSEA - All studies",
+    subtitle = "General ImmuneGO, by dose",
+    caption = "Vaccine",
+    fill = "Vaccines"
+  ) +
+  theme_minimal() +
+  facet_grid(vars(process), vars(vaccine), scales = "free") +
+  theme(
+    plot.title = element_text(size = 20L, face = "bold", hjust = 0.5),
+    axis.text.x = element_text(angle = 45, vjust = 1, hjust = 1, size = 7),
+    strip.text.y = element_text(angle = 0, vjust = 1, hjust = 1, size = 7)  # Rotação do texto da facet row
+  )
+
+#Salvar
+ggsave(NES_plot_unified_dayx_vax, file = paste0(filename.unified, "_ssGSEA_NES_qvalue010_3.png"), width = 20, height = 20)
+
+print(NES_plot_unified_dayx_vax)
+```
+
+
+
+
+
+###  Analise estatística
+
+```{r}
+install.packages("ggstatsplot")
+library(ggstatsplot)
+
+ssgsea_interesting = ssgsea_interesting %>% 
+  filter(process == "INNATE IMMUNE SYSTEM") %>% 
+  distinct()
+
+process = "INNATE IMMUNE SYSTEM"
+
+
+ggbetweenstats(
+  data  = ssgsea_interesting,
+  x     = condition,
+  y     = nes,
+  title =  paste0("ImmuneGO ssGSEA ", filename, process)
+)
+
+#Agrupado
+grouped_ggbetweenstats(
+  data             = ssgsea_interesting,
+  x                = condition,
+  y                = nes,
+  grouping.var     = process,
+  ggsignif.args    = list(textsize = 4, tip_length = 0.01),
+  p.adjust.method  = "bonferroni",
+  palette          = "default_jama",
+  package          = "ggsci",
+  plotgrid.args    = list(nrow = 1),
+  annotation.args  = list(title = paste0("ImmuneGO ssGSEA ", filename))
+)
+
+```
+
+
+### ANOVA
+
+```{r}
+esquisser(test)
+
+library(ggsignif)
+library(rstatix)
+
+df = test
+df$Condition <- as.factor(df$Condition)
+
+stat.test <- df %>%
+  t_test(Condition ~ NES) %>%
+  add_significance()
+
+
+test %>%
+  filter(Process %in% "INNATE IMMUNE RESPONSE") %>%
+  ggboxplot(x = "Process", y = "NES",
+          color = "Condition", palette = "jco") +
+  facet_wrap(vars(Vaccine)) +
+  stat_compare_means(method = "anova", label.y = 4) +      # Add global p-value
+  stat_compare_means(label = "p.signif", method = "t.test",
+                     ref.group = ".all.")    # Comparação múltipla usando Tukey HSD
+
+
+# Box plots with p-values
+bxp <- ggboxplot(df, x = "Process", y = "NES", fill = "#00AFBB")
+stat.test <- stat.test %>% add_xy_position(x = "supp")
+bxp + 
+  stat_pvalue_manual(stat.test, label = "p") +
+  scale_y_continuous(expand = expansion(mult = c(0.05, 0.1)))
+
+```
+
+### PCA
+
+<https://www.datacamp.com/tutorial/pca-analysis-r> 
+<https://rpkgs.datanovia.com/factoextra/index.html> <http://www.sthda.com/english/articles/31-principal-component-methods-in-r-practical-guide/114-mca-multiple-correspondence-analysis-in-r-essentials/>
+<https://statisticsglobe.com/pca-before-k-means-clustering-r>>
+
+Bibliotecas
+```{r}
+library(factoextra)
+library(caret)
+library(stats)
+library(ggfortify)
+library(ggplot2)
+```
+
+#### By GO term
+
+```{r}
+
+ssgsea_results_unified = ssgsea_results_unified %>% distinct() 
+  
+ssgsea_results_unified.innate = ssgsea_results_unified %>% 
+  filter(process %in% c("INNATE IMMUNE SYSTEM", "ANTIVIRAL AND INTERFERON", "ARPP", "INFLAMMATION", "DENDRITIC CELLS", "MACROPHAGES"))
+
+ssgsea_results_unified.adaptive = ssgsea_results_unified %>% 
+  filter(!process %in% c("INNATE IMMUNE SYSTEM", "ANTIVIRAL AND INTERFERON", "ARPP", "INFLAMMATION", "DENDRITIC CELLS", "MACROPHAGES")) %>% 
+  filter(!study == "GSE201533")
+  
+
+```
+
+
+```{r}
+data_ImmuneGO = ssgsea_results_unified.adaptive 
+filename = "ssgsea_results_unified.adaptive"
+
+pca_ann = data_ImmuneGO %>% 
+  select(sample, condition, vaccine, geo:sex)
+
+#Converter de long para wide
+matrix_genes = data_ImmuneGO %>% 
+  select(sample, process, nes)
+
+matrix_genes <- dcast(matrix_genes, `sample` ~ `process`, 
+                     value.var = "nes", 
+                     fun.aggregate = mean)
+
+matrix_genes <- replace(matrix_genes, matrix_genes == "NaN", 0) 
+
+#Converter coluna 1 em rownames e excluir
+matrix_data_pca = matrix_genes %>% 
+  as.data.frame()
+
+matrix_data_pca_ready = matrix_data_pca %>%  
+  column_to_rownames("sample")
+
+ann_vaccines_pca_matrix = matrix_data_pca %>% 
+  merge(pca_ann, by.y = "sample", by.x = "sample", all.x = T, all.y = F) %>% 
+  distinct()
+
+ann_vaccines_pca_matrix_ready = ann_vaccines_pca_matrix %>% 
+  select(sample, condition, vaccine, day, dose) %>% 
+  mutate(dose = as.factor(dose),
+         day = as.factor(day))
+
+# Verifique quais colunas têm variância muito baixa
+nearZeroVarCols <- nearZeroVar(matrix_data_pca_ready, saveMetrics = TRUE)
+matrix_data_pca_ready <- matrix_data_pca_ready[, !nearZeroVarCols$nzv]
+pca_res <- prcomp(matrix_data_pca_ready, scale. = TRUE)
+
+# Crie o gráfico de PCA
+
+###### Condition
+pca_plot_condition = autoplot(pca_res, 
+                    data = ann_vaccines_pca_matrix_ready, 
+                    colour = 'condition', 
+                    label = 0) + 
+  labs(title=paste0(filename, "_bycondition")) + #scale fill manual
+  scale_fill_continuous(type = "viridis") +
+  theme_minimal()
+
+
+###### Vaccine
+pca_plot_vac = autoplot(pca_res, 
+                    data = ann_vaccines_pca_matrix_ready, 
+                    colour = 'vaccine', 
+                    label = 0) + 
+  labs(title=paste0(filename, "_byvaccine")) + #scale fill manual
+  scale_color_manual(
+    values = c(
+  "BBIBP" = "#ffd000",
+  "BNT" = "#56cfe1",
+  "ChAd" = "#80ffdb",
+  "ChAd-BNT" = "#0077b6",
+  "ZF2001" = "#b5179e")) +
+  theme_minimal()
+
+###### Day
+pca_plot_day = autoplot(pca_res, 
+                    data = ann_vaccines_pca_matrix_ready, 
+                    colour = 'day', 
+                    label = 0) + 
+  labs(title=paste0(filename, "_day")) + #scale fill manual
+   scale_color_manual(
+     values = c(
+       "0" = "grey90",
+    "1" = "#caf0f8",
+    "3" = "#90e0ef",
+    "6" = "#00b4d8",
+    "7" = "#0077b6",
+    "14" = "#023e8a",
+    "28" = "#03045e")) +
+  theme_minimal()
+
+###### Dose
+
+pca_plot_dose = autoplot(pca_res, 
+                    data = ann_vaccines_pca_matrix_ready, 
+                    colour = 'dose', 
+                    label = 0) + 
+  labs(title=paste0(filename, "_dose")) +
+  scale_color_manual(
+    values = c("0" = "#caf0f8", 
+               "1" = "#56cfe1", 
+               "2" = "#5978d4",
+               "3" = "#b5179e"))+
+  theme_minimal()
+
+# Exiba o gráfico
+print(pca_plot_condition)
+print(pca_plot_day)
+print(pca_plot_dose)
+print(pca_plot_vac)
+
+ggsave(pca_plot_condition, filename = paste0(filename, "CONDITION_PCA_Immune_GO_GSEA_not-ann.png"), width = 10, height = 8)
+ggsave(pca_plot_vac, filename = paste0(filename, "_VACCINE_PCA_Immune_GO_GSEA_not-ann.png"), width = 10, height = 8)
+ggsave(pca_plot_day, filename = paste0(filename, "_DAY_PCA_Immune_GO_GSEA_not-ann.png"), width = 10, height = 8)
+ggsave(pca_plot_dose, filename = paste0(filename, "_DOSE_PCA_Immune_GO_GSEA_not-ann.png"), width = 10, height = 8)
+
+```
+
+
+```{r}
+############### KNN classification
+
+#Determinar o número de clusters para KNN
+pca_scores <- data.frame(pca_res$x[, 1:2])
+fviz_nbclust(pca_scores,  
+                     FUNcluster = kmeans,
+                     method = "wss")
+
+set.seed(123)                             # Set seed for randomization
+kmeans_clust <- kmeans(pca_scores,        # Perform k-means clustering
+                        centers = 3) # Definir numero de clusters
+
+#Visualizar clusters
+ggp2 <- fviz_pca_ind(pca_res,
+                   habillage = kmeans_clust$cluster,
+                   repel = TRUE,
+                   addEllipses = TRUE,
+                   ellipse.type = "t",
+                   label = "none",
+                   labelsize = 0) +
+  guides(color = guide_legend(override.aes = list(label = ""))) +
+  ggtitle(paste0(filename,  "_KNN_Clustered.png")) +
+  scale_color_brewer(palette="Set1")
+
+print(ggp2)
+
+ggsave(ggp2, file = paste0(filename, "_KNN_Clustered.png"), width = 5, height = 4)
+
+
+# Clusterizar por grupo
+
+#Vaccine
+pca_group_vac <- fviz_pca_ind(pca_res,
+                   habillage = ann_vaccines_pca_matrix_ready$vaccine,
+                   repel = TRUE,
+                   addEllipses = TRUE,
+                   ellipse.type = "t",
+                   label = "none",
+                   labelsize = 0) +
+  guides(color = guide_legend(override.aes = list(label = ""))) +
+  ggtitle(paste0(filename,  "_Vac_KNN_Clustered.png")) +
+  scale_color_brewer(palette="Set1")
+
+#Dose
+pca_group_dose <- fviz_pca_ind(pca_res,
+                   habillage = ann_vaccines_pca_matrix_ready$dose,
+                   repel = TRUE,
+                   addEllipses = TRUE,
+                   ellipse.type = "t",
+                   label = "none",
+                   labelsize = 0) +
+  guides(color = guide_legend(override.aes = list(label = ""))) +
+  ggtitle(paste0(filename,  "_Dose_KNN_Clustered.png")) +
+  scale_color_brewer(palette="Set1")
+
+#Day
+pca_group_day <- fviz_pca_ind(pca_res,
+                   habillage = ann_vaccines_pca_matrix_ready$day,
+                   repel = TRUE,
+                   addEllipses = TRUE,
+                   ellipse.type = "t",
+                   label = "none",
+                   labelsize = 0) +
+  guides(color = guide_legend(override.aes = list(label = ""))) +
+  ggtitle(paste0(filename,  "_Day_KNN_Clustered.png")) +
+  scale_color_brewer(palette="Set1")
+
+
+#Salvar
+ggsave(pca_group_day, file = paste0(filename, "_Day_Clustered.png"), width = 5, height = 4)
+ggsave(pca_group_dose, file = paste0(filename, "_Dose_Clustered.png"), width = 5, height = 4)
+ggsave(pca_group_vac, file = paste0(filename, "_Vac_Clustered.png"), width = 5, height = 4)
+```
+
+
+```{r}
+#Biplot
+biplot = fviz_pca_biplot(pca_res,              # Visualize clusters in biplot
+                      col.var = "black",
+                      alpha.var = 0.5,
+                      habillage = kmeans_clust$cluster,
+                      repel = TRUE,
+                      addEllipses = TRUE,
+                      ellipse.type = "convex",
+                      labelsize = 3,
+                      label = "var",
+                      palette = "Set1")
+
+
+ggsave(biplot, file = paste0(filename, "_BIPLOT_KNN_Clustered.png"), width = 10, height = 8)
+```
+
+
+```{r}
+########Correlation plot
+corr_matrix = cor(matrix_data_pca_ready) 
+
+#Plot
+corrplot = ggcorrplot(corr_matrix, hc.order = TRUE) + 
+  theme(axis.text.x = element_text(angle = 90, size = 5), 
+        axis.text.y = element_text(size = 5))
+#Salvar
+ggsave(corrplot, file = paste0(filename, "_corrplot.png"), 
+       width = 4, #Grande 20, pequeno 10
+       height= 4) #Grande 20, pequeno 10
+print(corrplot)
+data.pca <- princomp(corr_matrix) #PCA
+summary(data.pca) #Retornar PCs
+
+
+#########Scree plot
+data.pca = princomp(corr_matrix) #PCA
+summary(data.pca) #Retornar PCs
+
+#########Scree plot
+scree_plot = fviz_eig(data.pca, 
+                      addlabels = TRUE,
+                      ylim = c(0, 70)) +
+  geom_col(color = "#00AFBB", fill = "#00AFBB") +
+  theme_classic()
+
+#Salvar
+ggsave(scree_plot, file = paste0(filename, "_GSEA_screeplot.png"), width = 10, height = 3) 
+print(scree_plot)
+
+
+#Scree plot
+loadings = data.frame(data.pca$loadings[, 1:3])
+loadings$Genes = rownames(loadings)
+loadings_1 = arrange(loadings, desc(Comp.1))
+loadings_2 = arrange(loadings, desc(Comp.2))
+loadings_3 = arrange(loadings, desc(Comp.3))
+
+#Plot
+loadings_1_plot = ggplot(loadings_1, aes(x = reorder(Genes, -Comp.1), y=Comp.1, fill = Comp.1)) + 
+  ggtitle(paste0("Comp1-Comp2 Genes", filename)) + 
+  ylab("Comp1") +
+  xlab("Gene sets") +
+  geom_bar(stat = "identity") + 
+  theme_light() +
+  theme(axis.text.x = element_text(vjust = 1, hjust = 1, angle = 45, size = 8), 
+        axis.text.y = element_text(size = 5),
+        plot.title = element_text(size = 15L, hjust = 0.5)) + 
+  scale_fill_continuous(type = "viridis") #cores
+
+print(loadings_1_plot)
+
+
+loadings_2_plot = ggplot(loadings_2, aes(x = reorder(Genes, -Comp.2), y=Comp.2, fill = Comp.2)) + 
+  ggtitle(paste0("Comp2-Comp3 Genes_", filename)) + 
+  ylab("Comp2") +
+  xlab("Gene sets") +
+  geom_bar(stat = "identity") + 
+  theme_light() +
+  theme(axis.text.x = element_text(vjust = 1, hjust = 1, angle = 45, size = 8), 
+        axis.text.y = element_text(size = 5),
+        plot.title = element_text(size = 15L, hjust = 0.5)) + 
+  scale_fill_continuous(type = "viridis") #cores
+
+print(loadings_2_plot)
+
+
+#Salvar
+ggsave(loadings_1_plot, 
+       file = paste0(filename, "_GSEA_genescomp1-2.png"), 
+       width = 10, height = 5)
+
+#Salvar
+ggsave(loadings_2_plot, 
+       file = paste0(filename, "_GSEA_genescomp2-3.png"), 
+       width = 10, height = 5)
+
+
+# Graph of the variables
+fviz_pca_var_genes = fviz_pca_var(data.pca, 
+                                  col.ind = "cos2",
+                                  gradient.cols = c("#00AFBB", "#E7B800", "#FC4E07"))
+fviz_pca_var_genes
+
+ggsave(fviz_pca_var_genes, file = paste0(filename, "_fviz_pca_var_GSEA.png"), width = 10)
+
+cos2.1 = fviz_cos2(data.pca, choice = "var", axes = 1:2)
+cos2.2 = fviz_cos2(data.pca, choice = "var", axes = 2:3)
+
+ggsave(cos2.1, file = paste0(filename, "_cos2_GSEA_1.png"), width = 10)
+ggsave(cos2.2, file = paste0(filename, "_cos2_GSEA_2.png"), width = 10)
+
+```
+
+
+#### By genes
+
+
+Processar dados
+```{r}
+# Immune_GO_general_innate
+# Immune_GO_adaptive
+
+#INPUT
+data_genes = ssgsea_results_unified
+filename = "ssgsea_results_unified"
+```
+
+PCA
+
+```{r}
+#Converter de long para wide
+matrix_genes = data_genes %>% 
+  select(study, genes, l2fc) %>%  
+  dcast(`study` ~ `genes`, 
+        value.var = "l2fc", 
+        fun.aggregate = mean) %>% 
+  as.data.frame() %>% 
+  column_to_rownames(var = "study") %>% 
+  replace(is.na(.), 0)
+
+matrix_data_pca = matrix_genes %>% 
+  rownames_to_column(var = "Condition")
+
+matrix_data_pca_ready = matrix_data_pca %>% 
+  column_to_rownames(var = "Condition")
+
+ann_vaccines_pca_matrix = ann_vaccines_pca %>% 
+  merge(matrix_data_pca, 
+        by.x = "Condition", 
+        all.x = F, 
+        all.y = F) %>% 
+  select(Condition:Efficacy)
+
+# Verifique quais colunas têm variância muito baixa
+nearZeroVarCols <- nearZeroVar(matrix_data_pca_ready, saveMetrics = TRUE)
+matrix_data_pca_ready <- matrix_data_pca_ready[, !nearZeroVarCols$nzv]
+pca_res <- prcomp(matrix_data_pca_ready, scale. = TRUE)
+
+# Crie o gráfico de PCA
+pca_plot_ann = autoplot(pca_res, 
+                    data = ann_vaccines_pca_matrix, 
+                    colour = 'Vaccine', 
+                    label = 1) + #1: display, 0: hide
+  labs(title=filename) +
+  theme_classic()
+  # scale_color_manual(values = c(BBIBP = "#black", 
+  #                               ZF2001 = "black",
+  #                               BNT = "#56cfe1",
+  #                               ChAd = "#80ffdb" ,
+  #                               "ChAd-BNT" = "#72efdd")) 
+
+pca_plot_not_ann = autoplot(pca_res, 
+                    data = ann_vaccines_pca_matrix, 
+                    colour = 'Vaccine', 
+                    label = 0) + #1: display, 0: hide
+  labs(title=filename) +
+  theme_classic() +
+  stat_ellipse(type = "t")
+
+#Salvar
+ggsave(pca_plot_not_ann, filename = paste0(filename, "_PCA_not-ann.png"), width = 10, height = 8)
+ggsave(pca_plot_ann, filename = paste0(filename, "_PCA_ann.png"), width = 10, height = 8)
+
+# Exiba o gráfico
+print(pca_plot_ann)
+print(pca_plot_not_ann)
+
+############### KNN classification
+
+#Determinar o número de clusters para KNN
+pca_scores <- data.frame(pca_res$x[, 1:2])
+ggp1 <- fviz_nbclust(pca_scores,  
+                     FUNcluster = kmeans,
+                     method = "wss")
+
+ggp1 
+
+set.seed(123)                             # Set seed for randomization
+kmeans_clust <- kmeans(pca_scores,        # Perform k-means clustering
+                        centers = 4) # Definir numero de clusters
+
+#Visualizar clusters
+ggp2 <- fviz_pca_ind(pca_res,
+                   habillage = kmeans_clust$cluster,
+                   repel = TRUE,
+                   addEllipses = TRUE,
+                   ellipse.type = "convex",
+                   labelsize = 2) +
+     guides(color = guide_legend(override.aes = list(label = ""))) +
+  ggtitle(paste0(filename,  "KNN_Clustered.png"))
+
+print(ggp2)
+ggsave(ggp2, file = paste0(filename, "KNN_Clustered.png"), width = 5, height = 4)
+
+
+```
+
+
+```{r}
+########Correlation plot
+#Matriz
+corr_matrix = cor(matrix_data_pca_ready) 
+
+#Plot
+corrplot = ggcorrplot(corr_matrix, hc.order = TRUE) + 
+  theme(axis.text.x = element_text(angle = 90, size = 5), 
+        axis.text.y = element_text(size = 5))
+#Salvar
+ggsave(corrplot, file = paste0(filename, "_corrplot.png"), 
+       width = 20, #Grande 20, pequeno 10
+       height= 20) #Grande 20, pequeno 10
+print(corrplot)
+
+#########Scree plot
+data.pca = princomp(corr_matrix) #PCA
+summary(data.pca) #Retornar PCs
+
+#########Scree plot
+scree_plot = fviz_eig(data.pca, 
+                      addlabels = TRUE,
+                      ylim = c(0, 70)) +
+  geom_col(color = "#00AFBB", fill = "#00AFBB") +
+  theme_classic()
+
+#Salvar
+ggsave(scree_plot, file = paste0(filename, "_screeplot.png"), width = 10, height = 3) 
+print(scree_plot)
+
+#Comp1-Comp2
+loadings = data.frame(data.pca$loadings[, 1:3])
+loadings$Genes = rownames(loadings)
+loadings_1 = arrange(loadings, desc(Comp.1))
+loadings_2 = arrange(loadings, desc(Comp.2))
+loadings_3 = arrange(loadings, desc(Comp.3))
+
+#Plot
+loadings_1_plot = ggplot(loadings_1, aes(x = reorder(Genes, -Comp.1), y=Comp.1, fill = Comp.1)) + 
+  ggtitle(paste0("Comp1-Comp2 Genes", filename)) + 
+  ylab("Comp1") +
+  xlab("Genes") +
+  geom_bar(stat = "identity") + 
+  theme_light() +
+  theme(axis.text.x = element_text(vjust = 0.1, hjust = 1, angle = 90, size = 3), 
+        axis.text.y = element_text(size = 5),
+        plot.title = element_text(size = 15L, hjust = 0.5)) + 
+  scale_fill_continuous(type = "viridis") #cores
+  
+#Salvar
+ggsave(loadings_1_plot, 
+       file = paste0(filename, "_genescomp1-2.png"), 
+       width = 10, height = 5)
+
+print(loadings_1_plot)
+```
+
+
+```{r}
+# Graph of the variables
+fviz_pca_var_genes = fviz_pca_var(data.pca, 
+                                  col.ind = "cos2",
+                                  gradient.cols = c("#00AFBB", "#E7B800", "#FC4E07"))
+
+#Salvar
+ggsave(fviz_pca_var_genes, file = paste0(filename, "_fviz_pca_var_genes.png"), width = 10)
+
+######### COS2
+cos2 = fviz_cos2(data.pca, 
+                 choice = "var", 
+                 axes = 1:2) + 
+  theme(axis.text.x = element_text(angle=45, 
+                                   size = 3)) +
+  theme_light()
+
+#Salvar
+ggsave(cos2, file = paste0(filename, "_cos2.png"), width = 10, height = 5)
+
+#Colorido
+fviz_pca_var(data.pca, col.var = "cos2",
+            gradient.cols = c("black", "orange", "green"),
+            repel = TRUE)
+
+#Print
+print(fviz_pca_var_genes)
+print(cos2)
+```
+
+
+## CellMarker
+
+```{r}
+
+```
+
+
+
