@@ -1,0 +1,74 @@
+"","condition","gene_set","n_in_out"
+"1","BBIBP (V3, D14)","ImmuneGO",3
+"2","BBIBP (V3, D14)","Other",51
+"3","BBIBP (V3, D28)","ImmuneGO",2
+"4","BBIBP (V3, D28)","Other",21
+"5","BNT (V1, D6)","ImmuneGO",8
+"6","BNT (V1, D6)","Other",10
+"7","BNT (V2, D1)","ImmuneGO",2165
+"8","BNT (V2, D1)","Other",7477
+"9","BNT (V3, D1)","ImmuneGO",1757
+"10","BNT (V3, D1)","Other",4977
+"11","BNT-I (D1)","ImmuneGO",91
+"12","BNT-I (D1)","Other",2018
+"13","BNT-I (D10, mild)","ImmuneGO",273
+"14","BNT-I (D10, mild)","Other",5287
+"15","BNT-I (D10, severe)","ImmuneGO",350
+"16","BNT-I (D10, severe)","Other",7863
+"17","BNT-I (D26, mild)","ImmuneGO",159
+"18","BNT-I (D26, mild)","Other",3190
+"19","BNT-I (D26, severe)","ImmuneGO",42
+"20","BNT-I (D26, severe)","Other",1196
+"21","BNT-I (D3)","ImmuneGO",68
+"22","BNT-I (D3)","Other",1023
+"23","BNT-I (D4)","ImmuneGO",6
+"24","BNT-I (D4)","Other",157
+"25","BNT-I-BNT (D51, mild)","ImmuneGO",36
+"26","BNT-I-BNT (D51, mild)","Other",445
+"27","BNT-I-BNT (D51, severe)","ImmuneGO",8
+"28","BNT-I-BNT (D51, severe)","Other",207
+"29","BNT-MO (V3, D1)","ImmuneGO",1944
+"30","BNT-MO (V3, D1)","Other",6020
+"31","ChAd (V1, D3)","ImmuneGO",1620
+"32","ChAd (V1, D3)","Other",6380
+"33","ChAd (V1, D6)","ImmuneGO",194
+"34","ChAd (V1, D6)","Other",282
+"35","ChAd (V1, D7)","ImmuneGO",630
+"36","ChAd (V1, D7)","Other",2665
+"37","ChAd (V2, D1)","ImmuneGO",935
+"38","ChAd (V2, D1)","Other",2983
+"39","ChAd (V2, D3)","ImmuneGO",68
+"40","ChAd (V2, D3)","Other",421
+"41","ChAd (V2, D7)","ImmuneGO",10
+"42","ChAd (V2, D7)","Other",12
+"43","ChAd-BNT (V2, D3)","ImmuneGO",1201
+"44","ChAd-BNT (V2, D3)","Other",4031
+"45","ChAd-BNT (V2, D7)","ImmuneGO",1101
+"46","ChAd-BNT (V2, D7)","Other",5132
+"47","ChAd-BNT (V3, D1)","ImmuneGO",838
+"48","ChAd-BNT (V3, D1)","Other",2160
+"49","I (D10, moderate)","ImmuneGO",268
+"50","I (D10, moderate)","Other",5748
+"51","I (D10, severe)","ImmuneGO",284
+"52","I (D10, severe)","Other",6450
+"53","I (D26, moderate)","ImmuneGO",195
+"54","I (D26, moderate)","Other",4003
+"55","I (D26, severe)","ImmuneGO",267
+"56","I (D26, severe)","Other",5901
+"57","I (D51, moderate)","ImmuneGO",6
+"58","I (D51, moderate)","Other",99
+"59","I (D51, severe)","ImmuneGO",203
+"60","I (D51, severe)","Other",3628
+"61","I-BNT-I (D2)","Other",10
+"62","I-BNT-I (D5)","Other",2
+"63","I-I (D1)","ImmuneGO",7
+"64","I-I (D1)","Other",32
+"65","I-I (D2)","Other",1
+"66","I-I (D3)","Other",3
+"67","I-I (D5)","Other",14
+"68","ZF2001 (V3, D07)","ImmuneGO",162
+"69","ZF2001 (V3, D07)","Other",4722
+"70","ZF2001 (V3, D14)","ImmuneGO",24
+"71","ZF2001 (V3, D14)","Other",616
+"72","ZF2001 (V3, D28)","ImmuneGO",15
+"73","ZF2001 (V3, D28)","Other",227
