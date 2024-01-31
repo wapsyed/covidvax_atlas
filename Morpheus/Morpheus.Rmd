@@ -1,0 +1,133 @@
+---
+title: "Morpheus"
+output: html_notebook
+---
+
+
+```{r}
+
+df = all_degs_p_05_vac_infected_Immune_GO_T2G_general_GSEA_ALL_2024_01_17
+
+file_name = "ImmuneGO_GSEA_general"
+ann_vaccines #Annotations for columns
+
+
+df = df %>% 
+  select(id, nes, qvalue, condition) %>% 
+  clean_names %>% 
+  mutate(id = gsub(",", "", id), #delete commas
+         log_q = -log10(qvalue))
+ 
+#NES 
+df_nes = df %>% 
+  select(id, nes, condition) %>% 
+  mutate(nes = as.numeric(nes)) %>% 
+  pivot_wider(., values_from = nes, names_from = condition) %>% 
+  arrange(id) %>% 
+  column_to_rownames("id") %>% 
+  t() %>% 
+  as.data.frame() %>% 
+  rownames_to_column("condition") %>% 
+  inner_join(ann_vaccines %>% select(condition:type, disease_vac), by = "condition") %>% 
+  select(condition, vaccine:type, disease_vac, everything()) %>% 
+  mutate(condition = gsub(",", "", condition)) %>% 
+  arrange(condition) %>% 
+  column_to_rownames("condition") %>% 
+  t() %>% 
+  as.data.frame() 
+  
+write.csv(df_nes, file = paste0(file_name, "_NES.csv"))
+
+
+#FDR
+df_fdr = df %>% 
+  select(id, log_q, condition) %>% 
+  mutate(log_q = as.numeric(log_q)) %>% 
+  pivot_wider(., values_from = log_q, names_from = condition) %>% 
+  arrange(id) %>% 
+  column_to_rownames("id") %>% 
+  t() %>% 
+  as.data.frame() %>% 
+  rownames_to_column("condition") %>% 
+  inner_join(ann_vaccines %>% select(condition:type, disease_vac), by = "condition") %>% 
+  select(condition, vaccine:type, disease_vac, everything()) %>% 
+  mutate(condition = gsub(",", "", condition)) %>% 
+  arrange(condition) %>% 
+  column_to_rownames("condition") %>% 
+  t() %>% 
+  as.data.frame() 
+  
+write.csv(df_fdr, file = paste0(file_name, "_FDR.csv"))
+
+
+```
+
+
+# Genes
+
+```{r}
+Immune_GO_T2G
+
+
+matrix_data = degs_all_updown_immunego %>% 
+  select(condition, genes, log2fold_change) %>% 
+  pivot_wider(., names_from = condition, values_from = log2fold_change) %>% 
+  column_to_rownames("genes") %>% 
+  as.matrix()
+
+#Rows
+ann_immune_genes = matrix_data %>%
+  as.data.frame() %>%
+  rownames_to_column("genes") %>%
+  inner_join(Immune_GO_T2G, by = "genes") %>%
+  select(genes, process) %>%
+  distinct() %>%
+  group_by(genes) %>%
+  arrange(genes, factor(process, levels = c("INNATE IMMUNE SYSTEM", "ADAPTIVE IMMUNE SYSTEM")), .by_group = TRUE) %>% 
+  mutate(i_process = row_number()) %>% 
+  pivot_wider(., names_from = "i_process", values_from = "process") %>% 
+  column_to_rownames("genes") %>% 
+  t() %>% 
+  as.data.frame() %>% 
+  rownames_to_column("index") %>% 
+  arrange(desc(index)) %>% 
+  column_to_rownames("index") %>% 
+  t() %>% 
+  as.data.frame() %>% 
+  replace(is.na(.), " ") %>% 
+  rownames_to_column("genes") %>% 
+  arrange(genes)
+
+
+
+#Columns
+
+ann_immune_genes = matrix_data %>% 
+  as.data.frame() %>% 
+  rownames_to_column("genes") %>% 
+  inner_join(Immune_GO_T2G %>% select(genes), by = "genes") %>% 
+  distinct() %>% 
+  inner_join(ann_immune_genes, by = "genes") %>% 
+  select(genes, "9":"1", everything()) %>% 
+  column_to_rownames("genes") %>% 
+  t() %>% 
+  as.data.frame() %>% 
+  rownames_to_column("condition") %>% 
+  left_join(ann_vaccines %>% select(condition:type, disease_vac), by = "condition") %>% 
+  select(condition, vaccine:type, disease_vac, everything()) %>% 
+  mutate(condition = gsub(",", "", condition)) %>% 
+  column_to_rownames("condition") %>% 
+  t() %>% 
+  as.data.frame() %>% 
+  rownames_to_column("annotations") %>% 
+  relocate("annotations", .after = "1")
+
+
+write.csv(ann_immune_genes, file = paste0(file_name, "_genes_annotated_.csv"))
+
+```
+
+
+
+
+
