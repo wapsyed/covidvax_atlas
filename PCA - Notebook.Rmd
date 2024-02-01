@@ -13,11 +13,21 @@ Tutoriais
 
 Bibliotecas
 ```{r}
+sessionInfo()  # To check which packages are currently loaded
+restartSession() 
+
+library(tidyverse)
+library(ggrepel)
 library(factoextra)
 library(caret)
 library(stats)
 library(ggfortify)
 library(ggplot2)
+library(corrplot)
+library(cowplot)
+library(ggcorrplot)
+
+
 ```
 
 
@@ -1236,17 +1246,25 @@ ggsave(cos2.2, file = paste0(filename, "_cos2_GSEA_2.png"), width = 10)
 
 Processar dados
 ```{r}
-ImmuneGO_Genes = all_degs_p_05_vac_infected_19_12_23 %>% 
+ImmuneGO_Annotated_Genes = ImmuneGO_Annotated_GO_8_1_24 %>% 
   select(-"...1") %>% 
-  inner_join(ImmuneGO_Annotated_Genes_8_1_24 %>% 
-               select(genes) %>% 
+  separate_rows(genes, sep = ",")
+
+ImmuneGO_Genes = all_degs_p_05_vac_infected_19_12_23 %>% 
+  select(-"...1", -"...12") %>% 
+  inner_join(ImmuneGO_Annotated_Genes %>% 
+               select(genes, process) %>% 
                distinct(),
                by = "genes") %>% 
+  distinct() %>% 
+  filter(!process %in% c("TCR REPERTOIRE", "BCR REPERTOIRE")) %>% 
+  select(-process) %>% 
   distinct()
+
 
 nonImmuneGO_Genes = all_degs_p_05_vac_infected_19_12_23 %>% 
   select(-"...1") %>% 
-  anti_join(ImmuneGO_Annotated_Genes_8_1_24 %>% 
+  anti_join(ImmuneGO_Annotated_Genes %>% 
                select(genes) %>% 
                distinct(),
                by = "genes") %>% 
@@ -1257,10 +1275,10 @@ all_non_ImmuneGO_Genes = all_degs_p_05_vac_infected_19_12_23 %>%
   distinct()
 
 #INPUT
-data_genes = ImmuneGO_Genes
+data_genes = ImmuneGO_Genes 
 filename = "ImmuneGO_Genes"
 
-data_annotation = ann_vaccines %>% 
+data_annotation = ann_vaccines_19_1_24 %>% 
   mutate(day = as.factor(day),
          dose = as.factor(dose)) 
 
@@ -1268,51 +1286,159 @@ data_annotation = ann_vaccines %>%
 
 #Matriz com anotações
 ann_vaccines_pca_matrix = data_genes %>% 
+  mutate(log2fold_change = as.numeric(log2fold_change)) %>% 
   select(condition, genes, log2fold_change) %>% 
-  dcast(., `condition` ~ `genes`, 
-                     value.var = "log2fold_change", 
-                     fun.aggregate = mean) %>% 
-  replace(., . == "NaN", 0) %>% 
+  pivot_wider(., names_from = "condition", 
+                     values_from = "log2fold_change") %>% 
+  replace(is.na(.), 0) %>%
+  column_to_rownames("genes") %>% 
+  t() %>% 
   as.data.frame() %>% 
-  merge(data_annotation %>% mutate(week = as.factor(week)), by = "condition", all.x = T, all.y = F)
-```
+  rownames_to_column("condition") %>% 
+  inner_join(data_annotation %>% 
+               select(condition, disease_vac, vaccine, day, week, dose, infection, type), by = "condition") 
 
-
-```{r}
 #Matriz para PCA
-ann_vaccines_pca_matrix_ready = ann_vaccines_pca_matrix %>%
-  select(!vaccine:previous_vaccination) %>% 
-  column_to_rownames("condition")
+ann_vaccines_pca_matrix_ready = ann_vaccines_pca_matrix %>% 
+  column_to_rownames("condition") %>% 
+  select(!disease_vac:type) %>% 
+  as.matrix()
 
 # Verifique colunas com variancia baixa
 nearZeroVarCols <- nearZeroVar(ann_vaccines_pca_matrix_ready, saveMetrics = TRUE)
 ann_vaccines_pca_matrix_ready <- ann_vaccines_pca_matrix_ready[, !nearZeroVarCols$nzv]
 pca_res <- prcomp(ann_vaccines_pca_matrix_ready, scale. = T)
 
-# Crie o gráfico de PCA
-pca_plot = autoplot(pca_res, 
-                    data = ann_vaccines_pca_matrix, 
-                    colour = 'vaccine', 
-                    label = 0) + 
-  theme_minimal() +
-  labs(title=filename) +
-  theme(panel.grid = element_blank()) +
-  scale_fill_continuous(type = "viridis")
+########Correlation plot
 
-# Exiba o gráfico
-print(pca_plot)
-ggsave(pca_plot, filename = paste0(filename, "_", "PCA_Immune_GO_Genes_not-ann.png"), width = 10, height = 8)
+corr_matrix = cor(ann_vaccines_pca_matrix_ready) 
+var <- get_pca_var(pca_res)
 
-# Crie o gráfico de PCA
+### Contribuição dos genes principais para cada PC
+# Comp1
+var_ordenado_top20_dim1 <- var$cos2 %>%
+  as.data.frame() %>%
+  arrange(desc(.[, 1])) %>%   # Ordenar pela primeira coluna em ordem decrescente
+  slice_head(n = 20) %>%      # Selecionar as primeiras 50 linhas
+  select(1:1) %>%                  # Selecionar as primeiras 5 colunas
+  as.matrix()
 
-###### Condition
-pca_plot_condition = autoplot(pca_res, 
-                    data = ann_vaccines_pca_matrix, 
-                    colour = 'condition', 
-                    label = 0) + 
-  theme(panel.grid = element_blank()) +
-  labs(title=paste0(filename, "_bycondition")) + 
-  scale_color_manual(values = c(
+corplot_dim1 = {corrplot(var_ordenado_top20_dim1, 
+         is.corr = T, tl.col = 'black', 
+         tl.cex = 0.5, 
+         addCoef.col = 'white',
+         number.cex = 0.4,
+         cl.pos = 'n', 
+         col = COL1('Blues'),
+         col.lim = c(min(var_ordenado_top20_dim1), max(var_ordenado_top20_dim1)))  ;
+        # Call the recordPlot() function to record the plot
+        recordPlot()
+       }
+
+#Comp2
+var_ordenado_top20_dim2 <- var$cos2 %>%
+  as.data.frame() %>%
+  arrange(desc(.[, 2])) %>%   # Ordenar pela primeira coluna em ordem decrescente
+  slice_head(n = 20) %>%      # Selecionar as primeiras 50 linhas
+  select(2) %>%                  # Selecionar as primeiras 5 colunas
+  as.matrix()
+
+corplot_dim2 = {corrplot(var_ordenado_top20_dim2, 
+         is.corr = T, 
+         tl.col = 'black', 
+         tl.cex = 0.5, 
+         addCoef.col = 'white',
+         number.cex = 0.4,
+         cl.pos = 'n', 
+         col = COL2('PiYG'),
+         col.lim = c(min(var_ordenado_top20_dim2), max(var_ordenado_top20_dim2))) ;
+        # Call the recordPlot() function to record the plot
+        recordPlot()
+       }
+
+dim1_dim2_corrplot = plot_grid(corplot_dim1, corplot_dim2, 
+          rel_widths = c(1, 0.5, 1), 
+          align = "hv",
+          labels = c("Dim1", "Dim2"), 
+          nrow = 1)
+
+ggsave(dim1_dim2_corrplot, file = "dim1_dim2_corrplot.png")
+
+#Plot
+corrplot = ggcorrplot(corr_matrix, hc.order = TRUE) + 
+  theme(axis.text.x = element_text(angle = 90, size = 5), 
+        axis.text.y = element_text(size = 5))
+#Salvar
+ggsave(corrplot, file = paste0(filename, "_corrplot.png"), 
+       width = 20, #Grande 20, pequeno 10
+       height= 20) #Grande 20, pequeno 10
+print(corrplot)
+
+#########Scree plot
+data.pca = princomp(corr_matrix) #PCA
+summary(data.pca) #Retornar PCs
+
+#########Scree plot
+scree_plot = fviz_eig(data.pca, 
+                      addlabels = TRUE,
+                      ylim = c(0, 70)) +
+  geom_col(color = "#00AFBB", fill = "#00AFBB") +
+  theme_classic()
+
+#Salvar
+ggsave(scree_plot, file = paste0(filename, "_screeplot.png"), width = 10, height = 3) 
+print(scree_plot)
+
+#Comp1-Comp2
+loadings = data.frame(data.pca$loadings[, 1:3])
+loadings$Genes = rownames(loadings)
+loadings_1 = arrange(loadings, desc(Comp.1))
+loadings_2 = arrange(loadings, desc(Comp.2))
+loadings_3 = arrange(loadings, desc(Comp.3))
+
+#Plot
+loadings_1_plot = ggplot(loadings_1, aes(x = reorder(Genes, -Comp.1), y=Comp.1, fill = Comp.1)) + 
+  ggtitle(paste0("Comp1-Comp2 Genes", filename)) + 
+  ylab("Comp1") +
+  xlab("Genes") +
+  geom_bar(stat = "identity") + 
+  theme_light() +
+  theme(axis.text.x = element_text(vjust = 0.1, hjust = 1, angle = 90, size = 3), 
+        axis.text.y = element_text(size = 5),
+        plot.title = element_text(size = 15L, hjust = 0.5)) + 
+  scale_fill_continuous(type = "viridis") #cores
+  
+#Salvar
+ggsave(loadings_1_plot, 
+       file = paste0(filename, "_genescomp1-2.png"), 
+       width = 10, height = 5)
+
+print(loadings_1_plot)
+
+fviz_contrib(pca_res, choice = "var", axes = 1, top = 20)
+fviz_contrib(pca_res, choice = "var", axes = 2, top = 20)
+fviz_contrib(pca_res, choice = "var", axes = 3, top = 20)
+
+
+
+# Graph of the variables
+circle_contrib = fviz_pca_var(pca_res, col.var = "cos2",
+                              gradient.cols = c("#4CC9F0", "black", "#F72585"),
+                              select.var= list(cos2 = 20), 
+                              repel = T, 
+                              labelsize = 3) +
+  xlab("PC1 (68.2%)") + 
+  ylab("PC2 (15.9%)")
+
+circle_contrib + 
+  geom_label_repel(box.padding = 0.5)
+
+ggsave(circle_contrib, file = "circle_contrib.png", width = 5, height = 5)
+```
+
+CORES
+```{r}
+condition_col = c(
                                 "BBIBP (V3, D07)" = "gray50",
                                 "BBIBP (V3, D14)" = "gray50",
                                 "BBIBP (V3, D28)" = "gray50",
@@ -1359,11 +1485,37 @@ pca_plot_condition = autoplot(pca_res,
                                 "ZF2001 (V3, D07)"= "#b5179e",
                                 "ZF2001 (V3, D14)"= "#b5179e",
                                 "ZF2001 (V3, D28)" = "#b5179e"
-                              ))+
+                              )
+```
+
+```{r}
+
+#Use the screeplot generated % of explained variance for each dimension
+scree_plot #Dim 1 = 68.2%, Dim 2 = 15.9%
+
+
+
+###### Condition
+
+# No labels -----
+pca_plot_condition = autoplot(pca_res, 
+                    data = ann_vaccines_pca_matrix, 
+                    colour = 'condition', 
+                    label = 0) + 
+  theme(panel.grid = element_blank()) +
+  labs(title=paste0(filename, "_bycondition")) + 
+  scale_color_manual(values = condition_col) +
+  xlab("PC1 (68.2%)") + 
+  ylab("PC2 (15.9%)") +
   theme_minimal() +
   theme(panel.grid = element_blank())
 
-# VALUES
+ggsave(pca_plot_condition, filename = paste0(filename, "_CONDITION_PCA_Immune_GO_not-ann.png"), width = 10, height = 6)
+
+
+# With labels -----
+options(ggrepel.max.overlaps = Inf) #Display all overlapping labels
+
 pca_plot_condition_lab = autoplot(pca_res, 
                     data = ann_vaccines_pca_matrix, 
                     colour = 'condition', 
@@ -1371,58 +1523,16 @@ pca_plot_condition_lab = autoplot(pca_res,
                     label.size = 2,
                     label.repel = T) + 
   labs(title=paste0(filename, "_bycondition")) + 
-  scale_color_manual(values = c(
-                                "BBIBP (V3, D07)" = "gray50",
-                                "BBIBP (V3, D14)" = "gray50",
-                                "BBIBP (V3, D28)" = "gray50",
-                                "BNT (V1, D6)" = "#56cfe1",
-                                "BNT (V2, D1)" = "#56cfe1",
-                                "BNT (V3, D1)" = "#56cfe1",
-                                "BNT-I (D1)"= "#BF3100",
-                                "BNT-I (D10, mild)"= "#BF3100",
-                                "BNT-I (D10, severe)"= "#BF3100",
-                                "BNT-I (D2)"= "#BF3100",
-                                "BNT-I (D26, mild)"= "#BF3100",
-                                "BNT-I (D26, severe)"= "#BF3100",
-                                "BNT-I (D3)"= "#BF3100",
-                                "BNT-I (D4)"= "#BF3100",
-                                "BNT-I (D51, severe)"= "#BF3100",
-                                "BNT-I-BNT (D51, mild)"= "#F5BB00",
-                                "BNT-I-BNT (D51, severe)"= "#F5BB00",
-                                "BNT-MO (V1, D6)"= "#D7B0EE",
-                                "BNT-MO (V3, D1)"= "#D7B0EE",
-                                "ChAd (V1, D3)"= "#5e60ce",
-                                "ChAd (V1, D6)"= "#5e60ce",
-                                "ChAd (V1, D7)"= "#5e60ce",
-                                "ChAd (V2, D1)"= "#5e60ce",
-                                "ChAd (V2, D3)"= "#5e60ce",
-                                "ChAd (V2, D7)"= "#5e60ce",
-                                "ChAd-BNT (V2, D0)"= "#7400b8",
-                                "ChAd-BNT (V2, D3)"= "#7400b8",
-                                "ChAd-BNT (V2, D7)"= "#7400b8",
-                                "ChAd-BNT (V3, D1)"= "#7400b8",
-                                "I (D1)"= "#ff4d6d",
-                                "I (D10, moderate)"= "#ff4d6d",
-                                "I (D10, severe)"= "#ff4d6d",
-                                "I (D26, moderate)"= "#ff4d6d",
-                                "I (D26, severe)"= "#ff4d6d",
-                                "I (D51, moderate)"= "#ff4d6d",
-                                "I (D51, severe)"= "#ff4d6d",
-                                "I-BNT-I (D2)"= "#BF3100",
-                                "I-BNT-I (D5)"= "#BF3100",
-                                "I-I (D0)"= "#ff4d6d",
-                                "I-I (D1)"= "#ff4d6d",
-                                "I-I (D2)"= "#ff4d6d",
-                                "I-I (D3)"= "#ff4d6d",
-                                "I-I (D5)"= "#ff4d6d",
-                                "ZF2001 (V3, D07)"= "#b5179e",
-                                "ZF2001 (V3, D14)"= "#b5179e",
-                                "ZF2001 (V3, D28)" = "#b5179e"
-                              ))+
+  xlab("PC1 (68.2%)") + 
+  ylab("PC2 (15.9%)") +
+  scale_color_manual(values = condition_col)+
   theme_minimal() +
   guides(col="none") +
-  theme(panel.grid = element_blank())
+  theme(panel.grid = element_blank()) 
+
 pca_plot_condition_lab
+
+ggsave(pca_plot_condition_lab, filename = paste0(filename, "_CONDITION_PCA_Immune_GO_ann.png"), width = 7, height = 7)
 ```
 
 
@@ -1536,8 +1646,6 @@ print(pca_plot_disease_vac_lab)
 
 ggplotly(pca_plot_condition_lab)
 
-ggsave(pca_plot_condition, filename = paste0(filename, "CONDITION_PCA_Immune_GO_GSEA_not-ann.png"), width = 10, height = 8)
-ggsave(pca_plot_condition_lab, filename = paste0(filename, "CONDITION_PCA_Immune_GO_GSEA_ann.png"), width = 6, height = 8)
 ggsave(pca_plot_vac, filename = paste0(filename, "_VACCINE_PCA_Immune_GO_GSEA_not-ann.png"), width = 10, height = 8)
 ggsave(pca_plot_vac_lab, filename = paste0(filename, "_VACCINE_PCA_Immune_GO_GSEA_ann.png"), width = 10, height = 8)
 ggsave(pca_plot_week, filename = paste0(filename, "_WEEK_PCA_Immune_GO_GSEA_not-ann.png"), width = 10, height = 8)
@@ -1558,8 +1666,8 @@ fviz_nbclust(pca_scores,
                      method = "wss")
 
 set.seed(666)                             # Set seed for randomization
-kmeans_clust <- kmeans(pca_scores,        # Perform k-means clustering
-                        centers = 3) # Definir numero de clusters
+cluster_model <- kmeans(pca_res$x[, 1:2], centers = 3)  # Ajuste o número de clusters conforme necessário
+ann_vaccines_pca_matrix$cluster <- as.factor(cluster_model$cluster)
 
 #Visualizar clusters
 ggp2 <- fviz_pca_ind(pca_res,
@@ -1578,7 +1686,35 @@ print(ggp2)
 
 ggsave(ggp2, file = paste0(filename, "_KNN_Clustered.png"), width = 5, height = 4)
 
+# Condition -------
+pca_plot_knn_condition_lab = autoplot(pca_res, 
+        data = ann_vaccines_pca_matrix, 
+        colour = 'condition', 
+        label = 1,
+        label.size = 2,
+        label.repel = T) + 
+  stat_ellipse(aes(color = cluster, fill = cluster), 
+               geom = "polygon", 
+               alpha = 0.1, 
+               linetype = 5,
+               size = 0,
+               type = "t") +
+  labs(title=paste0(filename, "_bycondition")) + 
+  xlab("PC1 (68.2%)") + 
+  ylab("PC2 (15.9%)") +
+  scale_color_manual(values = condition_col)+ 
+  scale_color_manual(values = c("1" = "#5e60ce", "2" = "#f72585", "3" = "#56cfe1", condition_col)) +  # Ellipse line colors
+  scale_fill_manual(values = c("1" = "#5e60ce", "2" = "#f72585", "3" = "#56cfe1")) +  # Cluster fill colors
+  theme_minimal() +
+  guides(col="none") +
+  theme(panel.grid = element_blank())
 
+ggsave(pca_plot_knn_condition_lab, file = paste0(filename, "_KNN_Clustered_labels.png"), width = 10, height = 7)
+
+```
+
+
+```{r}
 # Clusterizar por grupo
 
 #Vaccine
@@ -1651,129 +1787,4 @@ biplot = fviz_pca_biplot(pca_res,              # Visualize clusters in biplot
 ggsave(biplot, file = paste0(filename, "_BIPLOT_KNN_Clustered.png"), width = 10, height = 8)
 
 
-```
-
-
-```{r}
-########Correlation plot
-#Matriz
-corr_matrix = cor(matrix_data_pca_ready) 
-library("corrplot")
-var <- get_pca_var(pca_res)
-corrplot(var$cos2, order = 'AOE')
-
-### Contribuição dos genes principais para cada PC
-# Comp1
-var_ordenado_top20_dim1 <- var$cos2 %>%
-  as.data.frame() %>%
-  arrange(desc(.[, 1])) %>%   # Ordenar pela primeira coluna em ordem decrescente
-  slice_head(n = 20) %>%      # Selecionar as primeiras 50 linhas
-  select(1:1) %>%                  # Selecionar as primeiras 5 colunas
-  as.matrix()
-
-corplot_dim1 = {corrplot(var_ordenado_top20_dim1, 
-         is.corr = T, tl.col = 'black', 
-         tl.cex = 0.5, 
-         addCoef.col = 'white',
-         number.cex = 0.4,
-         cl.pos = 'n', 
-         col = "Purple")  ;
-        # Call the recordPlot() function to record the plot
-        recordPlot()
-       }
-
-#Comp2
-var_ordenado_top20_dim2 <- var$cos2 %>%
-  as.data.frame() %>%
-  arrange(desc(.[, 2])) %>%   # Ordenar pela primeira coluna em ordem decrescente
-  slice_head(n = 20) %>%      # Selecionar as primeiras 50 linhas
-  select(2) %>%                  # Selecionar as primeiras 5 colunas
-  as.matrix()
-
-corplot_dim2 = {corrplot(var_ordenado_top20_dim2, 
-         is.corr = T, tl.col = 'black', 
-         tl.cex = 0.5, 
-         addCoef.col = 'white',
-         number.cex = 0.4,
-         cl.pos = 'n', 
-         col = "Purple") ;
-        # Call the recordPlot() function to record the plot
-        recordPlot()
-       }
-
-dim1_dim2_corrplot = plot_grid(corplot_dim1, corplot_dim2, 
-          rel_widths = c(1, 0.5, 1), 
-          align = "hv",
-          labels = c("Dim1", "Dim2"), 
-          nrow = 1)
-
-ggsave(dim1_dim2_corrplot, file = "dim1_dim2_corrplot.png")
-
-
-#Plot
-corrplot = ggcorrplot(corr_matrix, hc.order = TRUE) + 
-  theme(axis.text.x = element_text(angle = 90, size = 5), 
-        axis.text.y = element_text(size = 5))
-#Salvar
-ggsave(corrplot, file = paste0(filename, "_corrplot.png"), 
-       width = 20, #Grande 20, pequeno 10
-       height= 20) #Grande 20, pequeno 10
-print(corrplot)
-
-#########Scree plot
-data.pca = princomp(corr_matrix) #PCA
-summary(data.pca) #Retornar PCs
-
-#########Scree plot
-scree_plot = fviz_eig(data.pca, 
-                      addlabels = TRUE,
-                      ylim = c(0, 70)) +
-  geom_col(color = "#00AFBB", fill = "#00AFBB") +
-  theme_classic()
-
-#Salvar
-ggsave(scree_plot, file = paste0(filename, "_screeplot.png"), width = 10, height = 3) 
-print(scree_plot)
-
-#Comp1-Comp2
-loadings = data.frame(data.pca$loadings[, 1:3])
-loadings$Genes = rownames(loadings)
-loadings_1 = arrange(loadings, desc(Comp.1))
-loadings_2 = arrange(loadings, desc(Comp.2))
-loadings_3 = arrange(loadings, desc(Comp.3))
-
-#Plot
-loadings_1_plot = ggplot(loadings_1, aes(x = reorder(Genes, -Comp.1), y=Comp.1, fill = Comp.1)) + 
-  ggtitle(paste0("Comp1-Comp2 Genes", filename)) + 
-  ylab("Comp1") +
-  xlab("Genes") +
-  geom_bar(stat = "identity") + 
-  theme_light() +
-  theme(axis.text.x = element_text(vjust = 0.1, hjust = 1, angle = 90, size = 3), 
-        axis.text.y = element_text(size = 5),
-        plot.title = element_text(size = 15L, hjust = 0.5)) + 
-  scale_fill_continuous(type = "viridis") #cores
-  
-#Salvar
-ggsave(loadings_1_plot, 
-       file = paste0(filename, "_genescomp1-2.png"), 
-       width = 10, height = 5)
-
-print(loadings_1_plot)
-
-fviz_contrib(pca_res, choice = "var", axes = 1, top = 20)
-fviz_contrib(pca_res, choice = "var", axes = 2, top = 20)
-fviz_contrib(pca_res, choice = "var", axes = 3, top = 20)
-
-
-
-# Graph of the variables
-circle_contrib = fviz_pca_var(pca_res, col.var = "cos2",
-                              gradient.cols = c("#4CC9F0", "black", "#F72585"),
-                              select.var= list(cos2 = 20), 
-                              repel = T, 
-                              labelsize = 3)
-
-circle_contrib
-ggsave(circle_contrib, file = "circle_contrib.png", width = 5, height = 5)
 ```
