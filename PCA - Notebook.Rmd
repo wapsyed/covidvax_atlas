@@ -350,69 +350,35 @@ set.seed(666)                             # Set seed for randomization
 cluster_model <- kmeans(pca_res$x[, 1:2], centers = 3)  # Ajuste o número de clusters conforme necessário
 ann_vaccines_pca_matrix$cluster <- as.factor(cluster_model$cluster)
 
-#Visualizar clusters
-ggp2 <- fviz_pca_ind(pca_res,
-                   habillage = kmeans_clust$cluster,
-                   repel = TRUE,
-                   addEllipses = TRUE,
-                   ellipse.type = "t",
-                   label = "none",
-                   labelsize = 0) +
-  guides(color = guide_legend(override.aes = list(label = ""))) +
-  ggtitle(paste0(filename,  "_KNN_Clustered.png")) +
-  scale_color_brewer(palette="Set1") +
-  theme(panel.grid = element_blank())
-
-print(ggp2)
-
-ggsave(ggp2, file = paste0(filename, "_KNN_Clustered.png"), width = 5, height = 4)
 
 # Condition -------
 pca_plot_knn_condition_lab = autoplot(pca_res, 
         data = ann_vaccines_pca_matrix, 
-        colour = 'condition', 
-        label = 1,
-        label.size = 2,
-        label.repel = T) + 
+        colour = 'condition') + 
   stat_ellipse(aes(color = cluster, fill = cluster), 
                geom = "polygon", 
-               alpha = 0, 
+               alpha = 0.1, 
                linetype = 1,
-               size = 0.5,
+               size = 0.3,
                type = "t") +
+  geom_text_repel(data = ann_vaccines_pca_matrix,
+                  aes(label = condition, color = condition_col),
+                  box.padding = 0.3,
+                  size = 2) +
   labs(title=paste0(filename, "_bycondition")) + 
   xlab("PC1 (68.2%)") + 
   ylab("PC2 (15.9%)") +
-  scale_color_manual(values = c("1" = "#5e60ce", "2" = "#f72585", "3" = "#FC4E07", condition_col)) +  # Ellipse line colors
-  scale_fill_manual(values = c("1" = "#5e60ce", "2" = "#f72585", "3" = "#FC4E07")) +  # Cluster fill colors
+  scale_color_manual(values = c("1" = "#5e60ce", 
+                                "2" = "#f72585", 
+                                "3" = "#56cfe1", condition_col)) +  # Ellipse line colors
+  scale_fill_manual(values = c("1" = "#5e60ce", 
+                               "2" = "#f72585", 
+                               "3" = "#56cfe1")) +  # Cluster fill colors
   theme_minimal() +
   guides(col="none") +
   theme(panel.grid = element_blank())
-
-pca_plot_knn_condition_lab
 
 ggsave(pca_plot_knn_condition_lab, file = paste0(filename, "_KNN_Clustered_labels.png"), width = 7, height = 5)
 
 ```
 
-
-Biplot
-```{r}
-#Biplot
-# biplot = fviz_pca_biplot(pca_res,              # Visualize clusters in biplot
-#                       col.var = "black",
-#                       alpha.var = 0.5,
-#                       habillage = kmeans_clust$cluster,
-#                       select.ind = list(contrib = 60),
-#                       select.var = list(contrib = 10),
-#                       repel = TRUE,
-#                       addEllipses = TRUE,
-#                       labelsize = 3,
-#                       label = "var") +
-#     ggpubr::fill_palette("jco")     # Indiviual fill color
-# 
-# 
-# ggsave(biplot, file = paste0(filename, "_BIPLOT_KNN_Clustered.png"), width = 10, height = 8)
-
-
-```
