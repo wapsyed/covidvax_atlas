@@ -1100,69 +1100,6 @@ plot_grid(volcano_res_chad, volcano_res_chad_1_0, volcano_res_chad_2_0, ncol = 3
 
 ```
 
-## 5.2. Heatmap
-
-```{r}
-# teste heatmap
-head(res)
-
-#Obter DEGs do estudo
-heat_test = res %>% 
-  as.data.frame() %>% 
-  rownames_to_column(var="genes")
-
-#Obter counts dos DEGs
-heat_count = countData %>% 
-  rownames_to_column(var = "genes")
-
-#Unir tabelas
-###A tabela agora possui os valores de counts e outras estatísticas do objeto deseq2 pareadas pelos DEGs.
-merged_heat = heat_test %>% 
-  merge(heat_count, by = 'genes') %>% 
-  arrange(padj)
-
-#Cores
-tp_cols = c("V0" = "steelblue2", "V1" = "goldenrod","V2A"="firebrick3","V3A"="grey44")
-v_cols = c("ChAdOx1" = "violetred2", "BNT162b2" = "deepskyblue2","mRNA-1273" = "goldenrod")
-
-# Transformar as counts dos DEGs em matriz e normalizar 
-data2plot <- as.matrix(merged_heat[, 8:267])
-zzz <- scale(t(data2plot)) %>%
-  pmin(-3) %>%
-  pmax(3))
-
-#Transformar em dataframe
-test <- zzz %>%
-  as.data.frame() %>%
-  mutate(genes = merged_heat$genes) %>%
-  tidyr::gather("samples", "expression", -genes)
-tail(test)
-
-zzz_filtered = test %>% 
-  subset(expression > 2 & samples == 'COVIRS_41_V0')
-dim(zzz_filtered)
-head(zzz_filtered)
-
-#Heatmap annotation
-ha = HeatmapAnnotation(df = colData[,c("timepoint","first_second_dosef")],
-                       col = list(Timepoint = tp_cols,
-                                  FirstSecondDosef = v_cols))
-
-
-Heatmap(zzz, 
-        show_row_names = FALSE,
-        show_column_names = FALSE,
-        cluster_rows=TRUE,
-        cluster_columns = TRUE,
-        top_annotation = ha,
-        col=c("darkgreen","azure2","darkorchid4"),
-        column_split=colData$Timepoint,
-        column_title="Heatplot")
-
-```
-
-
-
 ## 5.3. Diagrama de Venn com Heatmap
 
 *Tabela de overlaps de DEGs com teste exato de fisher*
