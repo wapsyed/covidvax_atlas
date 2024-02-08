@@ -1,14 +1,24 @@
 # Covid-19 Vaccination Atlas: A systems vaccinology analysis
 
 # Article information
-**Authors:** Wasim Aluísio Prates-Syed¹ (wasim.syed@usp.br), Dennyson Leandro Mathias da Fonseca² (dennyson@usp.br), Shahab Zaki Pour² (shahab.178@gmail.com), Aline Lira¹ (aline.llira@usp.br), Nelson Cortes¹ (nelson.cortes@usp.br), Jaqueline da Silva Dinis³ (jaquelinedinis@gmail.com), Evellyn Carvalho³ (evelyn.carvalho@unesp.br), Larissa Vuitika¹ (vuitika@usp.br), Lorena C. S. Chaves⁴ (lorenacschaves@gmail.com), Otávio Cabral-Marques³ (otavio.cmarques@usp.br), Gustavo Cabral-Miranda¹ (gcabral.miranda@usp.br). 
+**Authors:** Wasim Aluísio Prates-Syed1,2, Dennyson Leandro Mathias da Fonseca3, Shahab Zaki Pour3, Aline Lira1,2, Nelson Cortes1, 2, Jaqueline Dinis Queiroz Silva 1,5, Larissa Vuitika¹, Evellyn Carvalho1,4, Tania Geraldine Churascari Vinces4, Gerhard Wunderlich4, Ricardo Durães-Carvalho6, Lorena C. S. Chaves7, Niels O. S. Câmara1, Ester Cerdeira SABINO8,9, José E. Krieger10, Otávio Cabral-Marques1,3,5,11,∙, Gustavo Cabral-Miranda1,2,5,8 *, ∙
+
+**Emails:** wasim.syed@usp.br, dennyson@usp.br, shahab.178@gmail.com, cv.tania@usp.br, aline.llira@usp.br, nelson.cortes@usp.br, jaquelinedinis@gmail.com, evelyn.carvalho@unesp.br, vuitika@usp.br, lorenacschaves@gmail.com, gwunder@usp.br, rdcarval@gmail.com, niels@icb.usp.br, sabinoec@usp.br, j.krieger@hc.fm.usp.br, otavio.cmarques@usp.br, gcabral.miranda@usp.br 
 
 **Institutions:**
 1. Department of Immunology, Institute of Biomedical Sciences (ICB), University of São Paulo (USP), São Paulo, Brazil.
-2. Interunit Postgraduate Program on Bioinformatics, Institute of Mathematics and Statistics (IME), University of Sao Paulo (USP), Sao Paulo, Brazil
-3. Department of Medicine, Division of Molecular Medicine, School of Medicine, University of São Paulo (USP), São Paulo, Brazil
-4. Department of Microbiology and Immunology, School of Medicine, Emory University, Atlanta, Georgia, United States.
+2. The Interunits Graduate Program in Biotechnology of the University of São Paulo, the Butantan Institute and the Technological Research Institute of the State of São Paulo, Brazil.
+3. Interunit Postgraduate Program on Bioinformatics, Institute of Mathematics and Statistics (IME), University of Sao Paulo (USP), Sao Paulo, Brazil.
+4. Department of Parasitology, Institute of Biomedical Sciences (ICB), University of São Paulo (USP), São Paulo, Brazil.
+5. The Graduate Program in Pathophysiology and Toxicology, Department of Clinical and Toxicological Analyses, School of Pharmaceutical Sciences, University of São Paulo, São Paulo, Brazil.
+6. São Paulo School of Medicine, Department of Microbiology, Immunology and Parasitology, Federal University of São Paulo (UNIFESP), São Paulo, SP, Brazil.
+7. Department of Microbiology and Immunology, School of Medicine, Emory University, Atlanta, Georgia, United States.
+8. Institute of Tropical Medicine, Faculty of Medicine of the University of São Paulo, Brazil
+9. Department of Infectious and Parasitic Diseases, Faculty of Medicine, University of São Paulo, São Paulo, Brazil
+10. Heart Institute, Clinical Hospital, Faculty of Medicine, University of São Paulo, Brazil; Laboratory of Genetics and Molecular Cardiology, Clinical Hospital, Faculty of Medicine, University of São Paulo, Brazil.
+11. Department of Medicine, Division of Molecular Medicine, University of São Paulo School of Medicine, São Paulo, Brazil.
+
 
 # Abstract: 
-In this comprehensive study, we explore the landscape of COVID-19 vaccination, which comprises a wide variety of vaccines and platforms. This atlas elucidates the transcriptional signatures among these vaccines and compares them with natural infection, considering prior vaccination and infection status. Moreover, we present a comparative analysis of immune-related genes within COVID-19 vaccination datasets and extend to non-related vaccine datasets. With an integrated approach, this work describes  transcriptional responses, paving the way for a comprehensive comprehension of COVID-19 vaccination dynamics and their immunological implications.Furthermore, we introduce VaxGO, a tool for immunological exploration of vaccination data.
+The rapid development of COVID-19 vaccines has played a crucial role in mitigating its public health impact. However, a gene-level understanding of immune system dynamics during vaccination is crucial for comprehending the various vaccination scenarios, including infection. In this study, we conducted an integrative analysis of immunological transcriptomic profiles to delineate the impact of COVID-19 vaccination on immune responses. Our analysis comprised 681 bulk RNAseq samples from 343 participants, including healthy individuals vaccinated with different types of COVID-19 vaccines (inactivated virus, protein subunit, viral-vectored, and mRNA), along with infected patients with or without prior vaccination history. We identified distinct and overlapping immune-related genes and pathways associated with COVID-19 vaccination and infection, considering time and regimen. Furthermore, we expanded our analysis to include datasets from vaccines targeting other pathogens, such as influenza, smallpox, and yellow fever. Additionally, we introduce VaxGO, a novel tool for exploring immunological processes and comparing them across different vaccines. Our work will contribute to advancing our understanding of the immunological mechanisms underlying Covid-19 vaccination and inform future developments in vaccine design and personalized medicine.
 **Keywords:** transcriptomics, vaccines, COVID-19, SARS-CoV-2.
