@@ -750,7 +750,7 @@ file = filename_2
 mat = matrix_data
 width_image = 30
 height_image = 20
-width = unit(15, "cm")
+width = unit(10, "cm")
 height = unit(10, "cm")
 column_names_gp = gpar(fontsize = 10)
 row_names_gp = gpar(fontsize = 10)
