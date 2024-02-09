@@ -1,4 +1,3 @@
-
 ---
 title: "ComplexHeatmap"
 output: html_notebook
@@ -10,10 +9,8 @@ output: html_notebook
 library(ComplexHeatmap)
 library(maditr)
 library(tidyverse)
-
-
-
-
+library(RColorBrewer)
+library(circlize)
 ```
 
 
@@ -21,7 +18,102 @@ library(tidyverse)
 
 # GSEA - GENES
 
-### ImmuneGO
+# Colors
+
+4. Cores.
+Defina as cores de cada elemento da tabela das anotações das colunas e/ou linhas.
+
+```{r}
+#Vaccines
+ann_colors = list(
+  vaccine = c(
+  "BBIBP" = "#76c893",
+  "ZF2001" = "#b5e48c",
+  "BNT" = "#56cfe1",
+  "MO" = "#72ddf7",
+  "ChAd" = "#5e60ce",
+  "I" = "grey95",
+  "H" = "grey95"),
+  dose = c(
+    "0" = "grey95",
+    "1" = "#bbdefb",
+    "2" = "#1e88e5",
+    "3" = "#0d47a1"),
+  day = c(
+    "0" = "white",
+    "1" = "#e3f2fd",
+    "2" = "#ade8f4",
+    "3" = "#90e0ef",
+    "4" = "#6CD5EA",
+    "5" = "#48cae4",
+    "6" = "#00b4d8",
+    "7" = "#0096c7",
+    "10" = "#0087BF",
+    "11" = "#0087BF",
+    "14" = "#0077b6",
+    "26" = "#015BA0",
+    "28" = "#023e8a",
+    "51" = "#03045e"),
+  week = c("1" = "#e3f2fd",
+           "2" = "#6CD5EA",
+           "3" = "#0087BF",
+           "4" = "#015BA0", 
+           "7" = "#03045e"),
+  type = c('IN'= "#76c893", #1st Gen  vaccines
+           'VV' = "#5e60ce", #3rd Gen vaccines
+           'RNA' = "#56cfe1",
+           'SU' = "#b5e48c",
+           'I'= "#f72585",
+           "H" = "grey95"), #Infection
+  regimen = c('HO' = "grey90",
+              'HE' = "#8d99ae",
+              "V-I-V" = "#36248f",
+              "V-I" = "#D7B0EE",
+              "I-V-I" = "#7400b8",
+              "I-I" = "#5390d9",
+              "I" = "#64dfdf",
+              "H" = "grey95"),
+  infection = c("0" = "#64dfdf",
+                "1" = "#f72585",
+                "2" = "#a4161a"),
+  variant = c("None" = "grey95",
+              "Beta" = "#72efdd",
+              "Omicron" = "#5e60ce"),
+  severity = c("H" = "grey95",
+               "S" = "#0d47a1",
+               "MO" = "#1e88e5",
+               "MI" = "#bbdefb",
+               "NA" = "grey95"),
+  sex = c("Male" = "#64dfdf",
+          "Female" = "#5e60ce",
+          "M/F" = "#D7B0EE"))
+
+
+#Definir cores do gráfico
+# Defina os valores mínimos e máximos para o espectro de cores
+min(matrix_data_ordered_rows)
+max(matrix_data_ordered_rows)
+
+
+#Definir cores do gráfico
+# Defina os valores mínimos e máximos para o espectro de cores
+min(matrix_data_ordered)
+max(matrix_data_ordered)
+
+valores_minimos <- -2  # Substitua pelo valor mínimo desejado
+valores_maximos <- 2   # Substitua pelo valor máximo desejado
+
+#Espectro de cores
+
+col_fun <- colorRamp2(c(-2, 0, 2), c("#9bc1bc", "white", "#ed6a5a"))
+
+```
+
+
+
+
+
+## ImmuneGO
 
 1. Criar matrizes
 
@@ -36,12 +128,12 @@ ImmuneGO = ImmuneGO_Annotated_GO_1_1_24 %>%
   distinct()
 
 # Genes por gene sets
-immunego_genes = ImmuneGO_Annotated_Genes %>%
+immunego_genes = ImmuneGO_Annotated_Genes_8_1_24 %>%
   filter(go_term == "Manual") %>% 
   select(process,genes)
 
 # Anotações das amostras/condições (Vacinas)
-ann_vaccines = ann_vaccines_1_1_24 %>%
+ann_vaccines = ann_vaccines_18_1_24 %>%
   distinct() %>% 
   clean_names()
 
@@ -63,38 +155,48 @@ Immune_GO_genes_All = data.immunego %>%
 ###### Gene sets
 
 # Sistema inato
-# Immune_GO_genes_Inflammation = Immune_GO_genes_All %>% 
+# Immune_GO_genes_Innate = Immune_GO_genes_All %>%
+#  filter(process == "INNATE IMMUNE SYSTEM")
+Immune_GO_genes_Adaptive = Immune_GO_genes_All %>%
+ filter(process == "ADAPTIVE IMMUNE SYSTEM")
+
+
+# Immune_GO_genes_Inflammation = Immune_GO_genes_All %>%
 #   filter(process == "INFLAMMATION")
-# Immune_GO_genes_ARPP = Immune_GO_genes_All %>% 
+# Immune_GO_genes_ARPP = Immune_GO_genes_All %>%
 #   filter(process == "ARPP")
-# Immune_GO_genes_IFN = Immune_GO_genes_All %>% 
-#   filter(process == "ANTIVIRAL AND INTERFERON")
-# Immune_GO_genes_Neutrophil = Immune_GO_genes_All %>% 
-#   filter(process == "NEUTROPHIL")
-Immune_GO_genes_Eosinophil = Immune_GO_genes_All %>% 
+Immune_GO_genes_IFN = Immune_GO_genes_All %>%
+  filter(process == "ANTIVIRAL AND INTERFERON")
+Immune_GO_genes_Neutrophil = Immune_GO_genes_All %>%
+  filter(process == "NEUTROPHIL")
+Immune_GO_genes_Eosinophil = Immune_GO_genes_All %>%
   filter(process == "EOSINOPHIL")
-Immune_GO_genes_Complement = Immune_GO_genes_All %>% 
-  filter(process == "COMPLEMENT")
-Immune_GO_genes_Monocytes = Immune_GO_genes_All %>% 
-  filter(process == "Monocytes")
-Immune_GO_genes_DC = Immune_GO_genes_All %>% 
+Immune_GO_genes_Complement = Immune_GO_genes_All %>%
+  filter(process == "COMPLEMENT IMMUNE SYSTEM")
+Immune_GO_genes_Monocytes = Immune_GO_genes_All %>%
+  filter(process == "MONOCYTES")
+Immune_GO_genes_DC = Immune_GO_genes_All %>%
   filter(process == "DENDRITIC CELLS")
-Immune_GO_genes_Macro = Immune_GO_genes_All %>% 
+Immune_GO_genes_Macro = Immune_GO_genes_All %>%
   filter(process == "MACROPHAGES")
-Immune_GO_genes_NK = Immune_GO_genes_All %>% 
-  filter(process == "NK CELL")	
+Immune_GO_genes_NK = Immune_GO_genes_All %>%
+  filter(process == "NK CELL")
+Immune_GO_genes_Mast = Immune_GO_genes_All %>%
+  filter(process == "MAST CELL") %>%
+  distinct()
 
 # Sistema adaptativo
-Immune_GO_genes_Cellular = Immune_GO_genes_All %>% 
+Immune_GO_genes_Cellular = Immune_GO_genes_All %>%
   filter(process == "CELLULAR ADAPTIVE IMMUNE SYSTEM")
-Immune_GO_genes_Humoral = Immune_GO_genes_All %>% 
+Immune_GO_genes_Humoral = Immune_GO_genes_All %>%
   filter(process == "HUMORAL ADAPTIVE IMMUNE SYSTEM")
-Immune_GO_genes_Tcells = Immune_GO_genes_All %>% 
+Immune_GO_genes_Tcells = Immune_GO_genes_All %>%
   filter(process == "T CELLS")
-Immune_GO_genes_Bcells = Immune_GO_genes_All %>% 
+Immune_GO_genes_Bcells = Immune_GO_genes_All %>%
   filter(process == "B CELLS")
-Immune_GO_genes_Ig = Immune_GO_genes_All %>% 
-  filter(process == "IMMUNOGLOBULIN MEDIATED IMMUNE RESPONSE")
+# Immune_GO_genes_Ig = Immune_GO_genes_All %>% 
+#   filter(process == "IMMUNOGLOBULIN MEDIATED IMMUNE RESPONSE") %>% 
+#   distinct()
 ```
 
 
@@ -102,8 +204,8 @@ Immune_GO_genes_Ig = Immune_GO_genes_All %>%
 ####### Input
 #Troque pelo geneset de interesse
 
-heatmap_data = Immune_GO_genes_Eosinophil
-file = "Immune_GO_genes_Eosinophil"
+heatmap_data = Immune_GO_genes_Innate
+file = "Immune_GO_genes_Innate"
 
 ########## Processar dados e criar matriz
 
@@ -128,8 +230,9 @@ matrix_data_ready =  matrix_data %>%
 
 # Verificar se todas as vacinas da anotação estão na matriz e unir as tabelas
 ann_vaccines_complex = heatmap_data %>% 
-  select(condition, vaccine:regimen) %>% 
-  distinct()
+  select(condition) %>% 
+  distinct() %>% 
+  inner_join(ann_vaccines, by = "condition")
 
 # Unir tabela de anotações
 ann_vaccines_heatmap = matrix_data %>% 
@@ -159,261 +262,39 @@ matrix_data_ordered = matrix_data %>%
   as.matrix() #%>% 
   #scale() #normalizar
 
-```
-
-3. Anotar linhas (opcional. Não foi feito neste tutorial)
-
-A anotação de linhas segue o mesmo processo da anotação de colunas, ordenando as linhas da matriz na mesma ordem das linhas na tabela de anotações. No final, você deve ter uma tabela com as colunas na mesma ordem da tabela de anotações das colunas/conditions e, a partir desta, uma tabela com as linhas na mesma ordem das linhas da tabela de anotações das linhas/genesets/genes.
-
-```{r}
-########## Anotar gene sets
-
-################ Criar tabela de anotações para as vacinas
-ann_genesets = matrix_data %>% 
-  as.data.frame() %>% 
-  rownames_to_column(var = "Gene set short")
-
-#Extrair anotações da tabela original e ordenar as anotações para o gráfico
-ann_genesets.heatmapdata.unique = heatmap_data %>% 
-  select(gene_set_short, immune_system, immune_sub_system) %>% 
-  distinct(gene_set_short, immune_system, immune_sub_system)%>%
-  mutate(gene_set_short = toupper(gene_set_short)) %>% 
-  arrange(gene_set_short) %>% 
-  mutate(immune_system = as.factor(immune_system)) # Vaccine para corresponderem às cores
-
-#Simplificar variável e remover duplicatas
-ann_genesets = ann_genesets.heatmapdata.unique %>% 
-  distinct(gene_set_short, .keep_all = TRUE)
-
-#Unir tabelas
-ann_genesets_heatmap = matrix_data.nes %>% #Matriz de NES (ou -logq) 
-  rownames_to_column('gene_set_short') %>% 
-  select('gene_set_short') %>% 
-  merge(ann_genesets, by = "gene_set_short", all.x = TRUE) %>% 
-  arrange('gene_set_short') #Ordenar por ordem alfabética
-
-# Encontre a ordem das linhas da primeira tabela de acordo com a ordem da segunda tabela
-matrix_data_rows_cols_ordered = matrix_data.nes %>% 
-  rownames_to_column(var="gene_set_short") %>% 
-  merge(ann_genesets_heatmap, by= "gene_set_short", all.x = TRUE) %>% 
-  arrange("gene_set_short") %>% 
-  column_to_rownames(var= "gene_set_short") %>% 
-  select(-`immune_system`, -immune_sub_system) %>% 
-  as.matrix()
-
-#Excluir coluna de Gene set
-ann_genesets_heatmap = ann_genesets_heatmap %>% 
-  column_to_rownames(var="gene_set_short")
-  
-####################### Rows annotation by Immune system only (caso seja de interesse)
-ann_genesets_heatmap_IM = ann_genesets_heatmap %>% 
-  select(-immune_sub_system) %>% 
-  rownames_to_column(var = "gene_set_short") %>% 
-  arrange(gene_set_short) %>% 
-  column_to_rownames(var = "gene_set_short")
-```
-
-
-
-Verifique se o numero de linhas e colunas é igual. 
-Se for diferente, o heatmap não consegue interpretar.
-```{r}
 #Verificar se as linhas sao iguais
 dim(matrix_data_ordered) #Usar se for ordenar por colunas
 dim(ann_vaccines_heatmap) #Anotações sobre as colunas
-# dim(matrix_data_rows_cols_ordered) #Usar se ordenar por colunas e linhas
-# dim(ann_genesets_heatmap) #Anotações sobre as linhas
-```
-
-4. Cores.
-Defina as cores de cada elemento da tabela das anotações das colunas e/ou linhas.
-
-```{r}
-########## Definir Cores dos grupos
-#Vaccines
-ann_colors = list(
-  vaccine = c(
-  "BBIBP" = "#343a40",
-  "BNT" = "#56cfe1",
-  "ChAd" = "#5e60ce",
-  "ZF2001" = "#b5179e",
-  "MO" = "#D7B0EE",
-  "I" = "#ff4d6d",
-  "H" = "grey95"),
-  dose = c(
-    "0" = "grey95",
-    "1" = "#56cfe1",
-    "2" = "#5978d4",
-    "3" = "#b5179e"),
-  day = c(
-    "0" = "white",
-    "1" = "#caf0f8",
-    "2" = "#ade8f4",
-    "3" = "#90e0ef",
-    "4" = "#6CD5EA",
-    "5" = "#48cae4",
-    "6" = "#00b4d8",
-    "7" = "#0096c7",
-    "10" = "#0087BF",
-    "11" = "#0087BF",
-    "14" = "#0077b6",
-    "26" = "#015BA0",
-    "28" = "#023e8a",
-    "51" = "#03045e"),
-  week = c("1" = "#caf0f8",
-           "2" = "#6CD5EA",
-           "3" = "#0087BF",
-           "4" = "#015BA0", 
-           "7" = "#03045e"),
-  type = c('IN'= "#343a40", #1st Gen  vaccines
-           'SU' = "#00a896",
-           'VV' = "#72efdd", #3rd Gen vaccines
-           'RNA' = "#56cfe1",
-           'SU' = "#b5179e",
-           'I'= "#da1e37",
-           "H" = "grey95"), #Infection
-  regimen = c('HO' = "grey90",
-              'HE' = "#8d99ae",
-              "V-I-V" = "#36248f",
-              "V-I" = "#D7B0EE",
-              "I-V-I" = "#7400b8",
-              "I-I" = "#5390d9",
-              "I" = "#64dfdf",
-              "H" = "grey95"),
-  infection = c("0" = "grey95",
-                "1" = "#56cfe1",
-                "2" = "#5e60ce"),
-  variant = c("None" = "grey95",
-              "Beta" = "#72efdd",
-              "Omicron" = "#5e60ce"),
-  severity = c("H" = "grey95",
-               "S" = "#b5179e",
-               "MO" = "#5e60ce",
-               "MI" = "#80ffdb",
-               "NA" = "grey95"),
-  sex = c("Male" = "#56cfe1",
-          "Female" = "#b5179e",
-          "M/F" = "#5e60ce"))
 
 
-#Rows
-# ann_genesets_heatmap
-ann_colors_rows = list(
-  `immune_system` = c(
-    "Innate" = "#faedcd",
-    "Adaptive" = "#ffb5a7",
-    "General" = "#99d98c",
-    "Other" = "#e5e5e5",
-    "Complement" = "#7400b8",
-    "No enrichment" = "gray90"
-  ),
-  `immune_sub_system` = c(
-    "Adaptive" = "#ffb5a7",
-    "Cellular" = "#ff758f",
-    "Humoral" = "#ff758f",
-    "Antibacterial" = "#4895ef",
-    "Antifungal" = "#4361ee",
-    "Antimicrobial" = "#7400b8",
-    "General" = "#99d98c",
-    "Antigen presentation" = "#e4c4a5",
-    "APC" = "#ccd5ae",
-    "Eosinophil" = "#faedcd",
-    "Granulocyte" = "#faedcd",
-    "Leukocyte" = "#ffb5a7",
-    "Neutrophil" = "#ccd5ae",
-    "Innate immune response" = "#faedcd",
-    "Interferon" = "#a4c3b2",
-    "Antiviral" = "#60495a",
-    "Pattern recognition receptor" = "#f4f4d5",
-    "Natural killer" = "#fedd96",
-    "Mucosa" = "#c3dfe0",
-    "Erythrocyte" = "#4895ef",
-    "No enrichment" = "gray90"
-  )
-)
+#Ordenar colunas
+ann_vaccines_heatmap = ann_vaccines_heatmap %>% 
+  select(type, infection, vaccine, regimen, dose, week, day)
 
 
-#Rows
-# ann_genesets_heatmap
-ann_colors_rows = list(
-  `immune_system` = c(
-    "Innate" = "#faedcd",
-    "Adaptive" = "#ffb5a7",
-    "General" = "#99d98c",
-    "Other" = "#e5e5e5",
-    "Complement" = "#7400b8",
-    "No enrichment" = "gray90"
-  ),
-  `immune_sub_system` = c(
-    "Adaptive" = "#ffb5a7",
-    "Cellular" = "#ff758f",
-    "Humoral" = "#ff758f",
-    "Antibacterial" = "#4895ef",
-    "Antifungal" = "#4361ee",
-    "Antimicrobial" = "#7400b8",
-    "General" = "#99d98c",
-    "Antigen presentation" = "#e4c4a5",
-    "APC" = "#ccd5ae",
-    "Eosinophil" = "#faedcd",
-    "Granulocyte" = "#faedcd",
-    "Leukocyte" = "#ffb5a7",
-    "Neutrophil" = "#ccd5ae",
-    "Innate immune response" = "#faedcd",
-    "Interferon" = "#a4c3b2",
-    "Antiviral" = "#60495a",
-    "Pattern recognition receptor" = "#f4f4d5",
-    "Natural killer" = "#fedd96",
-    "Mucosa" = "#c3dfe0",
-    "Erythrocyte" = "#4895ef",
-    "No enrichment" = "gray90"
-  )
-)
-
-
-#Definir cores do gráfico
-# Defina os valores mínimos e máximos para o espectro de cores
-min(matrix_data_ordered)
-max(matrix_data_ordered)
-
-valores_minimos <- -2  # Substitua pelo valor mínimo desejado
-valores_maximos <- 2   # Substitua pelo valor máximo desejado
-
-#Espectro de cores
-
-col_fun <- colorRamp2(c(-2, 0, 2), c("#4CC9F0", "black", "#F72585"))
-
-```
-
-5. Criar objeto heatmap annotation e clusterizar colunas por grupos. Abaixo, clusterizei as condições/colunas por dose (0, 1, 2 e 3), tempo/semana, tipo de vacina e o nome da vacina.
-
-```{r}
 #Criar heatmap annotation
 ha = HeatmapAnnotation(df = ann_vaccines_heatmap, 
                        col = ann_colors, 
                        annotation_name_side = "left")
 
 
-#Dose
-dose = ann_vaccines_heatmap$dose
-dend_cols_dose = cluster_within_group(matrix_data_ordered, dose)
-
 #Week
 week = ann_vaccines_heatmap$week
 dend_cols_week = cluster_within_group(matrix_data_ordered, week)
-
-#Vaccine
-vac = ann_vaccines_heatmap$vac
-dend_cols_vac = cluster_within_group(matrix_data_ordered, vac)
 
 #Type
 type = ann_vaccines_heatmap$type
 dend_cols_type = cluster_within_group(matrix_data_ordered, type)
 
+
+col_fun <- colorRamp2(c(-2, 0, 2), c("#9bc1bc", "white", "#ed6a5a"))
+
+
 ```
 
 
 6. Plotar heatmap
-Os heatmaps gerados variam em dimensão em função do número de linhas (no caso, genes) e condições. 
+Os heatmaps gerados variam em dimensão em função do número de linhas (no caso, genes) e condições. Some 20 cm a mais na dimensão da imagem.
 
 
 Tamanhos:
@@ -423,115 +304,35 @@ Tamanhos:
 4. B cells: width = unit(30, "cm"), height = unit(50, "cm")
 5. Ig mediated: width = unit(30, "cm"), height = unit(10, "cm")
 6. Inflammation: width = unit(30, "cm"), height = unit(10, "cm")
-7. ARPP: width = unit(30, "cm"), height = unit(20, "cm") 
+7. ARPP: width = unit(30, "cm"), height = unit(3
+0, "cm") 
 8. IFN: width = unit(30, "cm"), height = unit(50, "cm")
 9. DC: width = unit(30, "cm"), height = unit(20, "cm")
 10. Macrophages: width = unit(30, "cm"), height = unit(20, "cm")
 11. Neutrophils:  width = unit(30, "cm"), height = unit(40, "cm") # 70 genes
+12. Eosinophils:  width = unit(30, "cm"), height = unit(10, "cm") # 30 genes
+13. Complement:  width = unit(30, "cm"), height = unit(10, "cm") # 30 genes
+14. Monocytes:  width = unit(30, "cm"), height = unit(10, "cm") # 30 genes
+15. Mast cells: width = unit(30, "cm"), height = unit(10, "cm") # 27 genes
+
 
 ```{r}
 
 #Parameters
 mat = matrix_data_ordered
 width_image = 50
-height_image = 70
+height_image = 80
 width = unit(30, "cm")
-height = unit(40, "cm")
+height = unit(70, "cm")
 column_names_gp = gpar(fontsize = 10)
-row_names_gp = gpar(fontsize = 7)
-
-# By dose
-
-fileimageheatmap_grouped = paste0(file, sep ="_", "Heatmap_DOSE.png") #Nome do arquivo gerado
-
-png(file = fileimageheatmap_grouped, width=width_image, height=height_image, units="cm", res=900) #Dimensões da imagem
-
-heatmap_plot_all = Heatmap(mat, # Matriz
-                        top_annotation = ha, # Anotações das colunas
-                        show_row_names = TRUE,
-                        show_heatmap_legend = TRUE,
-                        heatmap_legend_param = list(direction = "horizontal"),
-                        name = "log2-fold change", # Legenda para o valor das células
-                        col = col_fun, # Cores
-                        column_title = fileimageheatmap_grouped, #Título
-                        column_title_gp = gpar(fontsize = 15, fontface = "bold"), #Título das colunas
-                        column_names_rot = 45, # Rotação do label das colunas
-                        column_names_gp = column_names_gp,
-                        cluster_rows = TRUE, #Clusterizar linhas
-                        row_names_gp = row_names_gp,
-                        # row_split = 2, # Split row clusters
-                        row_gap = unit(2, "mm"),
-                        cluster_columns = dend_cols_dose,
-                        column_split = 19, # Split group clusters
-                        #column_km = 3,
-                        column_gap = unit(8, "mm"),
-                        show_column_dend = F,
-                        show_row_dend = T,
-                        row_dend_side = "left",
-                        column_dend_side = "top",
-                        clustering_distance_rows = "euclidean",
-                        border = T,
-                        column_dend_reorder = TRUE,
-                        width = width, # Largura do heatmap (não é da imagem)
-                        height = height # Comprimento
-)
-
-draw(heatmap_plot_all,
-     annotation_legend_side = "left", # Local da legenda das anotações (coluna e/ou linhas)
-     heatmap_legend_side = "left"  # Local da legenda dos valores das células
-     ) 
-
-dev.off()
-
-
-#By time
-
-fileimageheatmap_grouped= paste0(file, sep ="_", "Heatmap_TIME.png")
-
-png(file = fileimageheatmap_grouped, width=width_image, height=height_image,units="cm",res=900)
-
-heatmap_plot_all = Heatmap(mat,
-                        top_annotation = ha,
-                        show_row_names = TRUE,
-                        show_heatmap_legend = TRUE,
-                        heatmap_legend_param = list(direction = "horizontal"),
-                        name = "log2-fold change", #Legend
-                        col = col_fun, #color
-                        column_title = fileimageheatmap_grouped,
-                        column_title_gp = gpar(fontsize = 15, fontface = "bold"),
-                        column_names_rot = 45,
-                        column_names_gp = column_names_gp,
-                        cluster_rows = TRUE,
-                        row_names_gp = row_names_gp,
-                        # row_split = 2, #Split row clusters
-                        row_gap = unit(2, "mm"),
-                        cluster_columns = dend_cols_week,
-                        column_split = 19, #Split group clusters
-                        #column_km = 3,
-                        column_gap = unit(8, "mm"),
-                        show_column_dend = F,
-                        show_row_dend = T,
-                        row_dend_side = "left",
-                        column_dend_side = "top",
-                        clustering_distance_rows = "euclidean",
-                        border = T,
-                        column_dend_reorder = TRUE,
-                        width = width, 
-                        height = height
-)
-
-draw(heatmap_plot_all, annotation_legend_side = "left", heatmap_legend_side = "left")
-
-dev.off()
+row_names_gp = gpar(fontsize = 3)
 
 
 #By TYPE
 
-mat = matrix_data_ordered
-
 fileimageheatmap_grouped= paste0(file, sep ="_", "Heatmap_TYPE.png")
 
-png(file = fileimageheatmap_grouped, width=width_image, height=height_image,units="cm",res=900)
+png(file = fileimageheatmap_grouped, width=width_image, height = height_image, units="cm",res=900)
 
 heatmap_plot_all = Heatmap(mat,
                         top_annotation = ha,
@@ -546,7 +347,7 @@ heatmap_plot_all = Heatmap(mat,
                         column_names_gp = column_names_gp,
                         cluster_rows = TRUE,
                         row_names_gp = row_names_gp,
-                        # row_split = 2, #Split row clusters
+                        row_split = 6, #Split row clusters
                         row_gap = unit(2, "mm"),
                         cluster_columns = dend_cols_type,
                         column_split = 19, #Split group clusters
@@ -554,6 +355,7 @@ heatmap_plot_all = Heatmap(mat,
                         column_gap = unit(8, "mm"),
                         show_column_dend = F,
                         show_row_dend = T,
+                        row_dend_width = unit(10, "cm"),
                         row_dend_side = "left",
                         column_dend_side = "top",
                         clustering_distance_rows = "euclidean",
@@ -616,591 +418,6 @@ draw(heatmap_plot_all, annotation_legend_side = "right", heatmap_legend_side = "
 dev.off()
 ```
 
-## Genes annotated
-```{r}
-####### INPUT
-data_2 = Immune_GO_genes_All
-filename_2 = paste0("Immune_GO_genes_All", "_VAX_COVID")
-
-######## Matrix
-matrix = data_2 %>% 
-  select(genes, condition, regulation_numeric) %>%
-  pivot_wider(names_from = "condition", 
-              values_from = "regulation_numeric", 
-              values_fn = mean) %>% 
-  replace(is.na(.), 0) %>%
-  arrange(genes) %>% 
-  column_to_rownames(var="genes") %>% 
-  filter(rowSums(. != 0) > 1) %>% 
-  as.matrix()
-
-######## Annotations
-ann_vaccines_covid_other_2 = data_2 %>% 
-  inner_join(ann_vaccines_covid_other, by = "condition") %>% 
-  select(condition, covid_other, microbe_type, target_pathogen_disease, disease_vac, type, week) %>% 
-  distinct()
-
-#Columns
-ann_cols_heatmap = matrix %>% 
-  colnames() %>% 
-  data.frame() %>% 
-  filter(. != "genes") %>% 
-  rename(condition = '.') %>% 
-  inner_join(ann_vaccines_covid_other_2, by = "condition") %>% 
-  distinct() %>% 
-  arrange(condition) %>% 
-  column_to_rownames("condition")
-
-matrix_data = matrix %>% 
-  t() %>% 
-  as.data.frame() %>% 
-  rownames_to_column(var= "condition") %>% 
-  inner_join(ann_cols_heatmap %>% rownames_to_column("condition"), by = "condition") %>% 
-  select(!c(covid_other:week)) %>% 
-  arrange(condition) %>% 
-  column_to_rownames("condition") %>% 
-  t() %>% 
-  as.data.frame() %>% 
-  filter(rowSums(. != 0) > 1) %>% 
-  mutate_if(is.character, as.numeric) %>%
-  as.matrix() 
-
-
-Immune_GO_T2G
-
-#Rows
-ann_rows = matrix_data %>%
-  as.data.frame() %>%
-  rownames_to_column("genes") %>%
-  inner_join(ImmuneGO_Annotated_Genes, by = "genes") %>%
-  filter(go_term == "Manual") %>%
-  select(genes, process) %>%
-  distinct() %>%
-  group_by(genes) %>%
-  arrange(genes, factor(process, levels = c("INNATE IMMUNE SYSTEM", "ADAPTIVE IMMUNE SYSTEM")), .by_group = TRUE) %>% 
-  mutate(i_process = row_number()) %>% 
-  pivot_wider(., names_from = "i_process", values_from = "process") %>% 
-  column_to_rownames("genes") %>% 
-  t() %>% 
-  as.data.frame() %>% 
-  rownames_to_column("index") %>% 
-  arrange(desc(index)) %>% 
-  column_to_rownames("index") %>% 
-  t() %>% 
-  as.data.frame() %>% 
-  replace(is.na(.), ".")
-
-
-#Verificar dimensões do dataset
-dim(matrix_data)
-dim(ann_rows)
-dim(ann_cols_heatmap)
-
-```
-
-Colors
-
-```{r}
-################## Colors
-
-#VAX SIG DB
-ann_vaxsig_colors = list(
-  type = c("VLP" = "#D7B0EE",
-           "LA" =  "#5e60ce",
-           "CONJ" = "#015BA0", 
-           'IN'= "#76c893", #1st Gen  vaccines
-           'VV' = "#5e60ce", #3rd Gen vaccines
-           'RNA' = "#56cfe1",
-           'SU' = "#b5e48c",
-           'I'= "#f72585",
-           "H" = "grey95"),
-  target_pathogen_disease = c('MENINGOCOCCUS'	= "#16E0BD",
-                             'PNEUMOCOCCUS'	= "#44C199",
-                             'TUBERCULOSIS'	= "#99e2b4",
-                             'F TULARENSIS'	= "#90e0ef",
-                             'LEISHMANIA'	= "#118ab2",
-                             'MALARIA' = "#3f37c9",
-                             'EBOV'	= "#d00000",
-                             "SARS" = "#ef233c",
-                             'HBV'	= "#e85d04",
-                             'HBV, HAV'	= "#f48c06",
-                             'HIV'	= "#a4133c",
-                             'HPV'	= "#f27059",
-                             'INFLUENZA'	= "#ffa69e",
-                             'MEASLES'	= "#c65b7c",
-                             'MMR'	= "#f9b5ac",
-                             'SMALLPOX'	= "#ff8c42",
-                             'VEEV'	= "#e01e37",
-                             'VZV'	= "#ff9b85",
-                             'YF'	= "#f38375"),
-  covid_other = c("COVID" = "#56cfe1",
-                  "OTHER" = "#343a40"),
-  microbe_type = c("VIRUS" = "#5e60ce",
-                   'BACTERIUM' = "#72efdd",
-                   'PARASITE' = "#b5179e"),
-  
-  week = c("0" = "#ECF8FA",
-           "1" = "#caf0f8",
-           "2" = "#6CD5EA",
-           "3" = "#0087BF",
-           "4" = "#015BA0", 
-           "6" = "#03045e",
-           "7" = "#03045e",
-           "8" = "#03045e"),
-  month = c("1" = "#caf0f8",
-            "0" = "#6CD5EA",
-           "2" = "#015BA0"),
-  vaccine = c("BBIBP" = "#76c893",
-  "ZF2001" = "#b5e48c",
-  "BNT" = "#56cfe1",
-  "MO" = "#72ddf7",
-  "ChAd" = "#5e60ce",
-  "I" = "grey95",
-  "H" = "grey95"),
-  dose = c(
-            "0" = "grey95",
-            "1" = "#56cfe1",
-            "2" = "#5978d4",
-            "3" = "#b5179e"),
-  day = c(
-          "0" = "white",
-          "1" = "#caf0f8",
-          "2" = "#ade8f4",
-          "3" = "#90e0ef",
-          "4" = "#6CD5EA",
-          "5" = "#48cae4",
-          "6" = "#00b4d8",
-          "7" = "#0096c7",
-          "10" = "#0087BF",
-          "11" = "#0087BF",
-          "14" = "#0077b6",
-          "26" = "#015BA0",
-          "28" = "#023e8a",
-          "51" = "#03045e"),
-  type = c('IN'= "#343a40", #1st Gen  vaccines
-           'SU' = "#00a896",
-           'VV' = "#72efdd", #3rd Gen vaccines
-           'RNA' = "#56cfe1",
-           'SU' = "#b5179e",
-           'I'= "#da1e37",
-           "H" = "grey95"), 
-  infection = c("0" = "#64dfdf",
-                "1" = "#f72585",
-                "2" = "#a4161a"),
-  variant = c("None" = "grey95",
-              "Beta" = "#72efdd",
-              "Omicron" = "#5e60ce"),
-  severity = c("H" = "grey95",
-               "S" = "#b5179e",
-               "MO" = "#5e60ce",
-               "MI" = "#80ffdb",
-               "NA" = "grey95"),
-  sex = c("Male" = "#56cfe1",
-          "Female" = "#b5179e",
-          "M/F" = "#5e60ce"),
-  disease_vac = c("I" = "#5e60ce",
-                  "V" = "#64dfdf")
-  )
-
-
-col_process = list(
-  "1" = c("ADAPTIVE IMMUNE SYSTEM" = "#6f2dbd",
-        "B CELLS" = "#7b2cbf",
-        "CELLULAR ADAPTIVE IMMUNE SYSTEM" = "#e0aaff",
-        "HUMORAL ADAPTIVE IMMUNE SYSTEM" = "#9d4edd",
-        "IMMUNOGLOBULIN MEDIATED IMMUNE RESPONSE"= "#5a189a",
-        "T CELLS" = "#c77dff",
-        "COMPLEMENT IMMUNE SYSTEM" = "#ffadc7",
-        "ANTIVIRAL AND INTERFERON" = "#88d4ab",
-        "ARPP" = "#14746f",
-        "DENDRITIC CELLS" = "#036666",
-        "EOSINOPHIL" = "#67b99a",
-        "INFLAMMATION" = "#99e2b4",
-        "INNATE IMMUNE SYSTEM" = "#06d6a0",
-        "MAST CELL" = "#56ab91",
-        "MONOCYTES" = "#358f80",
-        "NEUTROPHIL" = "#78c6a3",
-        "NK CELL" = "#469d89",
-        "MACROPHAGES" = "#14746f",
-        "."="white"),
-  "2" = c("ADAPTIVE IMMUNE SYSTEM" = "#6f2dbd",
-        "B CELLS" = "#7b2cbf",
-        "CELLULAR ADAPTIVE IMMUNE SYSTEM" = "#e0aaff",
-        "HUMORAL ADAPTIVE IMMUNE SYSTEM" = "#9d4edd",
-        "IMMUNOGLOBULIN MEDIATED IMMUNE RESPONSE"= "#5a189a",
-        "T CELLS" = "#c77dff",
-        "COMPLEMENT IMMUNE SYSTEM" = "#ffadc7",
-        "ANTIVIRAL AND INTERFERON" = "#88d4ab",
-        "ARPP" = "#14746f",
-        "DENDRITIC CELLS" = "#036666",
-        "EOSINOPHIL" = "#67b99a",
-        "INFLAMMATION" = "#99e2b4",
-        "INNATE IMMUNE SYSTEM" = "#06d6a0",
-        "MAST CELL" = "#56ab91",
-        "MONOCYTES" = "#358f80",
-        "NEUTROPHIL" = "#78c6a3",
-        "NK CELL" = "#469d89",
-        "MACROPHAGES" = "#14746f",
-        "."="white"),
-  "3" = c("ADAPTIVE IMMUNE SYSTEM" = "#6f2dbd",
-        "B CELLS" = "#7b2cbf",
-        "CELLULAR ADAPTIVE IMMUNE SYSTEM" = "#e0aaff",
-        "HUMORAL ADAPTIVE IMMUNE SYSTEM" = "#9d4edd",
-        "IMMUNOGLOBULIN MEDIATED IMMUNE RESPONSE"= "#5a189a",
-        "T CELLS" = "#c77dff",
-        "COMPLEMENT IMMUNE SYSTEM" = "#ffadc7",
-        "ANTIVIRAL AND INTERFERON" = "#88d4ab",
-        "ARPP"= "#14746f",
-        "DENDRITIC CELLS" = "#036666",
-        "EOSINOPHIL" = "#67b99a",
-        "INFLAMMATION" = "#99e2b4",
-        "INNATE IMMUNE SYSTEM" = "#06d6a0",
-        "MAST CELL" = "#56ab91",
-        "MONOCYTES" = "#358f80",
-        "NEUTROPHIL" = "#78c6a3",
-        "NK CELL" = "#469d89",
-        "MACROPHAGES" = "#14746f",
-        "."="white"),
-  "4" = c("ADAPTIVE IMMUNE SYSTEM" = "#6f2dbd",
-        "B CELLS" = "#7b2cbf",
-        "CELLULAR ADAPTIVE IMMUNE SYSTEM" = "#e0aaff",
-        "HUMORAL ADAPTIVE IMMUNE SYSTEM" = "#9d4edd",
-        "IMMUNOGLOBULIN MEDIATED IMMUNE RESPONSE"= "#5a189a",
-        "T CELLS" = "#c77dff",
-        "COMPLEMENT IMMUNE SYSTEM" = "#ffadc7",
-        "ANTIVIRAL AND INTERFERON" = "#88d4ab",
-        "ARPP" ="#14746f",
-        "DENDRITIC CELLS" = "#036666",
-        "EOSINOPHIL" = "#67b99a",
-        "INFLAMMATION" = "#99e2b4",
-        "INNATE IMMUNE SYSTEM" = "#06d6a0",
-        "MAST CELL" = "#56ab91",
-        "MONOCYTES" = "#358f80",
-        "NEUTROPHIL" = "#78c6a3",
-        "NK CELL" = "#469d89",
-        "MACROPHAGES" = "#14746f",
-        "."="white"),
-  "5" = c("ADAPTIVE IMMUNE SYSTEM" = "#6f2dbd",
-        "B CELLS" = "#7b2cbf",
-        "CELLULAR ADAPTIVE IMMUNE SYSTEM" = "#e0aaff",
-        "HUMORAL ADAPTIVE IMMUNE SYSTEM" = "#9d4edd",
-        "IMMUNOGLOBULIN MEDIATED IMMUNE RESPONSE"= "#5a189a",
-        "T CELLS" = "#c77dff",
-        "COMPLEMENT IMMUNE SYSTEM" = "#ffadc7",
-        "ANTIVIRAL AND INTERFERON" = "#88d4ab",
-        "ARPP" = "#14746f",
-        "DENDRITIC CELLS" = "#036666",
-        "EOSINOPHIL" = "#67b99a",
-        "INFLAMMATION" = "#99e2b4",
-        "INNATE IMMUNE SYSTEM" = "#06d6a0",
-        "MAST CELL" = "#56ab91",
-        "MONOCYTES" = "#358f80",
-        "NEUTROPHIL" = "#78c6a3",
-        "NK CELL" = "#469d89",
-        "MACROPHAGES" = "#14746f",
-        "."="white"),
-  "6" = c("ADAPTIVE IMMUNE SYSTEM" = "#6f2dbd",
-        "B CELLS" = "#7b2cbf",
-        "CELLULAR ADAPTIVE IMMUNE SYSTEM" = "#e0aaff",
-        "HUMORAL ADAPTIVE IMMUNE SYSTEM" = "#9d4edd",
-        "IMMUNOGLOBULIN MEDIATED IMMUNE RESPONSE"= "#5a189a",
-        "T CELLS" = "#c77dff",
-        "COMPLEMENT IMMUNE SYSTEM" = "#ffadc7",
-        "ANTIVIRAL AND INTERFERON" = "#88d4ab",
-        "ARPP" = "#14746f",
-        "DENDRITIC CELLS" = "#036666",
-        "EOSINOPHIL" = "#67b99a",
-        "INFLAMMATION" = "#99e2b4",
-        "INNATE IMMUNE SYSTEM" = "#06d6a0",
-        "MAST CELL" = "#56ab91",
-        "MONOCYTES" = "#358f80",
-        "NEUTROPHIL" = "#78c6a3",
-        "NK CELL" = "#469d89",
-        "MACROPHAGES" = "#14746f",
-        "."="white"),
-  "7" = c("ADAPTIVE IMMUNE SYSTEM" = "#6f2dbd",
-        "B CELLS" = "#7b2cbf",
-        "CELLULAR ADAPTIVE IMMUNE SYSTEM" = "#e0aaff",
-        "HUMORAL ADAPTIVE IMMUNE SYSTEM" = "#9d4edd",
-        "IMMUNOGLOBULIN MEDIATED IMMUNE RESPONSE"= "#5a189a",
-        "T CELLS" = "#c77dff",
-        "COMPLEMENT IMMUNE SYSTEM" = "#ffadc7",
-        "ANTIVIRAL AND INTERFERON" = "#88d4ab",
-        "ARPP" = "#14746f",
-        "DENDRITIC CELLS" = "#036666",
-        "EOSINOPHIL" = "#67b99a",
-        "INFLAMMATION" = "#99e2b4",
-        "INNATE IMMUNE SYSTEM" = "#06d6a0",
-        "MAST CELL" = "#56ab91",
-        "MONOCYTES" = "#358f80",
-        "NEUTROPHIL" = "#78c6a3",
-        "NK CELL" = "#469d89",
-        "MACROPHAGES" = "#14746f",
-        "."="white"),
-  "8" = c("ADAPTIVE IMMUNE SYSTEM" = "#6f2dbd",
-        "B CELLS" = "#7b2cbf",
-        "CELLULAR ADAPTIVE IMMUNE SYSTEM" = "#e0aaff",
-        "HUMORAL ADAPTIVE IMMUNE SYSTEM" = "#9d4edd",
-        "IMMUNOGLOBULIN MEDIATED IMMUNE RESPONSE"= "#5a189a",
-        "T CELLS" = "#c77dff",
-        "COMPLEMENT IMMUNE SYSTEM" = "#ffadc7",
-        "ANTIVIRAL AND INTERFERON" = "#88d4ab",
-        "ARPP" = "#14746f",
-        "DENDRITIC CELLS" = "#036666",
-        "EOSINOPHIL" = "#67b99a",
-        "INFLAMMATION" = "#99e2b4",
-        "INNATE IMMUNE SYSTEM" = "#06d6a0",
-        "MAST CELL" = "#56ab91",
-        "MONOCYTES" = "#358f80",
-        "NEUTROPHIL" = "#78c6a3",
-        "NK CELL" = "#469d89",
-        "MACROPHAGES" = "#14746f",
-        "."="white"),
-  "9" = c("ADAPTIVE IMMUNE SYSTEM" = "#6f2dbd",
-        "B CELLS" = "#7b2cbf",
-        "CELLULAR ADAPTIVE IMMUNE SYSTEM" = "#e0aaff",
-        "HUMORAL ADAPTIVE IMMUNE SYSTEM" = "#9d4edd",
-        "IMMUNOGLOBULIN MEDIATED IMMUNE RESPONSE"= "#5a189a",
-        "T CELLS" = "#c77dff",
-        "COMPLEMENT IMMUNE SYSTEM" = "#ffadc7",
-        "ANTIVIRAL AND INTERFERON" = "#88d4ab",
-        "ARPP" = "#14746f",
-        "DENDRITIC CELLS" = "#036666",
-        "EOSINOPHIL" = "#67b99a",
-        "INFLAMMATION" = "#99e2b4",
-        "INNATE IMMUNE SYSTEM" = "#06d6a0",
-        "MAST CELL" = "#56ab91",
-        "MONOCYTES" = "#358f80",
-        "NEUTROPHIL" = "#78c6a3",
-        "NK CELL" = "#469d89",
-        "MACROPHAGES" = "#14746f",
-        "."="white"),
-  "10" = c("ADAPTIVE IMMUNE SYSTEM" = "#6f2dbd",
-        "B CELLS" = "#7b2cbf",
-        "CELLULAR ADAPTIVE IMMUNE SYSTEM" = "#e0aaff",
-        "HUMORAL ADAPTIVE IMMUNE SYSTEM" = "#9d4edd",
-        "IMMUNOGLOBULIN MEDIATED IMMUNE RESPONSE"= "#5a189a",
-        "T CELLS" = "#c77dff",
-        "COMPLEMENT IMMUNE SYSTEM" = "#ffadc7",
-        "ANTIVIRAL AND INTERFERON" = "#88d4ab",
-        "ARPP" = "#14746f",
-        "DENDRITIC CELLS" = "#036666",
-        "EOSINOPHIL" = "#67b99a",
-        "INFLAMMATION" = "#99e2b4",
-        "INNATE IMMUNE SYSTEM" = "#06d6a0",
-        "MAST CELL" = "#56ab91",
-        "MONOCYTES" = "#358f80",
-        "NEUTROPHIL" = "#78c6a3",
-        "NK CELL" = "#469d89",
-        "MACROPHAGES" = "#14746f",
-        "."="white"))
-  
-
-
-
-
-```
-
-
-
-Tamanhos:
-1. Cellular adaptive immune system: width = unit(25, "cm"), height = unit(60, "cm") #254 genes
-2. Humoral adaptive immune system: width = unit(25, "cm"), height = unit(30, "cm") #51 genes
-3. T cells: width = unit(25, "cm"), height = unit(60, "cm") #221 genes
-4. B cells: width = unit(25, "cm"), height = unit(50, "cm") #146 genes
-5. Ig mediated: width = unit(25, "cm"), height = unit(10, "cm") #146 genes
-6. Inflammation: width = unit(25, "cm"), height = unit(10, "cm")
-7. ARPP: width = unit(25, "cm"), height = unit(30, "cm") 60 genes
-8. IFN: width = unit(25, "cm"), height = unit(30, "cm") 93 genes
-9. DC: width = unit(25, "cm"), height = unit(20, "cm") #29 genes
-10. Macrophages: width = unit(25, "cm"), height = unit(25, "cm") # 52 genes
-11. Neutrophils:  width = unit(25, "cm"), height = unit(40, "cm") # 70 genes
-12. Eosinophil:  width = unit(25, "cm"), height = unit(10, "cm") # 42 genes
-13. Complement: width = unit(25, "cm"), height = unit(10, "cm") # 40 genes
-13. Monocytes: width = unit(25, "cm"), height = unit(15, "cm") # 48 genes
-
-
-```{r}
-################# Plotar
-#Heatmap annotation
-ha = HeatmapAnnotation(df = ann_cols_heatmap, 
-                       col = ann_vaxsig_colors,
-                       annotation_name_side = "right")
-
-row_ha = rowAnnotation(df = ann_rows,
-                       col = col_process)
-
-# Values colors
-col_fun <- colorRamp2(c(-1, 0, 1), c("#9bc1bc", "white", "#ed6a5a"))
-
-file = filename_2
-mat = matrix_data
-width_image = 60
-height_image = 70
-width = unit(30, "cm")
-height = unit(60, "cm")
-column_names_gp = gpar(fontsize = 7)
-row_names_gp = gpar(fontsize = 5)
-rect_gp = gpar(col = "gray80", lwd = 0.5)
-
-###### CLUSTERIZED ALL VS ALL
-
-fileimageheatmap_grouped = paste0(file, sep ="_", "Complexheatmap.png")
-
-png(file = fileimageheatmap_grouped, 
-    width = width_image, 
-    height = height_image, 
-    units="cm", 
-    res=900)
-
-heatmap_plot = Heatmap(mat,
-                        top_annotation = ha,
-                        left_annotation = row_ha,
-                        show_row_names = TRUE,
-                        row_names_side = "right",
-                        show_heatmap_legend = TRUE,
-                        heatmap_legend_param = list(direction = "horizontal"),
-                        col = col_fun, #color
-                        show_column_names = TRUE,
-                        column_title = fileimageheatmap_grouped,
-                        column_title_gp = gpar(fontsize = 10, fontface = "bold"),
-                        column_names_rot = 45,
-                        column_names_gp = column_names_gp,
-                        rect_gp = rect_gp,
-                        na_col = "white",
-                        cluster_rows = TRUE,
-                        row_names_gp = row_names_gp,
-                        row_dend_width = unit(2, "cm"),
-                        row_split = 2,
-                        row_gap = unit(2, "mm"),
-                        cluster_columns = TRUE,
-                        column_gap = unit(8, "mm"),
-                        show_column_dend = F,
-                        show_row_dend = T,
-                        row_dend_side = "left",
-                        column_dend_side = "top",
-                        clustering_distance_rows = "euclidean",
-                        border = TRUE,
-                        width = width,
-                        height = height 
-)
-
-draw(heatmap_plot, 
-     annotation_legend_side = "left", 
-     heatmap_legend_side = "left")
-dev.off()
-
-```
-
-
-### STATS
-
-
-```{r}
-stats_1 = covid_other_immunego_genes %>% 
-  inner_join(ann_vaccines_covid_other, by = "condition") %>% 
-  group_by(genes, covid_other) %>% 
-  summarise(n_conditions = n()) %>% 
-  filter(all(c("COVID", "OTHER") %in% covid_other)) %>% 
-  arrange(desc(n_conditions), genes) %>% 
-  ungroup()
-
-
-ggplot_stats1 = ggplot(stats_1) +
-  aes(x = reorder(genes, n_conditions), fill = covid_other, weight = n_conditions) +
-  geom_bar() +
-  theme_minimal() +
-  scale_fill_manual(
-    values = c(COVID = "#56cfe1",
-    OTHER = "#343a40")
-  ) +
-  theme_minimal() +
-  labs(fill = "Covid or non-covid") +
-  xlab("Genes") + 
-  ylab("Number of shared conditions") +
-  theme(legend.position = "right",
-        axis.text.x = element_text(angle = 45, vjust = 1.5, hjust=1, size = 8),
-        axis.text.y = element_text(size = 7, angle = 0),
-        panel.grid.minor.y = element_blank(),
-        legend.text = element_text(size=12),
-        legend.title = element_text(size = 12, face = "bold")) +
-  # geom_text(aes(label = n_conditions, y = n_conditions), 
-  #           position = position_dodge(width = 0.9), 
-  #           vjust = 0.2, 
-  #           hjust = -0.2, 
-  #           size = 1,
-  #           angle = 90) +
-  ggtitle("Genes shared") +
-  coord_flip()
-
-ggsave(ggplot_stats1, file = "Covid_Vax_genes_shared_column.png", width = 10, height = 20)
-
-
-
-
-stats_2 = matrix_data %>%
-  as.data.frame() %>%
-  rownames_to_column("genes") %>%
-  inner_join(ImmuneGO_Annotated_Genes, by = "genes") %>%
-  filter(go_term == "Manual",
-         !(process %in% c("ADAPTIVE IMMUNE SYSTEM",
-                          "INNATE IMMUNE SYSTEM"))) %>%
-  select(genes, process, immune_system) %>%
-  distinct() %>%
-  group_by(genes, immune_system) %>% 
-  summarise(n_processes = n()) %>% 
-  arrange(desc(n_processes)) %>% 
-  ungroup() %>% 
-  filter(n_processes >1)
-  
-ggplot_stats2 = ggplot(stats_2) +
-  aes(x = reorder(genes, n_processes), fill = immune_system, weight = n_processes) +
-  geom_bar() +
-  theme_minimal() +
-  scale_fill_manual(
-    values = c(Adaptive = "#6f2dbd",
-    Innate = "#06d6a0",
-    Complement = "#ffadc7")
-  ) +
-  theme_minimal() +
-  labs(fill = "Immune system") +
-  xlab("Genes") + 
-  ylab("Number of shared conditions") +
-  theme(legend.position = "right",
-        axis.text.x = element_text(angle = 45, vjust = 1.5, hjust=1, size = 8),
-        axis.text.y = element_text(size = 7, angle = 0),
-        panel.grid.minor.y = element_blank(),
-        strip.text.x.top = element_text(size = 10, face = "bold"),
-        legend.text = element_text(size=12),
-        legend.title = element_text(size = 12, face = "bold")) +
-  # geom_text(aes(label = n_conditions, y = n_conditions), 
-  #           position = position_dodge(width = 0.9), 
-  #           vjust = 0.2, 
-  #           hjust = -0.2, 
-  #           size = 1,
-  #           angle = 90) +
-  ggtitle("Genes shared") +
-  coord_flip() +
-  facet_wrap(~immune_system, scales = "free_y")
-
-ggsave(ggplot_stats2, file = "ImmuneGO_genes_shared_major_process.png", width = 6, height = 20)
-
-`````````
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 # GSEA - GOs
 
 ## ImmuneGO
@@ -1213,7 +430,7 @@ Importar e padronizar tabelas
 ############## Arquivos necessários
 
 # Informações sobre os processos/Gene sets
-ImmuneGO = ImmuneGO_Annotated_GO %>% 
+ImmuneGO = ImmuneGO_Annotated_GO_1_1_24 %>% 
   select(process:immune_tissue, set_size) %>% 
   distinct()
 
@@ -1228,26 +445,46 @@ ann_vaccines = ann_vaccines_1_1_24 %>%
 
 
 # Dados 
-data.immunego = all_degs_p_05_vac_infected_GSEA_ALL %>%
-  select(condition, id, set_size:core_enrichment)
+
+all_degs_p_05_vac_infected_Immune_GO_T2G_general_GSEA_ALL_2024_01_17
+all_degs_p_05_vac_infected_Immune_GO_specific_GSEA_ALL_2024_01_17
+
+
+data.immunego = all_degs_p_05_vac_infected_Immune_GO_T2G_general_GSEA_ALL_2024_01_17 %>% 
+  clean_names()
+
+
+ImmuneGO_Annotated_GO = ImmuneGO_Annotated_GO_1_1_24
+
+
 
 ############## Processar dados
 
-# Selecionar subprocessos para visualizar. Ao selecionar todos os genes de todos os processos, o heatmap ficará enorme e difícil de visualizar. Por isso, aqui, eu dividi em subprocessos com menos genes. Crie uma tabela-mãe com anotações para cada gene de cada condição analisada. Cada gene pode fazer parte de um ou mais processos/gene sets.
+# Selecionar subprocessos para visualizar. Ao selecionar todos os genes de todos os processos, o heatmap ficará enorme e difícil de visualizar. Por isso, eu dividi em subprocessos com menos genes. Crie uma tabela-mãe com anotações para cada gene de cada condição analisada. Cada gene pode fazer parte de um ou mais processos/gene sets.
 
-#Tabela-mãe
+#Main table
+
+immunego
 
 Immune_GO_All = data.immunego %>% 
   rename(process = id) %>% 
   filter(!(process %in% c("TCR REPERTOIRE", "BCR REPERTOIRE"))) %>% 
-  merge(ImmuneGO, by = "process", all.x = T, all.y = F) %>% 
-  merge(ann_vaccines, by = "condition", all.y=F) %>% 
-  select(condition, process, enrichment_score:leading_edge, core_enrichment, vaccine:previous_vaccination) %>% 
-  distinct()
+  inner_join(ImmuneGO_Annotated_GO %>% filter(go_term == "Manual"), by = "process") %>% 
+  inner_join(ann_vaccines, by = "condition") %>% 
+  select(condition, process, immune_system, enrichment_score:leading_edge, core_enrichment, vaccine:previous_vaccination) %>% 
+  distinct() %>% 
+  filter(qvalue < 0.25)
 
-glimpse(Immune_GO_All)
 
-View(Immune_GO_All)
+Immune_GSEA_Innate = Immune_GO_All %>% 
+  filter(immune_system == "Innate") 
+
+Immune_GSEA_Adaptive = Immune_GO_All %>% 
+  filter(immune_system == "Adaptive")
+
+Immune_GSEA_Complement = Immune_GO_All %>% 
+  filter(immune_system == "Complement") 
+
 ```
 
 
@@ -1264,7 +501,7 @@ file = "Immune_GO_All"
 heatmap_data_l2fc= heatmap_data %>% 
   filter(condition != "NA", 
          process != "NA") %>% 
-  select(process, condition, nes)
+  select(process = process, condition, nes)
 
 # Converter para wide table
 matrix_data <- dcast(heatmap_data_l2fc, 
@@ -1281,9 +518,10 @@ matrix_data_ready =  matrix_data %>%
 
 # Verificar se todas as vacinas da anotação estão na matriz e unir as tabelas
 ann_vaccines_complex = heatmap_data %>% 
+  select(condition) %>% 
+  inner_join(ann_vaccines, by = "condition") %>%
   select(condition, vaccine:regimen) %>% 
-  distinct()
-
+  distinct() 
 # Unir tabela de anotações
 ann_vaccines_heatmap = matrix_data %>% 
   colnames() %>% 
@@ -1386,6 +624,381 @@ Defina as cores de cada elemento da tabela das anotações das colunas e/ou linh
 #Vaccines
 ann_colors = list(
   vaccine = c(
+  "BBIBP" = "#76c893",
+  "ZF2001" = "#b5e48c",
+  "BNT" = "#56cfe1",
+  "MO" = "#72ddf7",
+  "ChAd" = "#5e60ce",
+  "I" = "grey95",
+  "H" = "grey95"),
+  dose = c(
+    "0" = "grey95",
+    "1" = "#bbdefb",
+    "2" = "#1e88e5",
+    "3" = "#0d47a1"),
+  day = c(
+    "0" = "white",
+    "1" = "#e3f2fd",
+    "2" = "#ade8f4",
+    "3" = "#90e0ef",
+    "4" = "#6CD5EA",
+    "5" = "#48cae4",
+    "6" = "#00b4d8",
+    "7" = "#0096c7",
+    "10" = "#0087BF",
+    "11" = "#0087BF",
+    "14" = "#0077b6",
+    "26" = "#015BA0",
+    "28" = "#023e8a",
+    "51" = "#03045e"),
+  week = c("1" = "#e3f2fd",
+           "2" = "#6CD5EA",
+           "3" = "#0087BF",
+           "4" = "#015BA0", 
+           "7" = "#03045e"),
+  type = c('IN'= "#76c893", #1st Gen  vaccines
+           'VV' = "#5e60ce", #3rd Gen vaccines
+           'RNA' = "#56cfe1",
+           'SU' = "#b5e48c",
+           'I'= "#f72585",
+           "H" = "grey95"), #Infection
+  regimen = c('HO' = "grey90",
+              'HE' = "#8d99ae",
+              "V-I-V" = "#36248f",
+              "V-I" = "#D7B0EE",
+              "I-V-I" = "#7400b8",
+              "I-I" = "#5390d9",
+              "I" = "#64dfdf",
+              "H" = "grey95"),
+  infection = c("0" = "#64dfdf",
+                "1" = "#f72585",
+                "2" = "#a4161a"),
+  variant = c("None" = "grey95",
+              "Beta" = "#72efdd",
+              "Omicron" = "#5e60ce"),
+  severity = c("H" = "grey95",
+               "S" = "#0d47a1",
+               "MO" = "#1e88e5",
+               "MI" = "#bbdefb",
+               "NA" = "grey95"),
+  sex = c("Male" = "#64dfdf",
+          "Female" = "#5e60ce",
+          "M/F" = "#D7B0EE"))
+
+
+#Definir cores do gráfico
+# Defina os valores mínimos e máximos para o espectro de cores
+min(matrix_data_ordered_rows)
+max(matrix_data_ordered_rows)
+
+
+#Definir cores do gráfico
+# Defina os valores mínimos e máximos para o espectro de cores
+min(matrix_data_ordered)
+max(matrix_data_ordered)
+
+valores_minimos <- -2  # Substitua pelo valor mínimo desejado
+valores_maximos <- 2   # Substitua pelo valor máximo desejado
+
+#Espectro de cores
+
+col_fun <- colorRamp2(c(-2, 0, 2), c("#9bc1bc", "white", "#ed6a5a"))
+
+```
+
+5. Criar objeto heatmap annotation e clusterizar colunas por grupos. Abaixo, clusterizei as condições/colunas por dose (0, 1, 2 e 3), tempo/semana, tipo de vacina e o nome da vacina.
+
+```{r}
+#Criar heatmap annotation
+
+#Time
+ann_vaccines_heatmap_time = ann_vaccines_heatmap %>% 
+  select(week, day, type, regimen, infection, vaccine)
+
+ha_time = HeatmapAnnotation(df = ann_vaccines_heatmap_time, 
+                       col = ann_colors, 
+                       annotation_name_side = "left")
+
+week = ann_vaccines_heatmap_time$week
+dend_cols_week = cluster_within_group(matrix_data_ordered, week)
+
+
+
+#Type
+ann_vaccines_heatmap_type = ann_vaccines_heatmap %>% 
+  select(type, regimen, infection, vaccine, week, day)
+
+ha_type = HeatmapAnnotation(df = ann_vaccines_heatmap_type, 
+                       col = ann_colors, 
+                       annotation_name_side = "left")
+
+type = ann_vaccines_heatmap_type$type
+dend_cols_type = cluster_within_group(matrix_data_ordered, type)
+
+mat = matrix_data_ordered
+width_image = 50
+height_image = 20
+width = unit(30, "cm")
+height = unit(10, "cm")
+column_names_gp = gpar(fontsize = 10)
+row_names_gp = gpar(fontsize = 10)
+
+#By TYPE
+
+mat = matrix_data_ordered
+
+fileimageheatmap_grouped= paste0(file, sep ="_", "Heatmap_TYPE.png")
+
+png(file = fileimageheatmap_grouped, width=width_image, height=height_image,units = "cm", res=900)
+
+heatmap_plot_all = Heatmap(mat,
+                        top_annotation = ha_type,
+                        show_row_names = TRUE,
+                        show_heatmap_legend = TRUE,
+                        heatmap_legend_param = list(direction = "horizontal"),
+                        name = "log2-fold change", #Legend
+                        col = col_fun, #color
+                        column_title = fileimageheatmap_grouped,
+                        column_title_gp = gpar(fontsize = 15, fontface = "bold"),
+                        column_names_rot = 45,
+                        column_names_gp = column_names_gp,
+                        cluster_rows = TRUE,
+                        rect_gp = gpar(col = "gray1", lwd = 0.2),
+                        row_names_gp = row_names_gp,
+                        # row_split = 2, #Split row clusters
+                        row_gap = unit(2, "mm"),
+                        cluster_columns = dend_cols_type,
+                        column_split = 19, #Split group clusters
+                        #column_km = 3,
+                        column_gap = unit(8, "mm"),
+                        show_column_dend = F,
+                        show_row_dend = T,
+                        row_dend_side = "left",
+                        column_dend_side = "top",
+                        clustering_distance_rows = "euclidean",
+                        border = T,
+                        column_dend_reorder = TRUE,
+                        width = width, 
+                        height = height
+)
+
+draw(heatmap_plot_all, annotation_legend_side = "left", heatmap_legend_side = "left")
+
+dev.off()
+
+```
+
+
+```{r}
+# #By time
+# 
+# fileimageheatmap_grouped= paste0(file, sep ="_", "Heatmap_TIME.png")
+# 
+# png(file = fileimageheatmap_grouped, width=width_image, height=height_image,units="cm",res=900)
+# 
+# heatmap_plot_all = Heatmap(mat,
+#                         top_annotation = ha_time,
+#                         show_row_names = TRUE,
+#                         show_heatmap_legend = TRUE,
+#                         heatmap_legend_param = list(direction = "horizontal"),
+#                         name = "log2-fold change", #Legend
+#                         col = col_fun, #color
+#                         column_title = fileimageheatmap_grouped,
+#                         column_title_gp = gpar(fontsize = 15, fontface = "bold"),
+#                         column_names_rot = 45,
+#                         column_names_gp = column_names_gp,
+#                         cluster_rows = TRUE,
+#                         row_names_gp = row_names_gp,
+#                         # row_split = 2, #Split row clusters
+#                         row_gap = unit(2, "mm"),
+#                         cluster_columns = dend_cols_week,
+#                         column_split = 19, #Split group clusters
+#                         #column_km = 3,
+#                         column_gap = unit(8, "mm"),
+#                         show_column_dend = F,
+#                         show_row_dend = T,
+#                         row_dend_side = "left",
+#                         column_dend_side = "top",
+#                         clustering_distance_rows = "euclidean",
+#                         border = T,
+#                         column_dend_reorder = TRUE,
+#                         width = width, 
+#                         height = height
+# )
+# 
+# draw(heatmap_plot_all, annotation_legend_side = "left", heatmap_legend_side = "left")
+# 
+# dev.off()
+
+
+
+
+```
+
+Clusterizar tudo
+
+```{r}
+#Plotar e salvar imagem
+mat = matrix_data.nes.orderedbydose 
+
+fileimageheatmap_ungrouped= paste0(file, sep ="_", "Ungrouped_Complexheatmap.png")
+
+png(file = fileimageheatmap_ungrouped, width=30, height=50,units="cm",res=800)
+
+heatmap_plot_all = Heatmap(mat,
+                        top_annotation = ha,
+                        show_row_names = TRUE,
+                        show_heatmap_legend = TRUE,
+                        heatmap_legend_param = list(direction = "horizontal"),
+                        name = "NES", #Legend
+                        col = col_fun, #color
+                        column_title = fileimageheatmap_ungrouped,
+                        column_title_gp = gpar(fontsize = 15, fontface = "bold"),
+                        column_names_rot = 45,
+                        column_names_gp = gpar(fontsize = 10),
+                        rect_gp = gpar(col = "gray90", lwd = 1),
+                        cluster_rows = TRUE,
+                        row_names_gp = gpar(fontsize = 7),
+                        row_split = 0, #Split row clusters
+                        row_gap = unit(2, "mm"),
+                        cluster_columns = TRUE,
+                        column_split = 2, #Split group clusters
+                        #column_km = 2,
+                        column_gap = unit(8, "mm"),
+                        show_column_dend = TRUE,
+                        show_row_dend = TRUE,
+                        row_dend_side = "left",
+                        column_dend_side = "top",
+                        clustering_distance_rows = "euclidean",
+                        border = TRUE,
+                        column_dend_reorder = TRUE,
+                        width = unit(30, "cm"), 
+                        height = unit(10, "cm")
+)
+
+draw(heatmap_plot_all, annotation_legend_side = "right", heatmap_legend_side = "right")
+
+dev.off()
+```
+
+
+
+## CellMarker
+
+1. Criar matrizes
+
+Importar e padronizar tabelas
+
+```{r}
+############## Arquivos necessários
+
+# Informações sobre os processos/Gene sets
+CellMarker_ImmuneCells
+CellMarker_genes
+
+# Anotações das amostras/condições (Vacinas)
+ann_vaccines = ann_vaccines_1_1_24 %>%
+  distinct() %>% 
+  clean_names()
+
+
+# Dados 
+data.cellmarker = all_degs_p_05_vac_infected_GSEA_cellmarker %>%
+  select(condition, id, set_size:core_enrichment)
+
+############## Processar dados
+
+# Selecionar subprocessos para visualizar. Ao selecionar todos os genes de todos os processos, o heatmap ficará enorme e difícil de visualizar. Por isso, aqui, eu dividi em subprocessos com menos genes. Crie uma tabela-mãe com anotações para cada gene de cada condição analisada. Cada gene pode fazer parte de um ou mais processos/gene sets.
+
+#Tabela-mãe
+
+Immune_GO_All = data.cellmarker %>% 
+  rename(cell_name = id) %>% 
+  merge(CellMarker_ImmuneCells, by = "cell_name", all.x = T, all.y = F) %>% 
+  merge(ann_vaccines, by = "condition", all.y=F) %>% 
+  select(condition, process = cell_name, enrichment_score:leading_edge, core_enrichment, vaccine:previous_vaccination) %>% 
+  distinct()
+
+```
+
+
+```{r}
+####### Input
+#Troque pelo geneset de interesse
+
+heatmap_data = Immune_GO_All
+file = "Cellmarker_GO_All"
+
+########## Processar dados e criar matriz
+
+#Excluir linhas com Target ou Source == NA
+heatmap_data_l2fc= heatmap_data %>% 
+  filter(condition != "NA", 
+         process != "NA",
+         qvalue <= 0.10) %>% 
+  select(process, condition, nes)
+
+# Converter para wide table
+matrix_data <- dcast(heatmap_data_l2fc, 
+                         process ~ condition, 
+                         value.var = "nes", 
+                         fun.aggregate = mean) %>% 
+  column_to_rownames('process') %>% 
+  mutate_if(is.character, as.numeric) %>% 
+  replace(is.na(.), 0)
+
+#Arredondar valores para facilitar visualização
+matrix_data_ready =  matrix_data %>% 
+  round(2)
+
+# Verificar se todas as vacinas da anotação estão na matriz e unir as tabelas
+ann_vaccines_complex = heatmap_data %>% 
+  select(condition, vaccine:regimen) %>% 
+  distinct()
+
+# Unir tabela de anotações
+ann_vaccines_heatmap = matrix_data %>% 
+  colnames() %>% 
+  data.frame() %>% 
+  filter(. != "process") %>% 
+  rename(condition = '.') %>% 
+  merge(ann_vaccines_complex, by = "condition", all.x = TRUE) %>% 
+  arrange(dose) %>% 
+  relocate(dose, .before=vaccine) %>% 
+  column_to_rownames(var= "condition")  %>% 
+  mutate(dose = ifelse(is.na(dose), "NA", dose))
+
+# Ordenar colunas da matriz para a mesma ordem das linhas da tabela de anotações
+matrix_data_ordered = matrix_data %>% 
+  t() %>% 
+  as.data.frame() %>% 
+  rownames_to_column(var= "condition") %>% 
+  merge(ann_vaccines_complex, by.y = "condition", all.x=TRUE) %>% 
+  arrange(dose) %>% #Trocar a variável pela qual deseja ordenar (Vaccine, Day, Condition, etc.)
+  select(!c(vaccine:regimen)) %>% 
+  column_to_rownames("condition") %>% 
+  t() %>% 
+  as.data.frame() %>% 
+  mutate_if(is.character, as.numeric) %>% #Converter em numéricos
+  replace(is.na(.), 0) %>% 
+  as.matrix() #%>% 
+  #scale() #normalizar
+
+
+#Verificar se as linhas sao iguais
+dim(matrix_data_ordered) #Usar se for ordenar por colunas
+dim(ann_vaccines_heatmap) #Anotações sobre as colunas
+
+```
+
+4. Cores.
+Defina as cores de cada elemento da tabela das anotações das colunas e/ou linhas.
+
+```{r}
+########## Definir Cores dos grupos
+#Vaccines
+ann_colors = list(
+  vaccine = c(
   "BBIBP" = "#343a40",
   "BNT" = "#56cfe1",
   "ChAd" = "#5e60ce",
@@ -1449,79 +1062,6 @@ ann_colors = list(
           "M/F" = "#5e60ce"))
 
 
-#Rows
-# ann_genesets_heatmap
-ann_colors_rows = list(
-  `immune_system` = c(
-    "Innate" = "#faedcd",
-    "Adaptive" = "#ffb5a7",
-    "General" = "#99d98c",
-    "Other" = "#e5e5e5",
-    "Complement" = "#7400b8",
-    "No enrichment" = "gray90"
-  ),
-  `immune_sub_system` = c(
-    "Adaptive" = "#ffb5a7",
-    "Cellular" = "#ff758f",
-    "Humoral" = "#ff758f",
-    "Antibacterial" = "#4895ef",
-    "Antifungal" = "#4361ee",
-    "Antimicrobial" = "#7400b8",
-    "General" = "#99d98c",
-    "Antigen presentation" = "#e4c4a5",
-    "APC" = "#ccd5ae",
-    "Eosinophil" = "#faedcd",
-    "Granulocyte" = "#faedcd",
-    "Leukocyte" = "#ffb5a7",
-    "Neutrophil" = "#ccd5ae",
-    "Innate immune response" = "#faedcd",
-    "Interferon" = "#a4c3b2",
-    "Antiviral" = "#60495a",
-    "Pattern recognition receptor" = "#f4f4d5",
-    "Natural killer" = "#fedd96",
-    "Mucosa" = "#c3dfe0",
-    "Erythrocyte" = "#4895ef",
-    "No enrichment" = "gray90"
-  )
-)
-
-
-#Rows
-# ann_genesets_heatmap
-ann_colors_rows = list(
-  `immune_system` = c(
-    "Innate" = "#faedcd",
-    "Adaptive" = "#ffb5a7",
-    "General" = "#99d98c",
-    "Other" = "#e5e5e5",
-    "Complement" = "#7400b8",
-    "No enrichment" = "gray90"
-  ),
-  `immune_sub_system` = c(
-    "Adaptive" = "#ffb5a7",
-    "Cellular" = "#ff758f",
-    "Humoral" = "#ff758f",
-    "Antibacterial" = "#4895ef",
-    "Antifungal" = "#4361ee",
-    "Antimicrobial" = "#7400b8",
-    "General" = "#99d98c",
-    "Antigen presentation" = "#e4c4a5",
-    "APC" = "#ccd5ae",
-    "Eosinophil" = "#faedcd",
-    "Granulocyte" = "#faedcd",
-    "Leukocyte" = "#ffb5a7",
-    "Neutrophil" = "#ccd5ae",
-    "Innate immune response" = "#faedcd",
-    "Interferon" = "#a4c3b2",
-    "Antiviral" = "#60495a",
-    "Pattern recognition receptor" = "#f4f4d5",
-    "Natural killer" = "#fedd96",
-    "Mucosa" = "#c3dfe0",
-    "Erythrocyte" = "#4895ef",
-    "No enrichment" = "gray90"
-  )
-)
-
 
 #Definir cores do gráfico
 # Defina os valores mínimos e máximos para o espectro de cores
@@ -1533,26 +1073,14 @@ valores_maximos <- 2   # Substitua pelo valor máximo desejado
 
 #Espectro de cores
 
-col_fun <- colorRamp2(c(-2, 0, 2), c("#4CC9F0", "black", "#F72585"))
+col_fun <- colorRamp2(c(-2, 0, 2), c("#4CC9F0", "white", "#7400b8"))
 
-```
 
-5. Criar objeto heatmap annotation e clusterizar colunas por grupos. Abaixo, clusterizei as condições/colunas por dose (0, 1, 2 e 3), tempo/semana, tipo de vacina e o nome da vacina.
-
-```{r}
 #Criar heatmap annotation
 ha = HeatmapAnnotation(df = ann_vaccines_heatmap, 
                        col = ann_colors, 
                        annotation_name_side = "left")
 
-
-#Dose
-dose = ann_vaccines_heatmap$dose
-dend_cols_dose = cluster_within_group(matrix_data_ordered, dose)
-
-#Week
-week = ann_vaccines_heatmap$week
-dend_cols_week = cluster_within_group(matrix_data_ordered, week)
 
 #Vaccine
 vac = ann_vaccines_heatmap$vac
@@ -1566,120 +1094,22 @@ dend_cols_type = cluster_within_group(matrix_data_ordered, type)
 
 
 6. Plotar heatmap
-Os heatmaps gerados variam em dimensão em função do número de linhas (no caso, genes) e condições. 
-
-
-Dimensões:
-1. Cellular adaptive immune system: width = unit(30, "cm"), height = unit(70, "cm") 
-2. Humoral adaptive immune system: width = unit(30, "cm"), height = unit(30, "cm")
-3. T cells: width = unit(30, "cm"), height = unit(50, "cm")
-4. B cells: width = unit(30, "cm"), height = unit(50, "cm")
-5. Ig mediated: width = unit(30, "cm"), height = unit(10, "cm")
-6. Inflammation: width = unit(30, "cm"), height = unit(10, "cm")
-7. ARPP: width = unit(30, "cm"), height = unit(20, "cm") #REFAZER
-8. IFN: width = unit(30, "cm"), height = unit(50, "cm")
-9. DC: width = unit(30, "cm"), height = unit(20, "cm")
-10. Macrophages: width = unit(30, "cm"), height = unit(20, "cm")
  
 GSEA completo
 
 
 ```{r}
-# By dose
+
 mat = matrix_data_ordered
 width_image = 50
-height_image = 30
+height_image = 70
 width = unit(30, "cm")
-height = unit(10, "cm")
+height = unit(60, "cm")
 column_names_gp = gpar(fontsize = 10)
 row_names_gp = gpar(fontsize = 10)
 
-fileimageheatmap_grouped = paste0(file, sep ="_", "Heatmap_DOSE.png") #Nome do arquivo gerado
-
-png(file = fileimageheatmap_grouped, width=width_image, height=height_image, units="cm", res=900) #Dimensões da imagem
-
-heatmap_plot_all = Heatmap(mat, # Matriz
-                        top_annotation = ha, # Anotações das colunas
-                        show_row_names = TRUE,
-                        show_heatmap_legend = TRUE,
-                        heatmap_legend_param = list(direction = "horizontal"),
-                        name = "log2-fold change", # Legenda para o valor das células
-                        col = col_fun, # Cores
-                        column_title = fileimageheatmap_grouped, #Título
-                        column_title_gp = gpar(fontsize = 15, fontface = "bold"), #Título das colunas
-                        column_names_rot = 45, # Rotação do label das colunas
-                        column_names_gp = column_names_gp,
-                        cluster_rows = TRUE, #Clusterizar linhas
-                        row_names_gp = row_names_gp,
-                        # row_split = 2, # Split row clusters
-                        row_gap = unit(2, "mm"),
-                        cluster_columns = dend_cols_dose,
-                        column_split = 19, # Split group clusters
-                        #column_km = 3,
-                        column_gap = unit(8, "mm"),
-                        show_column_dend = F,
-                        show_row_dend = T,
-                        row_dend_side = "left",
-                        column_dend_side = "top",
-                        clustering_distance_rows = "euclidean",
-                        border = T,
-                        column_dend_reorder = TRUE,
-                        width = width, # Largura do heatmap (não é da imagem)
-                        height = height # Comprimento
-)
-
-draw(heatmap_plot_all,
-     annotation_legend_side = "left", # Local da legenda das anotações (coluna e/ou linhas)
-     heatmap_legend_side = "left"  # Local da legenda dos valores das células
-     ) 
-
-dev.off()
-
-
-#By time
-
-fileimageheatmap_grouped= paste0(file, sep ="_", "Heatmap_TIME.png")
-
-png(file = fileimageheatmap_grouped, width=width_image, height=height_image,units="cm",res=900)
-
-heatmap_plot_all = Heatmap(mat,
-                        top_annotation = ha,
-                        show_row_names = TRUE,
-                        show_heatmap_legend = TRUE,
-                        heatmap_legend_param = list(direction = "horizontal"),
-                        name = "log2-fold change", #Legend
-                        col = col_fun, #color
-                        column_title = fileimageheatmap_grouped,
-                        column_title_gp = gpar(fontsize = 15, fontface = "bold"),
-                        column_names_rot = 45,
-                        column_names_gp = column_names_gp,
-                        cluster_rows = TRUE,
-                        row_names_gp = row_names_gp,
-                        # row_split = 2, #Split row clusters
-                        row_gap = unit(2, "mm"),
-                        cluster_columns = dend_cols_week,
-                        column_split = 19, #Split group clusters
-                        #column_km = 3,
-                        column_gap = unit(8, "mm"),
-                        show_column_dend = F,
-                        show_row_dend = T,
-                        row_dend_side = "left",
-                        column_dend_side = "top",
-                        clustering_distance_rows = "euclidean",
-                        border = T,
-                        column_dend_reorder = TRUE,
-                        width = width, 
-                        height = height
-)
-
-draw(heatmap_plot_all, annotation_legend_side = "left", heatmap_legend_side = "left")
-
-dev.off()
-
 
 #By TYPE
-
-mat = matrix_data_ordered
 
 fileimageheatmap_grouped= paste0(file, sep ="_", "Heatmap_TYPE.png")
 
@@ -1777,18 +1207,16 @@ Padronizando tabela
 
 ```{r}
 
-ImmuneGO_ssgsea_results_unified_26_12_23
-ann_vaccines_samples = ann_vaccines_samples_4_12_23
+ssgsea_results_unified
+ann_vaccines_samples
 
 
 #Importar
-ssgsea_results_unified.all <- ImmuneGO_ssgsea_results_unified_26_12_23 %>% 
+ssgsea_results_unified.all <- ssgsea_results_unified %>% 
   filter(condition != "NA",
          process != "All genesets",
          !(process %in% c("TCR REPERTOIRE", "BCR REPERTOIRE", "ADAPTIVE IMMUNE SYSTEM", "INNATE IMMUNE SYSTEM"))) %>% 
-  mutate(process = if_else(process == "IMMUNOGLOBULIN MEDIATED IMMUNE RESPONSE", "IG-MEDIATED IMMUNE RESPONSE", process)) %>% 
-  select(!condition:study) %>% 
-  merge(ann_vaccines_samples, by = "sample", all.x = F, all.y = F)
+  mutate(process = if_else(process == "IMMUNOGLOBULIN MEDIATED IMMUNE RESPONSE", "IG-MEDIATED IMMUNE RESPONSE", process)) 
 
 
 #Input
@@ -1821,9 +1249,6 @@ matrix_data.nes <- dcast(heatmap_data.nes,
 #Arredondar valores para facilitar visualização
 matrix_data.nes.ready =  matrix_data.nes %>% round(2)
 
-#Definir nome para arquivo geral
-write.csv(matrix_data.nes.ready, file=paste(file,"heatmap.csv",sep="_")) 
-saveRDS(matrix_data.nes.ready, file=paste(file,"heatmap.rds",sep="_"))
 ```
 
 Verificar se todas as vacinas da anotação estão na matriz e unir as tabelas
@@ -1865,9 +1290,7 @@ matrix_data.nes.orderedbydose = matrix_data.nes %>%
   as.data.frame()%>%  
   mutate_if(is.character, as.numeric) %>% #Converter em numéricos
   replace(is.na(.), 0) %>% 
-  as.matrix() %>% 
-  scale() #Normalizar
-
+  as.matrix()
 #Verificar se as linhas sao iguais
 dim(matrix_data.nes.orderedbydose) #Usar se for ordenar por colunas
 dim(ann_vaccines_heatmap) #Anotações sobre as colunas
@@ -1948,7 +1371,7 @@ ann_colors = list(
 # Defina os valores mínimos e máximos para o espectro de cores
 
 #Espectro de cores
-col_fun <- colorRamp2(c(-2, 0, 2), c("#0000FF", "white", "#FF0000"))
+col_fun <- colorRamp2(c(-2, 0, 2), c("#4CC9F0", "white", "#F72585"))
 
 ```
 
@@ -1987,10 +1410,13 @@ dend_cols_regimen = cluster_within_group(matrix_data.nes.orderedbydose, regimen)
 week = ann_vaccines_heatmap$week
 dend_cols_week = cluster_within_group(matrix_data.nes.orderedbydose, week)
 
+
 ```
 
-clustered by dose
+PLOT
 ```{r}
+
+##### DOSE
 mat = matrix_data.nes.orderedbydose
 
 fileimageheatmap_grouped= paste0(file, sep ="_", "Grouped_Complexheatmap_by_DOSE.png")
@@ -2011,7 +1437,7 @@ heatmap_plot_all = Heatmap(mat,
                         column_title_gp = gpar(fontsize = 15, fontface = "bold"),
                         column_names_rot = 45,
                         column_names_gp = gpar(fontsize = 10),
-                        rect_gp = gpar(col = "gray90", lwd = 1),
+                        rect_gp = gpar(col = "gray90", lwd = 0),
                         cluster_rows = TRUE,
                         #row_labels = T,
                         row_names_gp = gpar(fontsize = 15),
@@ -2041,12 +1467,7 @@ draw(heatmap_plot_all,
 dev.off()
 
 
-```
-
-
-clustered by type
-```{r}
-mat = matrix_data.nes.orderedbydose
+##### TYPE
 
 fileimageheatmap_grouped = paste0(file,"_Grouped_Complexheatmap_BY_TYPE.png")
 
@@ -2066,7 +1487,7 @@ heatmap_plot_all = Heatmap(mat,
                         column_title_gp = gpar(fontsize = 15, fontface = "bold"),
                         column_names_rot = 45,
                         column_names_gp = gpar(fontsize = 10),
-                        rect_gp = gpar(col = "gray90", lwd = 1),
+                        rect_gp = gpar(col = "gray90", lwd = 0),
                         cluster_rows = TRUE,
                         #row_labels = T,
                         row_names_gp = gpar(fontsize = 10),
@@ -2096,12 +1517,7 @@ draw(heatmap_plot_all,
 dev.off()
 
 
-```
-
-clustered by week
-
-```{r}
-mat = matrix_data.nes.orderedbydose
+##### WEEK
 
 fileimageheatmap_grouped= paste0(file,"_Grouped_Complexheatmap_BY_WEEK.png")
 
@@ -2120,7 +1536,7 @@ heatmap_plot_all = Heatmap(mat,
                         column_title_gp = gpar(fontsize = 15, fontface = "bold"),
                         column_names_rot = 45,
                         column_names_gp = gpar(fontsize = 10),
-                        rect_gp = gpar(col = "gray90", lwd = 1),
+                        rect_gp = gpar(col = "gray90", lwd = 0),
                         cluster_rows = TRUE,
                         #row_labels = T,
                         row_names_gp = gpar(fontsize = 10),
@@ -2148,11 +1564,7 @@ draw(heatmap_plot_all, annotation_legend_side = "left", heatmap_legend_side = "l
 dev.off()
 
 
-```
-
-clustered by vaccine
-```{r}
-mat = matrix_data.nes.orderedbydose
+######## by vaccine
 
 fileimageheatmap_grouped= paste0(file,"_Grouped_Complexheatmap_BY_VACCINE.png")
 
@@ -2171,7 +1583,7 @@ heatmap_plot_all = Heatmap(mat,
                         column_title_gp = gpar(fontsize = 15, fontface = "bold"),
                         column_names_rot = 45,
                         column_names_gp = gpar(fontsize = 10),
-                        rect_gp = gpar(col = "gray90", lwd = 1),
+                        rect_gp = gpar(col = "gray90", lwd = 0),
                         cluster_rows = TRUE,
                         #row_labels = T,
                         row_names_gp = gpar(fontsize = 10),
@@ -2640,12 +2052,6 @@ dev.off()
 
 
 
-
-
-
-
-
-
 ```{r}
 
 ImmuneGO_Annotated_Genes_Nested_Interesting_12_12_23 %>% 
@@ -2655,3 +2061,648 @@ ImmuneGO_Annotated_Genes_Nested_Interesting_12_12_23 %>%
 
 
 ```
+
+
+
+
+
+
+
+# Genes annotated
+
+Quais genes participam de mais de um processo?
+
+```{r}
+#Input
+
+degs_all_updown_covid_l2fc = degs_all_updown %>% 
+  as.data.frame() %>% 
+  select(condition:direction) %>% 
+  inner_join(ann_vaccines, by = "condition") %>% 
+  inner_join(immunego_genes, by = "genes") %>% 
+  distinct() %>% 
+  select(condition, genes, regulation = log2fold_change)  %>% 
+  distinct()
+
+Immune_GO_T2G = ImmuneGO_Annotated_Genes %>% 
+  filter(go_term == "Manual",
+         !process %in% c("TCR REPERTOIRE", "BCR REPERTOIRE")) %>% 
+  select(process, genes)
+
+###### Gene sets
+Immune_GO_genes_All = degs_all_updown_covid_l2fc 
+
+####### INPUT
+data_2 = Immune_GO_genes_All
+filename_2 = paste0("Immune_GO_genes_All", "_COVID")
+
+######## Matrix
+matrix = data_2 %>% 
+  select(genes, condition, regulation) %>%
+  pivot_wider(names_from = "condition", 
+              values_from = "regulation", 
+              values_fn = mean) %>% 
+  replace(is.na(.), 0) %>%
+  arrange(genes) %>% 
+  column_to_rownames(var="genes") %>% 
+  filter(rowSums(. != 0) > 1) %>% 
+  as.matrix()
+
+######## Annotations
+ann_vaccines_2 = data_2 %>% 
+  inner_join(ann_vaccines, by = "condition") %>% 
+  select(condition, disease_vac, type, vaccine, infection, dose, week, day) %>% 
+  distinct()
+
+#Columns
+ann_cols_heatmap = matrix %>% 
+  colnames() %>% 
+  data.frame() %>% 
+  filter(. != "genes") %>% 
+  rename(condition = '.') %>% 
+  inner_join(ann_vaccines_2, by = "condition") %>% 
+  distinct() %>% 
+  arrange(condition) %>% 
+  column_to_rownames("condition")
+
+matrix_data = matrix %>% 
+  t() %>% 
+  as.data.frame() %>% 
+  rownames_to_column(var= "condition") %>% 
+  inner_join(ann_cols_heatmap %>% rownames_to_column("condition"), by = "condition") %>% 
+  select(!c(disease_vac:day)) %>% 
+  arrange(condition) %>% 
+  column_to_rownames("condition") %>% 
+  t() %>% 
+  as.data.frame() %>% 
+  filter(rowSums(. != 0) > 0) %>% 
+  mutate_if(is.character, as.numeric) %>%
+  distinct()
+
+
+#Rows
+ann_rows = matrix_data %>%
+  as.data.frame() %>%
+  rownames_to_column("genes") %>%
+  inner_join(ImmuneGO_Annotated_Genes, by = "genes") %>%
+  filter(go_term == "Manual") %>%
+  select(genes, process) %>%
+  distinct() %>%
+  group_by(genes) %>%
+  arrange(genes, factor(process, levels = c("INNATE IMMUNE SYSTEM", "ADAPTIVE IMMUNE SYSTEM")), .by_group = TRUE) %>% 
+  mutate(i_process = row_number()) %>% 
+  pivot_wider(., names_from = "i_process", values_from = "process") %>% 
+  column_to_rownames("genes") %>% 
+  t() %>% 
+  as.data.frame() %>% 
+  rownames_to_column("index") %>% 
+  arrange(desc(index)) %>% 
+  column_to_rownames("index") %>% 
+  t() %>% 
+  as.data.frame() %>% 
+  replace(is.na(.), ".")
+
+
+mat = matrix_data %>% 
+  rownames_to_column("genes") %>% 
+  inner_join(ann_rows %>% rownames_to_column("genes") %>% select(genes), by = "genes") %>% 
+  column_to_rownames("genes") %>% 
+  as.matrix()
+
+
+#Verificar dimensões do dataset
+dim(mat)
+dim(ann_rows)
+dim(ann_cols_heatmap)
+
+```
+
+Colors
+
+```{r}
+################## Colors
+
+#VAX SIG DB
+ann_vaxsig_colors = list(
+  type = c("VLP" = "#D7B0EE",
+           "LA" =  "#5e60ce",
+           "CONJ" = "#015BA0", 
+           'IN'= "#76c893", #1st Gen  vaccines
+           'VV' = "#5e60ce", #3rd Gen vaccines
+           'RNA' = "#56cfe1",
+           'SU' = "#b5e48c",
+           'I'= "#f72585",
+           "H" = "grey95"),
+  target_pathogen_disease = c('MENINGOCOCCUS'	= "#16E0BD",
+                             'PNEUMOCOCCUS'	= "#44C199",
+                             'TUBERCULOSIS'	= "#99e2b4",
+                             'F TULARENSIS'	= "#90e0ef",
+                             'LEISHMANIA'	= "#118ab2",
+                             'MALARIA' = "#3f37c9",
+                             'EBOV'	= "#d00000",
+                             "SARS" = "#ef233c",
+                             'HBV'	= "#e85d04",
+                             'HBV, HAV'	= "#f48c06",
+                             'HIV'	= "#a4133c",
+                             'HPV'	= "#f27059",
+                             'INFLUENZA'	= "#ffa69e",
+                             'MEASLES'	= "#c65b7c",
+                             'MMR'	= "#f9b5ac",
+                             'SMALLPOX'	= "#ff8c42",
+                             'VEEV'	= "#e01e37",
+                             'VZV'	= "#ff9b85",
+                             'YF'	= "#f38375"),
+  covid_other = c("COVID" = "#56cfe1",
+                  "OTHER" = "#343a40"),
+  microbe_type = c("VIRUS" = "#5e60ce",
+                   'BACTERIUM' = "#72efdd",
+                   'PARASITE' = "#b5179e"),
+  
+  week = c("0" = "#ECF8FA",
+           "1" = "#caf0f8",
+           "2" = "#6CD5EA",
+           "3" = "#0087BF",
+           "4" = "#015BA0", 
+           "6" = "#03045e",
+           "7" = "#03045e",
+           "8" = "#03045e"),
+  month = c("1" = "#caf0f8",
+            "0" = "#6CD5EA",
+           "2" = "#015BA0"),
+  vaccine = c("BBIBP" = "#76c893",
+  "ZF2001" = "#b5e48c",
+  "BNT" = "#56cfe1",
+  "MO" = "#72ddf7",
+  "ChAd" = "#5e60ce",
+  "I" = "grey95",
+  "H" = "grey95"),
+  dose = c(
+            "0" = "grey95",
+            "1" = "#56cfe1",
+            "2" = "#5978d4",
+            "3" = "#b5179e"),
+  day = c(
+          "0" = "white",
+          "1" = "#caf0f8",
+          "2" = "#ade8f4",
+          "3" = "#90e0ef",
+          "4" = "#6CD5EA",
+          "5" = "#48cae4",
+          "6" = "#00b4d8",
+          "7" = "#0096c7",
+          "10" = "#0087BF",
+          "11" = "#0087BF",
+          "14" = "#0077b6",
+          "26" = "#015BA0",
+          "28" = "#023e8a",
+          "51" = "#03045e"),
+  type = c('IN'= "#343a40", #1st Gen  vaccines
+           'SU' = "#00a896",
+           'VV' = "#72efdd", #3rd Gen vaccines
+           'RNA' = "#56cfe1",
+           'SU' = "#b5179e",
+           'I'= "#da1e37",
+           "H" = "grey95"), 
+  infection = c("0" = "#64dfdf",
+                "1" = "#f72585",
+                "2" = "#a4161a"),
+  variant = c("None" = "grey95",
+              "Beta" = "#72efdd",
+              "Omicron" = "#5e60ce"),
+  severity = c("H" = "grey95",
+               "S" = "#b5179e",
+               "MO" = "#5e60ce",
+               "MI" = "#80ffdb",
+               "NA" = "grey95"),
+  sex = c("Male" = "#56cfe1",
+          "Female" = "#b5179e",
+          "M/F" = "#5e60ce"),
+  disease_vac = c("I" = "#5e60ce",
+                  "V" = "#64dfdf")
+  )
+
+
+col_process = list(
+  "1" = c("ADAPTIVE IMMUNE SYSTEM" = "#6f2dbd",
+        "B CELLS" = "#7b2cbf",
+        "CELLULAR ADAPTIVE IMMUNE SYSTEM" = "#e0aaff",
+        "HUMORAL ADAPTIVE IMMUNE SYSTEM" = "#9d4edd",
+        "IMMUNOGLOBULIN MEDIATED IMMUNE RESPONSE"= "#5a189a",
+        "T CELLS" = "#c77dff",
+        "COMPLEMENT IMMUNE SYSTEM" = "#ffadc7",
+        "ANTIVIRAL AND INTERFERON" = "#88d4ab",
+        "ARPP" = "#14746f",
+        "DENDRITIC CELLS" = "#036666",
+        "EOSINOPHIL" = "#67b99a",
+        "INFLAMMATION" = "#99e2b4",
+        "INNATE IMMUNE SYSTEM" = "#06d6a0",
+        "MAST CELL" = "#56ab91",
+        "MONOCYTES" = "#358f80",
+        "NEUTROPHIL" = "#78c6a3",
+        "NK CELL" = "#469d89",
+        "MACROPHAGES" = "#14746f",
+        "."="white"),
+  "2" = c("ADAPTIVE IMMUNE SYSTEM" = "#6f2dbd",
+        "B CELLS" = "#7b2cbf",
+        "CELLULAR ADAPTIVE IMMUNE SYSTEM" = "#e0aaff",
+        "HUMORAL ADAPTIVE IMMUNE SYSTEM" = "#9d4edd",
+        "IMMUNOGLOBULIN MEDIATED IMMUNE RESPONSE"= "#5a189a",
+        "T CELLS" = "#c77dff",
+        "COMPLEMENT IMMUNE SYSTEM" = "#ffadc7",
+        "ANTIVIRAL AND INTERFERON" = "#88d4ab",
+        "ARPP" = "#14746f",
+        "DENDRITIC CELLS" = "#036666",
+        "EOSINOPHIL" = "#67b99a",
+        "INFLAMMATION" = "#99e2b4",
+        "INNATE IMMUNE SYSTEM" = "#06d6a0",
+        "MAST CELL" = "#56ab91",
+        "MONOCYTES" = "#358f80",
+        "NEUTROPHIL" = "#78c6a3",
+        "NK CELL" = "#469d89",
+        "MACROPHAGES" = "#14746f",
+        "."="white"),
+  "3" = c("ADAPTIVE IMMUNE SYSTEM" = "#6f2dbd",
+        "B CELLS" = "#7b2cbf",
+        "CELLULAR ADAPTIVE IMMUNE SYSTEM" = "#e0aaff",
+        "HUMORAL ADAPTIVE IMMUNE SYSTEM" = "#9d4edd",
+        "IMMUNOGLOBULIN MEDIATED IMMUNE RESPONSE"= "#5a189a",
+        "T CELLS" = "#c77dff",
+        "COMPLEMENT IMMUNE SYSTEM" = "#ffadc7",
+        "ANTIVIRAL AND INTERFERON" = "#88d4ab",
+        "ARPP"= "#14746f",
+        "DENDRITIC CELLS" = "#036666",
+        "EOSINOPHIL" = "#67b99a",
+        "INFLAMMATION" = "#99e2b4",
+        "INNATE IMMUNE SYSTEM" = "#06d6a0",
+        "MAST CELL" = "#56ab91",
+        "MONOCYTES" = "#358f80",
+        "NEUTROPHIL" = "#78c6a3",
+        "NK CELL" = "#469d89",
+        "MACROPHAGES" = "#14746f",
+        "."="white"),
+  "4" = c("ADAPTIVE IMMUNE SYSTEM" = "#6f2dbd",
+        "B CELLS" = "#7b2cbf",
+        "CELLULAR ADAPTIVE IMMUNE SYSTEM" = "#e0aaff",
+        "HUMORAL ADAPTIVE IMMUNE SYSTEM" = "#9d4edd",
+        "IMMUNOGLOBULIN MEDIATED IMMUNE RESPONSE"= "#5a189a",
+        "T CELLS" = "#c77dff",
+        "COMPLEMENT IMMUNE SYSTEM" = "#ffadc7",
+        "ANTIVIRAL AND INTERFERON" = "#88d4ab",
+        "ARPP" ="#14746f",
+        "DENDRITIC CELLS" = "#036666",
+        "EOSINOPHIL" = "#67b99a",
+        "INFLAMMATION" = "#99e2b4",
+        "INNATE IMMUNE SYSTEM" = "#06d6a0",
+        "MAST CELL" = "#56ab91",
+        "MONOCYTES" = "#358f80",
+        "NEUTROPHIL" = "#78c6a3",
+        "NK CELL" = "#469d89",
+        "MACROPHAGES" = "#14746f",
+        "."="white"),
+  "5" = c("ADAPTIVE IMMUNE SYSTEM" = "#6f2dbd",
+        "B CELLS" = "#7b2cbf",
+        "CELLULAR ADAPTIVE IMMUNE SYSTEM" = "#e0aaff",
+        "HUMORAL ADAPTIVE IMMUNE SYSTEM" = "#9d4edd",
+        "IMMUNOGLOBULIN MEDIATED IMMUNE RESPONSE"= "#5a189a",
+        "T CELLS" = "#c77dff",
+        "COMPLEMENT IMMUNE SYSTEM" = "#ffadc7",
+        "ANTIVIRAL AND INTERFERON" = "#88d4ab",
+        "ARPP" = "#14746f",
+        "DENDRITIC CELLS" = "#036666",
+        "EOSINOPHIL" = "#67b99a",
+        "INFLAMMATION" = "#99e2b4",
+        "INNATE IMMUNE SYSTEM" = "#06d6a0",
+        "MAST CELL" = "#56ab91",
+        "MONOCYTES" = "#358f80",
+        "NEUTROPHIL" = "#78c6a3",
+        "NK CELL" = "#469d89",
+        "MACROPHAGES" = "#14746f",
+        "."="white"),
+  "6" = c("ADAPTIVE IMMUNE SYSTEM" = "#6f2dbd",
+        "B CELLS" = "#7b2cbf",
+        "CELLULAR ADAPTIVE IMMUNE SYSTEM" = "#e0aaff",
+        "HUMORAL ADAPTIVE IMMUNE SYSTEM" = "#9d4edd",
+        "IMMUNOGLOBULIN MEDIATED IMMUNE RESPONSE"= "#5a189a",
+        "T CELLS" = "#c77dff",
+        "COMPLEMENT IMMUNE SYSTEM" = "#ffadc7",
+        "ANTIVIRAL AND INTERFERON" = "#88d4ab",
+        "ARPP" = "#14746f",
+        "DENDRITIC CELLS" = "#036666",
+        "EOSINOPHIL" = "#67b99a",
+        "INFLAMMATION" = "#99e2b4",
+        "INNATE IMMUNE SYSTEM" = "#06d6a0",
+        "MAST CELL" = "#56ab91",
+        "MONOCYTES" = "#358f80",
+        "NEUTROPHIL" = "#78c6a3",
+        "NK CELL" = "#469d89",
+        "MACROPHAGES" = "#14746f",
+        "."="white"),
+  "7" = c("ADAPTIVE IMMUNE SYSTEM" = "#6f2dbd",
+        "B CELLS" = "#7b2cbf",
+        "CELLULAR ADAPTIVE IMMUNE SYSTEM" = "#e0aaff",
+        "HUMORAL ADAPTIVE IMMUNE SYSTEM" = "#9d4edd",
+        "IMMUNOGLOBULIN MEDIATED IMMUNE RESPONSE"= "#5a189a",
+        "T CELLS" = "#c77dff",
+        "COMPLEMENT IMMUNE SYSTEM" = "#ffadc7",
+        "ANTIVIRAL AND INTERFERON" = "#88d4ab",
+        "ARPP" = "#14746f",
+        "DENDRITIC CELLS" = "#036666",
+        "EOSINOPHIL" = "#67b99a",
+        "INFLAMMATION" = "#99e2b4",
+        "INNATE IMMUNE SYSTEM" = "#06d6a0",
+        "MAST CELL" = "#56ab91",
+        "MONOCYTES" = "#358f80",
+        "NEUTROPHIL" = "#78c6a3",
+        "NK CELL" = "#469d89",
+        "MACROPHAGES" = "#14746f",
+        "."="white"),
+  "8" = c("ADAPTIVE IMMUNE SYSTEM" = "#6f2dbd",
+        "B CELLS" = "#7b2cbf",
+        "CELLULAR ADAPTIVE IMMUNE SYSTEM" = "#e0aaff",
+        "HUMORAL ADAPTIVE IMMUNE SYSTEM" = "#9d4edd",
+        "IMMUNOGLOBULIN MEDIATED IMMUNE RESPONSE"= "#5a189a",
+        "T CELLS" = "#c77dff",
+        "COMPLEMENT IMMUNE SYSTEM" = "#ffadc7",
+        "ANTIVIRAL AND INTERFERON" = "#88d4ab",
+        "ARPP" = "#14746f",
+        "DENDRITIC CELLS" = "#036666",
+        "EOSINOPHIL" = "#67b99a",
+        "INFLAMMATION" = "#99e2b4",
+        "INNATE IMMUNE SYSTEM" = "#06d6a0",
+        "MAST CELL" = "#56ab91",
+        "MONOCYTES" = "#358f80",
+        "NEUTROPHIL" = "#78c6a3",
+        "NK CELL" = "#469d89",
+        "MACROPHAGES" = "#14746f",
+        "."="white"),
+  "9" = c("ADAPTIVE IMMUNE SYSTEM" = "#6f2dbd",
+        "B CELLS" = "#7b2cbf",
+        "CELLULAR ADAPTIVE IMMUNE SYSTEM" = "#e0aaff",
+        "HUMORAL ADAPTIVE IMMUNE SYSTEM" = "#9d4edd",
+        "IMMUNOGLOBULIN MEDIATED IMMUNE RESPONSE"= "#5a189a",
+        "T CELLS" = "#c77dff",
+        "COMPLEMENT IMMUNE SYSTEM" = "#ffadc7",
+        "ANTIVIRAL AND INTERFERON" = "#88d4ab",
+        "ARPP" = "#14746f",
+        "DENDRITIC CELLS" = "#036666",
+        "EOSINOPHIL" = "#67b99a",
+        "INFLAMMATION" = "#99e2b4",
+        "INNATE IMMUNE SYSTEM" = "#06d6a0",
+        "MAST CELL" = "#56ab91",
+        "MONOCYTES" = "#358f80",
+        "NEUTROPHIL" = "#78c6a3",
+        "NK CELL" = "#469d89",
+        "MACROPHAGES" = "#14746f",
+        "."="white"),
+  "10" = c("ADAPTIVE IMMUNE SYSTEM" = "#6f2dbd",
+        "B CELLS" = "#7b2cbf",
+        "CELLULAR ADAPTIVE IMMUNE SYSTEM" = "#e0aaff",
+        "HUMORAL ADAPTIVE IMMUNE SYSTEM" = "#9d4edd",
+        "IMMUNOGLOBULIN MEDIATED IMMUNE RESPONSE"= "#5a189a",
+        "T CELLS" = "#c77dff",
+        "COMPLEMENT IMMUNE SYSTEM" = "#ffadc7",
+        "ANTIVIRAL AND INTERFERON" = "#88d4ab",
+        "ARPP" = "#14746f",
+        "DENDRITIC CELLS" = "#036666",
+        "EOSINOPHIL" = "#67b99a",
+        "INFLAMMATION" = "#99e2b4",
+        "INNATE IMMUNE SYSTEM" = "#06d6a0",
+        "MAST CELL" = "#56ab91",
+        "MONOCYTES" = "#358f80",
+        "NEUTROPHIL" = "#78c6a3",
+        "NK CELL" = "#469d89",
+        "MACROPHAGES" = "#14746f",
+        "."="white"))
+  
+
+
+
+
+```
+
+
+
+Tamanhos:
+
+
+```{r}
+################# Plotar
+#Heatmap annotation
+
+ha = HeatmapAnnotation(df = ann_cols_heatmap, 
+                       col = ann_vaxsig_colors,
+                       annotation_name_side = "right")
+
+row_ha = rowAnnotation(df = ann_rows,
+                       col = col_process)
+
+# Values colors
+col_fun <- colorRamp2(c(-2, 0, 2), c("#9bc1bc", "white", "#ed6a5a"))
+
+file = filename_2
+mat = mat
+width_image = 60
+height_image = 70
+width = unit(30, "cm")
+height = unit(60, "cm")
+column_names_gp = gpar(fontsize = 7)
+row_names_gp = gpar(fontsize = 3)
+rect_gp = gpar(col = "gray80", lwd = 0.5)
+
+###### CLUSTERIZED ALL VS ALL
+
+fileimageheatmap_grouped = paste0(file, sep ="_", "Complexheatmap.png")
+
+png(file = fileimageheatmap_grouped, 
+    width = width_image, 
+    height = height_image, 
+    units="cm", 
+    res=900)
+
+heatmap_plot = Heatmap(mat,
+                        top_annotation = ha,
+                        left_annotation = row_ha,
+                        show_row_names = TRUE,
+                        row_names_side = "right",
+                        show_heatmap_legend = TRUE,
+                        heatmap_legend_param = list(direction = "horizontal"),
+                        col = col_fun, #color
+                        show_column_names = TRUE,
+                        column_title = fileimageheatmap_grouped,
+                        column_title_gp = gpar(fontsize = 10, fontface = "bold"),
+                        column_names_rot = 45,
+                        column_names_gp = column_names_gp,
+                        rect_gp = rect_gp,
+                        na_col = "white",
+                        cluster_rows = TRUE,
+                        row_names_gp = row_names_gp,
+                        row_dend_width = unit(2, "cm"),
+                        row_split = 3,
+                        row_gap = unit(2, "mm"),
+                        cluster_columns = TRUE,
+                        column_gap = unit(8, "mm"),
+                        show_column_dend = F,
+                        show_row_dend = T,
+                        row_dend_side = "left",
+                        column_dend_side = "top",
+                        clustering_distance_rows = "euclidean",
+                        border = TRUE,
+                        width = width,
+                        height = height 
+)
+
+draw(heatmap_plot, 
+     annotation_legend_side = "left", 
+     heatmap_legend_side = "left")
+dev.off()
+
+```
+
+
+### STATS
+
+
+```{r}
+stats_1 = Immune_GO_genes_All %>% 
+  inner_join(ann_vaccines, by = "condition") %>% 
+  group_by(genes, disease_vac) %>% 
+  summarise(n_conditions = n()) %>% 
+  filter(all(c("I", "V") %in% disease_vac)) %>% 
+  arrange(desc(n_conditions), genes) %>% 
+  ungroup()
+
+
+ggplot_stats1 = ggplot(stats_1) +
+  aes(x = reorder(genes, n_conditions), fill = disease_vac, weight = n_conditions) +
+  geom_bar() +
+  theme_minimal() +
+  scale_fill_manual(
+    values = c(V = "#56cfe1",
+    I = "#343a40")
+  ) +
+  theme_minimal() +
+  labs(fill = "Covid or vaccine") +
+  xlab("Genes") + 
+  ylab("Number of shared conditions") +
+  theme(legend.position = "right",
+        axis.text.x = element_text(angle = 45, vjust = 1.5, hjust=1, size = 8),
+        axis.text.y = element_text(size = 7, angle = 0),
+        panel.grid.minor.y = element_blank(),
+        legend.text = element_text(size=12),
+        legend.title = element_text(size = 12, face = "bold")) +
+  # geom_text(aes(label = n_conditions, y = n_conditions), 
+  #           position = position_dodge(width = 0.9), 
+  #           vjust = 0.2, 
+  #           hjust = -0.2, 
+  #           size = 1,
+  #           angle = 90) +
+  ggtitle("Genes shared") +
+  coord_flip()
+
+ggsave(ggplot_stats1, file = "COVID_I_V_genes_shared_column.png", width = 10, height = 20)
+```
+
+
+```{r}
+
+stats_1 = Immune_GO_genes_All %>% 
+  inner_join(ann_vaccines, by = "condition") %>% 
+  group_by(genes, type) %>% 
+  summarise(n_conditions = n()) %>% 
+  filter(all(!c("H", "Healthy") %in% type)) %>% 
+  arrange(desc(n_conditions), genes) %>% 
+  ungroup()
+
+
+ggplot_stats1 = ggplot(stats_1) +
+  aes(x = reorder(genes, n_conditions), fill = type, weight = n_conditions) +
+  geom_bar() +
+  theme_minimal() +
+  scale_fill_manual(
+    values = c("VLP" = "#D7B0EE",
+           "LA" =  "#5e60ce",
+           "CONJ" = "#015BA0", 
+           'IN'= "#76c893", #1st Gen  vaccines
+           'VV' = "#5e60ce", #3rd Gen vaccines
+           'RNA' = "#56cfe1",
+           'SU' = "#b5e48c",
+           'I'= "#f72585",
+           "H" = "grey95")
+  ) +
+  theme_minimal() +
+  labs(fill = "Type") +
+  xlab("Genes") + 
+  ylab("Number of shared conditions") +
+  theme(legend.position = "right",
+        axis.text.x = element_text(angle = 45, vjust = 1.5, hjust=1, size = 8),
+        axis.text.y = element_text(size = 5, angle = 0),
+        panel.grid.minor.y = element_blank(),
+        legend.text = element_text(size=12),
+        legend.title = element_text(size = 12, face = "bold")) +
+  # geom_text(aes(label = n_conditions, y = n_conditions), 
+  #           position = position_dodge(width = 0.9), 
+  #           vjust = 0.2, 
+  #           hjust = -0.2, 
+  #           size = 1,
+  #           angle = 90) +
+  ggtitle("Genes shared") +
+  coord_flip()
+
+ggsave(ggplot_stats1, file = "COVID_TYPE_I_VAC_genes_shared_column.png", width = 10, height = 40)
+```
+
+
+
+
+```{r}
+stats_2 = matrix_data %>%
+  as.data.frame() %>%
+  rownames_to_column("genes") %>%
+  inner_join(ImmuneGO_Annotated_Genes, by = "genes") %>%
+  filter(go_term == "Manual",
+         !(process %in% c("ADAPTIVE IMMUNE SYSTEM",
+                          "INNATE IMMUNE SYSTEM"))) %>%
+  select(genes, process, immune_system) %>%
+  distinct() %>%
+  group_by(genes, immune_system) %>% 
+  summarise(n_processes = n()) %>% 
+  arrange(desc(n_processes)) %>% 
+  ungroup() %>% 
+  filter(n_processes >1)
+  
+ggplot_stats2 = ggplot(stats_2) +
+  aes(x = reorder(genes, n_processes), fill = immune_system, weight = n_processes) +
+  geom_bar() +
+  theme_minimal() +
+  scale_fill_manual(
+    values = c(Adaptive = "#6f2dbd",
+    Innate = "#06d6a0",
+    Complement = "#ffadc7")
+  ) +
+  theme_minimal() +
+  labs(fill = "Immune system") +
+  xlab("Genes") + 
+  ylab("Number of shared conditions") +
+  theme(legend.position = "right",
+        axis.text.x = element_text(angle = 45, vjust = 1.5, hjust=1, size = 8),
+        axis.text.y = element_text(size = 7, angle = 0),
+        panel.grid.minor.y = element_blank(),
+        strip.text.x.top = element_text(size = 10, face = "bold"),
+        legend.text = element_text(size=12),
+        legend.title = element_text(size = 12, face = "bold")) +
+  # geom_text(aes(label = n_conditions, y = n_conditions), 
+  #           position = position_dodge(width = 0.9), 
+  #           vjust = 0.2, 
+  #           hjust = -0.2, 
+  #           size = 1,
+  #           angle = 90) +
+  ggtitle("Genes shared") +
+  coord_flip() +
+  facet_wrap(~immune_system, scales = "free_y")
+
+ggsave(ggplot_stats2, file = "ImmuneGO_genes_shared_major_process.png", width = 6, height = 20)
+
+`````````
+
+
+
