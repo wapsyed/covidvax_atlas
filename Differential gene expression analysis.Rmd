@@ -2193,6 +2193,11 @@ write.csv(gse_counts_all_long, file = "gse_counts_all_long.csv")
 ### DEGs quantification analysis
 
 ```{r}
+degs_all_updown = all_degs_p_05_vac_infected_29_11_23 %>% 
+  mutate(direction = case_when(log2fold_change >= 1 ~ "UP",
+                               log2fold_change <= -1 ~ "DOWN",
+                               TRUE ~ "NEUTRAL"))
+
 #All DEGs, not Immune filtered
 plot_degs = degs_all_updown %>% 
   group_by(gse_id, condition, direction) %>% 
@@ -2212,8 +2217,8 @@ ggplot_degs = plot_degs %>%
   theme_void() +
   ylab("") +
   theme(legend.position = "right",
-        axis.text.x = element_text(angle = 45, vjust = 1, hjust=1, size = 7),
-        axis.text.y=element_text(size = 20, color = "white", angle = 0)) +
+        axis.text.x = element_text(angle = 45, vjust = 1, hjust=1, size = 10),
+        axis.text.y = element_text(size = 20, color = "white", angle = 0, hjust = -1)) +
   geom_text(aes(label = n_regulated, y = n_regulated), 
             position = position_dodge(width = 0.9), 
             vjust = 0.2, 
@@ -2235,55 +2240,205 @@ ggsave(ggplot_degs, file = "DEGs_up_down_barplot_pvalue05.png",  width = 10, hei
 
 Immune-related degs
 ```{r}
+immunego = ImmuneGO_Annotated_GO_8_2_24 %>% 
+  mutate(genes = str_split(genes, ",")) %>%
+  unnest(genes)
 
-immunego_genes = immunego_genes %>%
-      mutate(immune_nonimmune = "Immune") %>%
-      select(genes, immune_nonimmune) %>%
-      distinct()
+cellcycleGO = QuickGO_CellCycle %>% 
+  clean_names() %>% 
+  rename(genes = symbol)
+
+
+all_degs_p_05_vac_infected_29_11_23 = all_degs_p_05_vac_infected_29_11_23 %>% 
+  select(-"...1")
+
+
+#### Not immune
+
+all_degs_p_05_vac_infected_notimmune = all_degs_p_05_vac_infected_29_11_23 %>%
+  anti_join(immunego %>%
+              select(genes) %>%
+              distinct(),
+            by = "genes") %>%
+  distinct() %>% 
+  mutate(bioprocess = "Other")
+
+write.csv(all_degs_p_05_vac_infected_notimmune, file = "all_degs_p_05_vac_infected_notimmune.csv", row.names = F)
+
+#### Immune
+all_degs_p_05_vac_infected_immune = all_degs_p_05_vac_infected_29_11_23 %>% 
+  inner_join(immunego %>% 
+              select(genes) %>% 
+              distinct(),
+            by = "genes") %>% 
+  distinct() %>% 
+  mutate(bioprocess = "Immune")
+
+write.csv(all_degs_p_05_vac_infected_immune, file = "all_degs_p_05_vac_infected_immune.csv", row.names = F)
 
 
 
-#All DEGs, not Immune filtered
-plot_degs <- degs_all_updown %>%
-  full_join(immunego_genes, by = "genes") %>%
-  mutate(immune_nonimmune = if_else(is.na(immune_nonimmune), "Other", immune_nonimmune),
-         immune_nonimmune = as.factor(immune_nonimmune),
-         immune_nonimmune = fct_relevel(immune_nonimmune, "Other", "Immune")) %>% 
-  group_by(condition, immune_nonimmune) %>% 
-  summarise(n_immune = n()) %>%
+##### Immune and other
+all_degs_processes_immune_nonimmune = bind_rows(all_degs_p_05_vac_infected_immune, 
+                               all_degs_p_05_vac_infected_notimmune)
+
+
+write.csv(all_degs_processes_immune_nonimmune, file = "all_degs_processes_immune_nonimmune.csv", row.names = F)
+
+##### Cell cycle
+
+all_degs_p_05_vac_infected_cellcycle = all_degs_p_05_vac_infected_29_11_23 %>% 
+  inner_join(cellcycleGO %>% 
+              select(genes) %>% 
+              distinct(),
+            by = "genes") %>% 
+  distinct() %>% 
+  mutate(bioprocess = "Cell cycle")
+
+write.csv(all_degs_p_05_vac_infected_cellcycle, file = "all_degs_p_05_vac_infected_cellcycle.csv", row.names = F)
+
+
+all_degs_processes = bind_rows(all_degs_p_05_vac_infected_immune, 
+                               all_degs_p_05_vac_infected_cellcycle)
+
+
+all_degs_processes_other = all_degs_p_05_vac_infected_29_11_23 %>%
+  anti_join(all_degs_processes %>%
+              select(genes) %>%
+              distinct(),
+            by = "genes") %>%
+  distinct() %>% 
+  mutate(bioprocess = "Other")
+
+all_degs_processes = bind_rows(all_degs_processes, 
+                               all_degs_processes_other)
+
+
+write.csv(all_degs_processes, file = "all_degs_processes_annotated.csv", row.names = F)
+
+
+```
+
+
+```{r}
+###### Immune, Cell cycle, Other
+
+plot_degs <- all_degs_processes %>%
+  mutate(bioprocess = fct_relevel(bioprocess, "Other", "Cell cycle", "Immune")) %>% 
+  group_by(condition, bioprocess) %>% 
+  summarise(n = n()) %>%   
   ungroup() %>% 
-  inner_join(ann_vaccines, by = "condition")
+  inner_join(ann_vaccines, by = "condition") 
 
-esquisser(plot_degs)
+plot_degs_2 = plot_degs %>% 
+  group_by(condition) %>% 
+  summarise(total = sum(n)) %>% 
+  ungroup() %>% 
+    inner_join(plot_degs, by = "condition")
 
-
-ggplot_degs = plot_degs %>%
+ggplot_degs = plot_degs_2 %>%
+  filter(bioprocess != "Other") %>% 
  ggplot() +
-  aes(x = condition, fill = immune_nonimmune, weight = n_immune) +
+  aes(x = condition, fill = bioprocess, weight = n) +
+  geom_bar(position = "dodge", color = "black") +
+  scale_fill_manual(
+    values = c("Other" = "grey90",
+               "Cell cycle" = "#D7B0EE",
+               "Immune" = "#5e60ce")) +
+  theme_void() +
+  ylab("") +
+  coord_flip() +
+  theme(legend.position = "right",
+        axis.text.x = element_blank(),
+        axis.text.y = element_text(size = 12, color = "black", angle = 0, hjust = 1)) +
+  geom_text(aes(label = paste0(n, " (", round((n/total)*100, 1), "%, ", total, ")"), y = n), 
+            position = position_dodge(width = 1), 
+            vjust = 0.5, 
+            hjust = -0.05, 
+            size = 3,
+            angle = 0) +
+  ggtitle("DEGs - Up and down regulated, by vaccine, pvalue <0.05") +
+  facet_wrap(vars(disease_vac), scales = "free")
+
+ggsave(ggplot_degs, file = "degs_immune_cellcycle_other.png",  width = 15, height = 8) 
+
+
+##### Immune, Other
+
+plot_degs <- all_degs_processes_immune_nonimmune %>%
+  mutate(bioprocess = fct_relevel(bioprocess, "Immune", "Other")) %>% 
+  group_by(condition, bioprocess) %>% 
+  summarise(n = n()) %>%   
+  ungroup() %>% 
+  inner_join(ann_vaccines, by = "condition") 
+
+plot_degs_2 = plot_degs %>% 
+  group_by(condition) %>% 
+  summarise(total = sum(n)) %>% 
+  ungroup() %>% 
+    inner_join(plot_degs, by = "condition")
+
+
+# Bars
+
+ggplot_degs = plot_degs_2 %>%
+  filter(bioprocess == "Immune") %>% 
+ ggplot() +
+  aes(x = condition, fill = bioprocess, weight = n) +
+  geom_bar(position = "stack", color = "black") +
+  scale_fill_manual(
+    values = c("Other" = "grey90",
+               "Cell cycle" = "#D7B0EE",
+               "Immune" = "#5e60ce")) +
+  theme_void() +
+  ylab("") +
+  coord_flip() +
+  theme(legend.position = "right",
+        axis.text.x = element_blank(),
+        axis.text.y = element_text(size = 10, color = "black", angle = 0, hjust = 1)) +
+  geom_text(aes(label = if_else(bioprocess == "Immune", paste0(n, " (", round((n/total)*100, 1), "%, ", total, ")"), 
+                                paste0(n, " (Other)")), y = n), 
+            position = position_dodge(width = 0.9), 
+            vjust = 0.5, 
+            hjust = -0.05, 
+            size = 3,
+            angle = 0) +
+  ggtitle("DEGs - Up and down regulated, by vaccine, pvalue <0.05") +
+  facet_wrap(vars(disease_vac), scales = "free")
+
+ggsave(ggplot_degs, file = "degs_immune_percent_bars.png",  width = 15, height = 8) 
+
+
+# Columns
+
+ggplot_degs = plot_degs_2 %>%
+  filter(bioprocess == "Immune") %>% 
+ ggplot() +
+  aes(x = condition, fill = bioprocess, weight = n) +
   geom_bar(position = "stack") +
   scale_fill_manual(
     values = c("Other" = "grey90",
-    "Immune" = "#5e60ce")
-  ) +
+               "Cell cycle" = "#D7B0EE",
+               "Immune" = "#5e60ce")) +
   theme_void() +
   ylab("") +
   theme(legend.position = "right",
-        axis.text.x = element_text(angle = 45, vjust = 1, hjust=1, size = 7),
-        axis.text.y=element_text(size = 20, color = "white", angle = 0)) +
-  geom_text(aes(label = n_immune, y = n_immune), 
+        axis.text.x = element_text(size = 10, color = "black", angle = 45, hjust = 1, vjust = 1),
+        axis.text.y = element_text(size = 20, color = "white", angle = 0, hjust = -2, vjust = 1)) +
+  geom_text(aes(label = if_else(bioprocess == "Immune", paste0(n, " (", round((n/total)*100, 1), "%)"), 
+                                paste0(n, " (Other)")), y = n), 
             position = position_dodge(width = 0.9), 
-            vjust = 0.2, 
-            hjust = -0.2, 
+            vjust = 0.5, 
+            hjust = -0.05, 
             size = 3,
             angle = 90) +
-  ylim(0,3000)+
   ggtitle("DEGs - Up and down regulated, by vaccine, pvalue <0.05") +
-  facet_wrap(~disease_vac, scales = "free_x", nrow = 2)
+  ylim(0, 700) +
+  facet_wrap(vars(disease_vac), scales = "free", nrow = 2)
 
-print(ggplot_degs)
+ggsave(ggplot_degs, file = "degs_immune_percent_columns.png",  width = 10, height = 8) 
 
 
-ggsave(ggplot_degs, file = "Immune_nonimmune_degs.png",  width = 10, height = 8) 
 
 ```
 

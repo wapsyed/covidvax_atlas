@@ -2012,8 +2012,14 @@ immunego = ImmuneGO_Annotated_GO_8_2_24 %>%
 
 VAX_Genes_Annotated_RAW = VAX_Genes_Annotated_RAW %>% 
   clean_names() %>% 
+  filter(study_type == "VACCINE",)
   mutate(condition = paste0(vaccine, " (", date_time, ")"))
+  
 
+```
+
+
+```{r}
 degs_all_updown_vax = VAX_Genes_Annotated_RAW %>%
   clean_names() %>% 
   mutate(condition = paste0(vaccine, " (", date_time, ")")) %>% 
@@ -2132,68 +2138,24 @@ write.csv(shared_genes_df_mirror, file = paste0(filename_1, "_shared.csv"))
 
 
 
-```{r}
-############### VENN DIAGRAM
-VAX_Genes_Annotated = VAX_Genes_Annotated_RAW %>% 
-  clean_names() %>% 
-  select(gene:set_size) %>% 
-  mutate(time = if_else(time == "ANY", "0", time),
-         time = as.numeric(time),
-         time = round(time, 0),
-         time = if_else(date == "H", 1, time),
-         date = if_else(date == "H", "D", date))
-
-VAX_GO_Annotated = VAX_Genes_Annotated %>% 
-  select(-gene) %>% 
-  distinct()
-
-
-glimpse(VAX_Genes_Annotated_RAW)
-
-vax_genesets = VAX_Genes_Annotated_RAW  %>% 
-  clean_names() %>% 
-  filter(study_subtype == "VAC ONLY") %>% 
-  select(gene_set = systematic_name, vaccine, genes = gene)
-
-covid_degs = all_degs_p_05_vac_infected_29_11_23 %>% 
-  as.data.frame() %>% 
-  filter(direction %in% c("UP", "DOWN")) %>% 
-  inner_join(immunego %>% 
-               select(genes) %>% 
-               distinct(),  
-             by ="genes") %>% 
-  select(condition, genes) %>% 
-  distinct()
-
-covid_other_degs = bind_rows(vax_genesets, covid_degs)
-
-vax_degs_up = vax_degs %>% 
-  filter(direction == "UP") %>% 
-  select(gene_set = condition_direction, genes)
-
-vax_degs_down = vax_degs %>% 
-  filter(direction == "DOWN") %>% 
-  select(gene_set = condition_direction, genes)
-
-#Input
-data = covid_other_degs
-
-filename_1 = "covid_other_shared_"
-  
-```
-
-
-
 VACCINE
 ```{r}
 ############# VACCINE
 #Use "vax_degs_up_VAXSigDB_sharedgenes_ann.csv" for comparing UP degs with UP degs from other conditions
 
 #VAC ONLY
-shared_genes_ann_vac = shared_genes_df_mirror_ann %>%
-  select(vac_condition, vaccine_condition, vac_ref, Cond2:sample_source, pmid, gene_symbols:previous_vaccination) %>%
+shared_genes_ann_vac = shared_genes_df_mirror %>%
+  select(vaccine.y, vaccine.x, Cond2:sample_source, pmid, gene_symbols:previous_vaccination) %>%
   filter(study_type == "VACCINE", 
          sample_source == "PBMC")
+
+
+shared_genes_ann_vac = shared_genes_df_mirror %>% 
+  inner_join(ann_vaccines_19_1_24 %>% 
+               select(Cond1 = condition), by = "Cond1") %>% 
+  anti_join(ann_vaccines_19_1_24 %>% 
+               select(Cond2 = condition), by = "Cond2")
+
 ```
 
 
@@ -4156,5 +4118,5 @@ ggplot_stats2 = ggplot(stats_2) +
 
 ggsave(ggplot_stats2, file = "ImmuneGO_genes_shared_major_process.png", width = 6, height = 20)
 
-`````````
+```
 
