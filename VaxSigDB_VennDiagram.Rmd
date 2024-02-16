@@ -7,6 +7,16 @@ output: html_notebook
 ---
 
 
+# Libraries
+```{r}
+library(janitor)
+library(tidyverse)
+library(qvalue)
+library(circlize)
+library(ComplexHeatmap)
+```
+
+
 
 # VAX Sig DB
 
@@ -1995,11 +2005,14 @@ dev.off()
 ```{r}
 # Input files
 
+immunego = ImmuneGO_Annotated_GO_8_2_24 %>% 
+  select(-"...1") %>% 
+  mutate(genes = str_split(genes, ",")) %>%
+  unnest(genes)
+
 VAX_Genes_Annotated_RAW = VAX_Genes_Annotated_RAW %>% 
   clean_names() %>% 
   mutate(condition = paste0(vaccine, " (", date_time, ")"))
-
-ann_vaccines_covid_other = ann_vaccines_covid_other_15_1_24
 
 degs_all_updown_vax = VAX_Genes_Annotated_RAW %>%
   clean_names() %>% 
@@ -2014,6 +2027,9 @@ degs_all_updown_covid= degs_updown_p_05_vac_infected %>%
   inner_join(ann_vaccines, by = "condition") %>% 
   distinct() %>% 
   select(condition, genes)
+
+ann_vaccines_covid_other = ann_vaccines_vaxsig_covid
+
 
 degs_all_updown_covid_other = bind_rows(degs_all_updown_vax, degs_all_updown_covid) %>% 
   distinct()
@@ -2032,7 +2048,7 @@ write.csv(degs_all_updown_covid_other_nonimmune, file = "degs_all_updown_covid_v
 
 
 #Input
-data = degs_all_updown_covid_other_immune %>% 
+data = degs_all_updown_covid_vax_other_immune %>% 
   rename(geneset = condition) %>% 
   select(geneset, genes)
 
@@ -2118,7 +2134,6 @@ write.csv(shared_genes_df_mirror, file = paste0(filename_1, "_shared.csv"))
 
 ```{r}
 ############### VENN DIAGRAM
-
 VAX_Genes_Annotated = VAX_Genes_Annotated_RAW %>% 
   clean_names() %>% 
   select(gene:set_size) %>% 
@@ -2143,7 +2158,10 @@ vax_genesets = VAX_Genes_Annotated_RAW  %>%
 covid_degs = all_degs_p_05_vac_infected_29_11_23 %>% 
   as.data.frame() %>% 
   filter(direction %in% c("UP", "DOWN")) %>% 
-  inner_join(immunego_genes,  by ="genes") %>% 
+  inner_join(immunego %>% 
+               select(genes) %>% 
+               distinct(),  
+             by ="genes") %>% 
   select(condition, genes) %>% 
   distinct()
 
@@ -2158,10 +2176,9 @@ vax_degs_down = vax_degs %>%
   select(gene_set = condition_direction, genes)
 
 #Input
-data = vax_genesets %>%
-  bind_rows(vax_degs_down)
+data = covid_other_degs
 
-filename_1 = "vax_degs_DOWN_vs_"
+filename_1 = "covid_other_shared_"
   
 ```
 
@@ -2176,8 +2193,11 @@ VACCINE
 shared_genes_ann_vac = shared_genes_df_mirror_ann %>%
   select(vac_condition, vaccine_condition, vac_ref, Cond2:sample_source, pmid, gene_symbols:previous_vaccination) %>%
   filter(study_type == "VACCINE", 
-         sample_source == "PBMC") 
+         sample_source == "PBMC")
+```
 
+
+```{r}
 vac_only_up = shared_genes_ann_vac %>%
   filter(study_subtype == "VAC ONLY",
 
@@ -2577,7 +2597,8 @@ ann_vaxsig_colors = list(
 ```
 
 
-```{r}accines
+```{r}
+vaccines
 ann_colors = list(
   vaccine = c(
   "BBIBP" = "#dee2e6",
