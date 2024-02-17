@@ -150,27 +150,30 @@ autoORA <- function(df) {
            keyType = 'SYMBOL',
            readable = T,
            ont = "BP",
-           pvalueCutoff = 0.05, 
-           qvalueCutoff = 0.10) %>% 
- as.data.frame() %>%
-    arrange(qvalue) %>%
+           qvalueCutoff = 0.25) %>% 
+    as.data.frame() %>%
     mutate(condition = condicao)
   }, error = function(e) {
-   return(NULL) 
+   return(NULL) # Retorna NULL caso ocorra o erro
   })
 
   if (!is.null(auto_ora)) {
    resultados[[paste(condicao)]] <- auto_ora   
    }
  }
+
+ # Combinar todos os resultados em um único dataframe
  resultado_final <- bind_rows(resultados)
+
  return(resultado_final)
 }
 
-df = all_degs_processes_immune_nonimmune %>% 
+df = all_degs_processes_immune_nonimmune %>%
   filter(bioprocess == "Other")
 
-a = autoORA(df)
+resultado <- autoORA(df)
+
+write.csv(resultado, file = "all_degs_other_ORA.csv", row.names = F)
 
 ```
 
