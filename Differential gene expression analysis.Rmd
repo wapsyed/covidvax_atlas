@@ -172,7 +172,7 @@ ann_colors = list(
                "GSE201533" = "#5e60ce", 
                "GSE201530" = "#7400b8",
                "GSE206023" = "#4361ee",
-               "GSE189039" = "#48bfe3")
+               "GSE189039" = "#48bfe3"))
 
 #Rows
 # ann_genesets_heatmap
@@ -217,11 +217,6 @@ ann_colors_rows = list(
 
 # 3. Seleção de estudos
 
-
-```{r}
-# GSE189039
-# GSE201530
-```
 
 ## 3.1 Baixar dados
 
@@ -391,45 +386,49 @@ ann_vaccines_2 = ann_vaccines %>%
   summarise(samples_bygse = sum(samples)) %>% 
   ungroup() %>% 
   inner_join(ann_vaccines_2, by = "gse_id") 
- 
+
+write.csv(ann_vaccines_3, file = "ann_vaccines_19-1-24.csv")
 ```
 
 
 ```{r}
-write.csv(ann_vaccines_3, file = "ann_vaccines_19-1-24.csv")
+ann_vaccines = ann_vaccines_19_1_24 
 
+esquisser(ann_vaccines)
 
+samples_by_condition  = ann_vaccines %>% 
+  select(samples, condition, vaccine) %>% 
+  distinct() %>% 
+  group_by(condition) %>% 
+  summarise(samples = sum(samples)) %>% 
+  inner_join(ann_vaccines %>% select(vaccine, condition) %>% distinct(), by = "condition")
 
-esquisser(ann_vaccines_2 %>% select(vaccine, samples_byvaccine) %>% distinct())
-
-ann_vaccines %>% 
- ggplot() +
-  aes(x = vaccine, fill = vaccine, weight = samples) +
-  geom_col() +
+a = samples_by_condition %>% 
+  ggplot(aes(x = fct_reorder(condition, samples), weight = samples, fill = vaccine)) +
+  geom_bar() +
   scale_fill_manual(
     values = c("BBIBP" = "#76c893",
-  "ZF2001" = "#b5e48c",
-  "BNT" = "#56cfe1",
-  "MO" = "#72ddf7",
-  "ChAd" = "#5e60ce",
-  "I" = "#f72585",
-  "H" = "grey95")
-  ) +
-  theme_void() +
-  ylab("") +
+                "ZF2001" = "#b5e48c",
+                "BNT" = "#56cfe1",
+                "MO" = "#72ddf7",
+                "ChAd" = "#5e60ce",
+                "I" = "#f72585",
+                "H" = "grey95")) +
+  theme_minimal() +
   theme(legend.position = "right",
-        axis.text.x = element_text(angle = 45, vjust = 1, hjust=1, size = 7),
-        axis.text.y=element_text(size = 20, color = "white", angle = 0)) +
+        axis.text.x = element_text(angle = 45, vjust = 1, hjust=1, size = 10),
+        axis.text.y = element_text(size = 10, color = "black", angle = 0)) +
   geom_text(aes(label = samples, y = samples), 
-            position = position_dodge(width = 0.9), 
-            vjust = 0.2, 
+            position = position_dodge(width = 0), 
+            vjust = 0.5, 
             hjust = -0.2, 
             size = 3,
-            angle = 90) +
-  ylim(0,1000)+
-  ggtitle("DEGs - Up and down regulated, by vaccine, pvalue <0.05")
+            angle = 0) +
+  coord_flip() +
+  ggtitle("Samples by condition")
 
 
+ggsave(a, file = "demographics_samples-by-condition.png", width = 8, height = 15)
 
 ```
 
