@@ -1,19 +1,19 @@
-Vaccine or infection,GSE ID,Vaccine,Abrev,Vac_Infection,Commercial name,Regimen,Timepoints (days),Doses,Technology,Adjuvant,Participants,Samples,Prior infection,Prior vaccination,Variant,Severity
-Vaccine,GSE199750,BNT162b2 (BNT),BNT,BNT,Comirnarty,HO,"0, 1, 6",3x BNT,RNA,No,25,25,No,Yes,NA,NA
-Vaccine,GSE199750,BNT162b2 (BNT),BNT,BNT,Comirnarty,HO,"0, 1, 6",2x BNT,RNA,No,46,46,No,Yes,NA,NA
-Vaccine,GSE199750,BNT162b2 (BNT),BNT,BNT,Comirnarty,HO,"0, 6",1x BNT,RNA,No,67,64,No,No,NA,NA
-Vaccine,GSE199750,BNT162b2 (BNT),BNT,BNT,Comirnarty,HE,1,2x ChAd + 1x BNT,VV + RNA,No,5,5,No,Yes,NA,NA
-Vaccine and infection,GSE201530,BNT162b2 (BNT),BNT,Infection,Comirnarty,BI,"10, 26, 51",2x BNT + 1x Infection,RNA + Infection,No,13,38,No,Yes,Omicron,MI-MO
-Vaccine and infection,GSE189039,BNT162b2 (BNT),BNT,Infection,Comirnarty,BI,"10, 26, 51",1x BNT (10 dpi) + 1x Infection,RNA + Infection,No,5,8,No,Yes,Beta,MI-MO
-Vaccine and infection,GSE189039,BNT162b2 (BNT),BNT,BNT,Comirnarty,AI,10,1x BNT (10 dpi) + 1x Infection + 1x BNT,RNA + Infection,No,2,2,Yes,Yes,Beta,MI-MO
-Vaccine,"GSE199750, GSE201533",AZD1222 (ChAd),ChAd,ChAd,"Covishield, Vaxzebria",HO,"0, 1, 3, 6, 7",2x ChAd,VV,No,12,13,No,Yes,NA,NA
-Vaccine,"GSE199750, GSE201533",AZD1222 (ChAd),ChAd,ChAd,"Covishield, Vaxzebria",HO,"0, 3, 6",1x ChAd,VV,No,53,53,No,No,NA,NA
-Vaccine,GSE201530,AZD1222 (ChAd),ChAd,BNT,"Covishield, Vaxzebria",HE,"0, 1, 3, 7",1x ChAd + 1x BNT,VV + RNA,No,17,44,No,Yes,NA,NA
-Vaccine,GSE199750,mRNA-1273 (MO),MO,MO,Spikevax,HE,1,2x BNT + 1x MO,RNA,No,10,10,No,Yes,NA,NA
-Vaccine,GSE206023,BBIBP-CorV (BBIBP),BBIBP,BBIBP,Covilo,HO,"0, 7, 14, 28",3x BBIBP,IN,Alum,6,24,No,Yes,NA,NA
-Vaccine,GSE206023,ZF2001,ZF2001,ZF2001,Zifivax,HE,"0, 7, 14, 28",2x BBIBP + 1x ZF2001,SU,Alum,6,24,No,No,NA,NA
-Vaccine and infection,GSE189039,Infection,Infection,Infection,Infection,Infection,"0, 10, 26, 51",1x BNT + 1x Infection,Infection,NA,4,14,No,Yes,Beta,"MI (1), S (3)"
-Infection,GSE189039,Infection,Infection,Infection,Infection,Infection,"0, 10, 26, 51",1x Infection,Infection,NA,5,20,No,No,Beta,"MO (2), S (3)"
-Vaccine and infection,GSE201530,Infection,Infection,Infection,Infection,Infection,"0, 1, 3, 5",1x Infection + 1x BNT + 1x Infection,Infection,NA,1,2,No,No,Omicron,MI
-Infection,GSE201530,Infection,Infection,Infection,Infection,Infection,"0, 1, 3, 5",2x Infection,Infection,NA,6,6,Yes,No,Omicron,MI
-Infection,GSE201530,Infection,Infection,Infection,Infection,Infection,"0, 1, 3, 5",1x Infection,Infection,NA,38,38,No,Yes,Omicron,MI
+Vaccine or infection,GSE ID,Vaccine,Abrev,Vac_Infection,Commercial name,Regimen,Timepoints (days),Doses,Doses (abrev),Technology,Adjuvant,Participants,Samples,Prior infection,Prior vaccination,Variant,Severity
+Vaccine,GSE199750,BNT162b2 (BNT),BNT,BNT,Comirnarty,HO,"0, 1, 6",3x BNT,3x BNT,RNA,No,25,25,No,Yes,NA,NA
+Vaccine,GSE199750,BNT162b2 (BNT),BNT,BNT,Comirnarty,HO,"0, 1, 6",2x BNT,2x BNT,RNA,No,46,46,No,Yes,NA,NA
+Vaccine,GSE199750,BNT162b2 (BNT),BNT,BNT,Comirnarty,HO,"0, 6",1x BNT,1x BNT,RNA,No,67,64,No,No,NA,NA
+Vaccine,GSE199750,BNT162b2 (BNT),BNT,BNT,Comirnarty,HE,1,2x ChAd + 1x BNT,2x ChAd + 1x BNT,VV + RNA,No,5,5,No,Yes,NA,NA
+Vaccine and infection,GSE201530,BNT162b2 (BNT),BNT,Infection,Comirnarty,BI,"10, 26, 51",2x BNT + 1x Infection,2x BNT + 1x Inf,RNA + Infection,No,13,38,No,Yes,Omicron,MI-MO
+Vaccine and infection,GSE189039,BNT162b2 (BNT),BNT,Infection,Comirnarty,BI,"10, 26, 51",1x BNT (10 dpi) + 1x Infection,1x BNT + 1x Inf,RNA + Infection,No,5,8,No,Yes,Beta,MI-MO
+Vaccine and infection,GSE189039,BNT162b2 (BNT),BNT,BNT,Comirnarty,AI,10,1x BNT (10 dpi) + 1x Infection + 1x BNT,1x BNT + 1x Inf + 1x BNT,RNA + Infection,No,2,2,Yes,Yes,Beta,MI-MO
+Vaccine,"GSE199750, GSE201533",AZD1222 (ChAd),ChAd,ChAd,"Covishield, Vaxzebria",HO,"0, 1, 3, 6, 7",2x ChAd,2x ChAd,VV,No,12,13,No,Yes,NA,NA
+Vaccine,"GSE199750, GSE201533",AZD1222 (ChAd),ChAd,ChAd,"Covishield, Vaxzebria",HO,"0, 3, 6",1x ChAd,1x ChAd,VV,No,53,53,No,No,NA,NA
+Vaccine,GSE201530,AZD1222 (ChAd),ChAd,BNT,"Covishield, Vaxzebria",HE,"0, 1, 3, 7",1x ChAd + 1x BNT,1x ChAd + 1x BNT,VV + RNA,No,17,44,No,Yes,NA,NA
+Vaccine,GSE199750,mRNA-1273 (MO),MO,MO,Spikevax,HE,1,2x BNT + 1x MO,2x BNT + 1x MO,RNA,No,10,10,No,Yes,NA,NA
+Vaccine,GSE206023,BBIBP-CorV (BBIBP),BBIBP,BBIBP,Covilo,HO,"0, 7, 14, 28",3x BBIBP,3x BBIBP,IN,Alum,6,24,No,Yes,NA,NA
+Vaccine,GSE206023,ZF2001,ZF2001,ZF2001,Zifivax,HE,"0, 7, 14, 28",2x BBIBP + 1x ZF2001,2x BBIBP + 1x ZF2001,SU,Alum,6,24,No,No,NA,NA
+Vaccine and infection,GSE189039,Infection,Infection,Infection,Infection,Infection,"0, 10, 26, 51",1x BNT + 1x Infection,1x BNT + 1x Inf,Infection,NA,4,14,No,Yes,Beta,"MI (1), S (3)"
+Infection,GSE189039,Infection,Infection,Infection,Infection,Infection,"0, 10, 26, 51",1x Infection,1x Inf,Infection,NA,5,20,No,No,Beta,"MO (2), S (3)"
+Vaccine and infection,GSE201530,Infection,Infection,Infection,Infection,Infection,"0, 1, 3, 5",1x Infection + 1x BNT + 1x Infection,1x Inf + 1x BNT + 1x Inf,Infection,NA,1,2,No,No,Omicron,MI
+Infection,GSE201530,Infection,Infection,Infection,Infection,Infection,"0, 1, 3, 5",2x Infection,2x Inf,Infection,NA,6,6,Yes,No,Omicron,MI
+Infection,GSE201530,Infection,Infection,Infection,Infection,Infection,"0, 1, 3, 5",1x Infection,1x Inf,Infection,NA,38,38,No,Yes,Omicron,MI

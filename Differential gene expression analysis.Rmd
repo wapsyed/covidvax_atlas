@@ -267,8 +267,8 @@ GSE201533_metadata = GSE201533 %>%
     dose_vaccine = "vaccine:ch1")
 
 GSE201533_metadata = GSE201533_metadata %>%
-  # separate(sample_id, into = c("participant_id", "time"), sep = "-D", remove = F) %>%
-  # separate(dose_vaccine, into = c("dose", "vaccine"), sep = ",\\s*(?=[A-Z])", extra = "merge") %>%
+  separate(sample_id, into = c("participant_id", "time"), sep = "-D", remove = F) %>%
+  separate(dose_vaccine, into = c("dose", "vaccine"), sep = ",\\s*(?=[A-Z])", extra = "merge") %>%
   mutate(dose = str_extract(dose, "\\d+"),
          vaccine = if_else(vaccine == "ChAdOx1", "ChAd", "BNT"),
          condition = paste0(vaccine, " (V", dose, ", D", time, ")"),
@@ -386,22 +386,72 @@ write.csv(counts_GSE189039, file = "gse189039_counts.csv")
 
 ## 4.1.1 Demographics
 
-
+Tratamento de metadados
 ```{r}
 #Metadata ------
-gse189039_metadata = GSE189039_metadata_1_
-gse199750_metadata = gse199750_metadata_annotated_14_11_23_2_
-gse206023_metadata = `gse206023_metadata_ready (1)` %>% 
-  rownames_to_column("sample_id") %>% 
-  separate(sample_id, into = c("participant_id", "day"), sep = "_", remove = F) %>% 
-  mutate(day = str_extract(day, "\\d+"),
-         dose = 3) %>% 
-  clean_names() %>% 
-  select(-timepoints)
+gse189039_metadata_2 = GSE189039_metadata_1_ %>% 
+  separate(sample, into = c("participant_id"), sep = "_", remove = F) %>% 
+  mutate(geo = "GSE189039") %>% 
+  rename(day = timepoint_day,
+         gsm_id = geo_sample) %>% 
+  select(sample, participant_id)
 
-write.csv(gse206023_metadata, file = "gse206023_metadata_ready.csv")
+gse199750_metadata_2 = gse199750_metadata_annotated_14_11_23_2_ %>% 
+  rename(gsm_id = geo,
+         participant_id = subject_id) %>% 
+  mutate(geo = "GSE199750") %>% 
+  select(sample, participant_id)
+
+gse206023_metadata_3 = gse206023_metadata %>% 
+  mutate(day = as.numeric(day),
+         geo = "GSE206023") %>%  
+  inner_join(gse206023_metadata_ready_2, by = "sample_id") %>% 
+  inner_join(ann_vaccines_samples %>% 
+            select(condition, sample_id = sample, age, sex, vaccine),
+            by = "sample_id") %>% 
+  rename(gsm_id = gsm_id.x) %>% 
+  select(sample = sample_id, participant_id)
+
+gse201530_metadata_2 = gse201530_metadata %>% 
+  rename(gsm_id = geo_sample) %>% 
+  separate(subject_id, into = c("variant", "participant_id_num"), sep = "_", remove = F) %>% 
+  mutate(participant_id = paste0(variant, "_", participant_id_num)) %>% 
+  select(participant_id, sample = subject_id)
+
+
+gse201533_metadata_2 = GSE201533_metadata %>% 
+  mutate(age = as.numeric(age),
+         dose = as.numeric(dose),
+         gsm_id = geo_sample) %>% 
+  select(geo_sample = sample_id, participant_id) %>% 
+  rownames_to_column("sample")
+
+
+ann_vaccines_samples_2.1 = ann_vaccines_samples_2 %>% 
+  filter(is.na(participant_id)) %>% 
+  separate(sample, into = c("participant_id_1", "participant_id_2", "participant_id_3", "delete"), remove = F) %>% 
+  mutate(participant_id = paste0(participant_id_1, "_", participant_id_2, "_", participant_id_3)) %>% 
+  select(!c(participant_id_1, participant_id_2, participant_id_3)) %>% 
+  select(sample, participant_id)
+
+all_participants = bind_rows(gse189039_metadata_2,
+          gse199750_metadata_2,
+          gse206023_metadata_3,
+          gse201533_metadata_2,
+          gse201530_metadata_2) %>% 
+  bind_rows(ann_vaccines_samples_2.1)
+
+ann_vaccines_samples_2 = ann_vaccines_samples %>% 
+  left_join(all_participants, by = "sample") %>% 
+  select(condition, sample, age, sex, vaccine:previous_vaccination, participant_id) %>% 
+  left_join(ann_vaccines_samples_2.1, by = "sample")
+
+
+ann_vaccines_samples_participants = ann_vaccines_samples_2 %>% 
+  select(-participant_id.y, participant_id = participant_id.x)
   
-GSE201533_metadata
+
+write.csv(ann_vaccines_samples_participants, file = "ann_vaccines_samples.csv")
 ```
 
 
@@ -451,6 +501,7 @@ samples_by_condition  = ann_vaccines %>%
   summarise(samples = sum(samples)) %>% 
   inner_join(ann_vaccines %>% select(vaccine, condition) %>% distinct(), by = "condition")
 
+
 a = samples_by_condition %>% 
   ggplot(aes(x = fct_reorder(condition, samples), weight = samples, fill = vaccine)) +
   geom_bar() +
@@ -471,7 +522,7 @@ a = samples_by_condition %>%
   theme_minimal() +
   theme(legend.position = "right",
         axis.text.x = element_blank(),
-        axis.text.y = element_text(size = 12, color = "black", angle = 0),
+        axis.text.y = element_text(size = 11, color = "black", angle = 0),
         panel.grid.major = element_blank(), 
         panel.grid.minor = element_blank()) +
   geom_text(aes(label = samples, y = samples), 
@@ -482,22 +533,24 @@ a = samples_by_condition %>%
             angle = 0) +
   coord_flip() +
   ggtitle("Samples by condition") +
-  labs(x = "")
+  labs(x = "") +
+  ylim(0, 80)
 a
-ggsave(a, file = "demographics_samples-by-condition.png", width = 8, height = 10)
+ggsave(a, file = "demographics_samples-by-condition.png", width = 6, height = 10)
+
+```
 
 
-
-#### AGE BY GSE
-participants = Demographics_Participants 
-
-
-esquisser(participants)
+```{r}
+#### AGE BY GSE -------------
+age = ann_vaccines_samples_participants %>% 
+  select(age, participant_id, gse_id) %>% 
+  distinct()
 
 age = ggbetweenstats(
   data = age,
-  x = study,
-  y = value
+  x = gse_id,
+  y = age
 ) +
   ggplot2::scale_color_manual(
     values = c("GSE199750" = "#80ffdb",
@@ -511,57 +564,55 @@ age = ggbetweenstats(
         axis.text.y = element_text(size = 10, color = "black", angle = 0)) +
   labs(y = "Age")
 
-ggsave(age, file = "Demographics_age.png", width = 10, height = 10)
+ggsave(age, file = "Demographics_age.png", width = 10, height = 6)
+```
 
 
-
-
+```{r}
 #### Participants by condition ------
+Studies_Participants = Studies_Participants %>% 
+  clean_names() 
+
 
 participants = Studies_Participants %>% 
-  select(Doses, Participants, Vac_Infection) %>% 
+  clean_names() %>% 
+  select(doses_abrev, participants, vac_infection) %>% 
   distinct() %>% 
-  group_by(Doses) %>% 
-  summarise(n_total_participants = sum(Participants)) %>% 
-  inner_join(Studies_Participants, by = "Doses") %>% 
-  rename(Condition = Doses) %>% 
-    select(Condition, n_total_participants, Vac_Infection) %>% 
-  distinct() 
+  group_by(doses_abrev) %>% 
+  summarise(n_total_participants = sum(participants)) %>% 
+  inner_join(Studies_Participants, by = "doses_abrev") %>% 
+  rename(condition = doses_abrev) %>% 
+    select(condition, n_total_participants, vac_infection) %>% 
+  distinct()
 
 
 p = participants %>%
- filter(!is.na(Condition)) %>% 
-  ggplot(aes(x = fct_reorder(Condition, n_total_participants), 
-             weight = n_total_participants, 
-             fill = Vac_Infection)) +
-  geom_bar() +
-  scale_fill_manual(name = "Vaccine or infection", 
-    values = c( "BBIBP" = "#76c893",
-                "ZF2001" = "#b5e48c",
-                "BNT" = "#56cfe1",
-                "MO" = "#72ddf7",
-                "ChAd" = "#5e60ce",
-                "Infection" = "#f72585",
-                "Healthy" = "grey80")) +
+ filter(!is.na(condition)) %>% 
+  ggplot(aes(x = fct_reorder(condition, desc(n_total_participants)), 
+             weight = n_total_participants)) +
+  geom_bar(fill = "#5e60ce") +
   theme_minimal() +
+  scale_fill_manual(values = "#5e60ce") +
   theme(legend.position = "right",
-        axis.text.x = element_blank(),
-        axis.text.y = element_text(size = 12, color = "black", angle = 0),
-        panel.grid.major = element_blank(), 
-        panel.grid.minor = element_blank()) +
+        axis.text.x = element_text(size = 16, color = "black", angle = 45, vjust = 1, hjust = 1),
+        axis.text.y = element_blank(),
+        panel.grid.minor = element_blank(),
+        panel.grid.major = element_blank(),
+        panel.grid.major.x = element_line(color = "gray70",
+                                          size = 0.1,
+                                          linetype = 1)) +
   geom_text(aes(label = n_total_participants, y = n_total_participants), 
             position = position_dodge(width = 0), 
-            vjust = 0.5, 
-            hjust = -0.2, 
-            size = 4,
+            vjust = -0.2, 
+            hjust = 0.5, 
+            size = 5,
             angle = 0) +
-  coord_flip() +
   ylim(0, 70)+
   ggtitle("Participants by condition") +
   labs(x = "Conditions",
        y = "Participants")
-
-ggsave(p, file = "demographics_participants-by-condition.png", width = 8, height = 10)
+p
+ggsave(p, file = "demographics_participants-by-condition.png", width = 12, height = 6)
 
 ```
 
