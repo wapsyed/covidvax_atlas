@@ -2427,6 +2427,14 @@ immunego = ImmuneGO_Annotated_GO_8_2_24 %>%
   mutate(genes = str_split(genes, ",")) %>%
   unnest(genes)
 
+
+immunego_2 = ImmuneGO_QuickGO_Unreviewed_19_2_24 %>% 
+  select(genes = symbol) %>% 
+  distinct()
+```
+
+
+```{r}
 cellcycleGO = QuickGO_CellCycle %>% 
   clean_names() %>% 
   rename(genes = symbol)
@@ -2439,7 +2447,7 @@ all_degs_p_05_vac_infected_29_11_23 = all_degs_p_05_vac_infected_29_11_23 %>%
 #### Not immune
 
 all_degs_p_05_vac_infected_notimmune = all_degs_p_05_vac_infected_29_11_23 %>%
-  anti_join(immunego %>%
+  anti_join(immunego_2 %>%
               select(genes) %>%
               distinct(),
             by = "genes") %>%
@@ -2450,7 +2458,7 @@ write.csv(all_degs_p_05_vac_infected_notimmune, file = "all_degs_p_05_vac_infect
 
 #### Immune
 all_degs_p_05_vac_infected_immune = all_degs_p_05_vac_infected_29_11_23 %>% 
-  inner_join(immunego %>% 
+  inner_join(immunego_2 %>% 
               select(genes) %>% 
               distinct(),
             by = "genes") %>% 
@@ -2520,7 +2528,6 @@ plot_degs_2 = plot_degs %>%
     inner_join(plot_degs, by = "condition")
 
 ggplot_degs = plot_degs_2 %>%
-  filter(bioprocess != "Other") %>% 
  ggplot() +
   aes(x = condition, fill = bioprocess, weight = n) +
   geom_bar(position = "dodge", color = "black") +
@@ -2543,7 +2550,7 @@ ggplot_degs = plot_degs_2 %>%
   ggtitle("DEGs - Up and down regulated, by vaccine, pvalue <0.05") +
   facet_wrap(vars(disease_vac), scales = "free")
 
-ggsave(ggplot_degs, file = "degs_immune_cellcycle_other.png",  width = 15, height = 8) 
+ggsave(ggplot_degs, file = "degs_immune_other_3.png",  width = 15, height = 8) 
 
 
 ##### Immune, Other
@@ -2589,7 +2596,7 @@ ggplot_degs = plot_degs_2 %>%
   ggtitle("DEGs - Up and down regulated, by vaccine, pvalue <0.05") +
   facet_wrap(vars(disease_vac), scales = "free")
 
-ggsave(ggplot_degs, file = "degs_immune_percent_bars.png",  width = 15, height = 8) 
+ggsave(ggplot_degs, file = "degs_immune_percent_bars_2.png",  width = 15, height = 8) 
 
 
 # Columns
@@ -2619,7 +2626,7 @@ ggplot_degs = plot_degs_2 %>%
   ylim(0, 700) +
   facet_wrap(vars(disease_vac), scales = "free", nrow = 2)
 
-ggsave(ggplot_degs, file = "degs_immune_percent_columns.png",  width = 10, height = 8) 
+ggsave(ggplot_degs, file = "degs_immune_percent_columns_2.png",  width = 10, height = 8) 
 
 
 

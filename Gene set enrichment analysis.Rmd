@@ -105,10 +105,12 @@ BiocManager::install(organism, character.only = TRUE)
 library(organism, character.only = TRUE)
 library(clusterProfiler)
 
-genes = all_degs_processes_immune_nonimmune %>% 
+genes = all_degs_p_05_vac_infected_notimmune %>% 
   as.data.frame() %>% 
   filter(condition == "BNT (V2, D1)",
-         direction != "NEUTRAL") 
+         direction != "NEUTRAL",
+         bioprocess != "Immune") 
+
 genes = genes$genes
 
 go_enrich <- enrichGO(gene = genes,
@@ -119,8 +121,6 @@ go_enrich <- enrichGO(gene = genes,
                       pvalueCutoff = 0.05, 
                       qvalueCutoff = 0.10) %>% 
   as.data.frame()
-
-
 
 
 ```
@@ -168,12 +168,12 @@ autoORA <- function(df) {
  return(resultado_final)
 }
 
-df = all_degs_processes_immune_nonimmune %>%
+df = all_degs_p_05_vac_infected_notimmune %>%
   filter(bioprocess == "Other")
 
 resultado <- autoORA(df)
 
-write.csv(resultado, file = "all_degs_other_ORA.csv", row.names = F)
+write.csv(resultado, file = "all_degs_other_ORA_2.csv", row.names = F)
 
 ```
 

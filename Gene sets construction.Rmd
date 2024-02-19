@@ -425,7 +425,7 @@ explore(Immune_GO_genes_GO_Filt)
 # GO.EVIDENCE.CODE = 12
 # 332 Terms, GO.NAME = 336
 # 744 references
-# 18 databases.
+# 18 databases
 ```
 
 ### Descrevendo e organizando dataset
