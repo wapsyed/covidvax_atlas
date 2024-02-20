@@ -177,35 +177,146 @@ go = ora_results_final %>%
   rownames_to_column("delete") %>% 
   mutate(log_fdr = -log10(qvalue)) %>% 
   select(condition, go_id = id, description, log_fdr, qvalue, gene_id, gene_ratio, count) %>% 
-  filter(qvalue < 0.10)
-
-ora_top10 = go %>%
+  filter(qvalue < 0.10) %>%
   group_by(condition) %>% 
-  arrange(qvalue, desc(log_fdr)) %>% 
-  slice_head(n = 20) %>% 
-  ungroup() %>% 
-  arrange(desc(log_fdr))
-
-lollipop_plot <- ggplot(ora_top10, aes(x = description, y = log_fdr, color = log_fdr)) +
-  geom_segment(aes(xend = description, yend = 0), color = "gray") +
-  geom_point(size = 3) +
-  coord_flip() +
-  theme_minimal() +
-  facet_wrap(vars(condition), scales = "free", ncol = 4L) +
-  theme(legend.position = "right",
-        axis.text.x = element_text(size = 5, color = "black", vjust = 1, hjust = 1),
-        axis.text.y = element_text(size = 5, color = "black", vjust = 1, hjust = 1),
-        panel.grid.minor = element_blank(),
-        panel.grid.major = element_blank(),
-        panel.grid.major.x = element_line(color = "gray70",
-                                          size = 0.1,
-                                          linetype = 1)) 
-
-
-ggsave(lollipop_plot, file = "degs_up_down_notimmune_ora_top10.png", width = 20, height = 20)
+  arrange(desc(log_fdr)) %>% 
+  slice_head(n = 10)
 
 ```
+Heatmap
+```{r}
 
+# Anotações das amostras/condições (Vacinas)
+ann_vaccines
+
+heatmap_data = go
+file = "degs_up_down_notimmune_ora_top10"
+
+########## Processar dados e criar matriz
+
+#Excluir linhas com Target ou Source == NA
+heatmap_data_log_fdr = heatmap_data %>% 
+  select(description, condition, log_fdr)
+
+# Converter para wide table
+matrix_data <- dcast(heatmap_data_log_fdr, 
+                         description ~ condition, 
+                         value.var = "log_fdr", 
+                         fun.aggregate = mean) %>% 
+  column_to_rownames('description') %>% 
+  mutate_if(is.character, as.numeric) %>% 
+  replace(is.na(.), 0)
+
+#Arredondar valores para facilitar visualização
+matrix_data_ready =  matrix_data %>% 
+  round(2)
+
+# Verificar se todas as vacinas da anotação estão na matriz e unir as tabelas
+ann_vaccines_complex = heatmap_data %>% 
+  select(condition) %>% 
+  distinct() %>% 
+  inner_join(ann_vaccines, by = "condition")
+
+# Unir tabela de anotações
+ann_vaccines_heatmap = matrix_data %>% 
+  colnames() %>% 
+  data.frame() %>% 
+  filter(. != "genes") %>% 
+  rename(condition = '.') %>% 
+  merge(ann_vaccines_complex, by = "condition", all.x = TRUE) %>% 
+  arrange(dose) %>% 
+  relocate(dose, .before=vaccine) %>% 
+  column_to_rownames(var= "condition")  %>% 
+  mutate(dose = ifelse(is.na(dose), "NA", dose))
+
+# Ordenar colunas da matriz para a mesma ordem das linhas da tabela de anotações
+matrix_data_ordered = matrix_data %>% 
+  t() %>% 
+  as.data.frame() %>% 
+  rownames_to_column(var= "condition") %>% 
+  merge(ann_vaccines_complex, by.y = "condition", all.x=TRUE) %>% 
+  arrange(dose) %>% #Trocar a variável pela qual deseja ordenar (Vaccine, Day, Condition, etc.)
+  select(!c("...1":severity)) %>% 
+  column_to_rownames("condition") %>% 
+  t() %>% 
+  as.data.frame() %>% 
+  mutate_if(is.character, as.numeric) %>% #Converter em numéricos
+  replace(is.na(.), 0) %>% 
+  as.matrix() #%>% 
+  #scale() #normalizar
+
+#Verificar se as linhas sao iguais
+dim(matrix_data_ordered) #Usar se for ordenar por colunas
+dim(ann_vaccines_heatmap) #Anotações sobre as colunas
+
+
+#Ordenar colunas
+ann_vaccines_heatmap = ann_vaccines_heatmap %>% 
+  select(type, infection, vaccine, regimen, dose, week, day)
+
+
+#Criar heatmap annotation
+ha = HeatmapAnnotation(df = ann_vaccines_heatmap, 
+                       col = ann_colors, 
+                       annotation_name_side = "left")
+
+
+col_fun <- colorRamp2(c(0, 3), c("white", "#ed6a5a"))
+
+#Parameters
+mat = matrix_data_ordered
+width_image = 20
+height_image = 60
+width = unit(15, "cm")
+height = unit(30, "cm")
+column_names_gp = gpar(fontsize = 10)
+row_names_gp = gpar(fontsize = 10)
+
+
+#Plotar e salvar imagem
+fileimageheatmap_ungrouped= paste0(file, sep ="_", "Ungrouped_Complexheatmap.png")
+
+png(file = fileimageheatmap_ungrouped, width=30, height=50,units="cm",res=800)
+
+heatmap_plot_all = Heatmap(mat,
+                        top_annotation = ha,
+                        show_row_names = TRUE,
+                        show_heatmap_legend = TRUE,
+                        heatmap_legend_param = list(direction = "horizontal"),
+                        name = "NES", #Legend
+                        cell_fun = function(j, i, x, y, width, height, fill) {
+        if(mat[i, j] > 0)
+            grid.text(sprintf("%.1f", mat[i, j]), x, y, gp = gpar(fontsize = 8))},
+                        col = col_fun, #color
+                        column_title = fileimageheatmap_ungrouped,
+                        column_title_gp = gpar(fontsize = 15, fontface = "bold"),
+                        column_names_rot = 45,
+                        column_names_gp = gpar(fontsize = 10),
+                        rect_gp = gpar(col = "gray90", lwd = 1),
+                        cluster_rows = TRUE,
+                        row_names_gp = gpar(fontsize = 7),
+                        # row_split = NULL, #Split row clusters
+                        # row_gap = unit(2, "mm"),
+                        cluster_columns = TRUE,
+                        # column_split = 2, #Split group clusters
+                        #column_km = 2,
+                        column_gap = unit(8, "mm"),
+                        show_column_dend = TRUE,
+                        show_row_dend = TRUE,
+                        row_dend_side = "left",
+                        column_dend_side = "top",
+                        clustering_distance_rows = "euclidean",
+                        border = TRUE,
+                        column_dend_reorder = TRUE,
+                        width = width, 
+                        height = height
+)
+
+draw(heatmap_plot_all, annotation_legend_side = "right", heatmap_legend_side = "right")
+
+dev.off()
+
+```
 
 
 
