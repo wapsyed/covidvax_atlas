@@ -99,6 +99,8 @@ geneset_name = "Immune_GO_T2G_general"
 
 ### ORA
 
+
+#### Manual
 ```{r}
 organism = "org.Hs.eg.db"
 BiocManager::install(organism, character.only = TRUE)
@@ -107,9 +109,8 @@ library(clusterProfiler)
 
 genes = all_degs_p_05_vac_infected_notimmune %>% 
   as.data.frame() %>% 
-  filter(condition == "BNT (V2, D1)",
-         direction != "NEUTRAL",
-         bioprocess != "Immune") 
+  filter(condition == "ChAd (V1, D6)",
+         direction != "NEUTRAL") 
 
 genes = genes$genes
 
@@ -118,64 +119,95 @@ go_enrich <- enrichGO(gene = genes,
                       keyType = 'SYMBOL',
                       readable = T,
                       ont = "BP",
-                      pvalueCutoff = 0.05, 
-                      qvalueCutoff = 0.10) %>% 
+                      qvalueCutoff = 0.25) %>% 
   as.data.frame()
 
-
+go_enrich
 ```
 
+#### Automatico
 ```{r}
-install.packages("progress")
+# Filtrar os genes para todas as condições
+df <- all_degs_p_05_vac_infected_notimmune %>% 
+  filter(direction != "NEUTRAL")
 
-library(progress)
+ora_results <- list()
+for (condition_2 in unique(df$condition)) {
 
-autoORA <- function(df) {
- resultados <- list()
+    genes <- df %>% 
+    filter(condition == condition_2) %>% 
+    pull(genes)
 
- condicoes <- df$condition %>% 
-  unique() %>% 
-  as.character()
-
- for (condicao in condicoes) {
-  degs_condicao <- df %>% 
-   as.data.frame() %>% 
-   filter(condition == condicao,
-   direction != "NEUTRAL") 
-  degs_condicao = degs_condicao$genes
-
-  auto_ora <- tryCatch({
-   enrichGO(gene = genes,
-           OrgDb = organism, 
-           keyType = 'SYMBOL',
-           readable = T,
-           ont = "BP",
-           qvalueCutoff = 0.25) %>% 
-    as.data.frame() %>%
-    mutate(condition = condicao)
+  go_enrich <- tryCatch({
+    enrichGO(gene = genes,
+             OrgDb = organism, 
+             keyType = 'SYMBOL',
+             readable = T,
+             ont = "BP",
+             pvalueCutoff = 0.05, 
+             qvalueCutoff = 0.10) %>% 
+      as.data.frame() %>%
+      mutate(condition = condition_2)
   }, error = function(e) {
-   return(NULL) # Retorna NULL caso ocorra o erro
+    return(NULL)
   })
 
-  if (!is.null(auto_ora)) {
-   resultados[[paste(condicao)]] <- auto_ora   
-   }
- }
-
- # Combinar todos os resultados em um único dataframe
- resultado_final <- bind_rows(resultados)
-
- return(resultado_final)
+  if (!is.null(go_enrich)) {
+    ora_results[[condition_2]] <- go_enrich   
+  }
 }
 
-df = all_degs_p_05_vac_infected_notimmune %>%
-  filter(bioprocess == "Other")
+ora_results_final <- bind_rows(ora_results)
 
-resultado <- autoORA(df)
-
-write.csv(resultado, file = "all_degs_other_ORA_2.csv", row.names = F)
+write.csv(ora_results_final, file = "all_degs_other_ORA_2.csv", row.names = F)
 
 ```
+
+# GO Analysis
+```{r}
+library(GO.db)
+columns(GO.db)
+
+go_bp_ancestor =  GOBPANCESTOR %>% 
+  as.data.frame()
+names(go_bp_ancestor[, 1]) = "go_child"
+
+go = ora_results_final %>% 
+  clean_names() %>% 
+  rownames_to_column("delete") %>% 
+  mutate(log_fdr = -log10(qvalue)) %>% 
+  select(condition, go_id = id, description, log_fdr, qvalue, gene_id, gene_ratio, count) %>% 
+  filter(qvalue < 0.10)
+
+ora_top10 = go %>%
+  group_by(condition) %>% 
+  arrange(qvalue, desc(log_fdr)) %>% 
+  slice_head(n = 20) %>% 
+  ungroup() %>% 
+  arrange(desc(log_fdr))
+
+lollipop_plot <- ggplot(ora_top10, aes(x = description, y = log_fdr, color = log_fdr)) +
+  geom_segment(aes(xend = description, yend = 0), color = "gray") +
+  geom_point(size = 3) +
+  coord_flip() +
+  theme_minimal() +
+  facet_wrap(vars(condition), scales = "free", ncol = 4L) +
+  theme(legend.position = "right",
+        axis.text.x = element_text(size = 5, color = "black", vjust = 1, hjust = 1),
+        axis.text.y = element_text(size = 5, color = "black", vjust = 1, hjust = 1),
+        panel.grid.minor = element_blank(),
+        panel.grid.major = element_blank(),
+        panel.grid.major.x = element_line(color = "gray70",
+                                          size = 0.1,
+                                          linetype = 1)) 
+
+
+ggsave(lollipop_plot, file = "degs_up_down_notimmune_ora_top10.png", width = 20, height = 20)
+
+```
+
+
+
 
 
 
@@ -332,6 +364,7 @@ autoGSEA <- function(df, TERM2GENE, geneset_name) {
     auto_gsea <- tryCatch({
       GSEA(geneList = gene_list_lf2c,
            TERM2GENE = TERM2GENE,
+           ont=
            minGSSize = 1,
            maxGSSize = 1000,
            pvalueCutoff = 0.25,
@@ -348,6 +381,7 @@ autoGSEA <- function(df, TERM2GENE, geneset_name) {
       resultados[[paste(condicao, geneset_name, sep = "_")]] <- auto_gsea
     }
   }
+  
 
   # Combinar todos os resultados em um único dataframe
   resultado_final <- bind_rows(resultados)
