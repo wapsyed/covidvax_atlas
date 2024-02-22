@@ -2421,20 +2421,16 @@ ggsave(ggplot_degs, file = "DEGs_up_down_barplot_pvalue05.png",  width = 10, hei
 ```
 
 
-Immune-related degs
+DEGs immune, cell cycle, and other
 ```{r}
 immunego = ImmuneGO_Annotated_GO_8_2_24 %>% 
   mutate(genes = str_split(genes, ",")) %>%
   unnest(genes)
 
-
 immunego_2 = ImmuneGO_QuickGO_Unreviewed_19_2_24 %>% 
   select(genes = symbol) %>% 
   distinct()
-```
 
-
-```{r}
 cellcycleGO = QuickGO_CellCycle %>% 
   clean_names() %>% 
   rename(genes = symbol)
@@ -2443,10 +2439,9 @@ cellcycleGO = QuickGO_CellCycle %>%
 all_degs_p_05_vac_infected_29_11_23 = all_degs_p_05_vac_infected_29_11_23 %>% 
   select(-"...1")
 
-
 #### Not immune
 
-all_degs_p_05_vac_infected_notimmune = all_degs_p_05_vac_infected_29_11_23 %>%
+all_degs_infected_notimmune = all_degs_p_05_vac_infected_29_11_23 %>%
   anti_join(immunego_2 %>%
               select(genes) %>%
               distinct(),
@@ -2454,8 +2449,14 @@ all_degs_p_05_vac_infected_notimmune = all_degs_p_05_vac_infected_29_11_23 %>%
   distinct() %>% 
   mutate(bioprocess = "Other")
 
-write.csv(all_degs_p_05_vac_infected_notimmune, file = "all_degs_p_05_vac_infected_notimmune.csv", row.names = F)
+all_degs_infected_notimmune %>% 
+  tabyl(condition, bioprocess)
 
+write.csv(all_degs_infected_notimmune, file = "all_degs_p_05_vac_infected_notimmune.csv", row.names = F)
+```
+
+
+```{r}
 #### Immune
 all_degs_p_05_vac_infected_immune = all_degs_p_05_vac_infected_29_11_23 %>% 
   inner_join(immunego_2 %>% 
@@ -2465,48 +2466,128 @@ all_degs_p_05_vac_infected_immune = all_degs_p_05_vac_infected_29_11_23 %>%
   distinct() %>% 
   mutate(bioprocess = "Immune")
 
+all_degs_p_05_vac_infected_immune %>% 
+  tabyl(condition, bioprocess) 
+  
+
 write.csv(all_degs_p_05_vac_infected_immune, file = "all_degs_p_05_vac_infected_immune.csv", row.names = F)
+```
 
 
-
+```{r}
 ##### Immune and other
 all_degs_processes_immune_nonimmune = bind_rows(all_degs_p_05_vac_infected_immune, 
                                all_degs_p_05_vac_infected_notimmune)
 
+all_degs_processes_immune_nonimmune %>%
+  tabyl(condition, bioprocess) %>% 
+  adorn_totals("col") %>% 
+  adorn_percentages() %>% 
+  adorn_pct_formatting() 
 
 write.csv(all_degs_processes_immune_nonimmune, file = "all_degs_processes_immune_nonimmune.csv", row.names = F)
-
-##### Cell cycle
-
-all_degs_p_05_vac_infected_cellcycle = all_degs_p_05_vac_infected_29_11_23 %>% 
-  inner_join(cellcycleGO %>% 
-              select(genes) %>% 
-              distinct(),
-            by = "genes") %>% 
-  distinct() %>% 
-  mutate(bioprocess = "Cell cycle")
-
-write.csv(all_degs_p_05_vac_infected_cellcycle, file = "all_degs_p_05_vac_infected_cellcycle.csv", row.names = F)
+```
 
 
-all_degs_processes = bind_rows(all_degs_p_05_vac_infected_immune, 
-                               all_degs_p_05_vac_infected_cellcycle)
 
 
-all_degs_processes_other = all_degs_p_05_vac_infected_29_11_23 %>%
-  anti_join(all_degs_processes %>%
-              select(genes) %>%
-              distinct(),
-            by = "genes") %>%
-  distinct() %>% 
-  mutate(bioprocess = "Other")
+```{r}
+organism = "org.Hs.eg.db"
+install.packages("GO.db")
+BiocManager::install(organism, character.only = TRUE)
+library(organism, character.only = TRUE)
+library(clusterProfiler)
+library(GO.db)
 
-all_degs_processes = bind_rows(all_degs_processes, 
-                               all_degs_processes_other)
+#HGNC symbol to Entrez
+x <- org.Hs.egSYMBOL
+mapped_genes <- mappedkeys(x)
+symbols_entrez <- as.data.frame(x[mapped_genes])
+
+## Entrez to GO
+x <- org.Hs.egGO
+mapped_genes <- mappedkeys(x)
+entrez_geneontology <- as.data.frame(x[mapped_genes])
+
+## GO BP ancestors
+go_bp_ancestor = GOBPANCESTOR %>% 
+  as.data.frame()
+colnames(go_bp_ancestor)[1] <- "go_id"
+colnames(go_bp_ancestor)[2] <- "go_ancestor"
+
+## GO ID to terms
+go_bp = AnnotationDbi::select(GO.db, columns=c("GOID","TERM"), keys="BP", keytype="ONTOLOGY") %>% 
+  clean_names() %>% 
+  select(go_id = goid, term)
+
+## GO child and ancestor
+go_bp_ancestor = go_bp_ancestor %>% 
+  inner_join(go_bp %>% rename(go_ancestor = go_id), by = "go_ancestor") %>% 
+  rename(term_ancestor = term)
+
+#GO ids to terms
+go_bp <- AnnotationDbi::select(GO.db, columns=c("GOID","TERM"), keys="BP", keytype="ONTOLOGY") %>% 
+  clean_names() %>% 
+  rename(go_id = goid) %>% 
+  select(-ontology) %>% 
+  right_join(entrez_geneontology, by = "go_id") %>% 
+  right_join(symbols_entrez, by = "gene_id") %>% 
+  clean_names() %>% 
+  inner_join(go_bp_ancestor, by = "go_id")
+
+# DEGs to Entrez and GO ids
+degs_GO = all_degs_processes_immune_nonimmune %>% 
+  filter(bioprocess == "Other", 
+         direction != "NEUTRAL") %>% 
+  select(condition, genes, log2fold_change) %>% 
+  inner_join(go_bp %>% rename(genes = symbol, entrez = gene_id), by = "genes") %>% 
+  mutate(go_id = if_else(is.na(go_id), "Not mapped", go_id),
+         term = if_else(is.na(term), "Not mapped", term),
+         evidence = if_else(is.na(evidence), "Not mapped", evidence),
+         ontology = if_else(is.na(ontology), "Not mapped", ontology),
+         mapped = if_else(ontology == "Not mapped", "Not mapped", "Mapped"),
+         go_ancestor = if_else(is.na(go_ancestor), "Not mapped", go_ancestor)) %>%
+  filter(ontology %in% c("BP", "Not mapped")) %>% 
+  select(-evidence) %>% 
+  
+
+write.csv(degs_GO, file = "degs_annotated_allGOs.csv", row.names = F) #Save
+
+#Mapped and not mapped DEGs
+mapped_notmapped = degs_GO %>% 
+  tabyl(condition, mapped) %>% 
+  adorn_percentages() %>% 
+  as.data.frame() %>% 
+  pivot_longer(-condition, names_to = "mapped", values_to = "count") %>% 
+  mutate(count = round(as.numeric(count)*100), 1)
+
+ggplot(mapped_notmapped) +
+  aes(x = condition, y = count, fill = mapped) +
+  geom_col() +
+  scale_fill_manual(
+     values = c("Not mapped" = "#f72585",
+               "Mapped" = "#5e60ce")) +
+  coord_flip() +
+  theme_minimal()
 
 
-write.csv(all_degs_processes, file = "all_degs_processes_annotated.csv", row.names = F)
+#Main GO BPs
 
+degs_GO %>%
+  filter(go_ancestor %in% c(
+      "Not mapped",
+      "GO:0040011",
+      "GO:0043473",
+      "GO:0044419",
+      "GO:0009987",
+      "GO:0048518",
+      "GO:0050789",
+      "GO:0065007",
+      "GO:0048511",
+      "GO:0022414")) %>% 
+  select(condition, genes, term_ancestor) %>% 
+  group_by(condition, term_ancestor) %>% 
+  summarise(n = n())
 
 ```
 
@@ -2550,9 +2631,11 @@ ggplot_degs = plot_degs_2 %>%
   ggtitle("DEGs - Up and down regulated, by vaccine, pvalue <0.05") +
   facet_wrap(vars(disease_vac), scales = "free")
 
-ggsave(ggplot_degs, file = "degs_immune_other_3.png",  width = 15, height = 8) 
+ggsave(ggplot_degs, file = "degs_immune_other_3.png",  width = 15, height = 8)
+```
 
 
+```{r}
 ##### Immune, Other
 
 plot_degs <- all_degs_processes_immune_nonimmune %>%

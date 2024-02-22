@@ -163,6 +163,8 @@ write.csv(ora_results_final, file = "all_degs_other_ORA_2.csv", row.names = F)
 
 ```
 
+
+
 # GO Analysis
 ```{r}
 library(GO.db)
@@ -180,9 +182,15 @@ go = ora_results_final %>%
   filter(qvalue < 0.10) %>%
   group_by(condition) %>% 
   arrange(desc(log_fdr)) %>% 
-  slice_head(n = 10)
-
+  slice_head(n = 5)
+  
+  
 ```
+
+
+
+
+
 Heatmap
 ```{r}
 
@@ -236,7 +244,7 @@ matrix_data_ordered = matrix_data %>%
   rownames_to_column(var= "condition") %>% 
   merge(ann_vaccines_complex, by.y = "condition", all.x=TRUE) %>% 
   arrange(dose) %>% #Trocar a variável pela qual deseja ordenar (Vaccine, Day, Condition, etc.)
-  select(!c("...1":severity)) %>% 
+  select(!c("...1":previous_vaccination)) %>% 
   column_to_rownames("condition") %>% 
   t() %>% 
   as.data.frame() %>% 
@@ -252,7 +260,7 @@ dim(ann_vaccines_heatmap) #Anotações sobre as colunas
 
 #Ordenar colunas
 ann_vaccines_heatmap = ann_vaccines_heatmap %>% 
-  select(type, infection, vaccine, regimen, dose, week, day)
+  select(type, week, day)
 
 
 #Criar heatmap annotation
@@ -265,10 +273,10 @@ col_fun <- colorRamp2(c(0, 3), c("white", "#ed6a5a"))
 
 #Parameters
 mat = matrix_data_ordered
-width_image = 20
-height_image = 60
+width_image = 30
+height_image = 30
 width = unit(15, "cm")
-height = unit(30, "cm")
+height = unit(20, "cm")
 column_names_gp = gpar(fontsize = 10)
 row_names_gp = gpar(fontsize = 10)
 
@@ -276,7 +284,7 @@ row_names_gp = gpar(fontsize = 10)
 #Plotar e salvar imagem
 fileimageheatmap_ungrouped= paste0(file, sep ="_", "Ungrouped_Complexheatmap.png")
 
-png(file = fileimageheatmap_ungrouped, width=30, height=50,units="cm",res=800)
+png(file = fileimageheatmap_ungrouped, width= width_image, height=height_image ,units="cm",res=800)
 
 heatmap_plot_all = Heatmap(mat,
                         top_annotation = ha,
@@ -294,11 +302,11 @@ heatmap_plot_all = Heatmap(mat,
                         column_names_gp = gpar(fontsize = 10),
                         rect_gp = gpar(col = "gray90", lwd = 1),
                         cluster_rows = TRUE,
-                        row_names_gp = gpar(fontsize = 7),
+                        row_names_gp = row_names_gp,
                         # row_split = NULL, #Split row clusters
                         # row_gap = unit(2, "mm"),
                         cluster_columns = TRUE,
-                        # column_split = 2, #Split group clusters
+                        column_split = 3, #Split group clusters
                         #column_km = 2,
                         column_gap = unit(8, "mm"),
                         show_column_dend = TRUE,
