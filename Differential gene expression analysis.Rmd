@@ -10,18 +10,13 @@ library(qvalue)
 library(explore)
 library(maditr)
 library(GEOquery)
-library(Matrix)
-library(pheatmap)
 library(RColorBrewer)
-library(celldex)
 library(biomaRt)
 library(org.Hs.eg.db)
 library(plotly)
 library(DESeq2)
 library(msigdbr)
 library(clusterProfiler)
-library(EnhancedVolcano)
-library(ggbeeswarm)
 library(tidyverse)
 library(corrr)
 library(ggcorrplot)
@@ -2533,14 +2528,14 @@ go_bp <- AnnotationDbi::select(GO.db, columns=c("GOID","TERM"), keys="BP", keyty
   right_join(entrez_geneontology, by = "go_id") %>% 
   right_join(symbols_entrez, by = "gene_id") %>% 
   clean_names() %>% 
-  inner_join(go_bp_ancestor, by = "go_id")
+  left_join(go_bp_ancestor, by = "go_id")
 
 # DEGs to Entrez and GO ids
 degs_GO = all_degs_processes_immune_nonimmune %>% 
-  filter(bioprocess == "Other", 
-         direction != "NEUTRAL") %>% 
-  select(condition, genes, log2fold_change) %>% 
-  inner_join(go_bp %>% rename(genes = symbol, entrez = gene_id), by = "genes") %>% 
+  filter(direction != "NEUTRAL") %>% 
+  select(condition, genes, direction) %>% 
+  distinct() %>% 
+  left_join(go_bp %>% rename(genes = symbol, entrez = gene_id), by = "genes") %>% 
   mutate(go_id = if_else(is.na(go_id), "Not mapped", go_id),
          term = if_else(is.na(term), "Not mapped", term),
          evidence = if_else(is.na(evidence), "Not mapped", evidence),
@@ -2548,20 +2543,22 @@ degs_GO = all_degs_processes_immune_nonimmune %>%
          mapped = if_else(ontology == "Not mapped", "Not mapped", "Mapped"),
          go_ancestor = if_else(is.na(go_ancestor), "Not mapped", go_ancestor)) %>%
   filter(ontology %in% c("BP", "Not mapped")) %>% 
-  select(-evidence) %>% 
-  
+  select(-evidence)
 
 write.csv(degs_GO, file = "degs_annotated_allGOs.csv", row.names = F) #Save
 
 #Mapped and not mapped DEGs
 mapped_notmapped = degs_GO %>% 
+  select(condition, genes, mapped) %>% 
+  distinct() %>% 
   tabyl(condition, mapped) %>% 
   adorn_percentages() %>% 
   as.data.frame() %>% 
   pivot_longer(-condition, names_to = "mapped", values_to = "count") %>% 
-  mutate(count = round(as.numeric(count)*100), 1)
+  mutate(count = round(as.numeric(count)*100, 1),
+         mapped = fct_relevel(mapped, "Not mapped", "Mapped"))
 
-ggplot(mapped_notmapped) +
+ggplot(mapped_notmapped ) +
   aes(x = condition, y = count, fill = mapped) +
   geom_col() +
   scale_fill_manual(
@@ -2573,7 +2570,7 @@ ggplot(mapped_notmapped) +
 
 #Main GO BPs
 
-degs_GO %>%
+main_go = degs_GO %>%
   filter(go_ancestor %in% c(
       "Not mapped",
       "GO:0040011",
@@ -2584,10 +2581,37 @@ degs_GO %>%
       "GO:0050789",
       "GO:0065007",
       "GO:0048511",
-      "GO:0022414")) %>% 
-  select(condition, genes, term_ancestor) %>% 
-  group_by(condition, term_ancestor) %>% 
-  summarise(n = n())
+      "GO:0022414",
+      "GO:0002376")) %>% 
+  select(condition, genes, direction, term_ancestor) %>% 
+  distinct() %>% 
+  group_by(condition, direction, term_ancestor) %>% 
+  summarise(n = n()) %>% 
+  mutate(term_ancestor = if_else(is.na(term_ancestor), "No annotation", term_ancestor)) 
+
+
+main_go_2 = degs_GO %>% 
+  select(condition, genes, mapped, direction) %>% 
+  distinct() %>% 
+  group_by(condition, direction) %>% 
+  summarise(n_genes_total = n()) %>% 
+  inner_join(main_go, by = "condition") %>% 
+  ungroup() %>% 
+  select(condition, direction, term_ancestor, n_genes = n, n_genes_total) %>% 
+  mutate(n_genes_perc = round(n_genes/n_genes_total * 100, 1),
+         term_ancestor = if_else(term_ancestor == "biological process involved in interspecies interaction between organisms", "interspecies interaction BP", term_ancestor))
+
+
+main_go_2_plot = ggplot(main_go_2) +
+  aes(x = condition, y = n_genes_perc, fill = term_ancestor) +
+  geom_col() +
+  scale_fill_hue(direction = 1) +
+  coord_flip() +
+  theme_minimal() +
+  facet_grid(vars(term_ancestor), scales = "free")
+
+ggsave(main_go_2_plot, file = "main_go_2_plot.png", width = 20, height = 20)
+
 
 ```
 
