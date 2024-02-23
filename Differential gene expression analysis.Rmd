@@ -2595,20 +2595,41 @@ main_go_2 = degs_GO %>%
   distinct() %>% 
   group_by(condition, direction) %>% 
   summarise(n_genes_total = n()) %>% 
-  inner_join(main_go, by = "condition") %>% 
+  inner_join(main_go, by = join_by("condition", direction)) %>% 
   ungroup() %>% 
   select(condition, direction, term_ancestor, n_genes = n, n_genes_total) %>% 
   mutate(n_genes_perc = round(n_genes/n_genes_total * 100, 1),
-         term_ancestor = if_else(term_ancestor == "biological process involved in interspecies interaction between organisms", "interspecies interaction BP", term_ancestor))
+         term_ancestor = if_else(term_ancestor == "biological process involved in interspecies interaction between organisms", "interspecies interaction BP", term_ancestor)) %>% 
+  inner_join(ann_vaccines_19_1_24 %>% select(condition, type, disease_vac), by = "condition") 
 
 
 main_go_2_plot = ggplot(main_go_2) +
-  aes(x = condition, y = n_genes_perc, fill = term_ancestor) +
-  geom_col() +
-  scale_fill_hue(direction = 1) +
-  coord_flip() +
-  theme_minimal() +
-  facet_grid(vars(term_ancestor), scales = "free")
+ aes(x = condition, y = n_genes_perc, fill = type) +
+ geom_col() +
+ coord_flip() +
+ theme_minimal() +
+ theme(legend.position = "top") +
+ facet_grid(vars(direction), 
+ vars(term_ancestor), scales = "free") +
+   scale_fill_manual(
+    values = c('IN'= "#76c893", #1st Gen  vaccines
+           'VV' = "#5e60ce", #3rd Gen vaccines
+           'RNA' = "#56cfe1",
+           'SU' = "#b5e48c",
+           'INFECTION'= "#f72585",
+           "H" = "grey95")) +
+  theme(legend.position = "right",
+        axis.text.x = element_text(size = 12, color = "black", angle = 0, hjust = 1),
+        axis.text.y = element_text(size = 12, color = "black", angle = 0, hjust = 1),
+        strip.text = element_text(size = 12, color = "black", hjust = 0.5)) +
+  geom_text(aes(label = str_replace(paste0(n_genes_perc, "% /n (", n_genes, ", ", n_genes_total, ")"), "%", "%\n"), y = n_genes_perc), 
+            position = position_stack(vjust = 0.5), 
+            vjust = 0.5, 
+            hjust = -0.05, 
+            size = 3,
+            angle = 0) +
+  ggtitle("DEGs by Biological Process")
+
 
 ggsave(main_go_2_plot, file = "main_go_2_plot.png", width = 20, height = 20)
 
