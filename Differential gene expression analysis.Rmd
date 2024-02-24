@@ -2765,7 +2765,7 @@ main_go_2_plot_totals_values = main_go_2 %>%
  coord_flip() +
  theme_minimal() +
  theme(legend.position = "top") +
- facet_grid(condition~direction, scales = "free") +
+ facet_grid(vars(direction), scales = "free") +
    scale_fill_manual(
     values = c('IN'= "#76c893", #1st Gen  vaccines
            'VV' = "#5e60ce", #3rd Gen vaccines
