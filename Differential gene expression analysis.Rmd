@@ -2586,7 +2586,8 @@ degs_go_main_go = degs_GO %>%
       "GO:0065007",
       "GO:0048511",
       "GO:0022414",
-      "GO:0002376")) %>% 
+      "GO:0002376",
+      "GO:0008152")) %>% 
   select(condition, genes, direction, term_ancestor) %>% 
   group_by(condition, direction, term_ancestor) %>% 
   summarise(n_genes = n()) %>% 
@@ -2604,6 +2605,7 @@ degs_go_main_go$term_ancestor <- factor(degs_go_main_go$term_ancestor, levels = 
   "interspecies interaction",
   'biological regulation',
   'cellular process',
+  "metabolic process",
   "locomotion",
   "positive regulation of biological process",
   "regulation of biological process",
@@ -2770,13 +2772,15 @@ ggsave(ggplot_degs, file = "degs_immune_percent_columns_2.png",  width = 10, hei
 ### Immune related only
 
 ```{r}
-stats_1
 
-degs_all_updown = degs_all_updown %>% 
+degs_all_updown = all_degs_p_05_vac_infected_19_12_23 %>% 
+  filter(direction != "NEUTRAL") %>% 
   distinct()
 
 ImmuneGO_Annotated_Genes = ImmuneGO_Annotated_Genes %>% 
   filter(!(process %in% c("TCR REPERTOIRE", "BCR REPERTOIRE")))
+
+
 
 shared_genes_infection = degs_all_updown %>%
   filter(disease_vac == "I") %>% 
@@ -2790,12 +2794,13 @@ shared_genes_infection = degs_all_updown %>%
   ungroup() %>% 
   pivot_longer(-genes, names_to = "infection_vaccination", values_to = "n_conditions") %>% 
   inner_join(ImmuneGO_Annotated_Genes , by = "genes") %>% 
-  select(genes, infection_vaccination,n_conditions, gene_set_short, process) %>% 
+  select(genes, infection_vaccination, n_conditions, gene_set_short, process) %>% 
   mutate(comparison = "Infection only")
 
 shared_genes_vaccines = degs_all_updown %>%
   filter(disease_vac == "V") %>% 
   select(condition, genes) %>% 
+  distinct() %>% 
   inner_join(ImmuneGO_Annotated_Genes %>% select(genes) %>% distinct(), by = "genes") %>% 
   inner_join(ann_vaccines, by = "condition") %>% 
   select(condition, genes, vaccine) %>% 
@@ -2811,14 +2816,18 @@ shared_genes_vaccines = degs_all_updown %>%
 
 # Infection and vaccination
 shared_genes_vaccines_infection = shared_genes_vaccines %>% 
-  inner_join(shared_genes_infection, by = "genes") %>% 
+  select(genes, n_conditions) %>% 
+  inner_join(shared_genes_infection %>% select(genes, n_conditions), by = "genes") %>% 
+  rename(Vaccination = n_conditions.x, Infection = n_conditions.y) %>% 
+  distinct() %>% 
   pivot_longer(-genes, names_to = "infection_vaccination", values_to = "n_conditions") %>% 
   inner_join(ImmuneGO_Annotated_Genes , by = "genes") %>% 
   select(genes, infection_vaccination,n_conditions, gene_set_short, process) %>% 
   mutate(comparison = "Infection and vaccination") 
 
 shared_genes_comparisons = bind_rows(shared_genes_infection, 
-                                     shared_genes_vaccines, shared_genes_vaccines_infection)
+                                     shared_genes_vaccines, 
+                                     shared_genes_vaccines_infection)
 
 write.csv(shared_genes_comparisons, file = "shared_genes_infection_vaccination_comparisons.csv")
 
@@ -2826,16 +2835,14 @@ write.csv(shared_genes_comparisons, file = "shared_genes_infection_vaccination_c
 
 
 ```{r}
-esquisser(shared_genes_vaccines_infection_plot)
-
-
+#Vaccine and infection
 shared_genes_vaccines_infection_plot = shared_genes_vaccines_infection %>% 
   select(genes, infection_vaccination, n_conditions, comparison) %>% 
   distinct() %>%
   slice_head(n=40) %>%  
   ggplot() +
   aes(
-    x = reorder(genes, desc(n_conditions)),
+    x = reorder(genes, -n_conditions),
     y = n_conditions,
     fill = infection_vaccination
   ) +
@@ -2849,7 +2856,7 @@ shared_genes_vaccines_infection_plot = shared_genes_vaccines_infection %>%
   xlab("Genes") + 
   ylab("Number of shared conditions") +
   theme(legend.position = "right",
-        axis.text.x = element_text(angle = 45, vjust = 1, hjust=1, size = 8),
+        axis.text.x = element_text(angle = 45, vjust = 1, hjust=1, size = 12),
         axis.text.y = element_text(size = 7, angle = 90),
         panel.grid.minor.y = element_blank(),
         legend.text = element_text(size=12),
@@ -2862,21 +2869,23 @@ ggsave(shared_genes_vaccines_infection_plot, file = "Genes_shared_Vaccination_In
 
 
 ```{r}
-#Vaccination only
+#Vaccination only -----
 shared_genes_vaccines_only = shared_genes_vaccines %>% 
   anti_join(shared_genes_infection, by = "genes") %>% 
-  inner_join(ImmuneGO_Annotated_Genes, by = "genes") %>% 
-  select(genes, "Vaccination", gene_set_short, process) %>% 
-  mutate(comparison = "Vaccination only")
+  inner_join(ImmuneGO_Annotated_Genes %>% select(genes), by = "genes") %>% 
+  select(genes, n_conditions) %>% 
+  mutate(comparison = "Vaccination only") %>% 
+  arrange(desc(n_conditions)) %>% 
+  distinct()
 
 shared_genes_vaccines_only_plot = shared_genes_vaccines_only %>% 
-  select(genes, Vaccination, comparison) %>% 
+  select(genes, n_conditions, comparison) %>% 
   distinct() %>%
   slice_head(n=20) %>% 
   ggplot() +
-  aes(x = reorder(genes, desc(Vaccination)), 
+  aes(x = reorder(genes, -n_conditions), 
       fill = comparison, 
-      weight = Vaccination) +
+      weight = n_conditions) +
   geom_bar() +
   scale_fill_manual(
     values = c("Vaccination only" = "#5e60ce",
@@ -2886,7 +2895,7 @@ shared_genes_vaccines_only_plot = shared_genes_vaccines_only %>%
   xlab("Genes") + 
   ylab("Number of shared conditions") +
   theme(legend.position = "right",
-        axis.text.x = element_text(angle = 45, vjust = 1, hjust=1, size = 8),
+        axis.text.x = element_text(angle = 45, vjust = 1, hjust=1, size = 12),
         axis.text.y = element_text(size = 7, angle = 0),
         panel.grid.minor.y = element_blank(),
         legend.text = element_text(size=12),
@@ -2900,17 +2909,18 @@ ggsave(shared_genes_vaccines_only_plot, file = "Genes_shared_Vaccination_only.pn
 shared_genes_infection_only = shared_genes_infection %>% 
   anti_join(shared_genes_vaccines_only, by = "genes") %>%
   inner_join(ImmuneGO_Annotated_Genes, by = "genes") %>% 
-  select(genes, Infection, gene_set_short, process) %>% 
-  mutate(comparison = "Infection only")
+  select(genes, n_conditions) %>% 
+  mutate(comparison = "Infection only") %>% 
+  arrange(desc(n_conditions))
 
 shared_genes_infection_only_plot = shared_genes_infection_only %>% 
-  select(genes, Infection, comparison) %>% 
+  select(genes, n_conditions, comparison) %>% 
   distinct() %>%
   slice_head(n=20) %>% 
   ggplot() +
-  aes(x = reorder(genes, desc(Infection)), 
+  aes(x = reorder(genes, -n_conditions), 
       fill = comparison, 
-      weight = Infection) +
+      weight = n_conditions) +
   geom_bar() +
   scale_fill_manual(
     values = c("Vaccination only" = "#56cfe1",
@@ -2920,7 +2930,7 @@ shared_genes_infection_only_plot = shared_genes_infection_only %>%
   xlab("Genes") + 
   ylab("Number of shared conditions") +
   theme(legend.position = "right",
-        axis.text.x = element_text(angle = 45, vjust = 1, hjust=1, size = 8),
+        axis.text.x = element_text(angle = 45, vjust = 1, hjust=1, size = 12),
         axis.text.y = element_text(size = 7, angle = 0),
         panel.grid.minor.y = element_blank(),
         legend.text = element_text(size=12),
@@ -2928,9 +2938,6 @@ shared_genes_infection_only_plot = shared_genes_infection_only %>%
   ggtitle("Infection only") 
 
 ggsave(shared_genes_infection_only_plot, file = "Genes_shared_Infection_only.png", width = 10, height = 3)
-
-
-
 
 
 ```
@@ -3022,13 +3029,13 @@ ggsave(ggplot_stats2, file = "ImmuneGO_genes_shared_major_process.png", width = 
 
 ```{r}
 
-
-degs_all_updown = degs_all_updown %>% 
+degs_all_updown = all_degs_p_05_vac_infected_19_12_23 %>% 
+  filter(direction != "NEUTRAL") %>% 
   distinct()
 
-ImmuneGO_Annotated_Genes = ImmuneGO_Annotated_Genes %>% 
-  filter(!(process %in% c("TCR REPERTOIRE", "BCR REPERTOIRE")))
+ImmuneGO_Annotated_Genes = ImmuneGO_Annotated_Genes_26_2_24 
 
+#Infection
 shared_genes_infection = degs_all_updown %>%
   filter(disease_vac == "I") %>% 
   select(condition, genes) %>% 
@@ -3042,8 +3049,10 @@ shared_genes_infection = degs_all_updown %>%
   pivot_longer(-genes, names_to = "infection_vaccination", values_to = "n_conditions") %>% 
   anti_join(ImmuneGO_Annotated_Genes , by = "genes") %>% 
   select(genes, infection_vaccination,n_conditions) %>% 
-  mutate(comparison = "Infection only")
+  mutate(comparison = "Infection only") %>% 
+  arrange(desc(n_conditions))
 
+#Vaccine
 shared_genes_vaccines = degs_all_updown %>%
   filter(disease_vac == "V") %>% 
   select(condition, genes) %>% 
@@ -3055,9 +3064,10 @@ shared_genes_vaccines = degs_all_updown %>%
   arrange(desc("Vaccination"), genes) %>% 
   ungroup() %>% 
   pivot_longer(-genes, names_to = "infection_vaccination", values_to = "n_conditions") %>% 
-  anti_join(ImmuneGO_Annotated_Genes , by = "genes") %>% 
+  anti_join(ImmuneGO_Annotated_Genes %>% select(genes) %>% distinct(), by = "genes") %>% 
   select(genes, infection_vaccination,n_conditions) %>% 
-  mutate(comparison = "Vaccination only")
+  mutate(comparison = "Vaccination only") %>% 
+  arrange(desc(n_conditions))
 
 
 # Infection and vaccination
@@ -3071,7 +3081,8 @@ shared_genes_vaccines_infection = shared_genes_vaccines %>%
 
 shared_genes_comparisons = bind_rows(shared_genes_infection, 
                                      shared_genes_vaccines, 
-                                     shared_genes_vaccines_infection)
+                                     shared_genes_vaccines_infection) %>% 
+  arrange(desc(n_conditions))
 
 write.csv(shared_genes_comparisons, file = "non_Immune_shared_genes_infection_vaccination_comparisons.csv")
 
@@ -3080,13 +3091,14 @@ write.csv(shared_genes_comparisons, file = "non_Immune_shared_genes_infection_va
 
 ```{r}
 
+#Infection
 shared_genes_vaccines_infection_plot = shared_genes_vaccines_infection %>% 
   select(genes, infection_vaccination, n_conditions, comparison) %>% 
   distinct() %>%
   slice_head(n=40) %>%  
   ggplot() +
   aes(
-    x = reorder(genes, desc(n_conditions)),
+    x = reorder(genes, -n_conditions),
     y = n_conditions,
     fill = infection_vaccination
   ) +
@@ -3117,10 +3129,11 @@ ggsave(shared_genes_vaccines_infection_plot, file = "Non_immune_Genes_shared_Vac
 
 shared_genes_vaccines_only_plot = shared_genes_vaccines %>% 
   select(genes, infection_vaccination, n_conditions, comparison) %>% 
+  arrange(desc(n_conditions)) %>% 
   distinct() %>%
   slice_head(n=20) %>% 
   ggplot() +
-  aes(x = reorder(genes, desc(n_conditions)), 
+  aes(x = reorder(genes, -n_conditions), 
       fill = comparison, 
       weight = n_conditions) +
   geom_bar() +
@@ -3149,7 +3162,7 @@ shared_genes_infection_only_plot = shared_genes_infection %>%
   distinct() %>%
   slice_head(n=20) %>% 
   ggplot() +
-  aes(x = reorder(genes, desc(n_conditions)), 
+  aes(x = reorder(genes, -n_conditions), 
       fill = comparison, 
       weight = n_conditions) +
   geom_bar() +

@@ -34,37 +34,11 @@ library(circlize)
 
 Processar dados
 ```{r}
-ImmuneGO_Annotated_Genes = ImmuneGO_Annotated_Genes_26_2_24 %>% 
+ImmuneGO_Annotated_Genes_all= ImmuneGO_Annotated_Genes_26_2_24
+
+ImmuneGO_Annotated_Genes = ImmuneGO_Annotated_Genes_all %>% 
   anti_join(TCR_BCR_repertoire_genes, by = "genes")
 
-ImmuneGO_Manual = ImmuneGO_Annotated_Genes %>% 
-  filter(go_term == "Manual") %>% 
-  select(genes) %>% distinct()
-
-ImmuneGO_Other = 
-  %>% anti_join(ImmuneGO_Annotated_Genes_26_2_24 %>% distinct(), ImmuneGO_Manual) %>% 
-  group_by(process) %>%
-  summarize(genes = paste(genes, collapse = ",")) %>% 
-  mutate(gene_set_short = process, 
-         process = if_else(str_detect(process, "(?i)MICROBIAL|FUNGAL|BACTERIAL"), 
-                           "ANTIMICROBIAL RESPONSE", 
-                           "OTHER")) %>% 
-   group_by(process) %>%
-  summarize(genes = paste(genes, collapse = ", ")) %>% 
-  mutate(go_term = "Manual",
-         immune_system = "General",
-         immune_sub_system = "Undefined")
-
-ImmuneGO_Annotated_GO_8_2_24 = bind_rows(ImmuneGO_Other, ImmuneGO_Annotated_GO_8_1_24) %>% 
-  select(-"...1")
-write.csv(ImmuneGO_Annotated_GO_8_2_24, file = "ImmuneGO_Annotated_GO_8_2_24.csv")
-
-ImmuneGO_Annotated_Genes = ImmuneGO_Annotated_GO_8_2_24 %>% 
-  separate_rows(genes, sep = ",")
-```
-
-
-```{r}
 ImmuneGO_Genes = all_degs_p_05_vac_infected_19_12_23 %>% 
   select(-"...1", -"...12") %>% 
   inner_join(ImmuneGO_Annotated_Genes %>% 
@@ -75,16 +49,19 @@ ImmuneGO_Genes = all_degs_p_05_vac_infected_19_12_23 %>%
   distinct()
 
 nonImmuneGO_Genes = all_degs_p_05_vac_infected_19_12_23 %>% 
-  select(-"...1") %>% 
-  anti_join(ImmuneGO_Annotated_Genes %>% 
+  select(-"...1", -"...12") %>% 
+  anti_join(ImmuneGO_Annotated_Genes_all %>% 
                select(genes) %>% 
                distinct(),
                by = "genes") %>% 
   distinct()
+```
 
+
+```{r}
 #INPUT
-data_genes = ImmuneGO_Genes 
-filename = "ImmuneGO_Genes"
+data_genes = nonImmuneGO_Genes 
+filename = "nonImmuneGO_Genes"
 
 data_annotation = ann_vaccines %>% 
   mutate(day = as.factor(day),
@@ -169,17 +146,17 @@ dim1_dim2_corrplot = plot_grid(corplot_dim1, corplot_dim2,
           labels = c("Dim1", "Dim2"), 
           nrow = 1)
 
-ggsave(dim1_dim2_corrplot, file = "dim1_dim2_corrplot.png")
+ggsave(dim1_dim2_corrplot, file = paste0(filename, "dim1_dim2_corrplot.png"))
 
-#Plot
-corrplot = ggcorrplot(corr_matrix, hc.order = TRUE) + 
-  theme(axis.text.x = element_text(angle = 90, size = 5), 
-        axis.text.y = element_text(size = 5))
-#Salvar
-ggsave(corrplot, file = paste0(filename, "_corrplot.png"), 
-       width = 20, #Grande 20, pequeno 10
-       height= 20) #Grande 20, pequeno 10
-print(corrplot)
+# #Plot
+# corrplot = ggcorrplot(corr_matrix, hc.order = TRUE) + 
+#   theme(axis.text.x = element_text(angle = 90, size = 5), 
+#         axis.text.y = element_text(size = 5))
+# #Salvar
+# ggsave(corrplot, file = paste0(filename, "_corrplot.png"), 
+#        width = 20, #Grande 20, pequeno 10
+#        height= 20) #Grande 20, pequeno 10
+# print(corrplot)
 
 #########Scree plot
 data.pca = princomp(corr_matrix) #PCA
