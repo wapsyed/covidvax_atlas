@@ -787,7 +787,6 @@ TCR_BCR_repertoire = ImmuneGO_Annotated_Genes %>%
 TCR_BCR_repertoire_genes = TCR_BCR_repertoire %>% 
   select(genes) %>% 
   distinct()
-
 ImmuneGO_Annotated_GO = ImmuneGO_Annotated_Genes %>%
   anti_join(TCR_BCR_repertoire_genes, by = "genes") %>% 
   bind_rows(TCR_BCR_repertoire) %>% 
@@ -809,31 +808,6 @@ write.csv(ImmuneGO_Annotated_Genes, file = "ImmuneGO_Annotated_Genes_26-2-24_2..
 #Display
 view(ImmuneGO_Annotated_GO)
 view(ImmuneGO_Annotated_Genes)
-
-```
-
-
-
-```{r}
-ImmuneGO_Annotated_GO_2 = ImmuneGO_Annotated_Genes_Nested_Interesting_12_12_23 %>%
-  group_by(process) %>%
-  summarize(genes = paste(genes, collapse = ",")) %>% 
-  left_join(ImmuneGO_Annotated_Genes_Nested_Interesting_12_12_23 %>% select(-genes) %>% distinct(), by = "process") %>% 
-  select(!c("...1", "...2")) %>% 
-  distinct() %>% 
-  filter(process %in% c("ANTIVIRAL AND INTERFERON", 
-                        "ARPP", 
-                        "B CELLS", 
-                        "DENDRITIC CELLS", 
-                        "INFLAMMATION", 
-                        "IMMUNOGLOBULIN MEDIATED IMMUNE RESPONSE",
-                        "T CELLS")) %>% 
-  select(process, genes) %>% 
-  distinct() %>% 
-  bind_rows(ImmuneGO_Annotated_GO)
-
-
-write.csv(ImmuneGO_Annotated_GO_2, file = "ImmuneGO_Annotated_GO_1_1_24.csv")
 
 ```
 
@@ -916,7 +890,7 @@ Top 10 gene sets
 ImmuneGO_Annotated_unique_top10 = ImmuneGO_Annotated_GO %>% 
   clean_names() %>% 
   arrange(desc(set_size)) %>% 
-  slice_head(n = 10) %>% 
+  slice_head(n = 20) %>% 
   mutate(immune_system = if_else(gene_set_short == "Adaptive Immune response", "Adaptive", immune_system))
 
 #Gráfico de barras
@@ -1035,8 +1009,6 @@ Quais são os genes mais compartilhados?
 
 ```{r}
 ImmuneGO_Annotated_Genes_sharedbetween_subsystem
-
-
 
 #Top 10 gene sets
 ImmuneGO_Annotated_Genes_top20 = ImmuneGO_Annotated_Genes_sharedbetween_subsystem %>% 
