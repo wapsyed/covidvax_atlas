@@ -2526,7 +2526,6 @@ go_bp_ancestor = go_bp_ancestor %>%
   rename(term_ancestor = term)
 
 #GO ids to terms
-
 go_bp = AnnotationDbi::select(GO.db, columns=c("GOID","TERM"), keys="BP", keytype="ONTOLOGY") %>% 
   clean_names() %>% 
   rename(go_id = goid) %>% 
@@ -2536,6 +2535,13 @@ go_bp = AnnotationDbi::select(GO.db, columns=c("GOID","TERM"), keys="BP", keytyp
   clean_names() %>% 
   left_join(go_bp_ancestor, by = "go_id") %>% 
   distinct()
+
+
+#GO immune process
+
+immunego_bp = 
+
+
 
 # DEGs to Entrez and GO ids
 degs_GO = all_degs_p_05_vac_infected_29_11_23 %>% 
@@ -2562,39 +2568,6 @@ degs_GO_comma = degs_GO %>%
 
 write.csv(degs_GO_comma, file = "degs_annotated_allGOs.csv", row.names = F) #Save
 
-
-#Mapped and not mapped DEGs ------
-mapped_notmapped = degs_GO %>% 
-  select(condition, genes, direction, mapped) %>% 
-  distinct() %>% 
-  group_by(condition, direction, mapped) %>% 
-  summarise(n_genes = n()) %>% 
-  group_by(condition, direction) %>%
-  mutate(total_genes = sum(n_genes)) %>% 
-  mutate(perc = round((n_genes / total_genes) * 100, 1)) 
-
- mapped_notmapped_plot =  ggplot(mapped_notmapped) +
-  aes(x = condition, y = perc, fill = mapped) +
-  geom_col() +
-  scale_fill_manual(
-     values = c("Not mapped" = "#e1e5f2",
-               "Mapped" = "#4cc9f0")) +
-  theme_minimal() +
-  coord_flip() +
-  ylab("Genes (%)") +
-  facet_wrap(~direction) + 
-  theme(legend.position = "right",
-        axis.text.x = element_blank(),
-        axis.text.y = element_text(size = 12, color = "black", angle = 0, hjust = 1)) +
-    geom_text(aes(label = perc, y = perc), 
-            position = position_dodge(width = 0), 
-            vjust = 0.5, 
-            hjust = -0.2, 
-            size = 3,
-            angle = 0) +
-  ggtitle("Mapped genes")
-  
-ggsave(mapped_notmapped_plot, file = "mapped_notmapped_stacked_perc.png",width = 10, height = 10)
 ```
 
 

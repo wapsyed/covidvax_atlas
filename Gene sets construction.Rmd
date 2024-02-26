@@ -362,8 +362,9 @@ Para ler mais sobre códigos de evidencia: <https://geneontology.org/docs/guide-
 
 Baixar dataset e importar
 
-```{r}
+### QuickGO
 
+```{r}
 ######### BAIXAR DATASET ############### 
 #Baixar dataset no site: https://www.ebi.ac.uk/QuickGO/annotations (.tsv)
 
@@ -383,7 +384,82 @@ Immune_GO_T2G = Immune_GO %>%
 #Salvar
 saveRDS(Immune_GO, file = "Immune_GO.rds")
 write.csv(Immune_GO, file = "Immune_GO.csv")
+```
 
+
+
+### GO.db
+
+```{r}
+organism = "org.Hs.eg.db"
+install.packages("GO.db")
+BiocManager::install(organism, character.only = TRUE)
+library(organism, character.only = TRUE)
+library(clusterProfiler)
+library(GO.db)
+
+#HGNC symbol to Entrez
+x <- org.Hs.egSYMBOL
+mapped_genes <- mappedkeys(x)
+symbols_entrez <- as.data.frame(x[mapped_genes])
+
+## Entrez to GO
+x <- org.Hs.egGO
+mapped_genes <- mappedkeys(x)
+entrez_geneontology <- as.data.frame(x[mapped_genes])
+
+## GO BP ancestors
+go_bp_ancestor = GOBPANCESTOR %>% 
+  as.data.frame()
+colnames(go_bp_ancestor)[1] <- "go_id"
+colnames(go_bp_ancestor)[2] <- "go_ancestor"
+
+## GO ID to terms
+go_bp = AnnotationDbi::select(GO.db, columns=c("GOID","TERM"), keys= "BP", keytype= "ONTOLOGY") %>% 
+  clean_names() %>% 
+  select(go_id = goid, term)
+
+## GO child and ancestor
+go_bp_ancestor = go_bp_ancestor %>% 
+  inner_join(go_bp %>% rename(go_ancestor = go_id), by = "go_ancestor") %>% 
+  rename(term_ancestor = term)
+
+#GO ids to terms
+go_bp = AnnotationDbi::select(GO.db, columns=c("GOID","TERM"), keys="BP", keytype="ONTOLOGY") %>% 
+  clean_names() %>% 
+  rename(go_id = goid) %>% 
+  select(-ontology) %>% 
+  right_join(entrez_geneontology, by = "go_id") %>% 
+  right_join(symbols_entrez, by = "gene_id") %>% 
+  clean_names() %>% 
+  left_join(go_bp_ancestor, by = "go_id") %>% 
+  distinct()
+
+
+#GO immune process
+
+immunego_go.bp = go_bp %>% 
+  filter(term_ancestor == "immune system process") %>% 
+  mutate(term = toupper(term))
+
+ImmuneGO_Annotated_Genes_26_2_24 = ImmuneGO_Annotated_GO_8_2_24 %>% 
+  select(-"...1") %>% 
+  separate_rows(genes, sep = ",") %>% 
+  left_join(immunego_go.bp %>% select(genes = symbol, process = term), by = join_by("process", "genes")) %>% 
+  distinct()
+
+ImmuneGO_Annotated_GO_26_2_24 = ImmuneGO_Annotated_Genes_26_2_24 %>% 
+  group_by(process) %>%
+  summarize(genes = paste0(genes, collapse = ",")) %>%
+  inner_join(ImmuneGO_Annotated_Genes_26_2_24 %>% select(-genes) %>% distinct(), by = "process")
+
+write.csv(ImmuneGO_Annotated_Genes_26_2_24, file = "ImmuneGO_Annotated_Genes_26_2_24.csv", row.names = F)
+
+```
+
+
+
+```{r}
 ############### DATASET DESCRIPTION ############### 
 Immune_GO_genes_GO = Immune_GO %>% 
   select(SYMBOL, GO.NAME, GO.TERM, GO.EVIDENCE.CODE) %>% 

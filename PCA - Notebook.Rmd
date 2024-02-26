@@ -34,15 +34,15 @@ library(circlize)
 
 Processar dados
 ```{r}
-ImmuneGO_Annotated_Genes = ImmuneGO_Annotated_GO_8_1_24 %>% 
-  select(-"...1") %>% 
-  separate_rows(genes, sep = ",") %>% 
+ImmuneGO_Annotated_Genes = ImmuneGO_Annotated_Genes_26_2_24 %>% 
+  anti_join(TCR_BCR_repertoire_genes, by = "genes")
 
 ImmuneGO_Manual = ImmuneGO_Annotated_Genes %>% 
   filter(go_term == "Manual") %>% 
   select(genes) %>% distinct()
 
-ImmuneGO_Other = anti_join(ImmuneGO_Annotated_Genes %>% distinct(), ImmuneGO_Manual) %>% 
+ImmuneGO_Other = 
+  %>% anti_join(ImmuneGO_Annotated_Genes_26_2_24 %>% distinct(), ImmuneGO_Manual) %>% 
   group_by(process) %>%
   summarize(genes = paste(genes, collapse = ",")) %>% 
   mutate(gene_set_short = process, 
@@ -70,7 +70,6 @@ ImmuneGO_Genes = all_degs_p_05_vac_infected_19_12_23 %>%
   inner_join(ImmuneGO_Annotated_Genes %>% 
                select(genes, process) %>% 
                distinct() %>% 
-               filter(!process %in% c("TCR REPERTOIRE", "BCR REPERTOIRE")) %>% 
                select(genes),
                by = "genes") %>% 
   distinct()
@@ -87,7 +86,7 @@ nonImmuneGO_Genes = all_degs_p_05_vac_infected_19_12_23 %>%
 data_genes = ImmuneGO_Genes 
 filename = "ImmuneGO_Genes"
 
-data_annotation = ann_vaccines_19_1_24 %>% 
+data_annotation = ann_vaccines %>% 
   mutate(day = as.factor(day),
          dose = as.factor(dose)) 
 
@@ -298,7 +297,7 @@ pca_plot_knn_condition_lab = autoplot(pca_res,
                size = 0.3,
                type = "t") +
   geom_text_repel(data = ann_vaccines_pca_matrix,
-                  aes(label = condition, color = condition_col),
+                  aes(label = "condition"),
                   box.padding = 0.3,
                   size = 2) +
   labs(title=paste0(filename, "_bycondition")) + 
@@ -306,7 +305,7 @@ pca_plot_knn_condition_lab = autoplot(pca_res,
   ylab("PC2 (15.9%)") +
   scale_color_manual(values = c("1" = "#5e60ce", 
                                 "2" = "#f72585", 
-                                "3" = "#56cfe1", condition_col)) +  # Ellipse line colors
+                                "3" = "#56cfe1")) +  # Ellipse line colors
   scale_fill_manual(values = c("1" = "#5e60ce", 
                                "2" = "#f72585", 
                                "3" = "#56cfe1")) +  # Cluster fill colors
