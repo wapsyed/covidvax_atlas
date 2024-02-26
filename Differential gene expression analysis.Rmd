@@ -32,6 +32,7 @@ library(corto)
 library(circlize)
 library(ComplexHeatmap)
 library(janitor)
+library(scales)
 library(ggstatsplot)
 
 ```
@@ -2794,8 +2795,10 @@ shared_genes_infection = degs_all_updown %>%
   ungroup() %>% 
   pivot_longer(-genes, names_to = "infection_vaccination", values_to = "n_conditions") %>% 
   inner_join(ImmuneGO_Annotated_Genes , by = "genes") %>% 
-  select(genes, infection_vaccination, n_conditions, gene_set_short, process) %>% 
-  mutate(comparison = "Infection only")
+  select(genes, infection_vaccination, n_conditions) %>% 
+  mutate(comparison = "Infection only") %>% 
+  arrange(desc(n_conditions)) %>% 
+  distinct()
 
 shared_genes_vaccines = degs_all_updown %>%
   filter(disease_vac == "V") %>% 
@@ -2810,8 +2813,10 @@ shared_genes_vaccines = degs_all_updown %>%
   ungroup() %>% 
   pivot_longer(-genes, names_to = "infection_vaccination", values_to = "n_conditions") %>% 
   inner_join(ImmuneGO_Annotated_Genes , by = "genes") %>% 
-  select(genes, infection_vaccination,n_conditions, gene_set_short, process) %>% 
-  mutate(comparison = "Vaccination only")
+  select(genes, infection_vaccination,n_conditions) %>% 
+  mutate(comparison = "Vaccination only") %>% 
+  arrange(desc(n_conditions)) %>% 
+  distinct()
 
 
 # Infection and vaccination
@@ -2822,8 +2827,10 @@ shared_genes_vaccines_infection = shared_genes_vaccines %>%
   distinct() %>% 
   pivot_longer(-genes, names_to = "infection_vaccination", values_to = "n_conditions") %>% 
   inner_join(ImmuneGO_Annotated_Genes , by = "genes") %>% 
-  select(genes, infection_vaccination,n_conditions, gene_set_short, process) %>% 
-  mutate(comparison = "Infection and vaccination") 
+  select(genes, infection_vaccination,n_conditions) %>% 
+  mutate(comparison = "Infection and vaccination") %>% 
+  distinct()
+  
 
 shared_genes_comparisons = bind_rows(shared_genes_infection, 
                                      shared_genes_vaccines, 
@@ -2835,7 +2842,7 @@ write.csv(shared_genes_comparisons, file = "shared_genes_infection_vaccination_c
 
 
 ```{r}
-#Vaccine and infection
+# Vaccine and infection ----
 shared_genes_vaccines_infection_plot = shared_genes_vaccines_infection %>% 
   select(genes, infection_vaccination, n_conditions, comparison) %>% 
   distinct() %>%
@@ -2865,10 +2872,6 @@ shared_genes_vaccines_infection_plot = shared_genes_vaccines_infection %>%
 
 ggsave(shared_genes_vaccines_infection_plot, file = "Genes_shared_Vaccination_Infection.png", width = 10, height = 3)
 
-```
-
-
-```{r}
 #Vaccination only -----
 shared_genes_vaccines_only = shared_genes_vaccines %>% 
   anti_join(shared_genes_infection, by = "genes") %>% 
@@ -2915,6 +2918,7 @@ shared_genes_infection_only = shared_genes_infection %>%
 
 shared_genes_infection_only_plot = shared_genes_infection_only %>% 
   select(genes, n_conditions, comparison) %>% 
+  arrange(desc(n_conditions)) %>% 
   distinct() %>%
   slice_head(n=20) %>% 
   ggplot() +
@@ -2943,99 +2947,18 @@ ggsave(shared_genes_infection_only_plot, file = "Genes_shared_Infection_only.png
 ```
 
 
-```{r}
-ggplot_stats1 = ggplot(stats_1) +
-  aes(x = reorder(genes, n_conditions), fill = covid_other, weight = n_conditions) +
-  geom_bar() +
-  theme_minimal() +
-  scale_fill_manual(
-    values = c(COVID = "#56cfe1",
-    OTHER = "#343a40")
-  ) +
-  theme_minimal() +
-  labs(fill = "Covid or non-covid") +
-  xlab("Genes") + 
-  ylab("Number of shared conditions") +
-  theme(legend.position = "right",
-        axis.text.x = element_text(angle = 45, vjust = 1.5, hjust=1, size = 8),
-        axis.text.y = element_text(size = 7, angle = 0),
-        panel.grid.minor.y = element_blank(),
-        legend.text = element_text(size=12),
-        legend.title = element_text(size = 12, face = "bold")) +
-  # geom_text(aes(label = n_conditions, y = n_conditions), 
-  #           position = position_dodge(width = 0.9), 
-  #           vjust = 0.2, 
-  #           hjust = -0.2, 
-  #           size = 1,
-  #           angle = 90) +
-  ggtitle("Genes shared") +
-  coord_flip()
-
-ggsave(ggplot_stats1, file = "Covid_Vax_genes_shared_column.png", width = 10, height = 20)
-
-
-
-
-stats_2 = matrix_data %>%
-  as.data.frame() %>%
-  rownames_to_column("genes") %>%
-  inner_join(ImmuneGO_Annotated_Genes, by = "genes") %>%
-  filter(go_term == "Manual",
-         !(process %in% c("ADAPTIVE IMMUNE SYSTEM",
-                          "INNATE IMMUNE SYSTEM"))) %>%
-  select(genes, process, immune_system) %>%
-  distinct() %>%
-  group_by(genes, immune_system) %>% 
-  summarise(n_processes = n()) %>% 
-  arrange(desc(n_processes)) %>% 
-  ungroup() %>% 
-  filter(n_processes >1)
-  
-ggplot_stats2 = ggplot(stats_2) +
-  aes(x = reorder(genes, n_processes), fill = immune_system, weight = n_processes) +
-  geom_bar() +
-  theme_minimal() +
-  scale_fill_manual(
-    values = c(Adaptive = "#6f2dbd",
-    Innate = "#06d6a0",
-    Complement = "#ffadc7")
-  ) +
-  theme_minimal() +
-  labs(fill = "Immune system") +
-  xlab("Genes") + 
-  ylab("Number of shared conditions") +
-  theme(legend.position = "right",
-        axis.text.x = element_text(angle = 45, vjust = 1.5, hjust=1, size = 8),
-        axis.text.y = element_text(size = 7, angle = 0),
-        panel.grid.minor.y = element_blank(),
-        strip.text.x.top = element_text(size = 10, face = "bold"),
-        legend.text = element_text(size=12),
-        legend.title = element_text(size = 12, face = "bold")) +
-  # geom_text(aes(label = n_conditions, y = n_conditions), 
-  #           position = position_dodge(width = 0.9), 
-  #           vjust = 0.2, 
-  #           hjust = -0.2, 
-  #           size = 1,
-  #           angle = 90) +
-  ggtitle("Genes shared") +
-  coord_flip() +
-  facet_wrap(~immune_system, scales = "free_y")
-
-ggsave(ggplot_stats2, file = "ImmuneGO_genes_shared_major_process.png", width = 6, height = 20)
-
-```
-
 ### not-immune related only
 
 ```{r}
-
 degs_all_updown = all_degs_p_05_vac_infected_19_12_23 %>% 
   filter(direction != "NEUTRAL") %>% 
   distinct()
 
 ImmuneGO_Annotated_Genes = ImmuneGO_Annotated_Genes_26_2_24 
 
-#Infection
+## Processing -----
+
+#Infection -----
 shared_genes_infection = degs_all_updown %>%
   filter(disease_vac == "I") %>% 
   select(condition, genes) %>% 
@@ -3052,7 +2975,7 @@ shared_genes_infection = degs_all_updown %>%
   mutate(comparison = "Infection only") %>% 
   arrange(desc(n_conditions))
 
-#Vaccine
+#Vaccine -----
 shared_genes_vaccines = degs_all_updown %>%
   filter(disease_vac == "V") %>% 
   select(condition, genes) %>% 
@@ -3070,7 +2993,7 @@ shared_genes_vaccines = degs_all_updown %>%
   arrange(desc(n_conditions))
 
 
-# Infection and vaccination
+# Infection and vaccination -----
 shared_genes_vaccines_infection = shared_genes_vaccines %>% 
   inner_join(shared_genes_infection, by = "genes") %>% 
   select(genes, Vaccination = n_conditions.x, Infection = n_conditions.y) %>% 
@@ -3086,12 +3009,10 @@ shared_genes_comparisons = bind_rows(shared_genes_infection,
 
 write.csv(shared_genes_comparisons, file = "non_Immune_shared_genes_infection_vaccination_comparisons.csv")
 
-```
 
+# Plotting ------
 
-```{r}
-
-#Infection
+#Infection -----
 shared_genes_vaccines_infection_plot = shared_genes_vaccines_infection %>% 
   select(genes, infection_vaccination, n_conditions, comparison) %>% 
   distinct() %>%
@@ -3112,7 +3033,7 @@ shared_genes_vaccines_infection_plot = shared_genes_vaccines_infection %>%
   xlab("Genes") + 
   ylab("Number of shared conditions") +
   theme(legend.position = "right",
-        axis.text.x = element_text(angle = 45, vjust = 1, hjust=1, size = 8),
+        axis.text.x = element_text(angle = 45, vjust = 1, hjust=1, size = 12),
         axis.text.y = element_text(size = 7, angle = 90),
         panel.grid.minor.y = element_blank(),
         legend.text = element_text(size=12),
@@ -3121,11 +3042,7 @@ shared_genes_vaccines_infection_plot = shared_genes_vaccines_infection %>%
 
 ggsave(shared_genes_vaccines_infection_plot, file = "Non_immune_Genes_shared_Vaccination_Infection.png", width = 10, height = 3)
 
-```
-
-
-```{r}
-#Vaccination only
+#Vaccination only -----
 
 shared_genes_vaccines_only_plot = shared_genes_vaccines %>% 
   select(genes, infection_vaccination, n_conditions, comparison) %>% 
@@ -3144,8 +3061,9 @@ shared_genes_vaccines_only_plot = shared_genes_vaccines %>%
   labs(fill = "Vaccination only") +
   xlab("Genes") + 
   ylab("Number of shared conditions") +
+  scale_y_continuous(breaks= pretty_breaks())+
   theme(legend.position = "right",
-        axis.text.x = element_text(angle = 45, vjust = 1, hjust=1, size = 8),
+        axis.text.x = element_text(angle = 45, vjust = 1, hjust=1, size = 12),
         axis.text.y = element_text(size = 7, angle = 0),
         panel.grid.minor.y = element_blank(),
         legend.text = element_text(size=12),
@@ -3155,10 +3073,11 @@ shared_genes_vaccines_only_plot = shared_genes_vaccines %>%
 ggsave(shared_genes_vaccines_only_plot, file = "Non_immune_shared_Vaccination_only.png", width = 10, height = 3)
 
 
-# Infection only
+# Infection only -------
 
 shared_genes_infection_only_plot = shared_genes_infection %>% 
   select(genes, infection_vaccination, n_conditions, comparison) %>% 
+  arrange(desc(n_conditions)) %>% 
   distinct() %>%
   slice_head(n=20) %>% 
   ggplot() +
@@ -3174,7 +3093,7 @@ shared_genes_infection_only_plot = shared_genes_infection %>%
   xlab("Genes") + 
   ylab("Number of shared conditions") +
   theme(legend.position = "right",
-        axis.text.x = element_text(angle = 45, vjust = 1, hjust=1, size = 8),
+        axis.text.x = element_text(angle = 45, vjust = 1, hjust=1, size = 12),
         axis.text.y = element_text(size = 7, angle = 0),
         panel.grid.minor.y = element_blank(),
         legend.text = element_text(size=12),
@@ -3183,91 +3102,6 @@ shared_genes_infection_only_plot = shared_genes_infection %>%
 
 ggsave(shared_genes_infection_only_plot, file = "Non_immune_shared_Infection_only.png", width = 10, height = 3)
 
-
-
-
-
 ```
 
 
-```{r}
-ggplot_stats1 = ggplot(stats_1) +
-  aes(x = reorder(genes, n_conditions), fill = covid_other, weight = n_conditions) +
-  geom_bar() +
-  theme_minimal() +
-  scale_fill_manual(
-    values = c(COVID = "#56cfe1",
-    OTHER = "#343a40")
-  ) +
-  theme_minimal() +
-  labs(fill = "Covid or non-covid") +
-  xlab("Genes") + 
-  ylab("Number of shared conditions") +
-  theme(legend.position = "right",
-        axis.text.x = element_text(angle = 45, vjust = 1.5, hjust=1, size = 8),
-        axis.text.y = element_text(size = 7, angle = 0),
-        panel.grid.minor.y = element_blank(),
-        legend.text = element_text(size=12),
-        legend.title = element_text(size = 12, face = "bold")) +
-  # geom_text(aes(label = n_conditions, y = n_conditions), 
-  #           position = position_dodge(width = 0.9), 
-  #           vjust = 0.2, 
-  #           hjust = -0.2, 
-  #           size = 1,
-  #           angle = 90) +
-  ggtitle("Genes shared") +
-  coord_flip()
-
-ggsave(ggplot_stats1, file = "Covid_Vax_genes_shared_column.png", width = 10, height = 20)
-
-
-
-
-stats_2 = matrix_data %>%
-  as.data.frame() %>%
-  rownames_to_column("genes") %>%
-  inner_join(ImmuneGO_Annotated_Genes, by = "genes") %>%
-  filter(go_term == "Manual",
-         !(process %in% c("ADAPTIVE IMMUNE SYSTEM",
-                          "INNATE IMMUNE SYSTEM"))) %>%
-  select(genes, process, immune_system) %>%
-  distinct() %>%
-  group_by(genes, immune_system) %>% 
-  summarise(n_processes = n()) %>% 
-  arrange(desc(n_processes)) %>% 
-  ungroup() %>% 
-  filter(n_processes >1)
-  
-ggplot_stats2 = ggplot(stats_2) +
-  aes(x = reorder(genes, n_processes), fill = immune_system, weight = n_processes) +
-  geom_bar() +
-  theme_minimal() +
-  scale_fill_manual(
-    values = c(Adaptive = "#6f2dbd",
-    Innate = "#06d6a0",
-    Complement = "#ffadc7")
-  ) +
-  theme_minimal() +
-  labs(fill = "Immune system") +
-  xlab("Genes") + 
-  ylab("Number of shared conditions") +
-  theme(legend.position = "right",
-        axis.text.x = element_text(angle = 45, vjust = 1.5, hjust=1, size = 8),
-        axis.text.y = element_text(size = 7, angle = 0),
-        panel.grid.minor.y = element_blank(),
-        strip.text.x.top = element_text(size = 10, face = "bold"),
-        legend.text = element_text(size=12),
-        legend.title = element_text(size = 12, face = "bold")) +
-  # geom_text(aes(label = n_conditions, y = n_conditions), 
-  #           position = position_dodge(width = 0.9), 
-  #           vjust = 0.2, 
-  #           hjust = -0.2, 
-  #           size = 1,
-  #           angle = 90) +
-  ggtitle("Genes shared") +
-  coord_flip() +
-  facet_wrap(~immune_system, scales = "free_y")
-
-ggsave(ggplot_stats2, file = "ImmuneGO_genes_shared_major_process.png", width = 6, height = 20)
-
-```
