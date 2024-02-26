@@ -494,16 +494,6 @@ dim(Immune_GO_Evidence) #12
 Immune_GO_genes_GO_Filt = Immune_GO %>%
   filter(QUALIFIER != "NOT|involved_in") %>% 
   write.csv(file="Immune_GO_genes_GO_Filt.csv") #Salvar
-
-explore(Immune_GO_genes_GO_Filt) 
-#4082 genes-terms
-# 1294 Gene product ID
-# 1247 gene symbols
-# 3 qualifiers
-# GO.EVIDENCE.CODE = 12
-# 332 Terms, GO.NAME = 336
-# 744 references
-# 18 databases
 ```
 
 ### Descrevendo e organizando dataset
@@ -511,7 +501,7 @@ Annotation of GOs
 
 ```{r}
 ######## Anotação de GOs ########
-ImmuneGO_Manual = ImmuneGO_Annotated_GO # ImmuneGOs manually annotated by Immune System, Sub-system, and cells
+ImmuneGO_Manual = ImmuneGO_Annotated_Genes_26_2_24 # ImmuneGOs manually annotated by Immune System, Sub-system, and cells
 #Unir anotações com genes
 ImmuneGO_Annotated = ImmuneGO_Manual %>% 
   merge(Immune_GO_genes_GO_Filt, by.x = "Process", by.y = "GO.NAME", all.y = F, all.x=T) %>% 
@@ -546,7 +536,6 @@ ImmuneGO_Annotated_unique = ImmuneGO_Annotated_unique %>%
   mutate(Genes = str_replace_all(Genes, " ", ""))
 
 # Calcular o tamanho do gene set
-
 ImmuneGO_Annotated_unique <- ImmuneGO_Annotated_unique %>%
   mutate(SetSize = lengths(str_split(Genes, ",")),
          Genes = str_c(unique(str_split(Genes, ",")), collapse = ","))
@@ -564,85 +553,74 @@ head(ImmuneGO_Annotated_unique)
 Agrupar genes de todos os processos do sistema imune
 
 ```{r}
-ImmuneGO_Annotated_unique = ImmuneGO_Annotated_GO
+ImmuneGO_Annotated_unique = ImmuneGO_Annotated_Genes_26_2_24
 
 #Agrupar genes de todos os processos do sistema imune -----------------------------------------
 ImmuneGO_Adaptive <- ImmuneGO_Annotated_unique %>%
-  filter(`Immune system` == "Adaptive")
+  filter(immune_system == "Adaptive")
 ImmuneGO_Innate <- ImmuneGO_Annotated_unique %>%
-  filter(`Immune system` == "Innate")
+  filter(immune_system == "Innate")
 ImmuneGO_Complement <- ImmuneGO_Annotated_unique %>%
-  filter(`Immune system` == "Complement")
-
+  filter(immune_system == "Complement")
 ImmuneGO_Inflammation <- ImmuneGO_Annotated_unique %>%
   filter(immune_sub_system == "Inflammation")
-
 ImmuneGO_Interferon <- ImmuneGO_Annotated_unique %>%
   filter(grepl("Interferon", gene_set_short))
-
 ImmuneGO_ARPP = ImmuneGO_Annotated_unique %>%
-  filter(immune_sub_system == "PRR")
-
-ImmuneGO_ARPP = ImmuneGO_Annotated_unique %>%
-  filter(immune_sub_system == "APC")
-
-
+  filter(immune_sub_system %in% c("PRR", "APC"))
 ImmuneGO_Innate_Macrophage <- ImmuneGO_Annotated_unique %>%
-ImmuneGO_Innate_Macrophage <- ImmuneGO_Annotated_unique %>%
-  filter(`Immune tissue` == "Macrophage")
-
+  filter(immune_tissue == "Macrophage")
 ImmuneGO_Innate_Mastcell <- ImmuneGO_Annotated_unique %>%
-ImmuneGO_Innate_Mastcell <- ImmuneGO_Annotated_unique %>%
-  filter(`Immune tissue` == "Mast cell")
+  filter(immune_tissue == "Mast cell")
 ImmuneGO_Innate_Neutrophil <- ImmuneGO_Annotated_unique %>%
-  filter(`Immune tissue` == "Neutrophil")
+  filter(immune_tissue == "Neutrophil")
 ImmuneGO_Innate_Eosinophil <- ImmuneGO_Annotated_unique %>%
-  filter(`Immune tissue` == "Eosinophil")
+  filter(immune_tissue == "Eosinophil")
 ImmuneGO_Innate_NK <- ImmuneGO_Annotated_unique %>%
-  filter(`Immune tissue` == "NK cell")
+  filter(immune_tissue == "NK cell")
 ImmuneGO_Innate_Monocyte <- ImmuneGO_Annotated_unique %>%
-  filter(`Immune tissue` == "Monocyte")
+  filter(immune_tissue == "Monocyte")
 ImmuneGO_Adap_Cellular <- ImmuneGO_Adaptive %>% #Este comando somente inclui os genes de processos da resposta celular e muitos dos genes de receptor de celulas T não estão anotados. Por isso, eles serão incluidos nos codigos abaixo
-  filter(`Immune sub-system` == "Cellular")
+  filter(immune_sub_system == "Cellular")
 ImmuneGO_Adap_Humoral <- ImmuneGO_Adaptive %>%
-  filter(`Immune sub-system` == "Humoral")
+  filter(immune_sub_system == "Humoral")
+```
 
 
+```{r}
 #Unificar genes e remover duplicatas
-ImmuneGO_Adaptive_genes <- paste(ImmuneGO_Adaptive$Genes, collapse = ",")
-ImmuneGO_Adaptive_genes <- unique(unlist(strsplit(ImmuneGO_Adaptive$Genes, ",")))
+ImmuneGO_Adaptive_genes <- paste(ImmuneGO_Adaptive$genes, collapse = ",")
+ImmuneGO_Adaptive_genes <- unique(unlist(strsplit(ImmuneGO_Adaptive$genes, ",")))
 
-ImmuneGO_Innate_genes <- paste(ImmuneGO_Innate$Genes, collapse = ",")
-ImmuneGO_Innate_genes <- unique(unlist(strsplit(ImmuneGO_Innate$Genes, ","))) 
+ImmuneGO_Innate_genes <- paste(ImmuneGO_Innate$genes, collapse = ",")
+ImmuneGO_Innate_genes <- unique(unlist(strsplit(ImmuneGO_Innate$genes, ","))) 
 
-ImmuneGO_Complement_genes <- paste(ImmuneGO_Complement$Genes, collapse = ",")
-ImmuneGO_Complement_genes <- unique(unlist(strsplit(ImmuneGO_Complement$Genes, ",")))
-ImmuneGO_Cellular_genes <- paste(ImmuneGO_Adap_Cellular$Genes, collapse = ",")
-ImmuneGO_Cellular_genes <- unique(unlist(strsplit(ImmuneGO_Adap_Cellular$Genes, ",")))
-ImmuneGO_Humoral_genes <- paste(ImmuneGO_Adap_Humoral$Genes, collapse = ",")
-ImmuneGO_Humoral_genes <- unique(unlist(strsplit(ImmuneGO_Adap_Humoral$Genes, ",")))
+ImmuneGO_Complement_genes <- paste(ImmuneGO_Complement$genes, collapse = ",")
+ImmuneGO_Complement_genes <- unique(unlist(strsplit(ImmuneGO_Complement$genes, ",")))
+ImmuneGO_Cellular_genes <- paste(ImmuneGO_Adap_Cellular$genes, collapse = ",")
+ImmuneGO_Cellular_genes <- unique(unlist(strsplit(ImmuneGO_Adap_Cellular$genes, ",")))
+ImmuneGO_Humoral_genes <- paste(ImmuneGO_Adap_Humoral$genes, collapse = ",")
+ImmuneGO_Humoral_genes <- unique(unlist(strsplit(ImmuneGO_Adap_Humoral$genes, ",")))
 
-ImmuneGO_Innate_Macrophage_genes <- paste(ImmuneGO_Innate_Macrophage$Genes, collapse = ",")
-ImmuneGO_Innate_Macrophage_genes <- unique(unlist(strsplit(ImmuneGO_Innate_Macrophage$Genes, ",")))
+ImmuneGO_Innate_Macrophage_genes <- paste(ImmuneGO_Innate_Macrophage$genes, collapse = ",")
+ImmuneGO_Innate_Macrophage_genes <- unique(unlist(strsplit(ImmuneGO_Innate_Macrophage$genes, ",")))
 
-ImmuneGO_Innate_Mastcell_genes <- paste(ImmuneGO_Innate_Mastcell$Genes, collapse = ",")
-ImmuneGO_Innate_Mastcell_genes <- unique(unlist(strsplit(ImmuneGO_Innate_Mastcell$Genes, ",")))
+ImmuneGO_Innate_Mastcell_genes <- paste(ImmuneGO_Innate_Mastcell$genes, collapse = ",")
+ImmuneGO_Innate_Mastcell_genes <- unique(unlist(strsplit(ImmuneGO_Innate_Mastcell$genes, ",")))
 
-ImmuneGO_Innate_Neutrophil_genes <- paste(ImmuneGO_Innate_Neutrophil$Genes, collapse = ",")
-ImmuneGO_Innate_Neutrophil_genes <- unique(unlist(strsplit(ImmuneGO_Innate_Neutrophil$Genes, ",")))
+ImmuneGO_Innate_Neutrophil_genes <- paste(ImmuneGO_Innate_Neutrophil$genes, collapse = ",")
+ImmuneGO_Innate_Neutrophil_genes <- unique(unlist(strsplit(ImmuneGO_Innate_Neutrophil$genes, ",")))
 
-ImmuneGO_Innate_Eosinophil_genes <- paste(ImmuneGO_Innate_Eosinophil$Genes, collapse = ",")
-ImmuneGO_Innate_Eosinophil_genes <- unique(unlist(strsplit(ImmuneGO_Innate_Eosinophil$Genes, ",")))
+ImmuneGO_Innate_Eosinophil_genes <- paste(ImmuneGO_Innate_Eosinophil$genes, collapse = ",")
+ImmuneGO_Innate_Eosinophil_genes <- unique(unlist(strsplit(ImmuneGO_Innate_Eosinophil$genes, ",")))
 
-ImmuneGO_Innate_NK_genes <- paste(ImmuneGO_Innate_NK$Genes, collapse = ",")
-ImmuneGO_Innate_NK_genes <- unique(unlist(strsplit(ImmuneGO_Innate_NK$Genes, ",")))
+ImmuneGO_Innate_NK_genes <- paste(ImmuneGO_Innate_NK$genes, collapse = ",")
+ImmuneGO_Innate_NK_genes <- unique(unlist(strsplit(ImmuneGO_Innate_NK$genes, ",")))
 
-ImmuneGO_Innate_Monocyte_genes <- paste(ImmuneGO_Innate_Monocyte$Genes, collapse = ",")
-
-ImmuneGO_Innate_Monocyte_genes <- unique(unlist(strsplit(ImmuneGO_Innate_Monocyte$Genes, ",")))
+ImmuneGO_Innate_Monocyte_genes <- paste(ImmuneGO_Innate_Monocyte$genes, collapse = ",")
+ImmuneGO_Innate_Monocyte_genes <- unique(unlist(strsplit(ImmuneGO_Innate_Monocyte$genes, ",")))
 
 ImmuneGO_Innate_Inflammation_genes <- paste(ImmuneGO_Inflammation $genes, collapse = ",")
-
 ImmuneGO_Innate_Inflammation_genes <- unique(unlist(strsplit(ImmuneGO_Inflammation$genes, ",")))
 
 # Calcular o tamanho do gene set
@@ -656,6 +634,7 @@ SetSize_eosinophil <- length(ImmuneGO_Innate_Eosinophil_genes)
 SetSize_NK <- length(ImmuneGO_Innate_NK_genes) 
 SetSize_Mono <- length(ImmuneGO_Innate_Monocyte_genes) 
 SetSize_Macro <- length(ImmuneGO_Innate_Macrophage_genes) 
+SetSize_Humoral = length(ImmuneGO_Humoral_genes)
 
 #Criar novas linhas
 new_row_adap <- tibble(
@@ -695,7 +674,7 @@ new_row_cellular <- tibble(
   `Immune sub-system` = "Cellular",
   `Immune tissue` = "General",
   `GO.TERM` = "Manual",
-  Genes = paste(ImmuneGO_in_vaccines_Genes_ann_adap_cellular$SYMBOL, collapse = ","),
+  Genes = paste(ImmuneGO_Cellular_genes, collapse = ","),
   SetSize = SetSize_cellular
 )
 
@@ -707,7 +686,7 @@ new_row_humoral <- tibble(
   `Immune tissue` = "General",
   `GO.TERM` = "Manual",
   Genes = paste(ImmuneGO_Humoral_genes, collapse = ","),
-  SetSize = SetSize_humoral
+  SetSize = SetSize_Humoral
 )
 
 new_row_mast <- tibble(
@@ -776,7 +755,6 @@ new_row_macro <- tibble(
   SetSize = SetSize_Macro
 )
 
-
 # Adicionar linhas
 ImmuneGO_Annotated_unique <- bind_rows(ImmuneGO_Annotated_unique, 
                                        new_row_mast, 
@@ -819,13 +797,14 @@ ImmuneGO_Annotated_GO = ImmuneGO_Annotated_Genes %>%
   arrange(desc(set_size)) %>% 
   distinct()
 
-
 ImmuneGO_Annotated_Genes <- ImmuneGO_Annotated_GO %>%
   separate_rows(genes, sep = ",")
 
+ImmuneGO_Annotated_Genes %>% select(genes) %>% distinct()
+
 #Salvar
-write.csv(ImmuneGO_Annotated_GO, file = "ImmuneGO_Annotated_GO.csv")
-write.csv(ImmuneGO_Annotated_Genes, file = "ImmuneGO_Annotated_Genes.csv")
+write.csv(ImmuneGO_Annotated_GO, file = "ImmuneGO_Annotated_GO_26-2-24_2.csv", row.names = F)
+write.csv(ImmuneGO_Annotated_Genes, file = "ImmuneGO_Annotated_Genes_26-2-24_2..csv", row.names = F)
 
 #Display
 view(ImmuneGO_Annotated_GO)
