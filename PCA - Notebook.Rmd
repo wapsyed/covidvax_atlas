@@ -25,6 +25,8 @@ library(cowplot)
 library(ggcorrplot)
 library(ComplexHeatmap)
 library(circlize)
+library(ggExtra)
+
 ```
 
 
@@ -259,38 +261,81 @@ fviz_nbclust(pca_scores,
                      method = "wss")
 
 set.seed(666)                             # Set seed for randomization
-cluster_model <- kmeans(pca_res$x[, 1:2], centers = 3)  # Ajuste o número de clusters conforme necessário
+cluster_model <- kmeans(pca_res$x[, 1:2], centers = 4)  # Ajuste o número de clusters conforme necessário
 ann_vaccines_pca_matrix$cluster <- as.factor(cluster_model$cluster)
 
 
 # Condition -------
 pca_plot_knn_condition_lab = autoplot(pca_res, 
         data = ann_vaccines_pca_matrix, 
-        colour = 'condition') + 
+        colour = 'condition')  +
   stat_ellipse(aes(color = cluster, fill = cluster), 
                geom = "polygon", 
                alpha = 0.1, 
                linetype = 1,
                size = 0.3,
                type = "t") +
-  geom_text_repel(data = ann_vaccines_pca_matrix,
-                  aes(label = "condition"),
-                  box.padding = 0.3,
-                  size = 2) +
   labs(title=paste0(filename, "_bycondition")) + 
   xlab("PC1 (66.8%)") + 
   ylab("PC2 (15.7%)") +
   scale_color_manual(values = c("1" = "#5e60ce", 
                                 "2" = "#f72585", 
-                                "3" = "#56cfe1")) +  # Ellipse line colors
+                                "3" = "#56cfe1", 
+                                "4" = "#b5e48c", 
+                                "5" = "#ff8c42", 
+                                condition_col)) +  # Ellipse line colors
   scale_fill_manual(values = c("1" = "#5e60ce", 
-                               "2" = "#f72585", 
-                               "3" = "#56cfe1")) +  # Cluster fill colors
+                                "2" = "#f72585", 
+                                "3" = "#56cfe1", 
+                                "4" = "#b5e48c", 
+                                "5" = "#ff8c42")) +  # Cluster fill colors
   theme_minimal() +
   guides(col="none") +
-  theme(panel.grid = element_blank())
+  theme(panel.grid = element_blank()) +
+  geom_text_repel(aes(label = condition,
+                      segment.colour="gray70"),
+                  box.padding = 0.3,
+                  size = 2) 
 
 ggsave(pca_plot_knn_condition_lab, file = paste0(filename, "_KNN_Clustered_labels.png"), width = 7, height = 5)
+
+
+# Clusters, with density plot
+
+pca_plot_knn_cluster = autoplot(pca_res, 
+        data = ann_vaccines_pca_matrix, 
+        colour = 'cluster')  +
+  stat_ellipse(aes(color = cluster, fill = cluster), 
+               geom = "polygon", 
+               alpha = 0.1, 
+               linetype = 1,
+               size = 0.3,
+               type = "t") +
+  labs(title=paste0(filename, "_bycondition")) + 
+  xlab("PC1 (66.8%)") + 
+  ylab("PC2 (15.7%)") +
+  scale_color_manual(values = c("1" = "#5e60ce", 
+                                "2" = "#f72585", 
+                                "3" = "#56cfe1", 
+                                "4" = "#b5e48c", 
+                                "5" = "#ff8c42", 
+                                condition_col)) +  # Ellipse line colors
+  scale_fill_manual(values = c("1" = "#5e60ce", 
+                                "2" = "#f72585", 
+                                "3" = "#56cfe1", 
+                                "4" = "#b5e48c", 
+                                "5" = "#ff8c42")) +  # Cluster fill colors
+  theme_minimal() +
+  guides(col="none") +
+  theme(panel.grid = element_blank()) +
+  geom_text_repel(aes(label = condition,
+                      segment.colour="gray70"),
+                  box.padding = 0.3,
+                  size = 2) 
+
+pca_plot_knn_cluster_marginal = ggMarginal(pca_plot_knn_cluster, type = "histogram", groupFill = T, groupColour = T, xparams = list(binwidth = 0.1, size = 0.1), yparams = list(binwidth = 0.1, size = 0.1))
+
+ggsave(pca_plot_knn_cluster_marginal, file = paste0(filename, "_KNN_Clustered_labels_Density.png"), width = 8, height = 5)
 
 ```
 
