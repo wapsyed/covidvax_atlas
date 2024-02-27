@@ -97,7 +97,7 @@ ann_vaccines_pca_matrix_ready <- ann_vaccines_pca_matrix_ready[, !nearZeroVarCol
 pca_res <- prcomp(ann_vaccines_pca_matrix_ready, scale. = T)
 
 ########Correlation plot
-corr_matrix = cor(ann_vaccines_pca_matrix_ready) 
+corr_matrix = cor(ann_vaccines_pca_matrix_ready %>% scale()) 
 var <- get_pca_var(pca_res)
 
 ### Contribuição dos genes principais para cada PC
@@ -127,7 +127,7 @@ var_ordenado_top20_dim2 <- var$cos2 %>%
   arrange(desc(.[, 2])) %>%   # Ordenar pela primeira coluna em ordem decrescente
   slice_head(n = 20) %>%      # Selecionar as primeiras 50 linhas
   select(2) %>%                  # Selecionar as primeiras 5 colunas
-  as.matrix()
+  as.matrix() 
 
 corplot_dim2 = {corrplot(var_ordenado_top20_dim2, 
          is.corr = T, 
