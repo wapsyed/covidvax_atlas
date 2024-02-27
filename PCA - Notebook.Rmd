@@ -34,7 +34,7 @@ library(circlize)
 
 Processar dados
 ```{r}
-ImmuneGO_Annotated_Genes_all= ImmuneGO_Annotated_Genes_26_2_24
+ImmuneGO_Annotated_Genes_all= ImmuneGO_Annotated_Genes
 
 ImmuneGO_Annotated_Genes = ImmuneGO_Annotated_Genes_all %>% 
   anti_join(TCR_BCR_repertoire_genes, by = "genes")
@@ -60,8 +60,8 @@ nonImmuneGO_Genes = all_degs_p_05_vac_infected_19_12_23 %>%
 
 ```{r}
 #INPUT
-data_genes = nonImmuneGO_Genes 
-filename = "nonImmuneGO_Genes"
+data_genes = ImmuneGO_Genes 
+filename = "ImmuneGO_Genes"
 
 data_annotation = ann_vaccines %>% 
   mutate(day = as.factor(day),
@@ -251,7 +251,7 @@ condition_col = c(
 
 ############### KNN classification
 #Use the screeplot generated % of explained variance for each dimension
-scree_plot #Dim 1 = 68.2%, Dim 2 = 15.9%
+scree_plot #Dim 1 = 66.8%, Dim 2 = 15.7%
 #Determinar o número de clusters para KNN
 pca_scores <- data.frame(pca_res$x[, 1:2])
 fviz_nbclust(pca_scores,  
@@ -278,8 +278,8 @@ pca_plot_knn_condition_lab = autoplot(pca_res,
                   box.padding = 0.3,
                   size = 2) +
   labs(title=paste0(filename, "_bycondition")) + 
-  xlab("PC1 (68.2%)") + 
-  ylab("PC2 (15.9%)") +
+  xlab("PC1 (66.8%)") + 
+  ylab("PC2 (15.7%)") +
   scale_color_manual(values = c("1" = "#5e60ce", 
                                 "2" = "#f72585", 
                                 "3" = "#56cfe1")) +  # Ellipse line colors
