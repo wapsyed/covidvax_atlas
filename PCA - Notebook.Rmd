@@ -62,8 +62,8 @@ nonImmuneGO_Genes = all_degs_p_05_vac_infected_19_12_23 %>%
 
 ```{r}
 #INPUT
-data_genes = ImmuneGO_Genes 
-filename = "ImmuneGO_Genes"
+data_genes = nonImmuneGO_Genes 
+filename = "nonImmuneGO_Genes"
 
 data_annotation = ann_vaccines %>% 
   mutate(day = as.factor(day),
@@ -361,10 +361,10 @@ PC2 = var$cos2 %>%
   distinct() %>% 
   select(genes, Dim.2)
 
-data_2 =  PC2 %>% 
+data_2 =  PC1 %>% 
   inner_join(data_genes, by = "genes")
 
-filename_2 = paste0("Immune_GO_genes_PCA_PC2", "_COVID")
+filename_2 = paste0("Immune_GO_genes_PCA_PC1", "_COVID")
 
 ######## Matrix
 matrix = data_2 %>% 
@@ -771,7 +771,7 @@ file = filename_2
 mat = matrix_data
 width_image = 30
 height_image = 20
-width = unit(10, "cm")
+width = unit(15, "cm")
 height = unit(10, "cm")
 column_names_gp = gpar(fontsize = 10)
 row_names_gp = gpar(fontsize = 10)
@@ -789,7 +789,6 @@ png(file = fileimageheatmap_grouped,
 
 heatmap_plot = Heatmap(mat,
                         top_annotation = ha,
-                        left_annotation = row_ha,
                         show_row_names = TRUE,
                         row_names_side = "right",
                         show_heatmap_legend = TRUE,
@@ -803,6 +802,7 @@ heatmap_plot = Heatmap(mat,
                         rect_gp = rect_gp,
                         na_col = "white",
                         cluster_rows = TRUE,
+                        column_split = 2,
                         row_names_gp = row_names_gp,
                         row_dend_width = unit(2, "cm"),
                         row_split = 2,
