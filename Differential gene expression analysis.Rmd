@@ -2600,48 +2600,162 @@ degs_go_main_go = degs_GO %>%
 
 
 ```{r}
-degs_go_main_go$term_ancestor <- factor(degs_go_main_go$term_ancestor, levels = c(
-  "Not mapped",
-  "immune system process",
-  "interspecies interaction",
-  'biological regulation',
-  'cellular process',
-  "metabolic process",
-  "locomotion",
-  "positive regulation of biological process",
-  "regulation of biological process",
-  "reproductive process"
-))
+#Main GO BPs
+
+main_go = degs_GO %>%
+  filter(go_ancestor %in% c(
+      "Not mapped",
+      "GO:0040011",
+      "GO:0043473",
+      "GO:0044419",
+      "GO:0009987",
+      "GO:0048518",
+      "GO:0050789",
+      "GO:0065007",
+      "GO:0048511",
+      "GO:0022414",
+      "GO:0002376")) %>% 
+  select(condition, genes, direction, term_ancestor) %>% 
+  distinct() %>% 
+  group_by(condition, direction, term_ancestor) %>% 
+  summarise(n = n()) %>% 
+  mutate(term_ancestor = if_else(is.na(term_ancestor), "No annotation", term_ancestor))
+
+main_go_2 = degs_GO %>% 
+  select(condition, genes, mapped, direction) %>% 
+  distinct() %>% 
+  group_by(condition, direction) %>% 
+  summarise(n_genes_total = n()) %>% 
+  inner_join(main_go, by = join_by("condition", direction)) %>% 
+  ungroup() %>% 
+  select(condition, direction, term_ancestor, n_genes = n, n_genes_total) %>%
+  filter(str_detect(term_ancestor, "cellular process|biological process involved in interspecies interaction between organisms|regulation of biological process|immune system process|No annotation"),
+         !term_ancestor == "positive regulation of biological process") %>% 
+  mutate(n_genes_perc = round(n_genes/n_genes_total * 100, 1),
+         term_ancestor = case_when(
+           term_ancestor == "biological process involved in interspecies interaction between organisms" ~ "Interspecies interaction",
+           term_ancestor == "biological regulation" ~ "Biological reg.",
+           term_ancestor == "cellular process" ~ "Cellular",
+           term_ancestor == "immune system process" ~ "Immune system",
+           term_ancestor == "regulation of biological process" ~ "Reg. of BP",
+           term_ancestor == "locomotion" ~ "Locomotion",
+           TRUE ~ term_ancestor),
+         term_ancestor = fct_relevel(term_ancestor, "No annotation", after = Inf)) %>% 
+  inner_join(ann_vaccines_19_1_24 %>% select(condition, type, disease_vac), by = "condition")
+  
+
+write.csv(main_go_2, file = "degs_annotated_mainGOs_stats.csv", row.names = F)
+```
 
 
+```{r}
+### Bar plot by term -----
 
-degs_go_main_go_plot 
-
-ggplot(degs_go_main_go) +
-  aes(x = fct_rev(condition), y = perc, fill = term_ancestor) +
-  geom_col() +
-  coord_flip() +
-  theme_minimal() +
-  ylab("Genes (%)") +
-  theme(legend.position = "top",
+main_go_2_plot = ggplot(main_go_2) +
+ aes(x = forcats::fct_rev(factor(condition)), y = n_genes_perc, fill = type) +
+ geom_col() +
+ coord_flip() +
+ theme_minimal() +
+ theme(legend.position = "top") +
+ facet_grid(vars(direction),  vars(term_ancestor)) +
+   scale_fill_manual(name = "Type",
+    values = c('IN'= "#76c893", #1st Gen  vaccines
+           'VV' = "#5e60ce", #3rd Gen vaccines
+           'RNA' = "#56cfe1",
+           'SU' = "#b5e48c",
+           'I'= "#f72585",
+           "H" = "grey95")) +
+  theme(legend.position = "right",
         axis.text.x = element_text(size = 12, color = "black", angle = 0, hjust = 1),
         axis.text.y = element_text(size = 12, color = "black", angle = 0, hjust = 1),
-        panel.grid.major.y = element_blank()) +
-  ggtitle("Mapped genes") + 
-  facet_wrap(vars(direction)) + 
-  scale_fill_manual(values = c(
-    "Not mapped" = "#e1e5f2",
-    "interspecies interaction" = "#4cc9f0",
-    'biological regulation'	= "#7ae582",
-    'cellular process'	= "#5e60ce",
-    "immune system process" = "#ffbc42",
-    "locomotion" = "#b388eb",
-    "positive regulation of biological process" = "#219ebc",
-    "regulation of biological process" = "#d9ed92",
-    "reproductive process" = "#06d6a0"))
+        strip.text = element_text(size = 12, color = "black", hjust = 0.5),
+        strip.text.y = element_text(angle = 0),
+        strip.background = element_rect(
+          fill = "grey80", 
+          color = "grey80", 
+          linewidth = 1 )) +
+  geom_text(aes(label = paste0(n_genes_perc, "% (", n_genes, ")"), 
+                y = n_genes_perc), 
+            y = 1,
+            hjust = 0, 
+            size = 3,
+            angle = 0) +
+  ggtitle("DEGs by Biological Process") +
+  labs(y = "Number of genes (%)") +
+  ylim(0,100)
 
 
-ggsave(degs_go_main_go_plot, file = "degs_go_main_go_stacked_plot.png", width = 10, height = 10)
+ggsave(main_go_2_plot, file = "main_go_2_plot_values.png", width = 15, height = 15)
+
+
+main_go_2_plot_novalues = ggplot(main_go_2) +
+ aes(x = forcats::fct_rev(factor(condition)), y = n_genes_perc, fill = type) +
+ geom_col() +
+ coord_flip() +
+ theme_minimal() +
+ theme(legend.position = "top") +
+ facet_grid(vars(direction), 
+ vars(term_ancestor), scales = "free") +
+   scale_fill_manual(
+    values = c('IN'= "#76c893", #1st Gen  vaccines
+           'VV' = "#5e60ce", #3rd Gen vaccines
+           'RNA' = "#56cfe1",
+           'SU' = "#b5e48c",
+           'I'= "#f72585",
+           "H" = "grey95")) +
+  theme(legend.position = "right",
+        axis.text.x = element_text(size = 12, color = "black", angle = 0, hjust = 1),
+        axis.text.y = element_text(size = 12, color = "black", angle = 0, hjust = 1),
+        strip.text = element_text(size = 12, color = "white", hjust = 0.5),
+        strip.text.y = element_text(angle = 0),
+        strip.background = element_rect(
+          fill = "grey20", 
+          color = "grey80", 
+          linewidth = 1
+  )) +
+  ggtitle("DEGs by Biological Process")
+
+
+ggsave(main_go_2_plot_novalues, file = "main_go_2_plot.png", width = 20, height = 15)
+
+### Totals ------
+
+main_go_2_plot_totals_values = main_go_2 %>%
+  select(condition, n_genes_total, type, direction) %>% 
+  distinct() %>% 
+  ggplot() +
+ aes(x = forcats::fct_rev(factor(condition)), y = n_genes_total, fill = type) +
+ geom_col() +
+ coord_flip() +
+ theme_minimal() +
+ theme(legend.position = "top") +
+ facet_grid(vars(direction), scales = "free") +
+   scale_fill_manual(
+    values = c('IN'= "#76c893", #1st Gen  vaccines
+           'VV' = "#5e60ce", #3rd Gen vaccines
+           'RNA' = "#56cfe1",
+           'SU' = "#b5e48c",
+           'I'= "#f72585",
+           "H" = "grey95")) +
+    theme(legend.position = "right",
+        axis.text.x = element_text(size = 12, color = "black", angle = 0, hjust = 1),
+        axis.text.y = element_text(size = 12, color = "black", angle = 0, hjust = 1),
+        strip.text = element_text(size = 12, color = "black", hjust = 0.5),
+        strip.text.y = element_text(angle = 90),
+        strip.background = element_rect(
+          fill = "grey80", 
+          color = "grey80", 
+          linewidth = 1 )) +
+  geom_text(aes(label = n_genes_total, y = n_genes_total),
+            hjust = 0, 
+            size = 3,
+            angle = 0) +
+  ylim(0, 3000) +
+  labs(x = "", y = "Total genes")
+
+
+ggsave(main_go_2_plot_totals_values, file = "main_go_2_plot_totals_values.png", width = 5, height = 15)
+
 ```
 
 
