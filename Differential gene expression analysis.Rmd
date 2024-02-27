@@ -2537,13 +2537,6 @@ go_bp = AnnotationDbi::select(GO.db, columns=c("GOID","TERM"), keys="BP", keytyp
   left_join(go_bp_ancestor, by = "go_id") %>% 
   distinct()
 
-
-#GO immune process
-
-immunego_bp = 
-
-
-
 # DEGs to Entrez and GO ids
 degs_GO = all_degs_p_05_vac_infected_29_11_23 %>% 
   filter(direction != "NEUTRAL") %>% 
@@ -2569,37 +2562,7 @@ degs_GO_comma = degs_GO %>%
 
 write.csv(degs_GO_comma, file = "degs_annotated_allGOs.csv", row.names = F) #Save
 
-```
 
-
-```{r}
-#Main GO BPs
-
-degs_go_main_go = degs_GO %>%
-  filter(go_ancestor %in% c(
-      "Not mapped",
-      "GO:0040011",
-      "GO:0043473",
-      "GO:0044419",
-      "GO:0009987",
-      "GO:0048518",
-      "GO:0050789",
-      "GO:0065007",
-      "GO:0048511",
-      "GO:0022414",
-      "GO:0002376",
-      "GO:0008152")) %>% 
-  select(condition, genes, direction, term_ancestor) %>% 
-  group_by(condition, direction, term_ancestor) %>% 
-  summarise(n_genes = n()) %>% 
-  group_by(condition, direction) %>%
-  mutate(total_genes = sum(n_genes)) %>% 
-  mutate(perc = round((n_genes / total_genes) * 100, 1)) %>% 
-  mutate(term_ancestor = if_else(term_ancestor == "biological process involved in interspecies interaction between organisms", "interspecies interaction", term_ancestor))
-```
-
-
-```{r}
 #Main GO BPs
 
 main_go = degs_GO %>%
@@ -2614,7 +2577,8 @@ main_go = degs_GO %>%
       "GO:0065007",
       "GO:0048511",
       "GO:0022414",
-      "GO:0002376")) %>% 
+      "GO:0002376",
+      "GO:0008152")) %>% 
   select(condition, genes, direction, term_ancestor) %>% 
   distinct() %>% 
   group_by(condition, direction, term_ancestor) %>% 
@@ -2629,7 +2593,7 @@ main_go_2 = degs_GO %>%
   inner_join(main_go, by = join_by("condition", direction)) %>% 
   ungroup() %>% 
   select(condition, direction, term_ancestor, n_genes = n, n_genes_total) %>%
-  filter(str_detect(term_ancestor, "cellular process|biological process involved in interspecies interaction between organisms|regulation of biological process|immune system process|No annotation"),
+  filter(str_detect(term_ancestor, "cellular process|biological process involved in interspecies interaction between organisms|regulation of biological process|immune system process|No annotation|Not mapped|metabolic process"),
          !term_ancestor == "positive regulation of biological process") %>% 
   mutate(n_genes_perc = round(n_genes/n_genes_total * 100, 1),
          term_ancestor = case_when(
@@ -2639,8 +2603,10 @@ main_go_2 = degs_GO %>%
            term_ancestor == "immune system process" ~ "Immune system",
            term_ancestor == "regulation of biological process" ~ "Reg. of BP",
            term_ancestor == "locomotion" ~ "Locomotion",
+           term_ancestor == "metabolic process" ~ "Metabolism",
            TRUE ~ term_ancestor),
-         term_ancestor = fct_relevel(term_ancestor, "No annotation", after = Inf)) %>% 
+         term_ancestor = fct_relevel(term_ancestor, "Not mapped", after = Inf),
+         direction = fct_relevel(direction, "UP", "DOWN")) %>% 
   inner_join(ann_vaccines_19_1_24 %>% select(condition, type, disease_vac), by = "condition")
   
 
@@ -2651,7 +2617,9 @@ write.csv(main_go_2, file = "degs_annotated_mainGOs_stats.csv", row.names = F)
 ```{r}
 ### Bar plot by term -----
 
-main_go_2_plot = ggplot(main_go_2) +
+main_go_2_plot = main_go_2 %>% 
+  mutate(direction = if_else(direction == "UP", "↑", "↓")) %>% 
+  ggplot() +
  aes(x = forcats::fct_rev(factor(condition)), y = n_genes_perc, fill = type) +
  geom_col() +
  coord_flip() +
@@ -2666,70 +2634,49 @@ main_go_2_plot = ggplot(main_go_2) +
            'I'= "#f72585",
            "H" = "grey95")) +
   theme(legend.position = "right",
+          legend.title = element_text(size = 15),
+          legend.text =element_text(size=15),
         axis.text.x = element_text(size = 12, color = "black", angle = 0, hjust = 1),
         axis.text.y = element_text(size = 12, color = "black", angle = 0, hjust = 1),
-        strip.text = element_text(size = 12, color = "black", hjust = 0.5),
-        strip.text.y = element_text(angle = 0),
-        strip.background = element_rect(
-          fill = "grey80", 
-          color = "grey80", 
-          linewidth = 1 )) +
+        strip.text.x = element_text(size = 12, color = "white", hjust = 0.5),
+        strip.text.y = element_text(size = 15, angle = 0),
+        strip.background.x = element_rect(
+          fill = "black", 
+          color = "black", 
+          linewidth = 1 ),
+        strip.background.y = element_rect(
+          fill = "gray70", 
+          color = "gray70", 
+          linewidth = 1 )
+        ) +
   geom_text(aes(label = paste0(n_genes_perc, "% (", n_genes, ")"), 
                 y = n_genes_perc), 
-            y = 1,
             hjust = 0, 
             size = 3,
             angle = 0) +
-  ggtitle("DEGs by Biological Process") +
-  labs(y = "Number of genes (%)") +
-  ylim(0,100)
+  labs(title = "DEGs by Biological Process",
+       x = "",
+       y = "Number of genes (%)") +
+  ylim(0,120)
 
 
-ggsave(main_go_2_plot, file = "main_go_2_plot_values.png", width = 15, height = 15)
+ggsave(main_go_2_plot, file = "main_go_2_plot_values.png", width = 20, height = 15)
 
-
-main_go_2_plot_novalues = ggplot(main_go_2) +
- aes(x = forcats::fct_rev(factor(condition)), y = n_genes_perc, fill = type) +
- geom_col() +
- coord_flip() +
- theme_minimal() +
- theme(legend.position = "top") +
- facet_grid(vars(direction), 
- vars(term_ancestor), scales = "free") +
-   scale_fill_manual(
-    values = c('IN'= "#76c893", #1st Gen  vaccines
-           'VV' = "#5e60ce", #3rd Gen vaccines
-           'RNA' = "#56cfe1",
-           'SU' = "#b5e48c",
-           'I'= "#f72585",
-           "H" = "grey95")) +
-  theme(legend.position = "right",
-        axis.text.x = element_text(size = 12, color = "black", angle = 0, hjust = 1),
-        axis.text.y = element_text(size = 12, color = "black", angle = 0, hjust = 1),
-        strip.text = element_text(size = 12, color = "white", hjust = 0.5),
-        strip.text.y = element_text(angle = 0),
-        strip.background = element_rect(
-          fill = "grey20", 
-          color = "grey80", 
-          linewidth = 1
-  )) +
-  ggtitle("DEGs by Biological Process")
-
-
-ggsave(main_go_2_plot_novalues, file = "main_go_2_plot.png", width = 20, height = 15)
 
 ### Totals ------
 
 main_go_2_plot_totals_values = main_go_2 %>%
   select(condition, n_genes_total, type, direction) %>% 
   distinct() %>% 
+  mutate(stat = "Total genes",
+         direction = if_else(direction == "UP", "↑", "↓")) %>% 
   ggplot() +
  aes(x = forcats::fct_rev(factor(condition)), y = n_genes_total, fill = type) +
  geom_col() +
  coord_flip() +
  theme_minimal() +
  theme(legend.position = "top") +
- facet_grid(vars(direction), scales = "free") +
+ facet_grid(direction~ stat, scales = "free") +
    scale_fill_manual(
     values = c('IN'= "#76c893", #1st Gen  vaccines
            'VV' = "#5e60ce", #3rd Gen vaccines
@@ -2738,23 +2685,31 @@ main_go_2_plot_totals_values = main_go_2 %>%
            'I'= "#f72585",
            "H" = "grey95")) +
     theme(legend.position = "right",
+          legend.title = element_text(size = 15),
+          legend.text =element_text(size=15),
         axis.text.x = element_text(size = 12, color = "black", angle = 0, hjust = 1),
         axis.text.y = element_text(size = 12, color = "black", angle = 0, hjust = 1),
-        strip.text = element_text(size = 12, color = "black", hjust = 0.5),
-        strip.text.y = element_text(angle = 90),
-        strip.background = element_rect(
-          fill = "grey80", 
-          color = "grey80", 
+        strip.text.x = element_text(size = 12, color = "white", hjust = 0.5),
+        strip.text.y = element_text(size = 15, angle = 0),
+        strip.background.x = element_rect(
+          fill = "black", 
+          color = "black", 
+          linewidth = 1 ),
+        strip.background.y = element_rect(
+          fill = "gray70", 
+          color = "gray70", 
           linewidth = 1 )) +
   geom_text(aes(label = n_genes_total, y = n_genes_total),
             hjust = 0, 
             size = 3,
             angle = 0) +
-  ylim(0, 3000) +
-  labs(x = "", y = "Total genes")
+  ylim(0, 2600) +
+  labs(x = "", 
+       y = "Total genes",
+       fill = "Type")
 
 
-ggsave(main_go_2_plot_totals_values, file = "main_go_2_plot_totals_values.png", width = 5, height = 15)
+ggsave(main_go_2_plot_totals_values, file = "main_go_2_plot_totals_values.png", width = 8, height = 15)
 
 ```
 
