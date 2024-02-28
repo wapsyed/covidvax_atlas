@@ -197,7 +197,7 @@ theme(panel.grid = element_blank(),  # Remover linhas de grade
         axis.text = element_blank(),   # Remover rótulos de texto dos eixos
         axis.ticks = element_blank()) 
 
-ggsave(circle_contrib, file = "circle_contrib.png", width = 5, height = 5)
+ggsave(circle_contrib, file = paste0(filename, "_circle_contrib.png"), width = 5, height = 5)
 ```
 
 CORES
@@ -254,14 +254,19 @@ condition_col = c(
 ############### KNN classification
 #Use the screeplot generated % of explained variance for each dimension
 scree_plot #Dim 1 = 66.8%, Dim 2 = 15.7%
+
+
+# PC1-PC2 ------
 #Determinar o número de clusters para KNN
 pca_scores <- data.frame(pca_res$x[, 1:2])
 fviz_nbclust(pca_scores,  
                      FUNcluster = kmeans,
                      method = "wss")
 
+pcas = "PC1-PC2"
+
 set.seed(666)                             # Set seed for randomization
-cluster_model <- kmeans(pca_res$x[, 1:2], centers = 4)  # Ajuste o número de clusters conforme necessário
+cluster_model <- kmeans(pca_res$x[, 1:2], centers = 3)  # Ajuste o número de clusters conforme necessário
 ann_vaccines_pca_matrix$cluster <- as.factor(cluster_model$cluster)
 
 
@@ -276,8 +281,8 @@ pca_plot_knn_condition_lab = autoplot(pca_res,
                size = 0.3,
                type = "t") +
   labs(title=paste0(filename, "_bycondition")) + 
-  xlab("PC1 (66.8%)") + 
-  ylab("PC2 (15.7%)") +
+  # xlab("PC1 (66.8%)") + 
+  # ylab("PC2 (15.7%)") +
   scale_color_manual(values = c("1" = "#5e60ce", 
                                 "2" = "#f72585", 
                                 "3" = "#56cfe1", 
@@ -297,10 +302,10 @@ pca_plot_knn_condition_lab = autoplot(pca_res,
                   box.padding = 0.3,
                   size = 2) 
 
-ggsave(pca_plot_knn_condition_lab, file = paste0(filename, "_KNN_Clustered_labels.png"), width = 7, height = 5)
+ggsave(pca_plot_knn_condition_lab, file = paste0(filename, pcas, "_KNN_Clustered_labels.png"), width = 7, height = 5)
 
 
-# Clusters, with density plot
+# Clusters, with density plot ------
 
 pca_plot_knn_cluster = autoplot(pca_res, 
         data = ann_vaccines_pca_matrix, 
@@ -312,8 +317,8 @@ pca_plot_knn_cluster = autoplot(pca_res,
                size = 0.3,
                type = "t") +
   labs(title=paste0(filename, "_bycondition")) + 
-  xlab("PC1 (66.8%)") + 
-  ylab("PC2 (15.7%)") +
+  # xlab("PC1 (66.8%)") + 
+  # ylab("PC2 (15.7%)") +
   scale_color_manual(values = c("1" = "#5e60ce", 
                                 "2" = "#f72585", 
                                 "3" = "#56cfe1", 
@@ -335,7 +340,96 @@ pca_plot_knn_cluster = autoplot(pca_res,
 
 pca_plot_knn_cluster_marginal = ggMarginal(pca_plot_knn_cluster, type = "histogram", groupFill = T, groupColour = T, xparams = list(binwidth = 0.1, size = 0.1), yparams = list(binwidth = 0.1, size = 0.1))
 
-ggsave(pca_plot_knn_cluster_marginal, file = paste0(filename, "_KNN_Clustered_labels_Density.png"), width = 8, height = 5)
+ggsave(pca_plot_knn_cluster_marginal, file = paste0(filename, pcas, "_KNN_Clustered_labels_Density.png"), width = 8, height = 5)
+
+
+
+# PC2-PC3 ------
+#Determinar o número de clusters para KNN
+pca_scores <- data.frame(pca_res$x[, 2:3])
+pcas = "PC2-PC3"
+fviz_nbclust(pca_scores,  
+                     FUNcluster = kmeans,
+                     method = "wss")
+
+set.seed(666)                             # Set seed for randomization
+cluster_model <- kmeans(pca_res$x[, 2:3], centers = 4)  # Ajuste o número de clusters conforme necessário
+ann_vaccines_pca_matrix$cluster <- as.factor(cluster_model$cluster)
+
+
+# Condition -------
+pca_plot_knn_condition_lab = autoplot(pca_res, 
+        data = ann_vaccines_pca_matrix, 
+        colour = 'condition')  +
+  stat_ellipse(aes(color = cluster, fill = cluster), 
+               geom = "polygon", 
+               alpha = 0.1, 
+               linetype = 1,
+               size = 0.3,
+               type = "t") +
+  labs(title=paste0(filename, "_bycondition")) + 
+  # xlab("PC1 (66.8%)") + 
+  # ylab("PC2 (15.7%)") +
+  scale_color_manual(values = c("1" = "#5e60ce", 
+                                "2" = "#f72585", 
+                                "3" = "#56cfe1", 
+                                "4" = "#b5e48c", 
+                                "5" = "#ff8c42", 
+                                condition_col)) +  # Ellipse line colors
+  scale_fill_manual(values = c("1" = "#5e60ce", 
+                                "2" = "#f72585", 
+                                "3" = "#56cfe1", 
+                                "4" = "#b5e48c", 
+                                "5" = "#ff8c42")) +  # Cluster fill colors
+  theme_minimal() +
+  guides(col="none") +
+  theme(panel.grid = element_blank()) +
+  geom_text_repel(aes(label = condition,
+                      segment.colour="gray70"),
+                  box.padding = 0.3,
+                  size = 2) 
+
+ggsave(pca_plot_knn_condition_lab, file = paste0(filename, pcas, "_KNN_Clustered_labels_PC2_PC3.png"), width = 7, height = 5)
+
+
+# Clusters, with density plot ------
+
+pca_plot_knn_cluster = autoplot(pca_res, 
+        data = ann_vaccines_pca_matrix, 
+        colour = 'cluster')  +
+  stat_ellipse(aes(color = cluster, fill = cluster), 
+               geom = "polygon", 
+               alpha = 0.1, 
+               linetype = 1,
+               size = 0.3,
+               type = "t") +
+  labs(title=paste0(filename, "_bycondition")) + 
+  # xlab("PC1 (66.8%)") + 
+  # ylab("PC2 (15.7%)") +
+  scale_color_manual(values = c("1" = "#5e60ce", 
+                                "2" = "#f72585", 
+                                "3" = "#56cfe1", 
+                                "4" = "#b5e48c", 
+                                "5" = "#ff8c42", 
+                                condition_col)) +  # Ellipse line colors
+  scale_fill_manual(values = c("1" = "#5e60ce", 
+                                "2" = "#f72585", 
+                                "3" = "#56cfe1", 
+                                "4" = "#b5e48c", 
+                                "5" = "#ff8c42")) +  # Cluster fill colors
+  theme_minimal() +
+  guides(col="none") +
+  theme(panel.grid = element_blank()) +
+  geom_text_repel(aes(label = condition,
+                      segment.colour="gray70"),
+                  box.padding = 0.3,
+                  size = 2) 
+
+pca_plot_knn_cluster_marginal = ggMarginal(pca_plot_knn_cluster, type = "histogram", groupFill = T, groupColour = T, xparams = list(binwidth = 0.1, size = 0.1), yparams = list(binwidth = 0.1, size = 0.1))
+
+ggsave(pca_plot_knn_cluster_marginal, file = paste0(filename, pcas, "_KNN_Clustered_labels_Density.png"), width = 8, height = 5)
+
+
 
 ```
 
@@ -361,10 +455,21 @@ PC2 = var$cos2 %>%
   distinct() %>% 
   select(genes, Dim.2)
 
-data_2 =  PC1 %>% 
+
+PC3 = var$cos2 %>%
+  as.data.frame() %>%
+  arrange(desc(Dim.3)) %>%
+  slice_head(n = 20) %>%
+  rownames_to_column("genes") %>% 
+  distinct() %>% 
+  select(genes, Dim.3)
+
+pc = "PC3"
+
+data_2 =  PC3 %>% 
   inner_join(data_genes, by = "genes")
 
-filename_2 = paste0("Immune_GO_genes_PCA_PC1", "_COVID")
+filename_2 = paste0(filename, "_PCA_",pc, "_COVID")
 
 ######## Matrix
 matrix = data_2 %>% 
@@ -758,12 +863,6 @@ ha = HeatmapAnnotation(df = ann_cols_heatmap,
                        col = ann_vaxsig_colors,
                        annotation_name_side = "right")
 
-row_ha = HeatmapAnnotation(df = ann_rows,
-                       col = col_process,
-                       which = c("row"),
-                       show_annotation_name = F,
-                       show_legend = F)
-
 # Values colors
 col_fun <- colorRamp2(c(-2, 0, 2), c("#9bc1bc", "white", "#ed6a5a"))
 
@@ -802,10 +901,10 @@ heatmap_plot = Heatmap(mat,
                         rect_gp = rect_gp,
                         na_col = "white",
                         cluster_rows = TRUE,
-                        column_split = 2,
                         row_names_gp = row_names_gp,
                         row_dend_width = unit(2, "cm"),
-                        row_split = 2,
+                        column_split = 2,
+                        row_split = NULL,
                         row_gap = unit(2, "mm"),
                         cluster_columns = TRUE,
                         column_gap = unit(8, "mm"),
