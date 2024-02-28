@@ -1822,15 +1822,13 @@ Determinar a proporção de DEGs compartilhadas entre condições diferentes e s
 
 ```{r}
 
-#Converter tabela de DEGs Up and Down em tabela longa
-degs_all_updown = degs_updown_p_05_vac_infected %>% 
+# DEGs table
+degs_all_updown = all_degs_p_05_vac_infected_19_12_23 %>% 
   filter(direction != "NEUTRAL") %>% 
   mutate_all(~ replace(., is.na(.), "NA"))
 
-#Salvar
-write.csv(degs_all_updown, file= "degs_updown_p<05_vac_infected.csv")
-
-# Tabela de dados
+# Annotation table
+immunego_genes = ImmuneGO_Annotated_Genes_26_2_24_2_ 
 
 # DOWN-UP ALL
 degs_venn_updown = degs_all_updown %>% 
@@ -1853,9 +1851,8 @@ degs_updown_nonimmune = degs_all_updown %>%
   distinct()
 
 #INPUT
-
-data = degs_updown_nonimmune 
-filename = "degs_updown_nonimmune_SharedDEGS_Venn"
+data = degs_updown_immune 
+filename = "degs_updown_immune_SharedDEGS_Venn"
 
 ```
 
@@ -1995,9 +1992,7 @@ matrix_data_ordered = matrix_data %>%
   t() %>% 
   as.data.frame() %>% 
   mutate_if(is.character, as.numeric) %>% #Converter em numéricos
-  as.matrix() #%>% 
-  #scale() #normalizar
-
+  as.matrix()
 
 matrix_data_ordered_rows = matrix_data_ordered %>% 
   as.data.frame() %>% 
@@ -2006,9 +2001,7 @@ matrix_data_ordered_rows = matrix_data_ordered %>%
   column_to_rownames(var= "condition") %>% 
   as.matrix()
 
-
-
-#Verificar se as linhas sao iguais
+#Verificar se as linhas sao iguais------
 dim(matrix_data_ordered) #Usar se for ordenar por colunas
 dim(ann_vaccines_heatmap) #Anotações sobre as colunas
 # dim(matrix_data_rows_cols_ordered) #Usar se ordenar por colunas e linhas
@@ -2093,11 +2086,9 @@ min(matrix_data_ordered_rows)
 max(matrix_data_ordered_rows)
 
 #Espectro de cores
+col_fun <- colorRamp2(c(0, 500), c("white", "#d90429")) #Immune
 
-col_fun <- colorRamp2(c(0, 100, 1000, 2000), c("white", "#f098a7","#ef233c","#d90429"))
-
-
-
+col_fun <- colorRamp2(c(0, 100, 1000, 2000), c("white", "#f098a7","#ef233c","#d90429")) #Not immune
 
 ```
 
@@ -2106,7 +2097,7 @@ col_fun <- colorRamp2(c(0, 100, 1000, 2000), c("white", "#f098a7","#ef233c","#d9
 
 ######## HEATMAP ANNOTATION
 ann_vaccines_heatmap = ann_vaccines_heatmap %>% 
-  select(type, infection, vaccine, dose, week, day)
+  select(type, vaccine, day)
 
 ha = HeatmapAnnotation(df = ann_vaccines_heatmap, 
                        col = ann_colors, 
@@ -2124,7 +2115,7 @@ width = unit(20, "cm")
 height = unit(20, "cm")
 column_names_gp = gpar(fontsize = 10)
 row_names_gp = gpar(fontsize = 10)
-gp = gpar(fontsize = 6)
+gp = gpar(fontsize = 7)
 rect_gp = gpar(col = "gray1", lwd = 0)
 
 
