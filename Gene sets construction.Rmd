@@ -787,23 +787,46 @@ TCR_BCR_repertoire = ImmuneGO_Annotated_Genes %>%
 TCR_BCR_repertoire_genes = TCR_BCR_repertoire %>% 
   select(genes) %>% 
   distinct()
-ImmuneGO_Annotated_GO = ImmuneGO_Annotated_Genes %>%
+
+ImmuneGO_Annotated_Genes_2 = ImmuneGO_Annotated_Genes %>% 
+  select(process:immune_tissue)
+
+ImmuneGO_Annotated_Genes_3 = ImmuneGO_Annotated_Genes_2 %>% 
+  select(process, genes) %>% 
+  distinct() %>% 
+  group_by(process) %>% 
+  summarise(set_size = n()) %>%
+  inner_join(ImmuneGO_Annotated_Genes_2, by = "process") %>% 
+  filter(go_term != "NA") %>% 
   anti_join(TCR_BCR_repertoire_genes, by = "genes") %>% 
-  bind_rows(TCR_BCR_repertoire) %>% 
+  bind_rows(TCR_BCR_repertoire %>% 
+              select(process, immune_system:go_term, genes) %>% 
+              mutate(go_term = "Manual") %>% 
+              distinct() %>% 
+              group_by(process) %>% 
+              summarise(set_size = n()) %>% 
+              inner_join(TCR_BCR_repertoire %>% select(process, immune_system:go_term, genes) %>% 
+              mutate(go_term = "Manual") %>% 
+              distinct())) %>% 
+  arrange(desc(set_size))
+
+
+ImmuneGO_Annotated_GO = ImmuneGO_Annotated_Genes_3 %>%
   group_by(process) %>%
   summarize(genes = paste(genes, collapse = ",")) %>% 
-  left_join(ImmuneGO_Annotated_unique %>% select(-genes) %>% distinct(), by = "process") %>% 
+  left_join(ImmuneGO_Annotated_Genes_3 %>% select(-genes) %>% distinct(), by = "process") %>% 
   arrange(desc(set_size)) %>% 
-  distinct()
+  distinct() %>% 
+  mutate(gene_set_short = if_else(is.na(gene_set_short), process, gene_set_short))
 
-ImmuneGO_Annotated_Genes <- ImmuneGO_Annotated_GO %>%
-  separate_rows(genes, sep = ",")
 
-ImmuneGO_Annotated_Genes %>% select(genes) %>% distinct()
+ImmuneGO_Annotated_Genes = ImmuneGO_Annotated_GO %>% 
+   separate_rows(genes, sep = ",")
+
 
 #Salvar
-write.csv(ImmuneGO_Annotated_GO, file = "ImmuneGO_Annotated_GO_26-2-24_2.csv", row.names = F)
-write.csv(ImmuneGO_Annotated_Genes, file = "ImmuneGO_Annotated_Genes_26-2-24_2..csv", row.names = F)
+write.csv(ImmuneGO_Annotated_GO, file = "ImmuneGO_Annotated_GO_28-2-24_2.csv", row.names = F)
+write.csv(ImmuneGO_Annotated_Genes, file = "ImmuneGO_Annotated_Genes_28-2-24.csv", row.names = F)
 
 #Display
 view(ImmuneGO_Annotated_GO)

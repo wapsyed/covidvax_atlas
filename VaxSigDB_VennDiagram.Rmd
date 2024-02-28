@@ -2005,20 +2005,17 @@ dev.off()
 ```{r}
 # Input files
 
-immunego = immunego_genes
-
-immunego = ImmuneGO_Annotated_GO_26_2_24_ %>% 
-  select(-"...1") %>% 
-  mutate(genes = str_split(genes, ",")) %>%
-  unnest(genes)
+immunego = ImmuneGO_Annotated_Genes
 
 degs_updown_p_05_vac_infected = all_degs_p_05_vac_infected_19_12_23
 
-VAX_Genes_Annotated_RAW = VAX_Genes_Annotated_RAW %>% 
+VAX_Genes_Annotated_RAW_2 = VAX_Genes_Annotated_RAW
+
+VAX_Genes_Annotated_RAW_3 = VAX_Genes_Annotated_RAW_2 %>% 
   clean_names() %>% 
-  select(-x1) %>% 
-  filter(study_type == "VACCINE") %>% 
-  mutate(condition = paste0(vaccine, " (", date_time, ")"))
+  filter(study_subtype == "VAC ONLY") %>% 
+  mutate(condition = paste0(vaccine, " (", date_time, ")")) %>% 
+  select(condition, everything())
 
 ```
 
@@ -2044,11 +2041,11 @@ degs_all_updown_covid_other = bind_rows(degs_all_updown_vax, degs_all_updown_cov
   distinct()
 
 degs_all_updown_covid_other_immune = degs_all_updown_covid_other %>% 
-  inner_join(ImmuneGO_genes, by = "genes") %>% 
+  inner_join(immunego, by = "genes") %>% 
   distinct()
 
 degs_all_updown_covid_other_nonimmune = degs_all_updown_covid_other %>% 
-  anti_join(ImmuneGO_genes, by = "genes") %>% 
+  anti_join(immunego, by = "genes") %>% 
   distinct()
 
 write.csv(degs_all_updown_covid_other, file = "degs_all_updown_covid_vax_other.csv")
@@ -2057,7 +2054,7 @@ write.csv(degs_all_updown_covid_other_nonimmune, file = "degs_all_updown_covid_v
 
 
 #Input
-data = degs_all_updown_covid_vax_other_immune %>% 
+data = degs_all_updown_covid_other_immune %>% 
   rename(geneset = condition) %>% 
   select(geneset, genes)
 
@@ -2147,24 +2144,25 @@ VACCINE
 #Use "vax_degs_up_VAXSigDB_sharedgenes_ann.csv" for comparing UP degs with UP degs from other conditions
 
 #VAC ONLY
-shared_genes_ann_vac = shared_genes_df_mirror %>%
+
+shared_genes_ann_vac = shared_genes_df_mirror %>% 
+  inner_join(ann_vaccines_covid_other %>% 
+               select(Cond1 = condition, everything()), by = "Cond1") %>% 
+  anti_join(ann_vaccines_19_1_24 %>% 
+               select(Cond2 = condition, everything()), by = "Cond2")
+
+
+shared_genes_ann_vac = shared_genes_ann_vac %>%
   select(vaccine.y, vaccine.x, Cond2:sample_source, pmid, gene_symbols:previous_vaccination) %>%
   filter(study_type == "VACCINE", 
          sample_source == "PBMC")
-
-
-shared_genes_ann_vac = shared_genes_df_mirror %>% 
-  inner_join(ann_vaccines_19_1_24 %>% 
-               select(Cond1 = condition), by = "Cond1") %>% 
-  anti_join(ann_vaccines_19_1_24 %>% 
-               select(Cond2 = condition), by = "Cond2")
 
 ```
 
 
 ```{r}
 vac_only_up = shared_genes_ann_vac %>%
-  filter(study_subtype == "VAC ONLY",
+  filter(study_subtype == "VAC ONLY")
 
 # Anotar e organizar
 shared_genes_df_mirror_ann = shared_genes_df_mirror %>% 
