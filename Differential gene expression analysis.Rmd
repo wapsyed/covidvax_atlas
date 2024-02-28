@@ -1851,14 +1851,14 @@ degs_updown_nonimmune = degs_all_updown %>%
   distinct()
 
 #INPUT
-data = degs_updown_immune 
-filename = "degs_updown_immune_SharedDEGS_Venn"
+data = degs_updown_nonimmune 
+filename = "degs_updown_nonimmune_SharedDEGS_Venn"
 
 ```
 
 
 ```{r}
-# Função para calcular a sobreposição entre pares de vacinas e a porcentagem de genes compartilhados
+# Função para calcular a sobreposição entre pares de vacinas e a porcentagem de genes compartilhados ----
 overlap_genes <- function(cond1, cond2, data) {
   genes_cond1 <- data$genes[data$condition == cond1] #Trocar coluna
   genes_cond2 <- data$genes[data$condition == cond2] #Trocar coluna
@@ -2115,7 +2115,7 @@ width = unit(20, "cm")
 height = unit(20, "cm")
 column_names_gp = gpar(fontsize = 10)
 row_names_gp = gpar(fontsize = 10)
-gp = gpar(fontsize = 7)
+gp = gpar(fontsize = 5)
 rect_gp = gpar(col = "gray1", lwd = 0)
 
 
