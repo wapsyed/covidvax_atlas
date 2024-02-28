@@ -464,9 +464,17 @@ PC3 = var$cos2 %>%
   distinct() %>% 
   select(genes, Dim.3)
 
-pc = "PC3"
+PC4 = var$cos2 %>%
+  as.data.frame() %>%
+  arrange(desc(Dim.4)) %>%
+  slice_head(n = 20) %>%
+  rownames_to_column("genes") %>% 
+  distinct() %>% 
+  select(genes, Dim.4)
 
-data_2 =  PC3 %>% 
+pc = "PC4"
+
+data_2 =  PC4 %>% 
   inner_join(data_genes, by = "genes")
 
 filename_2 = paste0(filename, "_PCA_",pc, "_COVID")
