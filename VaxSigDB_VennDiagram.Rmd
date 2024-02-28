@@ -2013,7 +2013,8 @@ VAX_Genes_Annotated_RAW_2 = VAX_Genes_Annotated_RAW
 
 VAX_Genes_Annotated_RAW_3 = VAX_Genes_Annotated_RAW_2 %>% 
   clean_names() %>% 
-  filter(study_subtype == "VAC ONLY") %>% 
+  filter(study_subtype == "VAC ONLY",
+         sample_source == "PBMC") %>% 
   mutate(condition = paste0(vaccine, " (", date_time, ")")) %>% 
   select(condition, everything())
 
@@ -2021,7 +2022,7 @@ VAX_Genes_Annotated_RAW_3 = VAX_Genes_Annotated_RAW_2 %>%
 
 
 ```{r}
-degs_all_updown_vax = VAX_Genes_Annotated_RAW %>%
+degs_all_updown_vax = VAX_Genes_Annotated_RAW_3 %>%
   clean_names() %>% 
   mutate(condition = paste0(vaccine, " (", date_time, ")")) %>% 
   select(condition, genes = gene) %>% 
