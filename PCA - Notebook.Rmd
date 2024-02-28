@@ -94,6 +94,7 @@ ann_vaccines_pca_matrix_ready = ann_vaccines_pca_matrix %>%
 # Verifique colunas com variancia baixa
 nearZeroVarCols <- nearZeroVar(ann_vaccines_pca_matrix_ready, saveMetrics = TRUE)
 ann_vaccines_pca_matrix_ready <- ann_vaccines_pca_matrix_ready[, !nearZeroVarCols$nzv]
+
 pca_res <- prcomp(ann_vaccines_pca_matrix_ready, scale. = T)
 
 ########Correlation plot
@@ -472,9 +473,9 @@ PC4 = var$cos2 %>%
   distinct() %>% 
   select(genes, Dim.4)
 
-pc = "PC4"
+pc = "PC1"
 
-data_2 =  PC4 %>% 
+data_2 =  PC1 %>% 
   inner_join(data_genes, by = "genes")
 
 filename_2 = paste0(filename, "_PCA_",pc, "_COVID")
@@ -912,7 +913,7 @@ heatmap_plot = Heatmap(mat,
                         row_names_gp = row_names_gp,
                         row_dend_width = unit(2, "cm"),
                         column_split = 2,
-                        row_split = NULL,
+                        row_split = 2,
                         row_gap = unit(2, "mm"),
                         cluster_columns = TRUE,
                         column_gap = unit(8, "mm"),
