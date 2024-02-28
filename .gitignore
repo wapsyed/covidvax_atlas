@@ -1,9 +1,4 @@
 *.html
-Figures/
 .Rproj.user/
-Data.RData
-Data.RData
 *.RData
-*.RData
-Data.RData
-*.RData
+
