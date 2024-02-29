@@ -31,10 +31,7 @@ library(ggExtra)
 
 
 
-### By genes
-
-
-Processar dados
+### Process data
 ```{r}
 ImmuneGO_Annotated_Genes_all= ImmuneGO_Annotated_Genes
 
@@ -62,8 +59,8 @@ nonImmuneGO_Genes = all_degs_p_05_vac_infected_19_12_23 %>%
 
 ```{r}
 #INPUT
-data_genes = nonImmuneGO_Genes 
-filename = "nonImmuneGO_Genes"
+data_genes = ImmuneGO_Genes 
+filename = "ImmuneGO_Genes"
 
 data_annotation = ann_vaccines %>% 
   mutate(day = as.factor(day),
@@ -473,9 +470,11 @@ PC4 = var$cos2 %>%
   distinct() %>% 
   select(genes, Dim.4)
 
-pc = "PC1"
+pc = "PC2"
 
-data_2 =  PC1 %>% 
+ann_genes = ImmuneGO_Annotated_Genes
+
+data_2 =  PC2 %>% 
   inner_join(data_genes, by = "genes")
 
 filename_2 = paste0(filename, "_PCA_",pc, "_COVID")
@@ -527,7 +526,7 @@ matrix_data = matrix %>%
 ann_rows = matrix_data %>%
   as.data.frame() %>%
   rownames_to_column("genes") %>%
-  inner_join(ImmuneGO_Annotated_Genes, by = "genes") %>% 
+  inner_join(ann_genes, by = "genes") %>% 
   filter(go_term == "Manual") %>%
   select(genes, process) %>%
   distinct() %>%
@@ -554,7 +553,7 @@ dim(ann_cols_heatmap)
 
 ```
 
-Colors
+### Colors
 
 ```{r}
 ################## Colors
@@ -872,6 +871,12 @@ ha = HeatmapAnnotation(df = ann_cols_heatmap,
                        col = ann_vaxsig_colors,
                        annotation_name_side = "right")
 
+row_ha = HeatmapAnnotation(df = ann_rows, 
+                            which = "row",
+                       col = col_process,
+                       show_annotation_name = F,
+                       show_legend = F)
+
 # Values colors
 col_fun <- colorRamp2(c(-2, 0, 2), c("#9bc1bc", "white", "#ed6a5a"))
 
@@ -897,6 +902,7 @@ png(file = fileimageheatmap_grouped,
 
 heatmap_plot = Heatmap(mat,
                         top_annotation = ha,
+                        left_annotation = row_ha,
                         show_row_names = TRUE,
                         row_names_side = "right",
                         show_heatmap_legend = TRUE,

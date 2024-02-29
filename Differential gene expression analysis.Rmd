@@ -2528,7 +2528,58 @@ go_bp = AnnotationDbi::select(GO.db, columns=c("GOID","TERM"), keys="BP", keytyp
   left_join(go_bp_ancestor, by = "go_id") %>% 
   distinct()
 
-# DEGs to Entrez and GO ids
+#Filter main GO BP terms
+go_bp_main = go_bp %>%
+  filter(go_ancestor %in% c(
+      "GO:0040011",
+      "GO:0043473",
+      "GO:0044419",
+      "GO:0009987",
+      "GO:0048518",
+      "GO:0050789",
+      "GO:0065007",
+      "GO:0048511",
+      "GO:0022414",
+      "GO:0002376",
+      "GO:0008152")) %>% 
+  filter(str_detect(term_ancestor, "cellular process|biological process involved in interspecies interaction between organisms|regulation of biological process|immune system process|No annotation|Not mapped|metabolic process"),
+         !term_ancestor == "positive regulation of biological process") %>% 
+  mutate(term_ancestor = case_when(
+           term_ancestor == "biological process involved in interspecies interaction between organisms" ~ "Interspecies interaction",
+           term_ancestor == "biological regulation" ~ "Biological reg.",
+           term_ancestor == "cellular process" ~ "Cellular",
+           term_ancestor == "immune system process" ~ "Immune system",
+           term_ancestor == "regulation of biological process" ~ "Reg. of BP",
+           term_ancestor == "locomotion" ~ "Locomotion",
+           term_ancestor == "metabolic process" ~ "Metabolism",
+           TRUE ~ term_ancestor))
+
+#Add set size column
+go_bp_main = go_bp_main %>% 
+  group_by(term_ancestor) %>% 
+  summarise(set_size = n()) %>% 
+  inner_join(go_bp_main)
+  
+
+go_bp_main_comma = go_bp_main %>% 
+  group_by(term_ancestor) %>% 
+  summarize(genes = paste0(genes, collapse = ",")) %>% 
+  inner_join(go_bp_main, by = "term_ancestor") %>% 
+  select()
+
+write.csv(go_bp_main, file = "OtherGOs_Annotated_Genes.csv", row.names = F)
+
+go_bp_main_comma = go_bp_main %>% 
+  group_by(term_ancestor) %>% 
+  summarize(genes = paste0(genes, collapse = ",")) %>% 
+  inner_join(go_bp_main, by = "term_ancestor")
+
+
+```
+
+
+```{r}
+# DEGs to Entrez and GO ids --------
 degs_GO = all_degs_p_05_vac_infected_29_11_23 %>% 
   filter(direction != "NEUTRAL") %>% 
   select(condition, genes, direction) %>% 
@@ -2543,7 +2594,7 @@ degs_GO = all_degs_p_05_vac_infected_29_11_23 %>%
   filter(ontology %in% c("BP", "Not mapped")) %>% 
   select(-evidence) 
 
-# Collapse gene column 
+# Collapse gene column --------
 degs_GO_comma = degs_GO %>% 
   select(-term_ancestor, -go_ancestor) %>% 
   distinct() %>% 
@@ -2554,7 +2605,7 @@ degs_GO_comma = degs_GO %>%
 write.csv(degs_GO_comma, file = "degs_annotated_allGOs.csv", row.names = F) #Save
 
 
-#Main GO BPs
+#DEGs annotated by Main GO BPs ------
 
 main_go = degs_GO %>%
   filter(go_ancestor %in% c(
@@ -2600,8 +2651,12 @@ main_go_2 = degs_GO %>%
          direction = fct_relevel(direction, "UP", "DOWN")) %>% 
   inner_join(ann_vaccines_19_1_24 %>% select(condition, type, disease_vac), by = "condition")
   
-
 write.csv(main_go_2, file = "degs_annotated_mainGOs_stats.csv", row.names = F)
+
+
+
+
+
 ```
 
 
