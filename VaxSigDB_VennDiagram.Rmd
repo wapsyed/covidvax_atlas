@@ -3437,14 +3437,18 @@ dev.off()
 
 
 ```{r}
-stats_1 = covid_other_immunego_genes %>% 
+stats_1 = degs_all_updown_covid_other_immune %>% 
   inner_join(ann_vaccines_covid_other, by = "condition") %>% 
   group_by(genes, covid_other) %>% 
   summarise(n_conditions = n()) %>% 
   filter(all(c("COVID", "OTHER") %in% covid_other)) %>% 
   arrange(desc(n_conditions), genes) %>% 
-  ungroup()
-
+  group_by(genes) %>% 
+  pivot_wider(., names_from = "covid_other", values_from = n_conditions) %>% 
+  arrange(desc(OTHER)) %>% 
+  ungroup() %>% 
+  slice_head(n = 50) %>% 
+  pivot_longer(-genes, names_to = "covid_other", values_to = "n_conditions")
 
 ggplot_stats1 = ggplot(stats_1) +
   aes(x = reorder(genes, n_conditions), fill = covid_other, weight = n_conditions) +
@@ -3459,8 +3463,8 @@ ggplot_stats1 = ggplot(stats_1) +
   xlab("Genes") + 
   ylab("Number of shared conditions") +
   theme(legend.position = "right",
-        axis.text.x = element_text(angle = 45, vjust = 1.5, hjust=1, size = 8),
-        axis.text.y = element_text(size = 7, angle = 0),
+        axis.text.x = element_text(vjust = 1.5, hjust=1, size = 12),
+        axis.text.y = element_text(size = 12, angle = 0, color = "black"),
         panel.grid.minor.y = element_blank(),
         legend.text = element_text(size=12),
         legend.title = element_text(size = 12, face = "bold")) +
@@ -3473,9 +3477,7 @@ ggplot_stats1 = ggplot(stats_1) +
   ggtitle("Genes shared") +
   coord_flip()
 
-ggsave(ggplot_stats1, file = "Covid_Vax_genes_shared_column.png", width = 10, height = 20)
-
-
+ggsave(ggplot_stats1, file = "Covid_Vax_genes_shared_column.png", width = 10, height = 10)
 
 
 stats_2 = matrix_data %>%
