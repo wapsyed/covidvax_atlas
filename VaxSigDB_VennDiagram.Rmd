@@ -2005,7 +2005,7 @@ dev.off()
 ```{r}
 # Input files ------
 
-immunego = ImmuneGO_Annotated_Genes # ImmuneGO Annotation
+immunego = ImmuneGO_Annotated_Genes_28_2_24 # ImmuneGO Annotation
 degs_updown_p_05_vac_infected = all_degs_p_05_vac_infected_19_12_23 # DEGs
 ann_vaccines_covid_other = ann_vaccines_vaxsig_covid #Conditions annotation
 VAX_Genes_Annotated_RAW_2 = VAX_Genes_Annotated_RAW # VAX MSigDB DEGs 
@@ -2047,14 +2047,16 @@ degs_all_updown_covid_other_nonimmune = degs_all_updown_covid_other %>%
 write.csv(degs_all_updown_covid_other, file = "degs_all_updown_covid_vax_other.csv")
 write.csv(degs_all_updown_covid_other_immune, file = "degs_all_updown_covid_vax_other_immune.csv")
 write.csv(degs_all_updown_covid_other_nonimmune, file = "degs_all_updown_covid_vax_other_nonimmune.csv")
+```
 
 
+```{r}
 #Input
-data = degs_all_updown_covid_other_immune %>% 
+data = degs_all_updown_covid_other_nonimmune %>% 
   rename(geneset = condition) %>% 
   select(geneset, genes)
 
-filename = "degs_all_updown_covid_other_immune"
+filename = "degs_all_updown_covid_other_nonimmune"
   
 ```
 
@@ -2113,7 +2115,8 @@ shared_genes_df$pvalue <- mapply(fisher_exact_test,
                                     shared_genes_df$NotShared_cond2)
 
 shared_genes_df <- shared_genes_df %>%
-  mutate(qvalue = qvalue(pvalue)$qvalues)
+  filter(pvalue < 1) %>% 
+  mutate(qvalue = qvalue(pvalue)$pvalue)
 
 #Duplicar e trocar colunas (Vacina 1 e Vacina 2)
 shared_genes_df2 = shared_genes_df
@@ -2433,7 +2436,7 @@ row_ha = rowAnnotation(df =  ann_rows_heatmap,
                        col = ann_vaxsig_colors)
 
 # Values colors
-col_fun <- colorRamp2(c(0, 60), c("white", "#ed6a5a"))
+col_fun <- colorRamp2(c(0, 200), c("white", "#ed6a5a"))
 
 
 mat = matrix_data
@@ -2859,8 +2862,6 @@ VAX_Genes_Annotated_RAW = VAX_Genes_Annotated_RAW %>%
   clean_names() %>% 
   mutate(condition = paste0(vaccine, " (", date_time, ")"))
 
-ann_vaccines_covid_other = COVID_VAX_Annotation
-
 degs_all_updown_vax_immunego = VAX_Genes_Annotated_RAW %>%
   clean_names() %>% 
   mutate(condition = paste0(vaccine, " (", date_time, ")")) %>% 
@@ -2873,7 +2874,7 @@ degs_all_updown_covid = degs_all_updown %>%
   as.data.frame() %>% 
   select(condition:direction) %>% 
   inner_join(ann_vaccines, by = "condition") %>% 
-  inner_join(immunego_genes, by = "genes") %>% 
+  inner_join(ImmuneGO_Annotated_Genes %>% select(genes) %>% distinct(), by = "genes") %>% 
   distinct() %>% 
   filter(vaccine != "I", 
          gse_id != "GSE189039") %>% 
