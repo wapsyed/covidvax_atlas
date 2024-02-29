@@ -2003,14 +2003,15 @@ dev.off()
 
 ### VENN DIAGRAM
 ```{r}
-# Input files
+# Input files ------
 
-immunego = ImmuneGO_Annotated_Genes
+immunego = ImmuneGO_Annotated_Genes # ImmuneGO Annotation
+degs_updown_p_05_vac_infected = all_degs_p_05_vac_infected_19_12_23 # DEGs
+ann_vaccines_covid_other = ann_vaccines_vaxsig_covid #Conditions annotation
+VAX_Genes_Annotated_RAW_2 = VAX_Genes_Annotated_RAW # VAX MSigDB DEGs 
 
-degs_updown_p_05_vac_infected = all_degs_p_05_vac_infected_19_12_23
 
-VAX_Genes_Annotated_RAW_2 = VAX_Genes_Annotated_RAW
-
+# Processing
 VAX_Genes_Annotated_RAW_3 = VAX_Genes_Annotated_RAW_2 %>% 
   clean_names() %>% 
   filter(study_subtype == "VAC ONLY",
@@ -2018,10 +2019,6 @@ VAX_Genes_Annotated_RAW_3 = VAX_Genes_Annotated_RAW_2 %>%
   mutate(condition = paste0(vaccine, " (", date_time, ")")) %>% 
   select(condition, everything())
 
-```
-
-
-```{r}
 degs_all_updown_vax = VAX_Genes_Annotated_RAW_3 %>%
   clean_names() %>% 
   mutate(condition = paste0(vaccine, " (", date_time, ")")) %>% 
@@ -2036,17 +2033,15 @@ degs_all_updown_covid= degs_updown_p_05_vac_infected %>%
   distinct() %>% 
   select(condition, genes)
 
-ann_vaccines_covid_other = ann_vaccines_vaxsig_covid
-
 degs_all_updown_covid_other = bind_rows(degs_all_updown_vax, degs_all_updown_covid) %>% 
   distinct()
 
 degs_all_updown_covid_other_immune = degs_all_updown_covid_other %>% 
-  inner_join(immunego, by = "genes") %>% 
+  inner_join(immunego %>% select(genes) %>% distinct(), by = "genes") %>% 
   distinct()
 
 degs_all_updown_covid_other_nonimmune = degs_all_updown_covid_other %>% 
-  anti_join(immunego, by = "genes") %>% 
+  anti_join(immunego %>% select(genes) %>% distinct(), by = "genes") %>% 
   distinct()
 
 write.csv(degs_all_updown_covid_other, file = "degs_all_updown_covid_vax_other.csv")
@@ -2059,7 +2054,7 @@ data = degs_all_updown_covid_other_immune %>%
   rename(geneset = condition) %>% 
   select(geneset, genes)
 
-filename_1 = "degs_all_updown_covid_other_immune"
+filename = "degs_all_updown_covid_other_immune"
   
 ```
 
@@ -2133,31 +2128,12 @@ shared_genes_df_mirror = shared_genes_df_mirror %>%
          Percentage_Shared_Cond2 = round(Percentage_Shared_Cond2, 2))
 
 #Salvar resultados
-write.csv(shared_genes_df_mirror, file = paste0(filename_1, "_shared.csv"))
+write.csv(shared_genes_df_mirror, file = paste0(filename, "_shared.csv"))
 
 ```
 
 
-
-VACCINE
-```{r}
-############# VACCINE
-#Use "vax_degs_up_VAXSigDB_sharedgenes_ann.csv" for comparing UP degs with UP degs from other conditions
-
-#VAC ONLY
-
-shared_genes_ann_vac = shared_genes_df_mirror %>% 
-  inner_join(ann_vaccines_covid_other %>% 
-               select(Cond1 = condition, everything()), by = "Cond1") %>% 
-  anti_join(ann_vaccines_19_1_24 %>% 
-               select(Cond2 = condition, everything()), by = "Cond2")
-
-```
-
-
-
-
-VACCINE
+Other comparisons (didn't do)
 ```{r}
 ############# VACCINE
 #Use "vax_degs_up_VAXSigDB_sharedgenes_ann.csv" for comparing UP degs with UP degs from other conditions
@@ -2252,14 +2228,18 @@ corr_cell_negative = shared_genes_ann_corr %>%
 
 Heatmap
 ```{r}
-####### INPUT
-data_2 = shared_genes_ann_vac %>% clean_names()
+# INPUT ------
+data = shared_genes_df_mirror %>% 
+  filter(qvalue <0.25) %>% 
+  inner_join(ann_vaccines_covid_other %>% 
+               select(Cond1 = condition, everything()), by = "Cond1") %>% 
+  inner_join(ann_vaccines_19_1_24 %>% 
+               select(Cond2 = condition, everything()), by = "Cond2") %>% 
+  clean_names() %>% 
+  rename(vac_ref = cond1, vac_condition = cond2)
 
-filename_2 = "shared_genes_ann_vac_allDEGS"
-
-
-######## Matrix
-matrix = data_2 %>%
+# Matrix ------
+matrix = data %>%
   filter(qvalue <= 0.25) %>% 
   select(vac_condition, vac_ref, shared) %>% 
   pivot_wider(names_from = vac_condition, values_from = shared, values_fn = mean) %>% 
@@ -2268,91 +2248,62 @@ matrix = data_2 %>%
   as.matrix() %>%
   round(0)
 
-######## Annotations
+# Annotations -------
 ann_vaccines_covid = ann_vaccines_covid_other %>% 
   filter(covid_other == "COVID")
+
 ann_vaccines_other = ann_vaccines_covid_other %>% 
   filter(covid_other == "OTHER")
-```
 
+# Columns
 
-```{r}
-#Columns
-ann_cols_heatmap = matrix %>% 
-  colnames() %>% 
-  data.frame() %>% 
-  filter(. != "condition") %>% 
-  rename(condition = '.') %>% 
-  inner_join(ann_vaccines_covid, by = "condition") %>% 
-  arrange(condition) %>% #Ordenar linhas para visualização
-  select(condition, vaccine, type, regimen, dose, week, day_total) %>% #ordenar colunas para anotação
-  distinct() %>% 
-  mutate_all(as.factor)
-
-matrix_data = matrix %>% 
-  t() %>% 
-  as.data.frame() %>% 
-  rownames_to_column(var = "condition") %>% 
-  inner_join(ann_cols_heatmap, by = "condition") %>% 
-  arrange(condition)
-  
-ann_vaccines_reference = data_2 %>% 
-  select(vac_ref, platform, target_pathogen_disease, microbe_type, date, time, age_category) %>% 
-  distinct()
-
-#Columns
 ann_cols_heatmap = matrix %>% 
   colnames() %>% 
   data.frame() %>% 
   filter(. != "process") %>% 
   rename(vac_condition = '.') %>% 
-  merge(ann_vaccines_condition, by.x = "vac_condition", by.y = "condition", all.y = F) %>% 
-  select(vac_condition, vaccine, type, dose, day, variant, severity) %>% #ordenar colunas para anotação
+  merge(ann_vaccines_covid, by.x = "vac_condition", by.y = "condition", all.y = F) %>% 
+  select(vac_condition, type, vaccine, week) %>% #ordenar colunas para anotação
   distinct() %>% 
-  column_to_rownames(var= "vac_condition") %>% 
+  column_to_rownames(var = "vac_condition") %>% 
   mutate_all(as.factor)
 
-matrix_data = matrix %>% 
-  t() %>% 
-  as.data.frame() %>% 
-  rownames_to_column(var= "condition") %>% 
-  merge(ann_vaccines_condition, by.y = "condition", all = F) %>% 
-  arrange(dose) %>% 
-  select(!c(vaccine:previous_vaccination)) %>% 
-  column_to_rownames("condition") %>% 
-  t() %>% 
-  as.data.frame()%>%  
-  mutate_if(is.character, as.numeric) %>%
-  replace(is.na(.), 0) %>% 
-  as.matrix()
-
 # Rows
-ann_rows_heatmap = matrix_data %>%  
+ann_rows_heatmap = matrix %>%  
   as.data.frame() %>% 
   rownames_to_column("condition") %>% 
   distinct() %>% 
   inner_join(ann_vaccines_other, by = "condition") %>% 
-  select(-vaccine:infection) %>% 
   mutate_all(as.factor) %>%
   arrange(condition) %>%
   distinct() %>% 
   column_to_rownames(var= "condition") %>% 
   select(vaccine:infection) %>% 
-  select(microbe_type, target_pathogen_disease, type, week)
+  select(microbe_type, type, week)
 
-matrix_data_cols_rows_ordered = matrix_data %>% 
+# Arrange cols and rows in matrix
+matrix_data = matrix %>% 
+  t() %>% 
   as.data.frame() %>% 
-  rownames_to_column(var= "vac_ref") %>% 
-  inner_join(ann_rows_heatmap %>% rownames_to_column("vac_ref") %>% select(vac_ref), by = "vac_ref") %>% 
-  arrange(vac_ref) %>%
-  distinct() %>% 
-  column_to_rownames("vac_ref") %>% 
-  mutate_if(is.character, as.numeric) %>% #Converter em numéricos
+  rownames_to_column(var= "condition") %>% 
+  arrange(condition) %>% 
+  column_to_rownames("condition") %>% 
+  t() %>% 
+  as.data.frame() %>%
+  rownames_to_column("condition") %>% 
+  inner_join(ann_rows_heatmap %>% 
+               rownames_to_column("condition") %>% 
+               select(condition),
+             by = "condition") %>% 
+  arrange(condition) %>% 
+  column_to_rownames("condition") %>% 
+  mutate_if(is.character, as.numeric) %>%
   replace(is.na(.), 0) %>% 
   as.matrix()
 
+
 #Verificar dimensões do dataset
-dim(matrix_data_cols_rows_ordered)
+dim(matrix_data)
 dim(ann_rows_heatmap)
 dim(ann_cols_heatmap)
 ```
@@ -2363,14 +2314,14 @@ Colors
 
 #VAX SIG DB
 ann_vaxsig_colors = list(
-  type = c('VV' = "#72efdd",
-           'RNA' = "#56cfe1",
-           "VLP" = "#D7B0EE",
-           "LA" =  "#5e60ce",
+  type = c("VLP" = "#b5179e",
+           "LA" =  "#f72585",
            "CONJ" = "#015BA0", 
-           'SU' = "#b5179e",
-           'IN'= "#343a40", #1st Gen  vaccines
-           'I'= "#da1e37",
+           'IN'= "#76c893", #1st Gen  vaccines
+           'VV' = "#5e60ce", #3rd Gen vaccines
+           'RNA' = "#56cfe1",
+           'SU' = "#b5e48c",
+           'I'= "#f72585",
            "H" = "grey95"),
   target_pathogen_disease = c('MENINGOCOCCUS'	= "#16E0BD",
                              'PNEUMOCOCCUS'	= "#44C199",
@@ -2408,18 +2359,33 @@ ann_vaxsig_colors = list(
   month = c("1" = "#caf0f8",
             "0" = "#6CD5EA",
            "2" = "#015BA0"),
-  vaccine = c("BBIBP" = "#343a40",
-              "BNT" = "#56cfe1",
-              "ChAd" = "#5e60ce",
-              "ZF2001" = "#b5179e",
-              "MO" = "#D7B0EE",
-              "I" = "#ff4d6d",
-              "H" = "grey95"),
+  vaccine = c("BBIBP" = "#76c893",
+  "ZF2001" = "#b5e48c",
+  "BNT" = "#56cfe1",
+  "MO" = "#72ddf7",
+  "ChAd" = "#5e60ce",
+  "I" = "grey95",
+  "H" = "grey95"),
   dose = c(
             "0" = "grey95",
             "1" = "#56cfe1",
             "2" = "#5978d4",
             "3" = "#b5179e"),
+  day = c(
+          "0" = "white",
+          "1" = "#caf0f8",
+          "2" = "#ade8f4",
+          "3" = "#90e0ef",
+          "4" = "#6CD5EA",
+          "5" = "#48cae4",
+          "6" = "#00b4d8",
+          "7" = "#0096c7",
+          "10" = "#0087BF",
+          "11" = "#0087BF",
+          "14" = "#0077b6",
+          "26" = "#015BA0",
+          "28" = "#023e8a",
+          "51" = "#03045e"),
   day_total = c(
           "0" = "white",
           "1" = "#caf0f8",
@@ -2435,24 +2401,9 @@ ann_vaxsig_colors = list(
           "26" = "#015BA0",
           "28" = "#023e8a",
           "51" = "#03045e"),
-  type = c('IN'= "#343a40", #1st Gen  vaccines
-           'SU' = "#00a896",
-           'VV' = "#72efdd", #3rd Gen vaccines
-           'RNA' = "#56cfe1",
-           'SU' = "#b5179e",
-           'I'= "#da1e37",
-           "H" = "grey95"), #Infection
-  regimen = c('HO' = "grey90",
-              'HE' = "#8d99ae",
-              "V-I-V" = "#36248f",
-              "V-I" = "#D7B0EE",
-              "I-V-I" = "#7400b8",
-              "I-I" = "#5390d9",
-              "I" = "#64dfdf",
-              "H" = "grey95"),
-  infection = c("0" = "grey95",
-                "1" = "#56cfe1",
-                "2" = "#5e60ce"),
+  infection = c("0" = "#64dfdf",
+                "1" = "#f72585",
+                "2" = "#a4161a"),
   variant = c("None" = "grey95",
               "Beta" = "#72efdd",
               "Omicron" = "#5e60ce"),
@@ -2468,100 +2419,10 @@ ann_vaxsig_colors = list(
                   "V" = "#64dfdf")
   )
 
-ann_colors = list(
-  vaccine = c(
-  "BBIBP" = "#dee2e6",
-  "BNT" = "#56cfe1",
-  "ChAd" = "#5e60ce",
-  "ZF2001" = "#b5179e",
-  "MO" = "#D7B0EE",
-  "I" = "#ff4d6d",
-  "H" = "grey95"),
-  dose = c(
-    "0" = "grey95",
-    "1" = "#56cfe1",
-    "2" = "#5978d4",
-    "3" = "#b5179e"),
-  day = c(
-    "0" = "white",
-    "1" = "#caf0f8",
-    "2" = "#ade8f4",
-    "3" = "#90e0ef",
-    "4" = "#6CD5EA",
-    "5" = "#48cae4",
-    "6" = "#00b4d8",
-    "7" = "#0096c7",
-    "10" = "#0087BF",
-    "14" = "#0077b6",
-    "26" = "#015BA0",
-    "28" = "#023e8a",
-    "51" = "#03045e"),
-  type = c('IN'= "#e5e5e5", #1st Gen  vaccines
-           'VV' = "#72efdd", #3rd Gen vaccines
-           'RNA' = "#56cfe1",
-           'SU' = "#b5179e",
-           'I'= "#da1e37",
-           "H" = "grey95"), #Infection
-  regimen = c('HO' = "grey90",
-              'HE' = "#8d99ae",
-              "V-I-V" = "#36248f",
-              "V-I" = "#D7B0EE",
-              "I-V-I" = "#7400b8",
-              "I-I" = "#5390d9",
-              "I" = "#64dfdf",
-              "H" = "grey95"),
-  infection = c("0" = "grey95",
-                "1" = "#56cfe1",
-                "2" = "#5e60ce"),
-  variant = c("None" = "grey95",
-              "Beta" = "#72efdd",
-              "Omicron" = "#5e60ce"),
-  severity = c("H" = "grey95",
-               "S" = "#b5179e",
-               "MO" = "#5e60ce",
-               "MI" = "#80ffdb",
-               "NA" = "grey95"),
-  sex = c("Male" = "#56cfe1",
-          "Female" = "#b5179e",
-          "M/F" = "#5e60ce"))
+```
 
-#VAX SIG DB
-ann_vaxsig_colors = list(
-  platform = c('IN'= "#e5e5e5", 
-               'VV' = "#72efdd",
-               'RNA' = "#56cfe1",
-               "VLP" = "#D7B0EE",
-               "LA" =  "#5e60ce",
-               "CONJ" = "#015BA0", 
-               'SU' = "#b5179e"),
-  target_pathogen_disease = c('MENINGOCOCCUS'	= "#16E0BD",
-                             'PNEUMOCOCCUS'	= "#44C199",
-                             'TUBERCULOSIS'	= "#99e2b4",
-                             'F TULARENSIS'	= "#90e0ef",
-                             'LEISHMANIA'	= "#118ab2",
-                             'MALARIA' = "#3f37c9",
-                             'EBOV'	= "#d00000",
-                             'HBV'	= "#e85d04",
-                             'HBV, HAV'	= "#f48c06",
-                             'HIV'	= "#a4133c",
-                             'HPV'	= "#f27059",
-                             'INFLUENZA'	= "#ffa69e",
-                             'MEASLES'	= "#c65b7c",
-                             'MMR'	= "#f9b5ac",
-                             'SMALLPOX'	= "#ff8c42",
-                             'VEEV'	= "#e01e37",
-                             'VZV'	= "#ff9b85",
-                             'YF'	= "#f38375"),
-  microbe_type = c("VIRUS" = "#d00000",
-                   'BACTERIUM' = "#16E0BD",
-                   'PARASITE' = "#118ab2"),
-  date = c("D" = "#6CD5EA",
-           "W" = "#5e60ce",
-           "H" = "#caf0f8",
-           "M" = "#D7B0EE",
-           "ANY"= "grey95")
-  )
-
+Plot
+```{r}
 
 #Heatmap annotation
 ha = HeatmapAnnotation(df = ann_cols_heatmap, 
@@ -2572,30 +2433,26 @@ row_ha = rowAnnotation(df =  ann_rows_heatmap,
                        col = ann_vaxsig_colors)
 
 # Values colors
-col_fun <- colorRamp2(c(0, 100), c("white", "#ed6a5a"))
-```
+col_fun <- colorRamp2(c(0, 60), c("white", "#ed6a5a"))
 
 
-```{r}
-################# Plotar
-
-mat = matrix_data_cols_rows_ordered
-width_image = 30
+mat = matrix_data
+width_image = 40
 height_image = 30
-width = unit(15, "cm")
+width = unit(20, "cm")
 height = unit(15, "cm")
 column_names_gp = gpar(fontsize = 12)
 row_names_gp = gpar(fontsize = 12)
 file = paste0("VAXSig_", filename_2)
 
-fileimageheatmap_grouped = paste0(file, sep ="_", "Complexheatmap_ALL_CLUSTERED.png")
+fileimageheatmap_grouped = paste0(filename, sep ="_", "Complexheatmap_ALL_CLUSTERED.png")
 
 png(file = fileimageheatmap_grouped, 
     width = width_image, 
     height = height_image,
     units="cm", res=900)
 
-heatmap_plot = Heatmap(matrix_data_cols_rows_ordered,
+heatmap_plot = Heatmap(mat,
                         top_annotation = ha,
                         left_annotation = row_ha,
                         show_row_names = TRUE,
@@ -2604,10 +2461,10 @@ heatmap_plot = Heatmap(matrix_data_cols_rows_ordered,
                         heatmap_legend_param = list(direction = "horizontal"),
                         col = col_fun, #color
                        cell_fun = function(j, i, x, y, width, height, fill) {
-                                            if(matrix_data_cols_rows_ordered[i, j] > 0)
-                                            grid.text(sprintf("%.f", matrix_data_cols_rows_ordered[i, j]), 
+                                            if(mat[i, j] > 0)
+                                            grid.text(sprintf("%.f", mat[i, j]), 
                                                       x, y, 
-                                                      gp = gpar(fontsize = 6))},
+                                                      gp = gpar(fontsize = 8))},
                         row_title = "",
                         show_column_names = TRUE,
                         column_title = fileimageheatmap_grouped,
@@ -2655,7 +2512,7 @@ VAX_Genes_Annotated_RAW = VAX_Genes_Annotated_RAW %>%
   clean_names() %>% 
   mutate(condition = paste0(vaccine, " (", date_time, ")"))
 
-ann_vaccines_covid_other = ann_vaccines_covid_other_15_1_24
+ann_vaccines_covid_other 
 
 degs_all_updown_vax_immunego = VAX_Genes_Annotated_RAW %>%
   clean_names() %>% 
@@ -2665,18 +2522,17 @@ degs_all_updown_vax_immunego = VAX_Genes_Annotated_RAW %>%
                select(genes), by = "genes") %>% 
   distinct()
 
-degs_all_updown_covid = degs_updown_ %>% 
+degs_all_updown_covid = degs_all_updown_covid %>% 
   as.data.frame() %>% 
-  select(condition:direction_wide) %>% 
   inner_join(ann_vaccines, by = "condition") %>% 
-  inner_join(ImmuneGO_genes) %>% 
+  inner_join(immunego %>% select(genes) %>% distinct(), by = "genes") %>% 
   distinct() %>% 
   select(condition, genes)
 
 degs_all_updown_covid_other = bind_rows(degs_all_updown_vax_immunego, degs_all_updown_covid) %>% 
   distinct()
 
-Immune_GO_T2G = ImmuneGO_Annotated_Genes_8_1_24 %>% 
+Immune_GO_T2G = ImmuneGO_Annotated_Genes %>% 
   filter(go_term == "Manual",
          !process %in% c("TCR REPERTOIRE", "BCR REPERTOIRE", "ADAPTIVE IMMUNE SYSTEM", "INNATE IMMUNE SYSTEM")) %>% 
   select(process, genes)
@@ -2755,6 +2611,7 @@ view(immune_GO_ORA_covid_other)
 ```{r}
 ####### INPUT
 data_2 = immune_GO_ORA_covid_other
+  
 filename_2 = "immune_GO_ORA_covid_other"
 
 ######## Matrix
@@ -2770,27 +2627,22 @@ matrix = data_2 %>%
   round(2)
 
 ######## Annotations
-ann_vaccines_covid_other_2 = data_2 %>% 
+ann_cols = matrix %>% 
+  as.data.frame() %>% 
+  t() %>% 
+  as.data.frame() %>% 
+  rownames_to_column("condition") %>% 
+  select(condition) %>% 
   inner_join(ann_vaccines_covid_other, by = "condition") %>% 
-  select(condition, covid_other, microbe_type, target_pathogen_disease, disease_vac, type, week) %>% 
-  distinct()
-
-#Columns
-ann_cols_heatmap = matrix %>% 
-  colnames() %>% 
-  data.frame() %>% 
-  filter(. != "genes") %>% 
-  rename(condition = '.') %>% 
-  inner_join(ann_vaccines_covid_other_2, by = "condition") %>% 
+  select(condition, covid_other, microbe_type, disease_vac, type, week) %>% 
   distinct() %>% 
-  arrange(condition)
+  arrange(condition) %>% 
+  column_to_rownames("condition") 
 
 matrix_data = matrix %>% 
   t() %>% 
   as.data.frame() %>% 
   rownames_to_column(var= "condition") %>% 
-  inner_join(ann_cols_heatmap, by = "condition") %>% 
-  select(!c(covid_other:week)) %>% 
   arrange(condition) %>% 
   column_to_rownames("condition") %>% 
   t() %>% 
@@ -2799,29 +2651,24 @@ matrix_data = matrix %>%
   replace(is.na(.), 0) %>% 
   as.matrix() 
 
-ann_cols_heatmap = ann_cols_heatmap %>% 
-  column_to_rownames("condition")
-
-
 #Verificar dimensões do dataset
 dim(matrix_data)
-dim(ann_cols_heatmap)
+dim(ann_cols)
 ```
 
 
 ```{r}
-################## Colors
 
-#VAX SIG DB
+#Colors
 ann_vaxsig_colors = list(
-  type = c('VV' = "#72efdd",
-           'RNA' = "#56cfe1",
-           "VLP" = "#D7B0EE",
-           "LA" =  "#5e60ce",
+  type = c("VLP" = "#b5179e",
+           "LA" =  "#f72585",
            "CONJ" = "#015BA0", 
-           'SU' = "#b5179e",
-           'IN'= "#343a40", #1st Gen  vaccines
-           'I'= "#da1e37",
+           'IN'= "#76c893", #1st Gen  vaccines
+           'VV' = "#5e60ce", #3rd Gen vaccines
+           'RNA' = "#56cfe1",
+           'SU' = "#b5e48c",
+           'I'= "#f72585",
            "H" = "grey95"),
   target_pathogen_disease = c('MENINGOCOCCUS'	= "#16E0BD",
                              'PNEUMOCOCCUS'	= "#44C199",
@@ -2859,13 +2706,13 @@ ann_vaxsig_colors = list(
   month = c("1" = "#caf0f8",
             "0" = "#6CD5EA",
            "2" = "#015BA0"),
-  vaccine = c("BBIBP" = "#343a40",
-              "BNT" = "#56cfe1",
-              "ChAd" = "#5e60ce",
-              "ZF2001" = "#b5179e",
-              "MO" = "#D7B0EE",
-              "I" = "#ff4d6d",
-              "H" = "grey95"),
+  vaccine = c("BBIBP" = "#76c893",
+  "ZF2001" = "#b5e48c",
+  "BNT" = "#56cfe1",
+  "MO" = "#72ddf7",
+  "ChAd" = "#5e60ce",
+  "I" = "grey95",
+  "H" = "grey95"),
   dose = c(
             "0" = "grey95",
             "1" = "#56cfe1",
@@ -2886,24 +2733,24 @@ ann_vaxsig_colors = list(
           "26" = "#015BA0",
           "28" = "#023e8a",
           "51" = "#03045e"),
-  type = c('IN'= "#343a40", #1st Gen  vaccines
-           'SU' = "#00a896",
-           'VV' = "#72efdd", #3rd Gen vaccines
-           'RNA' = "#56cfe1",
-           'SU' = "#b5179e",
-           'I'= "#da1e37",
-           "H" = "grey95"), #Infection
-  regimen = c('HO' = "grey90",
-              'HE' = "#8d99ae",
-              "V-I-V" = "#36248f",
-              "V-I" = "#D7B0EE",
-              "I-V-I" = "#7400b8",
-              "I-I" = "#5390d9",
-              "I" = "#64dfdf",
-              "H" = "grey95"),
-  infection = c("0" = "grey95",
-                "1" = "#56cfe1",
-                "2" = "#5e60ce"),
+  day_total = c(
+          "0" = "white",
+          "1" = "#caf0f8",
+          "2" = "#ade8f4",
+          "3" = "#90e0ef",
+          "4" = "#6CD5EA",
+          "5" = "#48cae4",
+          "6" = "#00b4d8",
+          "7" = "#0096c7",
+          "10" = "#0087BF",
+          "11" = "#0087BF",
+          "14" = "#0077b6",
+          "26" = "#015BA0",
+          "28" = "#023e8a",
+          "51" = "#03045e"),
+  infection = c("0" = "#64dfdf",
+                "1" = "#f72585",
+                "2" = "#a4161a"),
   variant = c("None" = "grey95",
               "Beta" = "#72efdd",
               "Omicron" = "#5e60ce"),
@@ -2926,28 +2773,26 @@ ann_vaxsig_colors = list(
 ################# Plotar
 
 #Heatmap annotation
-ha = HeatmapAnnotation(df = ann_cols_heatmap, 
+ha = HeatmapAnnotation(df = ann_cols, 
                        col = ann_vaxsig_colors,
                        annotation_name_side = "right")
 
 
-#Dose
-covid_other = ann_cols_heatmap$covid_other
-dend_covid_other = cluster_within_group(matrix_data, covid_other)
-
-
 # Values colors
-col_fun <- colorRamp2(c(0, 0.6, 1, 1.3, 2), c("white", "#caf0f8", "#6CD5EA", "#0087BF", "#03045e"))
+col_fun <- colorRamp2(c(0, 2), c("white", "#ED6A5A"))
 
+
+# Parameters
 file = filename_2
 mat = matrix_data
 width_image = 50
 height_image = 20
 width = unit(25, "cm")
 height = unit(7, "cm")
-column_names_gp = gpar(fontsize = 7)
-row_names_gp = gpar(fontsize = 7)
-rect_gp = gpar(col = "black", lwd = 0.5)
+column_names_gp = gpar(fontsize = 9)
+row_names_gp = gpar(fontsize = 9)
+rect_gp = gpar(col = "gray90", lwd = 0.5)
+
 file = paste0("VAXSig_ORA_ImmuneGO_", file)
 
 ###### CLUSTERIZED ALL VS ALL
@@ -2965,11 +2810,11 @@ heatmap_plot = Heatmap(mat,
                         col = col_fun, #color
                         cell_fun = function(j, i, x, y, w, h, fill) {
                                                                       if (mat[i, j] >= 2) {
-                                                                        grid.text("***", x, y)
+                                                                        grid.text("***", x, y, gp = gpar(fontsize = 8))
                                                                       } else if (mat[i, j] > 1.5) {
-                                                                        grid.text("**", x, y)
+                                                                        grid.text("**", x, y, gp = gpar(fontsize = 9))
                                                                       } else if (mat[i, j] >= 1) {
-                                                                        grid.text("*", x, y)
+                                                                        grid.text("*", x, y, gp = gpar(fontsize = 8))
                                                                       } else {
                                                                         grid.text("", x, y)
                                                                       }
@@ -3003,63 +2848,6 @@ draw(heatmap_plot,
 dev.off()
 
 
-# CLUSTERIZED COVID VS OTHER
-
-fileimageheatmap_grouped = paste0(file, sep = "_", "Complexheatmap_VALUES.png")
-
-png(file = fileimageheatmap_grouped,
-    width = width_image,
-    height = height_image,
-    units = "cm",
-    res = 900)
-
-heatmap_plot <- Heatmap(
-                          mat,
-                          top_annotation = ha,
-                          show_row_names = TRUE,
-                          row_names_side = "left",
-                          show_heatmap_legend = TRUE,
-                          heatmap_legend_param = list(direction = "horizontal"),
-                          col = col_fun,
-                          cell_fun = function(j, i, x, y, w, h, fill) {
-                                                                      if (mat[i, j] >= 2) {
-                                                                        grid.text("***", x, y)
-                                                                      } else if (mat[i, j] > 1.5) {
-                                                                        grid.text("**", x, y)
-                                                                      } else if (mat[i, j] >= 1) {
-                                                                        grid.text("*", x, y)
-                                                                      } else {
-                                                                        grid.text("", x, y)
-                                                                      }
-                                                                    },
-                          show_column_names = TRUE,
-                          column_title = fileimageheatmap_grouped,
-                          column_title_gp = gpar(fontsize = 10, fontface = "bold"),
-                          column_names_rot = 45,
-                          column_names_gp = column_names_gp,
-                          rect_gp = rect_gp,
-                          cluster_rows = TRUE,
-                          row_names_gp = row_names_gp,
-                          row_dend_width = unit(5, "cm"),
-                          column_split = NULL,
-                          row_split = NULL,
-                          row_gap = unit(2, "mm"),
-                          cluster_columns = dend_covid_other,
-                          column_gap = unit(8, "mm"),
-                          show_column_dend = FALSE,
-                          show_row_dend = FALSE,
-                          row_dend_side = "left",
-                          column_dend_side = "top",
-                          clustering_distance_rows = "euclidean",
-                          border = TRUE,
-                          width = width,
-                          # 20 para pequeno e grande
-                          height = height # 20 para pequeno, 60 para grande
-                        )
-draw(heatmap_plot,
-     annotation_legend_side = "left",
-     heatmap_legend_side = "left")
-dev.off()
 ```
 ## GENES
 ### ORA COVID vs. VAXGO com ImmuneGO
