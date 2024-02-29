@@ -2325,10 +2325,7 @@ matrix_data = matrix %>%
   mutate_if(is.character, as.numeric) %>%
   replace(is.na(.), 0) %>% 
   as.matrix()
-```
 
-
-```{r}
 # Rows
 ann_rows_heatmap = matrix_data %>%  
   as.data.frame() %>% 
@@ -2345,57 +2342,16 @@ ann_rows_heatmap = matrix_data %>%
 
 matrix_data_cols_rows_ordered = matrix_data %>% 
   as.data.frame() %>% 
-  rownames_to_column(var= "condition") %>% 
-  arrange(condition) %>%
-  inner_join(ann_vaccines_other, by = "condition") %>% 
-  select(!vaccine:infection) %>% 
-  column_to_rownames("conditionvac_ref") %>% 
-  select(vac_ref) %>% 
-  distinct() %>% 
-  merge(ann_vaccines_reference, by = "vac_ref") %>% 
-  select(-age_category) %>% 
-  mutate_all(as.factor) %>% 
-  mutate(
-    time = if_else(time == "ANY", "0", time),
-    time = as.numeric(time),
-    day_total = round(if_else(date == "H", time / 24, time), 0),
-    week = if_else(date == "M", time * 4, time),
-    week = day_total/7,
-    week = round(week, 0),
-    month = round(week/4),
-    day_month = case_when(
-      day_total >= 30 & day_total <= 60 ~ day_total / 2,
-      day_total > 60 & day_total <= 90 ~ day_total / 3,
-      TRUE ~ day_total),
-    day_month = round(day_month, 0)) %>% 
-  arrange(microbe_type, target_pathogen_disease, platform, vac_ref, day_month, time) %>%
-  distinct() %>% 
-  column_to_rownames(var= "vac_ref") %>% 
-  select(platform, microbe_type, target_pathogen_disease)
-
-matrix_data_cols_rows_ordered = matrix_data %>% 
-  as.data.frame() %>% 
   rownames_to_column(var= "vac_ref") %>% 
-  merge(ann_vaccines_reference, by = "vac_ref") %>% 
-  mutate(time = if_else(time == "ANY", "0", time),
-         time = as.numeric(time),
-         time = round(time, 0),
-         date = factor(date, levels = c("H", "D", "W", "M", "Y"))) %>% 
-  arrange(microbe_type, target_pathogen_disease, platform, vac_ref, date, time) %>%
-  select(!platform:age_category) %>% 
+  inner_join(ann_rows_heatmap %>% rownames_to_column("vac_ref") %>% select(vac_ref), by = "vac_ref") %>% 
+  arrange(vac_ref) %>%
   distinct() %>% 
   column_to_rownames("vac_ref") %>% 
   mutate_if(is.character, as.numeric) %>% #Converter em numéricos
   replace(is.na(.), 0) %>% 
   as.matrix()
 
-
-ann_cols_heatmap = ann_cols_heatmap %>% 
-  column_to_rownames("condition")
-
 #Verificar dimensões do dataset
-dim(matrix)
-dim(matrix_data)
 dim(matrix_data_cols_rows_ordered)
 dim(ann_rows_heatmap)
 dim(ann_cols_heatmap)
@@ -2511,11 +2467,7 @@ ann_vaxsig_colors = list(
   disease_vac = c("I" = "#5e60ce",
                   "V" = "#64dfdf")
   )
-```
 
-
-```{r}
-vaccines
 ann_colors = list(
   vaccine = c(
   "BBIBP" = "#dee2e6",
@@ -2615,11 +2567,12 @@ ann_vaxsig_colors = list(
 ha = HeatmapAnnotation(df = ann_cols_heatmap, 
                        col = ann_vaxsig_colors,
                        annotation_name_side = "right")
-row_ha = rowAnnotation(df = ann_rows_heatmap, 
+
+row_ha = rowAnnotation(df =  ann_rows_heatmap, 
                        col = ann_vaxsig_colors)
 
 # Values colors
-col_fun <- colorRamp2(c(0, 100), c("white", "#3f37c9"))
+col_fun <- colorRamp2(c(0, 100), c("white", "#ed6a5a"))
 ```
 
 
@@ -2627,259 +2580,20 @@ col_fun <- colorRamp2(c(0, 100), c("white", "#3f37c9"))
 ################# Plotar
 
 mat = matrix_data_cols_rows_ordered
-width_image = 40
+width_image = 30
 height_image = 30
 width = unit(15, "cm")
 height = unit(15, "cm")
-column_names_gp = gpar(fontsize = 8)
-row_names_gp = gpar(fontsize = 8)
-
-file = paste0("VAXSig_SharedGenes_Shared", filename_1, filename_2)
-
-
-###### NOT CLUSTERIZED
-
-# NO value labels
-
-fileimageheatmap_grouped = paste0(file, sep ="_", "Complexheatmap.png")
-
-png(file = fileimageheatmap_grouped, width = width_image, height = height_image, units="cm", res=900)
-
-#NOT CLUSTERIZED
-
-
-#Without value labels
-file = paste0("VAXSig_SharedGenes_perc_", filename_1, filename_2)
-
-fileimageheatmap_grouped = paste0(file, sep ="_", "Complexheatmap.png")
-
-png(file = fileimageheatmap_grouped, width = 50, height = 30, units="cm", res=900)
-
-heatmap_plot = Heatmap(matrix_data_cols_rows_ordered,
-                        top_annotation = ha,
-                        left_annotation = row_ha,
-                        show_row_names = TRUE,
-                        row_names_side = "left",
-                        show_heatmap_legend = TRUE,
-                        heatmap_legend_param = list(direction = "horizontal"),
-                        col = col_fun, #color
-                        row_title = "",
-                        show_column_names = TRUE,
-                        column_title = fileimageheatmap_grouped,
-                        column_title_gp = gpar(fontsize = 10, fontface = "bold"),
-                        column_names_rot = 90,
-                        column_names_gp = column_names_gp,
-                        rect_gp = gpar(col = "gray90", lwd = 0),
-                        cluster_rows = FALSE,
-                        row_names_gp = row_names_gpgpar(fontsize = 8),
-                        rect_gp = gpar(col = "gray90", lwd = 1),
-                        cluster_rows = FALSE,
-                        row_names_gp = gpar(fontsize = 8), #Grande = 6, Pequeno 15
-                        row_dend_width = unit(5, "cm"), #Altura do dendrograma
-                        column_split = NULL, #Split column clusters 
-                        row_split = NULL, #Split row clusters
-                        row_gap = unit(2, "mm"),
-                        cluster_columns = FALSE,
-                        column_gap = unit(8, "mm"),
-                        show_column_dend = F,
-                        show_row_dend = F,
-                        row_dend_side = "left",
-                        column_dend_side = "top",
-                        clustering_distance_rows = "euclidean",
-                        border = TRUE,
-                        column_dend_reorder = TRUE,
-                        width = widthunit(15, "cm"), # 20 para pequeno e grande
-                        height = heightunit(15, "cm") # 20 para pequeno, 60 para grande
-)
-
-draw(heatmap_plot, 
-     annotation_legend_side = "left", 
-     heatmap_legend_side = "left")
-dev.off()
-
-
-# WITHith values
-fileimageheatmap_grouped = paste0(file, sep ="_", "Complexheatmap_VALUES.png")
-
-png(file = fileimageheatmap_grouped, width=width_image, height=height_image50, height=30,units="cm",res=800)
-
-heatmap_plot = Heatmap(matrix_data_cols_rows_ordered,
-                        top_annotation = ha,
-                        left_annotation = row_ha,
-                        show_row_names = TRUE,
-                        row_names_side = "left",
-                        show_heatmap_legend = TRUE,
-                        heatmap_legend_param = list(direction = "horizontal"),
-                        col = col_fun, #color
-                        row_title = "",
-                        show_column_names = TRUE,
-                        cell_fun = function(j, i, x, y, width, height, fill) {
-                                            if(matrix_data_cols_rows_ordered[i, j] > 1= 50)
-                                            grid.text(sprintf("%.1f", matrix_data_cols_rows_ordered[i, j]), 
-                                                      x, y, 
-                                                      gp = gpar(fontsize = 5))},
-                        column_title = fileimageheatmap_grouped,
-                        column_title_gp = gpar(fontsize = 8, fontface = "bold"),
-                        column_names_rot = 90,
-                        column_names_gp = column_names_gp,
-                        rect_gp = gpar(col = "gray90", lwd = 0),
-                        cluster_rows = FALSE,
-                        row_names_gp = row_names_gpgpar(fontsize = 8),
-                        rect_gp = gpar(col = "gray90", lwd = 1),
-                        cluster_rows = FALSE,
-                        row_names_gp = gpar(fontsize = 8), #Grande = 6, Pequeno 15
-                        row_dend_width = unit(5, "cm"), #Altura do dendrograma
-                        column_split = NULL, #Split column clusters 
-                        row_split = NULL, #Split row clusters
-                        row_gap = unit(2, "mm"),
-                        cluster_columns = FALSE,
-                        column_gap = unit(8, "mm"),
-                        show_column_dend = F,
-                        show_row_dend = F,
-                        row_dend_side = "left",
-                        column_dend_side = "top",
-                        clustering_distance_rows = "euclidean",
-                        border = TRUE,
-                        column_dend_reorder = TRUE,
-                        width = width, # 20 para pequeno e grande
-                        height = height # 20 para pequeno, 60 para grande
-)
-
-draw(heatmap_plot, 
-     annotation_legend_side = "left", 
-     heatmap_legend_side = "left")
-dev.off()
-
-############## ROW_CLUSTERED
-
-# NO value labels
-fileimageheatmap_grouped = paste0(file, sep ="_", "Complexheatmap_ROW_CLUSTERED.png")
-
-png(file = fileimageheatmap_grouped, width = width_image, height = height_image, units="cm", res=900)
-
-heatmap_plot = Heatmap(matunit(15, "cm"), # 20 para pequeno e grande
-                        height = unit(15, "cm") # 20 para pequeno, 60 para grande
-)
-
-draw(heatmap_plot, 
-     annotation_legend_side = "left", 
-     heatmap_legend_side = "left")
-dev.off()
-
-############## ROW_CLUSTERED
-
-#Without value labels
-file = paste0("VAXSig_SharedGenes_perc_", filename_1, filename_2)
-
-fileimageheatmap_grouped = paste0(file, sep ="_", "Complexheatmap_ROW_CLUSTERED.png")
-
-png(file = fileimageheatmap_grouped, width = 50, height = 30, units="cm", res=900)
-
-heatmap_plot = Heatmap(matrix_data_cols_rows_ordered,
-                        top_annotation = ha,
-                        left_annotation = row_ha,
-                        show_row_names = TRUE,
-                        row_names_side = "left",
-                        show_heatmap_legend = TRUE,
-                        heatmap_legend_param = list(direction = "horizontal"),
-                        col = col_fun, #color
-                        row_title = "",
-                        show_column_names = TRUE,
-                        column_title = fileimageheatmap_grouped,
-                        column_title_gp = gpar(fontsize = 10, fontface = "bold"),
-                        column_names_rot = 90,
-                        column_names_gp = column_names_gp,
-                        rect_gp = gpar(col = "gray90", lwd = 0),
-                        cluster_rows = TRUE,
-                        row_names_gp = row_names_gpgpar(fontsize = 8),
-                        rect_gp = gpar(col = "gray90", lwd = 1),
-                        cluster_rows = TRUE,
-                        row_names_gp = gpar(fontsize = 8), #Grande = 6, Pequeno 15
-                        row_dend_width = unit(5, "cm"), #Altura do dendrograma
-                        column_split = NULL, #Split column clusters 
-                        row_split = NULL, #Split row clusters
-                        row_gap = unit(2, "mm"),
-                        cluster_columns = FALSE,
-                        column_gap = unit(8, "mm"),
-                        show_column_dend = F,
-                        show_row_dend = F,
-                        row_dend_side = "left",
-                        column_dend_side = "top",
-                        clustering_distance_rows = "euclidean",
-                        border = TRUE,
-                        column_dend_reorder = TRUE,
-                        width = widthunit(15, "cm"), # 20 para pequeno e grande
-                        height = heightunit(15, "cm") # 20 para pequeno, 60 para grande
-)
-
-draw(heatmap_plot, 
-     annotation_legend_side = "left", 
-     heatmap_legend_side = "left")
-dev.off()
-
-
-# With values
-fileimageheatmap_grouped = paste0(file, sep ="_", "Complexheatmap_ROW_CLUSTERED_VALUES.png")
-
-png(file = fileimageheatmap_grouped, width=width_image, height=height_image50, height=30,units="cm",res=800)
-
-heatmap_plot = Heatmap(matrix_data_cols_rows_ordered,
-                        top_annotation = ha,
-                        left_annotation = row_ha,
-                        show_row_names = TRUE,
-                        row_names_side = "left",
-                        show_heatmap_legend = TRUE,
-                        heatmap_legend_param = list(direction = "horizontal"),
-                        col = col_fun, #color
-                        row_title = "",
-                        show_column_names = TRUE,
-                        cell_fun = function(j, i, x, y, width, height, fill) {
-                                            if(matrix_data_cols_rows_ordered[i, j] >= 150)
-                                            grid.text(sprintf("%.1f", matrix_data_cols_rows_ordered[i, j]), 
-                                                      x, y, 
-                                                      gp = gpar(fontsize = 5))},
-                        column_title = fileimageheatmap_grouped,
-                        column_title_gp = gpar(fontsize = 8, fontface = "bold"),
-                        column_names_rot = 90,
-                        column_names_gp = column_names_gp,
-                        rect_gp = gpar(col = "gray90", lwd = 0),
-                        cluster_rows = TRUE,
-                        row_names_gp = row_names_gpgpar(fontsize = 8),
-                        rect_gp = gpar(col = "gray90", lwd = 1),
-                        cluster_rows = TRUE,
-                        row_names_gp = gpar(fontsize = 8), #Grande = 6, Pequeno 15
-                        row_dend_width = unit(5, "cm"), #Altura do dendrograma
-                        column_split = NULL, #Split column clusters 
-                        row_split = NULL, #Split row clusters
-                        row_gap = unit(2, "mm"),
-                        cluster_columns = FALSE,
-                        column_gap = unit(8, "mm"),
-                        show_column_dend = F,
-                        show_row_dend = F,
-                        row_dend_side = "left",
-                        column_dend_side = "top",
-                        clustering_distance_rows = "euclidean",
-                        border = TRUE,
-                        column_dend_reorder = TRUE,
-                        width = widthunit(15, "cm"), # 20 para pequeno e grande
-                        height = heightunit(15, "cm") # 20 para pequeno, 60 para grande
-)
-
-draw(heatmap_plot, 
-     annotation_legend_side = "left", 
-     heatmap_legend_side = "left")
-dev.off()
-
-
-
-############## ALL_CLUSTERED
-
-#Without value labels
-file = paste0("VAXSig_SharedGenes_perc_", filename_1, filename_2)
+column_names_gp = gpar(fontsize = 12)
+row_names_gp = gpar(fontsize = 12)
+file = paste0("VAXSig_", filename_2)
 
 fileimageheatmap_grouped = paste0(file, sep ="_", "Complexheatmap_ALL_CLUSTERED.png")
 
-png(file = fileimageheatmap_grouped, width = width_image, height = height_image50, height = 30, units="cm", res=900)
+png(file = fileimageheatmap_grouped, 
+    width = width_image, 
+    height = height_image,
+    units="cm", res=900)
 
 heatmap_plot = Heatmap(matrix_data_cols_rows_ordered,
                         top_annotation = ha,
@@ -2889,71 +2603,20 @@ heatmap_plot = Heatmap(matrix_data_cols_rows_ordered,
                         show_heatmap_legend = TRUE,
                         heatmap_legend_param = list(direction = "horizontal"),
                         col = col_fun, #color
+                       cell_fun = function(j, i, x, y, width, height, fill) {
+                                            if(matrix_data_cols_rows_ordered[i, j] > 0)
+                                            grid.text(sprintf("%.f", matrix_data_cols_rows_ordered[i, j]), 
+                                                      x, y, 
+                                                      gp = gpar(fontsize = 6))},
                         row_title = "",
                         show_column_names = TRUE,
                         column_title = fileimageheatmap_grouped,
                         column_title_gp = gpar(fontsize = 10, fontface = "bold"),
                         column_names_rot = 90,
                         column_names_gp = column_names_gp,
-                        rect_gp = gpar(col = "gray90", lwd = 0),
-                        cluster_rows = TRUE,
-                        row_names_gp = row_names_gpgpar(fontsize = 8),
                         rect_gp = gpar(col = "gray90", lwd = 1),
                         cluster_rows = TRUE,
-                        row_names_gp = gpar(fontsize = 8), #Grande = 6, Pequeno 15
-                        row_dend_width = unit(5, "cm"), #Altura do dendrograma
-                        column_split = NULL, #Split column clusters 
-                        row_split = NULL, #Split row clusters
-                        row_gap = unit(2, "mm"),
-                        cluster_columns = TRUE,
-                        column_gap = unit(8, "mm"),
-                        show_column_dend = F,
-                        show_row_dend = F,
-                        row_dend_side = "left",
-                        column_dend_side = "top",
-                        clustering_distance_rows = "euclidean",
-                        border = TRUE,
-                        column_dend_reorder = TRUE,
-                        width = widthunit(15, "cm"), # 20 para pequeno e grande
-                        height = heightunit(15, "cm") # 20 para pequeno, 60 para grande
-)
-
-draw(heatmap_plot, 
-     annotation_legend_side = "left", 
-     heatmap_legend_side = "left")
-dev.off()
-
-
-# With values
-fileimageheatmap_grouped = paste0(file, sep ="_", "Complexheatmap_ALL_CLUSTERED_VALUES.png")
-
-png(file = fileimageheatmap_grouped, width=width_image, height=height_image50, height=30,units="cm",res=800)
-
-heatmap_plot = Heatmap(matrix_data_cols_rows_ordered,
-                        top_annotation = ha,
-                        left_annotation = row_ha,
-                        show_row_names = TRUE,
-                        row_names_side = "left",
-                        show_heatmap_legend = TRUE,
-                        heatmap_legend_param = list(direction = "horizontal"),
-                        col = col_fun, #color
-                        row_title = "",
-                        show_column_names = TRUE,
-                        cell_fun = function(j, i, x, y, width, height, fill) {
-                                            if(matrix_data_cols_rows_ordered[i, j] >= 150)
-                                            grid.text(sprintf("%.1f", matrix_data_cols_rows_ordered[i, j]), 
-                                                      x, y, 
-                                                      gp = gpar(fontsize = 5))},
-                        column_title = fileimageheatmap_grouped,
-                        column_title_gp = gpar(fontsize = 8, fontface = "bold"),
-                        column_names_rot = 90,
-                        column_names_gp = column_names_gp,
-                        rect_gp = gpar(col = "gray90", lwd = 0),
-                        cluster_rows = TRUE,
-                        row_names_gp = row_names_gpgpar(fontsize = 8),
-                        rect_gp = gpar(col = "gray90", lwd = 1),
-                        cluster_rows = TRUE,
-                        row_names_gp = gpar(fontsize = 8), #Grande = 6, Pequeno 15
+                        row_names_gp = row_names_gp, #Grande = 6, Pequeno 15
                         row_dend_width = unit(5, "cm"), #Altura do dendrograma
                         column_split = NULL, #Split column clusters 
                         row_split = NULL, #Split row clusters
