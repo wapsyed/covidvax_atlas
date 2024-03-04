@@ -3476,8 +3476,9 @@ gene_cluster
 
 ### STATS
 
-```{r}
 
+#### Immune
+```{r}
 #### Immune -----
 stats_1 = degs_all_updown_covid_other_immune %>% 
   inner_join(ann_vaccines_covid_other, by = "condition") %>% 
@@ -3520,7 +3521,10 @@ ggplot_stats1 = ggplot(stats_1) +
   coord_flip()
 
 ggsave(ggplot_stats1, file = "Covid_Vax_genes_shared_column.png", width = 10, height = 10)
+```
 
+#### Not immune
+```{r}
 #### Not Immune -----
 stats_2 = covid_other_notimmune_genes %>% 
   select(-process) %>% 
