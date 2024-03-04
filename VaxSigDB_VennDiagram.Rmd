@@ -3085,17 +3085,20 @@ dev.off()
 
 ```
 ## GENES
-### ORA COVID vs. VAXGO com ImmuneGO
+### GENES COVID vs. VAXGO com ImmuneGO
 *Qual a relação entre os genes de cada dataset?*
 
 ```{r}
-
 # Gene sets for annotation
 ImmuneGO_Annotated_Genes
+
 OtherGOs_Annotated_Genes = OtherGOs_Annotated_Genes %>% 
+  rename(genes = symbol) %>% 
   filter(annotation == "Major process",
-         term != "Immune system")
-ann_vaccines
+         term != "Immune system") %>% 
+    anti_join(ImmuneGO_Annotated_Genes %>% 
+                select(genes) %>% distinct(), 
+              by = "genes")
 
 # VAX Genes  ------
 VAX_Genes_Annotated_RAW = VAX_Genes_Annotated_RAW %>% 
