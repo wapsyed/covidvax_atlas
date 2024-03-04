@@ -501,7 +501,7 @@ Annotation of GOs
 
 ```{r}
 ######## Anotação de GOs ########
-ImmuneGO_Manual = ImmuneGO_Annotated_Genes_26_2_24 # ImmuneGOs manually annotated by Immune System, Sub-system, and cells
+ImmuneGO_Manual = ImmuneGO_Annotated_Genes_28_2_24 # ImmuneGOs manually annotated by Immune System, Sub-system, and cells
 #Unir anotações com genes
 ImmuneGO_Annotated = ImmuneGO_Manual %>% 
   merge(Immune_GO_genes_GO_Filt, by.x = "Process", by.y = "GO.NAME", all.y = F, all.x=T) %>% 
@@ -553,7 +553,7 @@ head(ImmuneGO_Annotated_unique)
 Agrupar genes de todos os processos do sistema imune
 
 ```{r}
-ImmuneGO_Annotated_unique = ImmuneGO_Annotated_Genes_26_2_24
+ImmuneGO_Annotated_unique = ImmuneGO_Annotated_Genes_28_2_24
 
 #Agrupar genes de todos os processos do sistema imune -----------------------------------------
 ImmuneGO_Adaptive <- ImmuneGO_Annotated_unique %>%
@@ -808,7 +808,9 @@ ImmuneGO_Annotated_Genes_3 = ImmuneGO_Annotated_Genes_2 %>%
               inner_join(TCR_BCR_repertoire %>% select(process, immune_system:go_term, genes) %>% 
               mutate(go_term = "Manual") %>% 
               distinct())) %>% 
-  arrange(desc(set_size))
+  arrange(desc(set_size)) %>% 
+  select(-set_size.x, -set_size) %>% 
+  rename(set_size = set_size.y)
 
 
 ImmuneGO_Annotated_GO = ImmuneGO_Annotated_Genes_3 %>%
@@ -825,8 +827,8 @@ ImmuneGO_Annotated_Genes = ImmuneGO_Annotated_GO %>%
 
 
 #Salvar
-write.csv(ImmuneGO_Annotated_GO, file = "ImmuneGO_Annotated_GO_28-2-24_2.csv", row.names = F)
-write.csv(ImmuneGO_Annotated_Genes, file = "ImmuneGO_Annotated_Genes_28-2-24.csv", row.names = F)
+write.csv(ImmuneGO_Annotated_GO, file = "ImmuneGO_Annotated_GO_4-3-24_2.csv", row.names = F)
+write.csv(ImmuneGO_Annotated_Genes, file = "ImmuneGO_Annotated_Genes_4-3-24.csv", row.names = F)
 
 #Display
 view(ImmuneGO_Annotated_GO)

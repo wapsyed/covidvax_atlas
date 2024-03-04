@@ -3235,7 +3235,6 @@ Immune_GO_genes_Ig = Immune_GO_genes_All %>%
 
 
 
-
 #### Heatmap
 ```{r}
 ####### INPUT
@@ -3289,7 +3288,8 @@ ann_rows_immune = matrix_data %>%
   as.data.frame() %>%
   rownames_to_column("genes") %>%
   left_join(ImmuneGO_Annotated_Genes %>% 
-              filter(go_term == "Manual"), by = "genes") %>%
+              filter(go_term == "Manual",
+                     !process %in% c("TCR REPERTOIRE", "BCR REPERTOIRE")), by = "genes") %>%
   select(genes, process) %>%
   distinct() %>%
   group_by(genes) %>%
@@ -3411,12 +3411,12 @@ heatmap_plot = Heatmap(mat,
                         cluster_rows = TRUE,
                         row_names_gp = row_names_gp,
                         row_dend_width = unit(0, "cm"),
-                        row_split = 2,
+                        row_split = 3,
                         row_gap = unit(2, "mm"),
                         cluster_columns = TRUE,
                         column_gap = unit(8, "mm"),
                         show_column_dend = F,
-                        show_row_dend = T,
+                        show_row_dend = F,
                         row_dend_side = "left",
                         column_dend_side = "top",
                         clustering_distance_rows = "euclidean",
