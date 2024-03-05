@@ -37,7 +37,8 @@ immune_source2 = covid_other_immunego_genes %>%
   mutate(value = 1, 
          annotation = "Immune system")
 
-immune = bind_rows(immune_source1, immune_source2) %>% mutate(id = source)
+immune = bind_rows(immune_source1, immune_source2) 
+
 
 notimmune_source1 = covid_other_notimmune_genes %>% 
   inner_join(OtherGOs_Annotated_Genes %>% filter(annotation == "Major process"), by = "genes") %>% 
@@ -53,27 +54,39 @@ notimmune_source2 = covid_other_immunego_genes %>%
   mutate(value = 1, 
          annotation = "Other processes")
 
-not_immune = bind_rows(notimmune_source1, notimmune_source2) %>% mutate(id = source)
+not_immune = bind_rows(notimmune_source1, notimmune_source2)
 immune_notimmune = bind_rows(not_immune, immune)
 
 write.csv(immune_notimmune, file = "Network_immune_notimmune.csv", row.names = F)
 
-
-
 ##### Tables nodes and edges ------
 
-edges = immune_notimmune %>% 
+Network_immune_notimmune_edges_from_gephi
+Network_immune_notimmune_nodes_from_gephi
+
+
+edges_1 = immune_notimmune %>% 
   select(source, target, value) %>% 
-  mutate(id = source)
+  full_join(Network_immune_notimmune_edges_from_gephi %>% 
+              clean_names(), by = join_by("source", "target"))
+
+
+edges_1 %>% 
+  right_join(Network_immune_notimmune_edges_from_gephi  %>% 
+              clean_names(), by = join_by("target"))
 
 nodes = immune_notimmune %>% 
   select(source, annotation, vaccine:infection) %>% 
   distinct() %>% 
-  mutate(id = source)
+  full_join(Network_immune_notimmune_nodes_from_gephi %>% 
+              clean_names(), by = join_by("source"))
 
 write.csv(edges, file = "Network_immune_notimmune_edges.csv", row.names = F)
 write.csv(nodes, file = "Network_immune_notimmune_nodes.csv", row.names = F)
 
 
+
+
+#### Annotate
 ```
 
