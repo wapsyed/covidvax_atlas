@@ -757,6 +757,17 @@ new_row_macro <- tibble(
   SetSize = SetSize_Macro
 )
 
+new_row_other <- tibble(
+  `Gene set, short` = "Macrophages",
+  `Process` = "MACROPHAGES", 
+  `Immune system` = "Innate",
+  `Immune sub-system` = "Macrophages",
+  `Immune tissue` = "Cell",
+  `GO.TERM` = "Manual",
+  Genes = paste(ImmuneGO_Innate_Macrophage_genes , collapse = ","),
+  SetSize = SetSize_Macro
+)
+
 # Adicionar linhas
 ImmuneGO_Annotated_unique <- bind_rows(new_row_adap,
                                        new_row_innate,
@@ -840,9 +851,6 @@ ImmuneGO_Annotated_GO = ImmuneGO_Annotated_Genes_3 %>%
                              TRUE ~ process)) %>% 
   filter(process != "DELETE")
 
-
-view(ImmuneGO_Annotated_Genes)
-
 ImmuneGO_Annotated_Genes = ImmuneGO_Annotated_GO %>% 
    separate_rows(genes, sep = ",")
 
@@ -867,7 +875,9 @@ ImmuneGO_Annotated_Genes
 
 a = ImmuneGO_Annotated_Genes %>% filter(go_term == "Manual") %>% select(genes) %>% distinct()
 
-ImmuneGO_Annotated_Genes %>% anti_join(a, by = "genes")
+ImmuneGO_Annotated_Genes %>% select(process, genes) %>% anti_join(a, by = "genes")
+
+
 ```
 
 
