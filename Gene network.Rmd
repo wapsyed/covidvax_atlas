@@ -1,0 +1,65 @@
+---
+title: "Gene network"
+author: "Wasim Syed"
+date: "2024-03-05"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+
+
+COVID and other vaccines
+```{r}
+
+ImmuneGO_Annotated_Genes
+OtherGOs_Annotated_Genes
+
+immune_source1 = covid_other_immunego_genes %>% 
+  inner_join(ImmuneGO_Annotated_Genes %>% filter(go_term == "Manual", 
+                                                 !(process %in% c("TCR REPERTOIRE", "BCR REPERTOIRE"))), 
+             by = "genes") %>% 
+  select(source = condition, target = genes, annotation = regulation) %>% 
+  distinct() %>% 
+  mutate(value = 1) %>% 
+  inner_join(ann_vaccines_covid_other %>% rename(source = condition), by = "source")
+
+immune_source2 = covid_other_immunego_genes %>% 
+  inner_join(ImmuneGO_Annotated_Genes %>% filter(go_term == "Manual", 
+                                                 !(process %in% c("TCR REPERTOIRE", "BCR REPERTOIRE"))), 
+             by = "genes") %>% 
+  select(source = process, target = genes) %>% 
+  distinct() %>% 
+  mutate(value = 1,
+         annotation = "Immune system")
+
+immune = bind_rows(immune_source1, immune_source2)
+
+
+notimmune_source1 = covid_other_notimmune_genes %>% 
+  inner_join(OtherGOs_Annotated_Genes %>% filter(annotation == "Major process"), by = "genes") %>% 
+  select(source = condition, target = genes, annotation = regulation) %>% 
+  distinct() %>% 
+  mutate(value = 1) %>% 
+  inner_join(ann_vaccines_covid_other %>% rename(source = condition), by = "source")
+
+
+notimmune_source2 = covid_other_immunego_genes %>% 
+  inner_join(OtherGOs_Annotated_Genes %>% filter(annotation == "Major process"), by = "genes") %>% 
+  select(source = term, target = genes) %>% 
+  distinct() %>% 
+  mutate(value = 1,
+         annotation = "Other processes")
+
+
+not_immune = bind_rows(notimmune_source1, notimmune_source2)
+
+immune_notimmune = bind_rows(not_immune, immune) 
+  
+
+write.csv(immune_notimmune, file = "Network_immune_notimmune.csv", row.names = F)
+
+```
+

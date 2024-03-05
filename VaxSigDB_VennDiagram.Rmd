@@ -1963,8 +1963,6 @@ VAX_Genes_Annotated_RAW = VAX_Genes_Annotated_RAW %>%
   clean_names() %>% 
   mutate(condition = paste0(vaccine, " (", date_time, ")"))
 
-ann_vaccines_covid_other = ann_vaccines_covid_other_15_1_24
-
 degs_all_updown_vax_immunego = VAX_Genes_Annotated_RAW %>%
   clean_names() %>% 
   mutate(condition = paste0(vaccine, " (", date_time, ")")) %>% 
@@ -1985,7 +1983,7 @@ degs_all_updown_covid_other = bind_rows(degs_all_updown_vax_immunego, degs_all_u
   select(condition, genes) %>% 
   distinct()
 
-Immune_GO_T2G = ImmuneGO_Annotated_Genes_8_1_24 %>% 
+Immune_GO_T2G = ImmuneGO_Annotated_Genes%>% 
   filter(go_term == "Manual",
          !process %in% c("TCR REPERTOIRE", "BCR REPERTOIRE", "ADAPTIVE IMMUNE SYSTEM", "INNATE IMMUNE SYSTEM")) %>% 
   select(process, genes)
