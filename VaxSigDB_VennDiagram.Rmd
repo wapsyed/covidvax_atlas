@@ -3343,7 +3343,7 @@ dim(ann_rows_immune)
 
 
 
-Tamanhos:
+Sizes:
 1. Cellular adaptive immune system: width = unit(25, "cm"), height = unit(60, "cm") #254 genes
 2. Humoral adaptive immune system: width = unit(25, "cm"), height = unit(30, "cm") #51 genes
 3. T cells: width = unit(25, "cm"), height = unit(60, "cm") #221 genes
@@ -3358,6 +3358,7 @@ Tamanhos:
 12. Eosinophil:  width = unit(25, "cm"), height = unit(10, "cm") # 42 genes
 13. Complement: width = unit(25, "cm"), height = unit(10, "cm") # 40 genes
 13. Monocytes: width = unit(25, "cm"), height = unit(15, "cm") # 48 genes
+15. All immune genes: width_image = 60, height_image = 70, width = unit(30, "cm"), height = unit(60, "cm"), row_split = 7, column_split = 2
 
 More refs: https://debrowser.readthedocs.io/en/master/heatmap/heatmap.html
 
@@ -3369,8 +3370,11 @@ ha = HeatmapAnnotation(df = ann_cols_heatmap,
                        col = ann_vaxsig_colors,
                        annotation_name_side = "right")
 
-row_ha = rowAnnotation(df = ann_rows_immune,
-                       col = col_process_immune)
+row_ha = HeatmapAnnotation(df = ann_rows_immune,
+                       col = col_process_immune,
+                       which= "row",
+                       show_annotation_name = F,
+                       show_legend = F)
 
 # Values colors
 col_fun <- colorRamp2(c(-1, 0, 1), c("#9bc1bc", "white", "#ed6a5a"))
@@ -3378,86 +3382,15 @@ col_fun <- colorRamp2(c(-1, 0, 1), c("#9bc1bc", "white", "#ed6a5a"))
 file = filename_2
 mat = matrix_data
 width_image = 60
-height_image = 70
+height_image = 50
 width = unit(30, "cm")
-height = unit(60, "cm")
+height = unit(40, "cm")
 column_names_gp = gpar(fontsize = 10)
-row_names_gp = gpar(fontsize = 4)
+row_names_gp = gpar(fontsize = 2)
 rect_gp = gpar(col = "gray80", lwd = 0)
+row_split = 7
+column_split = 2
 
-fileimageheatmap_grouped = paste0(file, sep ="_", "Complexheatmap.png")
-
-png(file = fileimageheatmap_grouped, 
-    width = width_image, 
-    height = height_image, 
-    units="cm", 
-    res=900)
-
-heatmap_plot = Heatmap(mat,
-                        top_annotation = ha,
-                       left_annotation = row_ha,
-                        show_row_names = TRUE,
-                        row_names_side = "right",
-                        show_heatmap_legend = TRUE,
-                        heatmap_legend_param = list(direction = "horizontal"),
-                        col = col_fun, #color
-                        show_column_names = TRUE,
-                        column_title = fileimageheatmap_grouped,
-                        column_title_gp = gpar(fontsize = 10, fontface = "bold"),
-                        column_names_rot = 45,
-                        column_names_gp = column_names_gp,
-                        rect_gp = rect_gp,
-                        na_col = "white",
-                        cluster_rows = TRUE,
-                        row_names_gp = row_names_gp,
-                        row_dend_width = unit(0, "cm"),
-                        row_split = 3,
-                        row_gap = unit(2, "mm"),
-                        cluster_columns = TRUE,
-                        column_gap = unit(8, "mm"),
-                        show_column_dend = F,
-                        show_row_dend = F,
-                        row_dend_side = "left",
-                        column_dend_side = "top",
-                        clustering_distance_rows = "euclidean",
-                        border = TRUE,
-                        width = width,
-                        height = height)
-
-heatmap_plot = draw(heatmap_plot, 
-     annotation_legend_side = "left", 
-     heatmap_legend_side = "left")
-
-heatmap_plot
-
-dev.off()
-
-```
-
-
-
-```{r}
-################# NOT Immune 
-#Heatmap annotation
-ha = HeatmapAnnotation(df = ann_cols_heatmap, 
-                       col = ann_vaxsig_colors,
-                       annotation_name_side = "right")
-
-row_ha = rowAnnotation(df = ann_rows_notimmune,
-                       col = col_process_notimmune)
-
-# Values colors
-col_fun <- colorRamp2(c(-1, 0, 1), c("#9bc1bc", "white", "#ed6a5a"))
-
-file = filename_2
-mat = matrix_data
-width_image = 60
-height_image = 70
-width = unit(30, "cm")
-height = unit(60, "cm")
-column_names_gp = gpar(fontsize = 10)
-row_names_gp = gpar(fontsize = 0)
-rect_gp = gpar(col = "gray80", lwd = 0)
 
 fileimageheatmap_grouped = paste0(file, sep ="_", "Complexheatmap.png")
 
@@ -3484,8 +3417,87 @@ heatmap_plot = Heatmap(mat,
                         na_col = "white",
                         cluster_rows = TRUE,
                         row_names_gp = row_names_gp,
-                        row_dend_width = unit(0, "cm"),
-                        row_split = 2,
+                        row_dend_width = unit(5, "cm"),
+                        row_split = row_split,
+                        column_split = column_split,
+                        row_gap = unit(2, "mm"),
+                        cluster_columns = TRUE,
+                        column_gap = unit(8, "mm"),
+                        show_column_dend = F,
+                        show_row_dend = T,
+                        row_dend_side = "right",
+                        column_dend_side = "top",
+                        clustering_distance_rows = "euclidean",
+                        clustering_distance_columns = "euclidean",
+                        border = TRUE,
+                        width = width,
+                        height = height,
+                        use_raster = F)
+
+heatmap_plot = draw(heatmap_plot)
+
+heatmap_plot
+
+dev.off()
+
+```
+
+
+
+```{r}
+################# NOT Immune 
+#Heatmap annotation
+ha = HeatmapAnnotation(df = ann_cols_heatmap, 
+                       col = ann_vaxsig_colors,
+                       annotation_name_side = "right")
+
+row_ha = HeatmapAnnotation(df = ann_rows_immune,
+                       col = col_process_immune,
+                       which= "row",
+                       show_annotation_name = F,
+                       show_legend = F)
+
+# Values colors
+col_fun <- colorRamp2(c(-1, 0, 1), c("#9bc1bc", "white", "#ed6a5a"))
+
+file = filename_2
+mat = matrix_data
+width_image = 60
+height_image = 50
+width = unit(30, "cm")
+height = unit(40, "cm")
+column_names_gp = gpar(fontsize = 10)
+row_names_gp = gpar(fontsize = 0)
+rect_gp = gpar(col = "gray80", lwd = 0)
+row_split = 7
+
+fileimageheatmap_grouped = paste0(file, sep ="_", "Complexheatmap.png")
+
+png(file = fileimageheatmap_grouped, 
+    width = width_image, 
+    height = height_image, 
+    units="cm", 
+    res=900)
+
+heatmap_plot = Heatmap(mat,
+                        top_annotation = ha,
+                        left_annotation = row_ha,
+                        show_row_names = TRUE,
+                        row_names_side = "right",
+                        show_heatmap_legend = TRUE,
+                        heatmap_legend_param = list(direction = "horizontal"),
+                        col = col_fun, #color
+                        show_column_names = TRUE,
+                        column_title = fileimageheatmap_grouped,
+                        column_title_gp = gpar(fontsize = 10, fontface = "bold"),
+                        column_names_rot = 45,
+                        column_names_gp = column_names_gp,
+                        rect_gp = rect_gp,
+                        na_col = "white",
+                        cluster_rows = TRUE,
+                        row_names_gp = row_names_gp,
+                        row_dend_width = unit(5, "cm"),
+                        row_split = row_split,
                         row_gap = unit(2, "mm"),
                         cluster_columns = TRUE,
                         column_gap = unit(8, "mm"),
@@ -3514,20 +3526,12 @@ r.dend <- row_dend(heatmap_plot)  #Extract row dendrogram
 rcl.list <- row_order(heatmap_plot)  #Extract clusters (output is a list)
 lapply(rcl.list, function(x) length(x))  #check/confirm size cluster
 
-
-# loop to extract genes for each cluster.
-for (i in 1:length(row_order(heatmap_plot))){
-if (i == 1) {
-clu <- t(t(row.names(mat[row_order(heatmap_plot)[[i]],])))
-gene_cluster <- cbind(clu, paste(i, sep=""))
-colnames(gene_cluster) <- c("genes", "cluster")
- } else {
- clu <- t(t(row.names(mat[row_order(heatmap_plot)[[i]],])))
- clu <- cbind(clu, paste("cluster", i, sep=""))
- gene_cluster <- rbind(out, clu) %>% 
-   as.data.frame()}}
-
-gene_cluster
+gene_cluster <- NULL
+for (i in 1:length(rcl.list)) {
+  a <- row.names(mat[row_order(heatmap_plot)[[i]], ])
+  gene_cluster <- rbind(gene_cluster, data.frame(genes = a, cluster = paste0("cluster ", i), gene_set = "Immune genes"))
+}
+write.csv(gene_cluster, file = paste0(file, "_clustered_genes.csv"), row.names = F)
 ```
 
 
