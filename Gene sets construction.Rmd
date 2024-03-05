@@ -553,7 +553,7 @@ head(ImmuneGO_Annotated_unique)
 Agrupar genes de todos os processos do sistema imune
 
 ```{r}
-ImmuneGO_Annotated_unique = ImmuneGO_Annotated_Genes_28_2_24
+ImmuneGO_Annotated_unique = ImmuneGO_Annotated_Genes
 
 #Agrupar genes de todos os processos do sistema imune -----------------------------------------
 ImmuneGO_Adaptive <- ImmuneGO_Annotated_unique %>%
@@ -580,14 +580,11 @@ ImmuneGO_Innate_NK <- ImmuneGO_Annotated_unique %>%
   filter(immune_tissue == "NK cell")
 ImmuneGO_Innate_Monocyte <- ImmuneGO_Annotated_unique %>%
   filter(immune_tissue == "Monocyte")
-ImmuneGO_Adap_Cellular <- ImmuneGO_Adaptive %>% #Este comando somente inclui os genes de processos da resposta celular e muitos dos genes de receptor de celulas T não estão anotados. Por isso, eles serão incluidos nos codigos abaixo
+ImmuneGO_Adap_Cellular <- ImmuneGO_Adaptive %>% 
   filter(immune_sub_system == "Cellular")
 ImmuneGO_Adap_Humoral <- ImmuneGO_Adaptive %>%
   filter(immune_sub_system == "Humoral")
-```
 
-
-```{r}
 #Unificar genes e remover duplicatas
 ImmuneGO_Adaptive_genes <- paste(ImmuneGO_Adaptive$genes, collapse = ",")
 ImmuneGO_Adaptive_genes <- unique(unlist(strsplit(ImmuneGO_Adaptive$genes, ",")))
@@ -597,8 +594,10 @@ ImmuneGO_Innate_genes <- unique(unlist(strsplit(ImmuneGO_Innate$genes, ",")))
 
 ImmuneGO_Complement_genes <- paste(ImmuneGO_Complement$genes, collapse = ",")
 ImmuneGO_Complement_genes <- unique(unlist(strsplit(ImmuneGO_Complement$genes, ",")))
+
 ImmuneGO_Cellular_genes <- paste(ImmuneGO_Adap_Cellular$genes, collapse = ",")
 ImmuneGO_Cellular_genes <- unique(unlist(strsplit(ImmuneGO_Adap_Cellular$genes, ",")))
+
 ImmuneGO_Humoral_genes <- paste(ImmuneGO_Adap_Humoral$genes, collapse = ",")
 ImmuneGO_Humoral_genes <- unique(unlist(strsplit(ImmuneGO_Adap_Humoral$genes, ",")))
 
@@ -643,6 +642,7 @@ new_row_adap <- tibble(
   `Immune system` = "Adaptive",
   `Immune sub-system` = "General",
   `Immune tissue` = "General",
+  `GO.TERM` = "Manual",
   Genes = paste(ImmuneGO_Adaptive_genes, collapse = ","),
   SetSize = SetSize_adap
 )
@@ -653,6 +653,7 @@ new_row_innate <- tibble(
   `Immune system` = "Innate",
   `Immune sub-system` = "General",
   `Immune tissue` = "General",
+  `GO.TERM` = "Manual",
   Genes = paste(ImmuneGO_Innate_genes, collapse = ","),
   SetSize = SetSize_innate
 )
@@ -663,6 +664,7 @@ new_row_compl <- tibble(
   `Immune system` = "Complement",
   `Immune sub-system` = "General",
   `Immune tissue` = "General",
+  `GO.TERM` = "Manual",
   Genes = paste(ImmuneGO_Complement_genes, collapse = ","),
   SetSize = SetSize_compl
 )
@@ -756,7 +758,11 @@ new_row_macro <- tibble(
 )
 
 # Adicionar linhas
-ImmuneGO_Annotated_unique <- bind_rows(ImmuneGO_Annotated_unique, 
+ImmuneGO_Annotated_unique <- bind_rows(new_row_adap,
+                                       new_row_innate,
+                                       new_row_compl,
+                                       new_row_cellular,
+                                       new_row_humoral,
                                        new_row_mast, 
                                        new_row_neutro, 
                                        new_row_eosinophil, 
@@ -769,6 +775,7 @@ ImmuneGO_Annotated_unique <- bind_rows(ImmuneGO_Annotated_unique,
 #Transformar em tabela de genes por linhas
 ImmuneGO_Annotated_Genes <- ImmuneGO_Annotated_unique %>%
   separate_rows(genes, sep = ",")
+view(ImmuneGO_Annotated_Genes)
 
 
 # Separar genes de TCR e BCR
@@ -782,14 +789,20 @@ TCR_BCR_repertoire = ImmuneGO_Annotated_Genes %>%
          gene_set_short = if_else(process == "TCR REPERTOIRE", 
                                   "TCR REPERTOIRE", 
                            "BCR REPERTOIRE"),
-         process = if_else(grepl("^TR", genes), "TCR REPERTOIRE", "BCR REPERTOIRE"))
+         process = if_else(grepl("^TR", genes), "TCR REPERTOIRE", "BCR REPERTOIRE"),
+         immune_sub_system = if_else(process == "TCR REPERTOIRE", "Cellular", "Humoral"),
+         immune_tissue = if_else(process == "TCR REPERTOIRE", "Cellular", "Humoral"))
+  
 
 TCR_BCR_repertoire_genes = TCR_BCR_repertoire %>% 
   select(genes) %>% 
   distinct()
+TCR_BCR_repertoire_annotations = TCR_BCR_repertoire_genes %>% select(-genes)
+
 
 ImmuneGO_Annotated_Genes_2 = ImmuneGO_Annotated_Genes %>% 
-  select(process:immune_tissue)
+  select(genes, process:immune_tissue, go_term)
+
 
 ImmuneGO_Annotated_Genes_3 = ImmuneGO_Annotated_Genes_2 %>% 
   select(process, genes) %>% 
@@ -808,10 +821,8 @@ ImmuneGO_Annotated_Genes_3 = ImmuneGO_Annotated_Genes_2 %>%
               inner_join(TCR_BCR_repertoire %>% select(process, immune_system:go_term, genes) %>% 
               mutate(go_term = "Manual") %>% 
               distinct())) %>% 
-  arrange(desc(set_size)) %>% 
-  select(-set_size.x, -set_size) %>% 
-  rename(set_size = set_size.y)
-
+  arrange(desc(set_size)) 
+  
 
 ImmuneGO_Annotated_GO = ImmuneGO_Annotated_Genes_3 %>%
   group_by(process) %>%
@@ -819,22 +830,46 @@ ImmuneGO_Annotated_GO = ImmuneGO_Annotated_Genes_3 %>%
   left_join(ImmuneGO_Annotated_Genes_3 %>% select(-genes) %>% distinct(), by = "process") %>% 
   arrange(desc(set_size)) %>% 
   distinct() %>% 
-  mutate(gene_set_short = if_else(is.na(gene_set_short), process, gene_set_short))
+  mutate(gene_set_short = process) %>% 
+  bind_rows(ImmuneGO_Annotated_GO_4_3_24_2) %>% 
+  distinct() %>% 
+  mutate(process = case_when(process == "TCR REPERTOIRE" & set_size != 254 ~ "DELETE",
+                             process == "TCR REPERTOIRE" & immune_sub_system == "General" ~ "DELETE",
+                             process == "BCR REPERTOIRE" & set_size != 158 ~ "DELETE" ,
+                             process == "BCR REPERTOIRE" & immune_sub_system == "General" ~ "DELETE",
+                             TRUE ~ process)) %>% 
+  filter(process != "DELETE")
 
+
+view(ImmuneGO_Annotated_Genes)
 
 ImmuneGO_Annotated_Genes = ImmuneGO_Annotated_GO %>% 
    separate_rows(genes, sep = ",")
 
 
 #Salvar
-write.csv(ImmuneGO_Annotated_GO, file = "ImmuneGO_Annotated_GO_4-3-24_2.csv", row.names = F)
-write.csv(ImmuneGO_Annotated_Genes, file = "ImmuneGO_Annotated_Genes_4-3-24.csv", row.names = F)
+write.csv(ImmuneGO_Annotated_GO, file = "ImmuneGO_Annotated_GO_5-3-24_2.csv", row.names = F)
+saveRDS(ImmuneGO_Annotated_GO, file = "ImmuneGO_Annotated_GO_5-3-24_2.rds")
+
+write.csv(ImmuneGO_Annotated_Genes, file = "ImmuneGO_Annotated_Genes_5-3-24.csv", row.names = F)
+saveRDS(ImmuneGO_Annotated_Genes, file = "ImmuneGO_Annotated_Genes_5-3-24.rds")
 
 #Display
 view(ImmuneGO_Annotated_GO)
 view(ImmuneGO_Annotated_Genes)
 
 ```
+
+Verificar se todos os genes estão no manual
+```{r}
+ImmuneGO_Annotated_Genes
+
+
+a = ImmuneGO_Annotated_Genes %>% filter(go_term == "Manual") %>% select(genes) %>% distinct()
+
+ImmuneGO_Annotated_Genes %>% anti_join(a, by = "genes")
+```
+
 
 
 

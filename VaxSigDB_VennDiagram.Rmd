@@ -3588,9 +3588,11 @@ ggsave(ggplot_stats1, file = "Covid_Vax_genes_shared_column.png", width = 10, he
 covid_other_immune_genes_50_mostshared_all = stats_1 %>% 
   select(genes) %>% 
   distinct() %>% 
-  left_join(degs_all_updown_covid_other_immune, by = "genes")
+  inner_join(Immune_GO_genes_All, by = "genes")
+```
 
 
+```{r}
 #### Not Immune -----
 stats_2 = covid_other_notimmune_genes %>% 
   select(-process) %>% 
@@ -3697,7 +3699,7 @@ matrix_data = matrix %>%
 ann_rows_immune = matrix_data %>%
   as.data.frame() %>%
   rownames_to_column("genes") %>%
-  inner_join(ImmuneGO_Annotated_Genes, by = "genes") %>%
+  left_join(ImmuneGO_Annotated_Genes, by = "genes") %>%
   filter(go_term == "Manual") %>%
   select(genes, process) %>%
   distinct() %>%
@@ -3747,6 +3749,13 @@ dim(matrix_data)
 dim(ann_cols_heatmap)
 dim(ann_rows_notimmune)
 dim(ann_rows_immune)
+
+
+
+matrix_data %>% 
+  as.data.frame() %>% 
+  rownames_to_column("genes") %>% 
+  anti_join(ImmuneGO_Annotated_Genes %>% filter(go_term == "Manual") %>% select(genes) %>% distinct(), by = "genes")
 
 ```
 
