@@ -9,6 +9,346 @@ output: html_document
 knitr::opts_chunk$set(echo = TRUE)
 ```
 
+Colors
+```{r}
+ann_vaxsig_colors = list(
+  type = c("VLP" = "#D7B0EE",
+           "LA" =  "#5e60ce",
+           "CONJ" = "#015BA0", 
+           'IN'= "#76c893", #1st Gen  vaccines
+           'VV' = "#5e60ce", #3rd Gen vaccines
+           'RNA' = "#56cfe1",
+           'SU' = "#b5e48c",
+           'I'= "#f72585",
+           "H" = "grey95"),
+  target_pathogen_disease = c('MENINGOCOCCUS'	= "#16E0BD",
+                             'PNEUMOCOCCUS'	= "#44C199",
+                             'TUBERCULOSIS'	= "#99e2b4",
+                             'F TULARENSIS'	= "#90e0ef",
+                             'LEISHMANIA'	= "#118ab2",
+                             'MALARIA' = "#015BA0",
+                             'EBOV'	= "#5e60ce",
+                             'HBV'	= "#D7B0EE",
+                             'HBV, HAV'	= "#D7B0EE",
+                             'HIV'	= "#b5179e",
+                             'HPV'	= "#c77dff",
+                             'INFLUENZA'	= "#deaaff",
+                             'MEASLES'	= "#9d4edd",
+                             'MMR'	= "#7b2cbf",
+                             'SMALLPOX'	= "#e5b3fe",
+                             'VEEV'	= "#ecbcfd",
+                             'VZV'	= "#c8b6ff",
+                             'YF'	= "#b8c0ff"),
+  covid_other = c("COVID" = "#56cfe1",
+                  "OTHER" = "#343a40"),
+  microbe_type = c("VIRUS" = "#5e60ce",
+                   'BACTERIUM' = "#72efdd",
+                   'PARASITE' = "#b5179e"),
+  
+  week = c("0" = "#ECF8FA",
+           "1" = "#caf0f8",
+           "2" = "#6CD5EA",
+           "3" = "#0087BF",
+           "4" = "#015BA0", 
+           "6" = "#03045e",
+           "7" = "#03045e",
+           "8" = "#03045e"),
+  month = c("1" = "#caf0f8",
+            "0" = "#6CD5EA",
+           "2" = "#015BA0"),
+  vaccine = c("BBIBP" = "#76c893",
+  "ZF2001" = "#b5e48c",
+  "BNT" = "#56cfe1",
+  "MO" = "#72ddf7",
+  "ChAd" = "#5e60ce",
+  "I" = "grey95",
+  "H" = "grey95"),
+  dose = c(
+            "0" = "grey95",
+            "1" = "#56cfe1",
+            "2" = "#5978d4",
+            "3" = "#b5179e"),
+  day = c(
+          "0" = "white",
+          "1" = "#caf0f8",
+          "2" = "#ade8f4",
+          "3" = "#90e0ef",
+          "4" = "#6CD5EA",
+          "5" = "#48cae4",
+          "6" = "#00b4d8",
+          "7" = "#0096c7",
+          "10" = "#0087BF",
+          "11" = "#0087BF",
+          "14" = "#0077b6",
+          "26" = "#015BA0",
+          "28" = "#023e8a",
+          "51" = "#03045e"),
+  type = c('IN'= "#343a40", #1st Gen  vaccines
+           'SU' = "#00a896",
+           'VV' = "#72efdd", #3rd Gen vaccines
+           'RNA' = "#56cfe1",
+           'SU' = "#b5179e",
+           'I'= "#da1e37",
+           "H" = "grey95"), 
+  infection = c("0" = "#64dfdf",
+                "1" = "#f72585",
+                "2" = "#a4161a"),
+  variant = c("None" = "grey95",
+              "Beta" = "#72efdd",
+              "Omicron" = "#5e60ce"),
+  severity = c("H" = "grey95",
+               "S" = "#b5179e",
+               "MO" = "#5e60ce",
+               "MI" = "#80ffdb",
+               "NA" = "grey95"),
+  sex = c("Male" = "#56cfe1",
+          "Female" = "#b5179e",
+          "M/F" = "#5e60ce"),
+  disease_vac = c("I" = "#5e60ce",
+                  "V" = "#64dfdf")
+  )
+```
+
+
+COVID immune genes
+
+```{r}
+ImmuneGO_Annotated_Genes
+OtherGOs_Annotated_Genes
+degs_all_updown
+filename = "covid_vaccines_infection_Immune_"
+
+
+##### Table source - target - annotations ------
+
+#Immune
+degs_all_updown_covid_immune = degs_all_updown %>% 
+  as.data.frame() %>% 
+  select(condition:direction) %>% 
+  inner_join(ann_vaccines, by = "condition") %>% 
+  inner_join(ImmuneGO_Annotated_Genes %>% select(genes) %>% distinct(), by = "genes") %>% 
+  distinct() %>% 
+  select(condition, genes, regulation = direction)  %>% 
+  distinct() %>% 
+  filter(regulation %in% c("UP", "DOWN")) %>% 
+  mutate(regulation_numeric = case_when(
+    regulation %in% c("UP") ~ 1,
+    regulation %in% c("DOWN") ~ -1,
+    TRUE ~ as.numeric(regulation)
+  )) %>% 
+  distinct()
+
+# Immune
+immune_source1 = degs_all_updown_covid_immune %>% 
+  inner_join(ImmuneGO_Annotated_Genes %>% filter(go_term == "Manual", 
+                                                 !(process %in% c("TCR REPERTOIRE", "BCR REPERTOIRE"))), 
+             by = "genes") %>% 
+  select(source = condition, target = genes, value = regulation_numeric) %>% 
+  distinct() %>% 
+  left_join(ann_vaccines_covid_other %>% rename(source = condition), by = "source") %>% 
+  mutate(covid_other = if_else(is.na(covid_other), "OTHER", covid_other),
+         annotation = paste0("Condition", covid_other))
+
+immune_source2 = degs_all_updown_covid_immune %>% 
+  inner_join(ImmuneGO_Annotated_Genes %>% filter(go_term == "Manual", 
+                                                 !(process %in% c("TCR REPERTOIRE", "BCR REPERTOIRE"))), 
+             by = "genes") %>% 
+  select(source = process, target = genes) %>% 
+  distinct() %>% 
+  mutate(value = 0, 
+         annotation = "Immune system")
+
+immune = bind_rows(immune_source1, immune_source2) %>% mutate(id = source)
+
+write.csv(immune, file = paste0(filename, "Network.csv"), row.names = F)
+
+##### Tables nodes and edges ------
+
+edges = immune %>% 
+  select(source, target, value) %>% 
+  mutate(type = "Directed")
+
+nodes = immune %>% 
+  select(source, annotation, vaccine:infection) %>% 
+  distinct() %>% 
+  mutate(id = source)
+
+write.csv(edges, file = paste0(filename, "Network_edges.csv"), row.names = F)
+write.csv(nodes, file = paste0(filename, "Network_nodes.csv"), row.names = F)
+```
+COVID non immune genes
+
+```{r}
+ImmuneGO_Annotated_Genes
+OtherGOs_Annotated_Genes
+degs_all_updown
+filename = "covid_vaccines_infection_NonImmune"
+
+
+##### Table source - target - annotations ------
+
+# Not immune
+degs_all_updown_covid_notimmune = degs_all_updown %>% 
+  as.data.frame() %>% 
+  select(condition:direction) %>% 
+  inner_join(ann_vaccines, by = "condition") %>% 
+  inner_join(OtherGOs_Annotated_Genes %>% select(genes) %>% distinct(), by = "genes") %>% 
+  distinct() %>% 
+  select(condition, genes, regulation = direction)  %>% 
+  distinct() %>% 
+    filter(regulation %in% c("UP", "DOWN")) %>% 
+  mutate(regulation_numeric = case_when(
+    regulation %in% c("UP") ~ 1,
+    regulation %in% c("DOWN") ~ -1,
+    TRUE ~ as.numeric(regulation)
+  )) %>% 
+  distinct()
+
+
+# Not immune genes
+notimmune_source1 = degs_all_updown_covid_notimmune %>% 
+  inner_join(OtherGOs_Annotated_Genes %>% filter(annotation == "Major process"), by = "genes") %>% 
+  select(source = condition, target = genes, value = regulation_numeric) %>% 
+  distinct() %>% 
+  left_join(ann_vaccines_covid_other %>% rename(source = condition), by = "source") %>% 
+    mutate(covid_other = if_else(is.na(covid_other), "OTHER", covid_other),
+           annotation = paste0("Condition", covid_other))
+
+notimmune_source2 = degs_all_updown_covid_notimmune %>% 
+  inner_join(OtherGOs_Annotated_Genes %>% filter(annotation == "Major process") , by = "genes") %>% 
+  select(source = term, target = genes, value = regulation_numeric) %>% 
+  distinct() %>% 
+  mutate(value = 0, 
+         annotation = "Other processes")
+
+not_immune = bind_rows(notimmune_source1, notimmune_source2) %>% mutate(id = source)
+
+write.csv(not_immune, file = paste0(filename, "Network.csv"), row.names = F)
+
+##### Tables nodes and edges ------
+
+edges = not_immune %>% 
+  select(source, target, value) %>% 
+  mutate(type = "Directed")
+
+nodes = not_immune %>% 
+  select(source, annotation, vaccine:infection) %>% 
+  distinct() %>% 
+  mutate(id = source)
+
+write.csv(edges, file = paste0(filename, "Network_edges.csv"), row.names = F)
+write.csv(nodes, file = paste0(filename, "Network_nodes.csv"), row.names = F)
+
+```
+
+
+
+COVID immune and non immune genes
+
+```{r}
+ImmuneGO_Annotated_Genes
+OtherGOs_Annotated_Genes
+degs_all_updown
+filename = "covid_vaccines_infection_Immune_Notimmune"
+
+
+##### Table source - target - annotations ------
+
+#Immune
+degs_all_updown_covid_immune = degs_all_updown %>% 
+  as.data.frame() %>% 
+  select(condition:direction) %>% 
+  inner_join(ann_vaccines, by = "condition") %>% 
+  inner_join(ImmuneGO_Annotated_Genes %>% select(genes) %>% distinct(), by = "genes") %>% 
+  distinct() %>% 
+  select(condition, genes, regulation = direction)  %>% 
+  distinct() %>% 
+  filter(regulation %in% c("UP", "DOWN")) %>% 
+  mutate(regulation_numeric = case_when(
+    regulation %in% c("UP") ~ 1,
+    regulation %in% c("DOWN") ~ -1,
+    TRUE ~ as.numeric(regulation)
+  )) %>% 
+  distinct()
+
+# Not immune
+degs_all_updown_covid_notimmune = degs_all_updown %>% 
+  as.data.frame() %>% 
+  select(condition:direction) %>% 
+  inner_join(ann_vaccines, by = "condition") %>% 
+  inner_join(OtherGOs_Annotated_Genes %>% select(genes) %>% distinct(), by = "genes") %>% 
+  distinct() %>% 
+  select(condition, genes, regulation = direction)  %>% 
+  distinct() %>% 
+    filter(regulation %in% c("UP", "DOWN")) %>% 
+  mutate(regulation_numeric = case_when(
+    regulation %in% c("UP") ~ 1,
+    regulation %in% c("DOWN") ~ -1,
+    TRUE ~ as.numeric(regulation)
+  )) %>% 
+  distinct()
+
+# Immune
+immune_source1 = degs_all_updown_covid_immune %>% 
+  inner_join(ImmuneGO_Annotated_Genes %>% filter(go_term == "Manual", 
+                                                 !(process %in% c("TCR REPERTOIRE", "BCR REPERTOIRE"))), 
+             by = "genes") %>% 
+  select(source = condition, target = genes, value = regulation_numeric) %>% 
+  distinct() %>% 
+  left_join(ann_vaccines_covid_other %>% rename(source = condition), by = "source") %>% 
+  mutate(covid_other = if_else(is.na(covid_other), "OTHER", covid_other),
+         annotation = paste0("Condition", covid_other))
+
+immune_source2 = degs_all_updown_covid_immune %>% 
+  inner_join(ImmuneGO_Annotated_Genes %>% filter(go_term == "Manual", 
+                                                 !(process %in% c("TCR REPERTOIRE", "BCR REPERTOIRE"))), 
+             by = "genes") %>% 
+  select(source = process, target = genes) %>% 
+  distinct() %>% 
+  mutate(value = 0, 
+         annotation = "Immune system")
+
+immune = bind_rows(immune_source1, immune_source2) %>% mutate(id = source)
+
+
+# Not immune genes
+notimmune_source1 = degs_all_updown_covid_notimmune %>% 
+  inner_join(OtherGOs_Annotated_Genes %>% filter(annotation == "Major process"), by = "genes") %>% 
+  select(source = condition, target = genes, value = regulation_numeric) %>% 
+  distinct() %>% 
+  left_join(ann_vaccines_covid_other %>% rename(source = condition), by = "source") %>% 
+    mutate(covid_other = if_else(is.na(covid_other), "OTHER", covid_other),
+           annotation = paste0("Condition", covid_other))
+
+notimmune_source2 = degs_all_updown_covid_notimmune %>% 
+  inner_join(OtherGOs_Annotated_Genes %>% filter(annotation == "Major process") , by = "genes") %>% 
+  select(source = term, target = genes, value = regulation_numeric) %>% 
+  distinct() %>% 
+  mutate(value = 0, 
+         annotation = "Other processes")
+
+not_immune = bind_rows(notimmune_source1, notimmune_source2) %>% mutate(id = source)
+immune_notimmune = bind_rows(not_immune, immune)
+write.csv(immune_notimmune, file = paste0(filename, "Network_immune_notimmune.csv"), row.names = F)
+
+##### Tables nodes and edges ------
+
+edges = immune_notimmune %>% 
+  select(source, target, value) %>% 
+  mutate(type = "Directed")
+
+nodes = immune_notimmune %>% 
+  select(source, annotation, vaccine:infection) %>% 
+  distinct() %>% 
+  mutate(id = source)
+
+write.csv(edges, file = paste0(filename, "Network_immune_notimmune_edges.csv"), row.names = F)
+write.csv(nodes, file = paste0(filename, "Network_immune_notimmune_nodes.csv"), row.names = F)
+
+```
+
+
+
 
 
 COVID and other vaccines
@@ -29,8 +369,8 @@ immune_source1 = covid_other_immunego_genes %>%
   select(source = condition, target = genes, value = regulation_numeric) %>% 
   distinct() %>% 
   left_join(ann_vaccines_covid_other %>% rename(source = condition), by = "source") %>% 
-  mutate(annotation = "Condition", 
-         covid_other = if_else(is.na(covid_other), "OTHER", covid_other))
+  mutate(covid_other = if_else(is.na(covid_other), "OTHER", covid_other),
+         annotation = paste0("Condition", covid_other))
 
 immune_source2 = covid_other_immunego_genes %>% 
   inner_join(ImmuneGO_Annotated_Genes %>% filter(go_term == "Manual", 
@@ -50,8 +390,8 @@ notimmune_source1 = covid_other_notimmune_genes %>%
   select(source = condition, target = genes, value = regulation_numeric) %>% 
   distinct() %>% 
   left_join(ann_vaccines_covid_other %>% rename(source = condition), by = "source") %>% 
-    mutate(annotation = "Condition",
-           covid_other = if_else(is.na(covid_other), "OTHER", covid_other))
+    mutate(covid_other = if_else(is.na(covid_other), "OTHER", covid_other),
+           annotation = paste0("Condition", covid_other))
 
 notimmune_source2 = covid_other_notimmune_genes %>% 
   inner_join(OtherGOs_Annotated_Genes %>% filter(annotation == "Major process") , by = "genes") %>% 
@@ -62,7 +402,7 @@ notimmune_source2 = covid_other_notimmune_genes %>%
 
 not_immune = bind_rows(notimmune_source1, notimmune_source2) %>% mutate(id = source)
 immune_notimmune = bind_rows(not_immune, immune)
-
+view(immune_notimmune)
 write.csv(immune_notimmune, file = "Network_immune_notimmune.csv", row.names = F)
 
 ##### Tables nodes and edges ------
