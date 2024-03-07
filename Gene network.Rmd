@@ -207,7 +207,7 @@ degs_all_updown_covid_notimmune = degs_all_updown %>%
 
 # Not immune genes
 notimmune_source1 = degs_all_updown_covid_notimmune %>% 
-  inner_join(OtherGOs_Annotated_Genes %>% filter(annotation == "Major process"), by = "genes") %>% 
+  inner_join(OtherGOs_Annotated_Genes %>% filter(annotation == "Major process", term != "Immune system"), by = "genes") %>% 
   select(source = condition, target = genes, value = regulation_numeric) %>% 
   distinct() %>% 
   left_join(ann_vaccines_covid_other %>% rename(source = condition), by = "source") %>% 
@@ -215,7 +215,7 @@ notimmune_source1 = degs_all_updown_covid_notimmune %>%
            annotation = paste0("Condition", covid_other))
 
 notimmune_source2 = degs_all_updown_covid_notimmune %>% 
-  inner_join(OtherGOs_Annotated_Genes %>% filter(annotation == "Major process") , by = "genes") %>% 
+  inner_join(OtherGOs_Annotated_Genes %>% filter(annotation == "Major process", term != "Immune system"), by = "genes") %>% 
   select(source = term, target = genes, value = regulation_numeric) %>% 
   distinct() %>% 
   mutate(value = 0, 
@@ -276,7 +276,7 @@ degs_all_updown_covid_notimmune = degs_all_updown %>%
   as.data.frame() %>% 
   select(condition:direction) %>% 
   inner_join(ann_vaccines, by = "condition") %>% 
-  inner_join(OtherGOs_Annotated_Genes %>% select(genes) %>% distinct(), by = "genes") %>% 
+  inner_join(OtherGOs_Annotated_Genes %>% filter(term != "Immune system") %>% select(genes) %>% distinct(), by = "genes") %>% 
   distinct() %>% 
   select(condition, genes, regulation = direction)  %>% 
   distinct() %>% 
@@ -313,7 +313,7 @@ immune = bind_rows(immune_source1, immune_source2) %>% mutate(id = source)
 
 # Not immune genes
 notimmune_source1 = degs_all_updown_covid_notimmune %>% 
-  inner_join(OtherGOs_Annotated_Genes %>% filter(annotation == "Major process"), by = "genes") %>% 
+  inner_join(OtherGOs_Annotated_Genes %>% filter(annotation == "Major process", term != "Immune system"), by = "genes") %>% 
   select(source = condition, target = genes, value = regulation_numeric) %>% 
   distinct() %>% 
   left_join(ann_vaccines_covid_other %>% rename(source = condition), by = "source") %>% 
@@ -321,7 +321,7 @@ notimmune_source1 = degs_all_updown_covid_notimmune %>%
            annotation = paste0("Condition", covid_other))
 
 notimmune_source2 = degs_all_updown_covid_notimmune %>% 
-  inner_join(OtherGOs_Annotated_Genes %>% filter(annotation == "Major process") , by = "genes") %>% 
+  inner_join(OtherGOs_Annotated_Genes %>% filter(annotation == "Major process", term != "Immune system"), by = "genes") %>% 
   select(source = term, target = genes, value = regulation_numeric) %>% 
   distinct() %>% 
   mutate(value = 0, 
