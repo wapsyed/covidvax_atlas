@@ -161,7 +161,7 @@ immune_source2 = degs_all_updown_covid_immune %>%
 immune = bind_rows(immune_source1, immune_source2) %>% mutate(id = source)
 
 write.csv(immune, file = paste0(filename, "Network.csv"), row.names = F)
-
+write.table(immune, file = paste0(filename, "Network.tab"), row.names = F)
 ##### Tables nodes and edges ------
 
 edges = immune %>% 
