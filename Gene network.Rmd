@@ -110,52 +110,6 @@ ann_vaxsig_colors = list(
 ```
 
 
-COVID-COVID immune genes
-
-```{r}
-ImmuneGO_Annotated_Genes
-OtherGOs_Annotated_Genes
-degs_all_updown
-filename = "covid_vaccines_infection_Immunegenes_COVID-COVID_"
-
-
-##### Table source - target - annotations ------
-
-#Immune
-degs_all_updown_covid_immune = degs_all_updown %>% 
-  as.data.frame() %>% 
-  select(condition:direction) %>% 
-  inner_join(ann_vaccines, by = "condition") %>% 
-  inner_join(ImmuneGO_Annotated_Genes %>% select(genes) %>% distinct(), by = "genes") %>% 
-  distinct() %>% 
-  select(condition, genes, regulation = direction)  %>% 
-  distinct() %>% 
-  filter(regulation %in% c("UP", "DOWN")) %>% 
-  mutate(regulation_numeric = case_when(
-    regulation %in% c("UP") ~ 1,
-    regulation %in% c("DOWN") ~ -1,
-    TRUE ~ as.numeric(regulation)
-  )) %>% 
-  distinct()
-
-write.csv(degs_all_updown_covid_immune, file = paste0(filename, "Network.csv"), row.names = F)
-write_tsv(degs_all_updown_covid_immune, file = paste0(filename, "Network.tsv"))
-
-##### Tables nodes and edges ------
-
-edges = immune %>% 
-  select(source, target, value) %>% 
-  mutate(type = "Directed")
-
-nodes = immune %>% 
-  select(source, annotation, vaccine:infection) %>% 
-  distinct() %>% 
-  mutate(id = source)
-
-write.csv(edges, file = paste0(filename, "Network_edges.csv"), row.names = F)
-write.csv(nodes, file = paste0(filename, "Network_nodes.csv"), row.names = F)
-```
-
 
 
 COVID immune genes - ImmuneGO set
@@ -182,8 +136,7 @@ degs_all_updown_covid_immune = degs_all_updown %>%
   mutate(regulation_numeric = case_when(
     regulation %in% c("UP") ~ 1,
     regulation %in% c("DOWN") ~ -1,
-    TRUE ~ as.numeric(regulation)
-  )) %>% 
+    TRUE ~ as.numeric(regulation))) %>% 
   distinct()
 
 # Immune
@@ -208,6 +161,9 @@ immune_source2 = degs_all_updown_covid_immune %>%
          type = "Immune system")
 
 immune = bind_rows(immune_source1, immune_source2) %>% mutate(id = source)
+
+immune =  immune %>% 
+   mutate(source = str_replace(source, ",", " "))
 
 write.csv(immune, file = paste0(filename, "Network.csv"), row.names = F)
 write_tsv(immune, file = paste0(filename, "Network.tsv"))
