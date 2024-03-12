@@ -1504,43 +1504,26 @@ Combinar tabela de genes sequenciados (raw)
 ```{r}
 #TABELA DE GENES SEQUENCIADOS
 
-gse201530_genes = gse201530_counts_ready %>%
-  rownames_to_column("genes") %>% 
-  select(genes) %>% 
-  mutate(study = "GSE201530")
-
-gse199750_genes = gse199750_counts_ready %>%
+# Counts
+gse189039 = gse189039_counts_ready %>% 
+  rownames_to_column("genes") 
+gse201530 = gse201530_counts_ready %>% 
+  rownames_to_column("genes") 
+gse201533 = gse201533_counts_ready %>% 
+  rownames_to_column("genes") 
+gse199750 = gse199750_counts_ready %>% 
   as.data.frame() %>% 
-  rownames_to_column("genes") %>% 
-  select(genes) %>% 
-  mutate(study = "GSE199750")
+  rownames_to_column("genes") 
+gse206023 = gse206023_counts_ready %>% 
+  select(genes, everything(), -"...1")
 
-gse189039_genes = gse189039_counts_ready %>%
-  as.data.frame() %>% 
-  rownames_to_column("genes") %>% 
-  select(genes) %>% 
-  mutate(study = "GSE189039")
+all_matrices_counts = gse189039 %>% 
+  full_join(gse201530, by = "genes") %>% 
+  full_join(gse201533, by = "genes") %>% 
+  full_join(gse199750, by = "genes") %>% 
+  full_join(gse206023, by = "genes")
 
-gse201533_genes = gse201533_counts_ready %>%
-  as.data.frame() %>% 
-  rownames_to_column("genes") %>% 
-  select(genes) %>% 
-  mutate(study = "GSE201533")
-
-gse206023_genes = gse206023_counts_long_annotated_14_11_23 %>% 
-  select(genes) %>% 
-  distinct() %>% 
-  mutate(study = "GSE206023")
-
-
-genes_raw_combined = bind_rows(gse206023_genes,
-                               gse201533_genes,
-                               gse189039_genes,
-                               gse199750_genes,
-                               gse201530_genes)
-
-
-write.csv(genes_raw_combined, file = "genes_raw_combined.csv")
+write_tsv(all_matrices_counts, file = "all_matrices_counts.tsv")
 
 ```
 

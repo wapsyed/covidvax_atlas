@@ -353,7 +353,10 @@ write.csv(nodes, file = paste0(filename, "Network_immune_notimmune_nodes.csv"), 
 
 ```
 
+## Network by statistics only
+```{r}
 
+```
 
 
 
