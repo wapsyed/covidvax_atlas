@@ -1097,11 +1097,12 @@ BiocManager::install("ExpressionNormalizationWorkflow")
 
 library(ExpressionNormalizationWorkflow)
 
-
 exprs = all_matrices_counts %>% 
   column_to_rownames("genes") %>% 
   replace(is.na(.), 0) %>% 
-  replace(is.infinite(.), 0) %>% 
+  log2() %>% 
+  replace(., . == -Inf, 0) %>% 
+  replace(., . == Inf, 0) %>% 
   t() %>% 
   as.data.frame() %>% 
   rownames_to_column("sample") %>% 
@@ -1113,14 +1114,19 @@ exprs = all_matrices_counts %>%
              by = "sample") %>% 
   column_to_rownames("sample") %>% 
   t() %>% 
-  as.data.frame() %>% 
-  mutate(across(., ~ as.numeric(.)))
+  as.data.frame()
+
+view(exprs)
+
+
+a = exprs %>% 
+  mutate_if(is.character, as.numeric)
   
 
 cvrts = ann_vaccines_samples %>% 
   select(sample, everything()) %>% 
   arrange(sample) %>% 
-  column_to_rownames("samples")
+  column_to_rownames("sample")
 
 inpData <- expSetobj(exprs, 
                      cvrts)
