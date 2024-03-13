@@ -32,10 +32,13 @@ library(ggExtra)
 
 ### Process data
 ```{r}
-ImmuneGO_Annotated_Genes_all= ImmuneGO_Annotated_Genes
+
+ImmuneGO_Annotated_Genes = 
+
+ImmuneGO_Annotated_Genes_all= ImmuneGO_Annotated_Genes_28_2_24 
 
 ImmuneGO_Annotated_Genes = ImmuneGO_Annotated_Genes_all %>% 
-  anti_join(TCR_BCR_repertoire_genes, by = "genes")
+  filter(!process %in% c("TCR REPERTOIRE", "BCR REPERTOIRE"))
 
 ImmuneGO_Genes = all_degs_p_05_vac_infected_19_12_23 %>% 
   select(-"...1", -"...12") %>% 
@@ -61,7 +64,7 @@ nonImmuneGO_Genes = all_degs_p_05_vac_infected_19_12_23 %>%
 data_genes = ImmuneGO_Genes 
 filename = "ImmuneGO_Genes"
 
-data_annotation = ann_vaccines %>% 
+data_annotation = ann_vaccines_19_1_24 %>% 
   mutate(day = as.factor(day),
          dose = as.factor(dose)) 
 
@@ -1093,9 +1096,18 @@ ggsave(ggplot_stats2, file = "ImmuneGO_genes_shared_major_process.png", width = 
 # Gene expression by gender
 
 ```{r}
-BiocManager::install("ExpressionNormalizationWorkflow")
+
+###### Batch effects ----
+
+# BiocManager::install("ExpressionNormalizationWorkflow")
 
 library(ExpressionNormalizationWorkflow)
+
+cvrts = ann_vaccines_samples %>% 
+  select(sample, everything()) %>% 
+  arrange(sample) %>% 
+  column_to_rownames("sample")
+
 
 exprs = all_matrices_counts %>% 
   column_to_rownames("genes") %>% 
@@ -1116,17 +1128,14 @@ exprs = all_matrices_counts %>%
   t() %>% 
   as.data.frame()
 
-view(exprs)
-
-
 a = exprs %>% 
   mutate_if(is.character, as.numeric)
-  
+a.1 = a %>% 
+  replace(., . == -Inf, 0) %>% 
+  replace(., . == Inf, 0) %>% 
+  replace(is.na(.), 0)
 
-cvrts = ann_vaccines_samples %>% 
-  select(sample, everything()) %>% 
-  arrange(sample) %>% 
-  column_to_rownames("sample")
+exprs = a.1
 
 inpData <- expSetobj(exprs, 
                      cvrts)
@@ -1135,7 +1144,78 @@ inpData <- expSetobj(exprs,
 cvrts_eff_var <- c("age", "sex", "vaccine", "gse_id", "day")
 
 pct_thrsh <- 0.75 
-pvcAnaly(inpData, pct_thrsh, cvrts_eff_var)
+pvca = pvcAnaly(inpData, pct_thrsh, cvrts_eff_var)
+
+pvca_df = pvca$dat %>% 
+  as.data.frame() %>% 
+  t() %>%
+  as.data.frame() %>% 
+  rename(wavgpv = V1) %>% 
+  cbind(pvca$label %>% as.data.frame() %>% rename(batch = '.')) %>% 
+  as.data.frame()
+
+pvca_df = pvca_df %>% 
+  mutate(batch = as.factor(batch),
+         wavgpv = as.numeric(wavgpv),
+         batch = fct_reorder(batch, wavgpv)) %>% 
+  arrange(batch, wavgpv) %>% 
+ggplot() +
+  aes(x = batch, y = wavgpv) +
+  geom_col(fill = "#112246") +
+  theme_minimal()
+
+ggsave(pvca_df, file = "pvca.png")
+
+
+
+
+##### DESEQ2 Normalization
+
+library(DESeq2)
+
+exprs = all_matrices_counts %>% 
+  column_to_rownames("genes") %>% 
+  t() %>% 
+  as.data.frame() %>% 
+  round(., 0) %>% 
+  rownames_to_column("sample") %>% 
+  arrange(sample) %>% 
+  inner_join(cvrts %>% 
+               rownames_to_column("sample"),
+               select(sample) %>% 
+               distinct(), 
+             by = "sample") %>% 
+  column_to_rownames("sample") %>% 
+  t() %>% 
+  as.data.frame()
+
+head(exprs)
+
+a = exprs %>% 
+    drop_na() %>% 
+    mutate_if(is.character, as.integer) %>% 
+    drop_na() 
+
+
+cvrts = cvrts %>% 
+  mutate(condition = as.factor(condition),
+         age = as.factor(age),
+         sex = as.factor(sex),
+         vaccine = as.factor(vaccine),
+         day = as.factor(day),
+         gse_id = as.factor(gse_id))
+  
+dds <- DESeqDataSetFromMatrix(countData = a, colData = cvrts, design = ~ condition)
+
+dds <- estimateSizeFactors(dds)
+
+normalized_counts <- counts(dds, normalized=TRUE) %>% 
+  as.data.frame()
+
+saveRDS(normalized_counts, file = "all_matrices_normalized_counts.rds")
+
+
+
 
 ```
 
@@ -1149,42 +1229,52 @@ PC1 = var$cos2 %>%
   distinct() %>% 
   select(genes, Dim.1)
 
-PC2 = var$cos2 %>%
-  as.data.frame() %>%
-  arrange(desc(Dim.2)) %>%
-  slice_head(n = 20) %>%
+PC1_genes_counts = normalized_counts %>% 
   rownames_to_column("genes") %>% 
-  distinct() %>% 
-  select(genes, Dim.2)
-
-PC1_genes_counts = all_matrices_counts %>% 
   inner_join(PC1, by = "genes") %>% 
   pivot_longer(cols = -c("genes", "Dim.1"), names_to = "sample", values_to = "counts") %>% 
   mutate(counts = round(counts, 0)) %>% 
   select(genes, sample, counts, Dim.1) %>% 
   inner_join(ann_vaccines_samples, by = "sample") %>% 
-  filter(gse_id != "GSE206023")
-  
+  filter(gse_id != "GSE206023") %>% 
+  filter(genes == "CD3E") %>% 
+  group_by(condition) %>%
+  filter(any(sex == 'Male') & any(sex == 'Female'),
+         condition != "H (D0)") %>% 
+  ungroup() %>% 
+  mutate(age_inter = cut(age, breaks = c(10, 20, 30, 40, 50, 60, 70, 80, 90, 100), labels = c("10-20", "21-30", "31-40", "41-50", "51-60", "61-70", "71-80", "81-90", "91-100")))
 
+  
 write.csv(PC1_genes_counts, file = "PC1_genes_samples_counts.csv", row.names = F)
-  
 
-esquisser(PC1_genes_counts)
 
-pc1_5  = ggplot(PC1_genes_counts) +
+#Sex ----
+pc1_cd3e  = ggplot(PC1_genes_counts) +
   aes(x = condition, y = counts, fill = sex, colour = sex) +
   geom_boxplot() +
   scale_fill_hue(direction = 1) +
   scale_color_hue(direction = 1) +
-  scale_y_continuous(trans = "log10") +
+  scale_y_continuous(trans = "log2") +
   theme_light() +
   theme(legend.position = "top") +
-  facet_wrap(vars(genes), scales = "free") +
-  theme(axis.text.x = element_text(angle = 45, vjust = 0.5))
+  facet_wrap(vars(vaccine), scales = "free", ncol =5) +
+  theme(axis.text.x = element_text(size = 6, color = "black", angle = 45, vjust = 1, hjust = 1))
 
+ggsave(pc1_cd3e, file = "pc1_cd3e.png", width = 20, height = 10)
 
-ggsave(pc1_5, file = "pc1_5.png", width = 10, height = 10)
+#Age ----
 
+pc1_cd3e_age  = ggplot(PC1_genes_counts) +
+  aes(x = condition, y = counts, fill = age_inter) +
+  geom_boxplot() +
+  scale_fill_hue(direction = 1) +
+  scale_color_hue(direction = 1) +
+  scale_y_continuous(trans = "log2") +
+  theme_light() +
+  theme(legend.position = "top") +
+  theme(axis.text.x = element_text(size = 10, color = "black", angle = 45, vjust = 1, hjust = 1)) +
+  facet_wrap(vars(vaccine), scales = "free", ncol =5)
+ggsave(pc1_cd3e_age, file = "pc1_cd3e_age.png", width = 20, height = 5)
 
 ```
 
