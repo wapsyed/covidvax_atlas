@@ -427,98 +427,9 @@ write.csv(ImmuneGO_Annotated_Genes_26_2_24, file = "ImmuneGO_Annotated_Genes_26_
 
 ```
 
-
-
-```{r}
-############### DATASET DESCRIPTION ############### 
-Immune_GO_genes_GO = Immune_GO %>% 
-  select(SYMBOL, GO.NAME, GO.TERM, GO.EVIDENCE.CODE) %>% 
-  unique() %>% 
-  data.frame()
-
-Immune_GO_genes = Immune_GO %>% 
-  select(SYMBOL) %>% 
-  unique() %>% 
-  data.frame()
-
-Immune_GO_GOs = Immune_GO %>% 
-  select(GO.NAME) %>% 
-  unique() %>% 
-  data.frame()
-
-Immune_GO_Evidence = Immune_GO %>% 
-  select(GO.EVIDENCE.CODE) %>% 
-  unique() %>% 
-  data.frame()
-
-#Stats
-dim(Immune_GO) #4098 GOs
-dim(Immune_GO_genes) #1251 GENES
-dim(Immune_GO_genes_GO) #3889 GENES-TERMS
-dim(Immune_GO_GOs) #336 TERMS-NAMES
-dim(Immune_GO_Evidence) #12 
-
-# Filtrar genes "NOT|involved_in" (QUALIFIER)
-Immune_GO_genes_GO_Filt = Immune_GO %>%
-  filter(QUALIFIER != "NOT|involved_in") %>% 
-  write.csv(file="Immune_GO_genes_GO_Filt.csv") #Salvar
-```
-
 ### Descrevendo e organizando dataset
-Annotation of GOs
 
-```{r}
-######## Anotação de GOs ########
-ImmuneGO_Manual = ImmuneGO_Annotated_Genes_28_2_24 # ImmuneGOs manually annotated by Immune System, Sub-system, and cells
-#Unir anotações com genes
-ImmuneGO_Annotated = ImmuneGO_Manual %>% 
-  merge(Immune_GO_genes_GO_Filt, by.x = "Process", by.y = "GO.NAME", all.y = F, all.x=T) %>% 
-  select(SYMBOL, everything()) %>% 
-  rename(Evidence = GO.EVIDENCE.CODE)
-
-#Calculate Set size
-ImmuneGO_Annotated_genes <- ImmuneGO_Annotated %>%
-  group_by(Process) %>% #Somar e agrupar
-  mutate(SetSize = n())
-
-#Convert gene symbol column to aggregated rows
-ImmuneGO_Annotated_genes <- ImmuneGO_Annotated_genes %>%
-  group_by(Process) %>%
-  summarize(Genes = paste(SYMBOL, collapse = ","), .groups = "drop") %>% 
-  left_join(ImmuneGO_Annotated_genes, by = "Process") %>% 
-  filter(SYMBOL != "NA") %>% 
-  relocate(Genes, .after="SetSize")
-  
-#View(ImmuneGO_Annotated_genes)
-
-#Convert to unique values table
-ImmuneGO_Annotated_unique = ImmuneGO_Annotated_genes %>% 
-  select(Process, `Gene set, short`, `Immune system`, `Immune sub-system`, `Immune tissue`, `GO.TERM`, SetSize, Genes) %>% 
-  distinct() %>% 
-  relocate(Genes, .after="SetSize") %>% 
-  filter(Genes != "NA")
-
-#Retirar processos irrelevantes e remover espaços em branco
-ImmuneGO_Annotated_unique = ImmuneGO_Annotated_unique %>% 
-  filter(`Immune sub-system` != "Erythrocyte", `Immune tissue` != "Erythrocyte") %>%  
-  mutate(Genes = str_replace_all(Genes, " ", ""))
-
-# Calcular o tamanho do gene set
-ImmuneGO_Annotated_unique <- ImmuneGO_Annotated_unique %>%
-  mutate(SetSize = lengths(str_split(Genes, ",")),
-         Genes = str_c(unique(str_split(Genes, ",")), collapse = ","))
-
-# ImmuneGO_Annotated_unique$SetSize <- sapply(strsplit(ImmuneGO_Annotated_unique$Genes, ","), function(x) length(unique(x)))
-# ImmuneGO_Annotated_unique$Genes <- sapply(strsplit(ImmuneGO_Annotated_unique$Genes, ","), function(x) paste(unique(x), collapse = ","))
-
-#Salvar
-write.csv(ImmuneGO_Annotated_genes, file="ImmuneGO_Annotated_Genes.csv")
-write.csv(ImmuneGO_Annotated_unique, file="ImmuneGO_Annotated_GO.csv")
-
-head(ImmuneGO_Annotated_unique)
-```
-
-Agrupar genes de todos os processos do sistema imune
+Group immune system genes by process and cell
 
 ```{r}
 ImmuneGO_Annotated_unique = ImmuneGO_Annotated_Genes %>% 
@@ -798,26 +709,10 @@ ImmuneGO_Annotated_GO = bind_rows(ImmuneGO_Adaptive,
 ImmuneGO_Annotated_Genes = ImmuneGO_Annotated_GO %>% 
    separate_rows(genes, sep = ",")
 
-#Verify if all genes are annotated. If there are no left genes, you are good to go
-a = ImmuneGO_Annotated_Genes %>% filter(go_term == "Manual") %>% select(genes) %>% distinct()
-ImmuneGO_Annotated_Genes %>% select(process, genes, immune_system) %>% anti_join(a, by = "genes")
 
 
-#Salvar
-write.csv(ImmuneGO_Annotated_GO, file = "ImmuneGO_Annotated_GO_14-3-24_2.csv", row.names = F)
-saveRDS(ImmuneGO_Annotated_GO, file = "ImmuneGO_Annotated_GO_14-3-24_2.rds")
-saveRDS(ImmuneGO_Annotated_Genes, file = "ImmuneGO_Annotated_Genes_14-3-24.rds")
-
-#Display
-view(ImmuneGO_Annotated_GO)
-view(ImmuneGO_Annotated_Genes)
-
-```
-
-
-```{r}
 # Separate TCR and BCR repertoire genes
-TCR_BCR_repertoire = immunego_manual %>% 
+TCR_BCR_repertoire = ImmuneGO_Annotated_Genes %>% 
   filter(grepl("^TR", genes) & process == "ADAPTIVE IMMUNE SYSTEM" |
            grepl("^IG", genes) & process == "ADAPTIVE IMMUNE SYSTEM" |
            grepl("^TR", genes) & process == "CELLULAR ADAPTIVE IMMUNE SYSTEM" |
@@ -835,8 +730,25 @@ immunego_manual = immunego_manual %>%
   anti_join(TCR_BCR_repertoire_genes %>% select(genes) %>% distinct(), by = "genes") %>% 
   bind_rows()
 
+#Verify if all genes are annotated. If there are no left genes, you are good to go
+a = ImmuneGO_Annotated_Genes %>% filter(go_term == "Manual") %>% select(genes) %>% distinct()
+ImmuneGO_Annotated_Genes %>% select(process, genes, immune_system) %>% anti_join(a, by = "genes")
+
+
+#Salvar
+write.csv(ImmuneGO_Annotated_GO, file = "ImmuneGO_Annotated_GO_14-3-24_2.csv", row.names = F)
+saveRDS(ImmuneGO_Annotated_GO, file = "ImmuneGO_Annotated_GO_14-3-24_2.rds")
+saveRDS(ImmuneGO_Annotated_Genes, file = "ImmuneGO_Annotated_Genes_14-3-24.rds")
+
+#Display
+view(ImmuneGO_Annotated_GO)
+view(ImmuneGO_Annotated_Genes)
+
 ```
 
+
+
+### Statistics
 
 Top 10 gene sets
 
@@ -871,9 +783,9 @@ ggsave(ImmuneGO_top10_barplot, file="ImmuneGO_top10_barplot.png", width = 10, he
 head(ImmuneGO_top10_barplot)
 ```
 
-Quais os tamanhos dos gene sets?
-
 ```{r}
+
+#Gene sets size ------
 
 # Usar cut para dividir os valores em intervalos
 ImmuneGO_Annotated_GO$SetSize_intervals <- cut(ImmuneGO_Annotated_GO$SetSize, c(0, 10, 50, 100, Inf), labels = FALSE)
@@ -988,6 +900,9 @@ head(ImmuneGO_top10_barplot)
 
 
 ```
+
+
+VENN DIAGRAM
 
 ```{r}
 ############### VENN DIAGRAM
@@ -1328,49 +1243,26 @@ Obtendo coleções
 
 ```{r}
 
-############### Obter coleções ############### 
-#Obter genes de um conjunto específico diretamente do MSigDB. 
-msigdbr_collections() #Listar conjuntos
+# Retrieve collections from MSigDB  -------
+msigdbr_collections() #List all 
 
-############### Hallmark ###############
+# Hallmark
 hallmark <- msigdbr(species = "Homo sapiens", category = "H") %>% 
   dplyr::select(gs_name, gene_symbol) 
-
-#Limpar texto
 hallmark$gs_name <- gsub("HALLMARK_", "", hallmark$gs_name)
 hallmark$gs_name <- gsub("_", " ", hallmark$gs_name)
 
-#Conjuntos de GO
 GO_BP <- msigdbr(species = "Homo sapiens", 
                  category = "C5", 
                  subcategory = "GO:BP") %>%
   select(gs_name, gene_symbol)
 
-GO_MF <- msigdbr(species = "Homo sapiens", 
-                 category = "C5", 
-                 subcategory = "GO:MF") %>%
-  select(gs_name, gene_symbol)
-
-#Conjunto de marcadores de células 
-cell_types <- msigdbr(species = "Homo sapiens", 
-                      category = "C8") %>% 
-  select(gs_name, gene_symbol)
-
-#Conjunto de marcadores da resposta imune
-immune_sig = msigdbr(species = "Homo sapiens", 
-                     category = "C7", 
-                     subcategory = "IMMUNESIGDB") %>% 
-  select(gs_name, gene_symbol)
-
-head(immune_sig)
-
-#Conjunto de marcadores de vacinas
+#Vax Collection
 vax_sig = msigdbr(species = "Homo sapiens", 
                   category = "C7", 
                   subcategory = "VAX") %>% 
   select(gs_name, gene_symbol)
 
-#Limpar texto
 vax_sig$gs_name <- gsub("_", " ", vax_sig$gs_name)
 head(vax_sig)
 ```

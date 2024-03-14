@@ -2652,6 +2652,7 @@ matrix_data = matrix %>%
 dim(matrix_data)
 dim(ann_rows_heatmap)
 dim(ann_cols_heatmap)
+
 ```
 
 
@@ -2731,6 +2732,8 @@ draw(heatmap_plot,
 dev.off()
 
 ```
+
+
 
 
 
@@ -3910,6 +3913,70 @@ heatmap_plot
 dev.off()
 ```
 
+
+#Distance matrix
+
+https://www.r-bloggers.com/2021/10/cluster-analysis-using-r-2/
+
+```{r}
+library(plyr)
+install.packages("arm")
+library(arm)
+library(reshape2)
+
+nba <- read.csv("http://datasets.flowingdata.com/ppg2008.csv")
+nba$Name <- with(nba, reorder(Name, PTS))
+nba.m <- melt(nba)
+nba.m <- ddply(nba.m, .(variable), transform,
+rescale = rescale(value))
+(p <- ggplot(nba.m, aes(variable, Name)) + geom_tile(aes(fill = rescale),
+colour = "white") + scale_fill_gradient(low = "white",
+high = "steelblue")+geom_text(aes(label=round(rescale,1))))
+
+
+# Distance matrix (base R)
+dist_m = shared_degs_updown_immune_SharedDEGS_Venn_fisher %>% 
+  dplyr::select(Cond1, Cond2, Shared) %>% 
+  replace(is.na(.), 0) %>% 
+  pivot_wider(names_from = Cond2, values_from = Shared) %>% 
+  column_to_rownames("Cond1") %>% 
+  dist() 
+
+
+# Distance matrix (factoextra)
+library(factoextra)
+
+library(esquisse)
+esquisser(shared_degs_updown_immune_SharedDEGS_Venn_fisher)
+
+dist_m = shared_degs_updown_immune_SharedDEGS_Venn_fisher %>% 
+  dplyr::select(Cond1, Cond2, Shared) %>% 
+  pivot_wider(names_from = Cond2, values_from = Shared) %>% 
+  column_to_rownames("Cond1") %>% 
+    replace(is.na(.), 0)
+
+res.dist <- get_dist(dist_m, method = "kendall")
+
+res.dist %>% 
+  as.matrix() %>% 
+  as.data.frame() %>% 
+  rownames_to_column("Cond1") %>% 
+  pivot_longer(cols = -Cond1, names_to = "Cond2", values_to = "kendall")
+
+
+#Heatmap
+
+fviz_dist(res.dist, 
+   gradient = list(low = "#00AFBB", mid = "white", high = "#FC4E07"))
+
+
+# Network graph
+dist_mi = 1/dist_m
+jpeg('example_forcedraw.jpg', width=3000, height=3000, unit='px')
+qgraph(dist_mi, layout='spring', vsize=3)
+dev.off()
+
+```
 
 
 
