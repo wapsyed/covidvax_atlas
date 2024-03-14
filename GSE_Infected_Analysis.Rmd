@@ -363,6 +363,12 @@ write.csv(counts_GSE189039, file = "gse189039_counts.csv")
 
 # 4. Análise de dados
 
+
+
+
+
+
+
 ## Demographics
 
 ```{r}
@@ -1168,125 +1174,209 @@ write.csv(gse_201530_189039, file = "gse_201530_189039_DEGs_27-11-23.csv")
 write.csv(all_degs_p_05_vac_infected, file = 'all_degs_p_05_vac_infected_27-11-23.csv')
 ```
 
-Comparar numero de participantes
-```{r}
 
-ann_vaccines = ann_vaccines_29_11_23 %>% 
-  clean_names() %>% 
-  mutate(condition = factor(condition, levels = rev(condition)))
-
-
-plot = ann_vaccines %>% 
-  ggplot() +
-  aes(x = condition, 
-      y = participants, 
-      fill = gse_id) +
-  geom_col() +
-  labs(title = "Participants by condition") +
-  coord_flip() +
-  theme_minimal() +
-  ylim(0, 70) +
-  scale_fill_manual(
-    values = c("GSE199750" = "#80ffdb",
-               "GSE201533" = "#5e60ce", 
-               "GSE201530" = "#7400b8",
-               "GSE206023" = "#4361ee",
-               "GSE189039" = "#48bfe3")) +
-  geom_text(aes(label = participants, y = participants), 
-            position = position_dodge(width = 0.9), 
-            vjust = 0.5, 
-            hjust = -0.2, 
-            size = 3)
-
-ggsave(plot, file = "Samples_per_condition_by_GSE.png", width = 6, height = 10)
-ggsave(plot, file = "Samples_per_condition_by_GSE_2.png", width = 10, height = 6)
-
-```
-
-Comparar sexo
-```{r}
-
-esquisser(Demographics)
-
-Sex = Demographics %>%
- filter(!(Sub %in% "Mean")) %>%
- ggplot() +
-  aes(x = Study, y = Value, fill = Sub) +
-  geom_col() +
-  scale_fill_manual(
-    values = c(Female = "#BA27FF",
-    Male = "#1EC3FF")) +
-  theme_minimal() +
-  facet_wrap(vars(Category)) +
-  geom_text(aes(label = Value, y = Value), 
-            vjust = 2, 
-            hjust = 0.5, 
-            size = 4) +
-  xlab("GSE ID") +
-  ylab("Percentage") +
-  labs(title = "Sex",
-       fill = "Sex")
-
-ggsave(Sex, file = "Demographics_Sex_1.png", width = 10, height = 6)
-ggsave(Sex, file = "Demographics_Sex_2.png", width = 6, height = 10)
-
-
-
-Age = Demographics %>%
- filter(!(Category %in% "Sex")) %>%
- ggplot() +
-  aes(x = Study, y = Value, fill = Sub) +
-  geom_col() +
-  scale_fill_manual(
-    values = c(Mean = "#1EC3FF")) +
-  theme_minimal() +
-  facet_wrap(vars(Category)) +
-  geom_text(aes(label = Value, y = Value), 
-            vjust = 2, 
-            hjust = 0.5, 
-            size = 4) +
-  xlab("GSE ID") +
-  ylab("Age") +
-  labs(fill = "Age")
-
-ggsave(Age, file = "Demographics_Age_1.png", width = 10, height = 6)
-ggsave(Age, file = "Demographics_Age_2.png", width = 6, height = 10)
-
-```
-
+## GSE199750
 
 ```{r}
-ann_vaccines = ann_vaccines_29_11_23 %>% 
-  clean_names() %>% 
-  mutate(condition = factor(condition, levels = rev(condition)))
+######### PFIZER ######### 
 
-plot = ann_vaccines %>% 
-  ggplot() +
-  aes(x = condition, 
-      y = participants, 
-      fill = gse_id) +
-  geom_col() +
-  labs(title = "Participants by condition") +
-  coord_flip() +
-  theme_minimal() +
-  ylim(0, 70) +
-  scale_fill_manual(
-    values = c("GSE199750" = "#80ffdb",
-               "GSE201533" = "#5e60ce", 
-               "GSE201530" = "#7400b8",
-               "GSE206023" = "#4361ee",
-               "GSE189039" = "#48bfe3")) +
-  geom_text(aes(label = participants, y = participants), 
-            position = position_dodge(width = 0.9), 
-            vjust = 0.5, 
-            hjust = -0.2, 
-            size = 3)
+######### Tempos 1 versus 0 ######### 
 
-ggsave(plot, file = "Samples_per_condition_by_GSE.png", width = 6, height = 10)
-ggsave(plot, file = "Samples_per_condition_by_GSE_2.png", width = 10, height = 6)
+# Obter comparação
+res_1_0_bnt <- results(dds, contrast= c("Group_I_II", "BNT162b2V1", "BNT162b2V0")) # Acessar comparação
+res_1_0_bnt <- subset(res_1_0_bnt, padj < 0.05) #excluir genes com padj > 5%
+res_1_0_bnt <- subset(res_1_0_bnt, log2FoldChange > 1.0 | log2FoldChange < -1.0)
+res_1_0_bnt <- res_1_0_bnt[order(res_1_0_bnt$padj),]  #ordenar por padj
 
+#Obtendo DEGs UP and DOWN
+res_up <- subset(res, log2FoldChange > 1.0 )
+res_down <- subset(res, log2FoldChange < -1.0 )
 
+# Criar uma tabela de DEGs
+res_1_0_bnt_degs_table <- data.frame(Gene = rownames(res_1_0_bnt),
+                          log2FoldChange = res_1_0_bnt$log2FoldChange,
+                          pvalue = res_1_0_bnt$pvalue,
+                          padj = res_1_0_bnt$padj)
+#Salvar tabela
+write.csv(res_1_0_bnt_degs_table, file = "GSE199750_T0-T1_DEGs-PF.csv", row.names = TRUE)
+saveRDS(res_1_0_bnt_degs_table, file = "GSE199750_T0-T1_DEGs-PF.rds")
+
+######### Tempos 2 versus 0 ######### 
+
+# Obter comparação
+res_2_0_bnt <- results(dds, contrast= c("Group_I_II","BNT162b2V2A","BNT162b2V0")) # Acessar comparação usando contrast. O valor referencia é sempre o segundo termo definido.
+res_2_0_bnt <- subset(res_2_0_bnt, padj < 0.05) #excluir genes com padj > 5%
+res_2_0_bnt <- subset(res_2_0_bnt, log2FoldChange > 1.0 | log2FoldChange < -1.0)
+res_2_0_bnt <- res_2_0_bnt[order(res_2_0_bnt$padj),]  #ordenar por padj
+
+#Obtendo DEGs UP and DOWN
+res_up <- subset(res, log2FoldChange > 1.0 )
+res_down <- subset(res, log2FoldChange < -1.0 )
+
+# Criar uma tabela de DEGs
+res_2_0_bnt_degs_table <- data.frame(Gene = rownames(res_2_0_bnt),
+                          log2FoldChange = res_2_0_bnt$log2FoldChange,
+                          pvalue = res_2_0_bnt$pvalue,
+                          padj = res_2_0_bnt$padj)
+#Salvar tabela
+write.csv(res_2_0_bnt_degs_table, file = "GSE199750_T0-T2_DEGs-PF.csv", row.names = TRUE)
+saveRDS(res_2_0_bnt_degs_table, file = "GSE199750_T0-T2_DEGs-PF.rds")
+
+######### PFIZER ######### 
+# Obter comparação
+resultsNames(dds)
+res_3_0_bnt_bnt <- results(dds, contrast= c("AllVaccines", "V3A_BNT162b2_3A_BNT162b2", "V0_BNT162b2_3A_BNT162b2"))
+res_3_0_bnt_bnt <- subset(res_3_0_bnt_bnt, padj < 0.05) #excluir genes com padj > 5%
+res_3_0_bnt_bnt <- subset(res_3_0_bnt_bnt, log2FoldChange > 1.0 | log2FoldChange < -1.0)
+res_3_0_bnt_bnt <- res_3_0_bnt_bnt[order(res_3_0_bnt_bnt$padj),]  #ordenar por padj
+
+#Obtendo DEGs UP and DOWN
+res_3_0_bnt_bnt_up <- subset(res_3_0_bnt_bnt, log2FoldChange > 1.0 )
+res_3_0_bnt_bnt_down <- subset(res_3_0_bnt_bnt, log2FoldChange < -1.0 )
+
+# Criar uma tabela de DEGs
+res_3_0_bnt_bnt_degs_table <- data.frame(res_3_0_bnt_bnt)
+#Salvar tabela
+write.csv(res_3_0_bnt_bnt_degs_table, file = "GSE199750_T3-T0_DEGs_2PF-1PF.csv", row.names = TRUE)
+
+######### PFIZER ######### 
+res_3_0_bnt_mo <- results(dds, contrast= c("AllVaccines", "V3A_BNT162b2_3A_mRNA-1273", "V0_BNT162b2_3A_BNT162b2"))
+res_3_0_bnt_mo <- subset(res_3_0_bnt_mo, padj < 0.05) #excluir genes com padj > 5%
+res_3_0_bnt_mo <- subset(res_3_0_bnt_mo, log2FoldChange > 1.0 | log2FoldChange < -1.0)
+res_3_0_bnt_mo <- res_3_0_bnt_mo[order(res_3_0_bnt_mo$padj),]  #ordenar por padj
+
+#Obtendo DEGs UP and DOWN
+res_3_0_bnt_mo_up <- subset(res_3_0_bnt_mo, log2FoldChange > 1.0 )
+res_3_0_bnt_mo_down <- subset(res_3_0_bnt_mo, log2FoldChange < -1.0 )
+
+# Criar uma tabela de DEGs
+res_3_0_bnt_mo_degs_table <- data.frame(res_3_0_bnt_mo)
+#Salvar tabela
+write.csv(res_3_0_bnt_mo_degs_table, file = "GSE199750_T3-T0_DEGs_2PF-1MO.csv", row.names = TRUE)
+
+######### PFIZER ######### 
+res_3_2_bnt_bnt <- results(dds, contrast= c("AllVaccines", "V3A_BNT162b2_3A_BNT162b2", "V2A_BNT162b2_3A_BNT162b2"))
+res_3_2_bnt_bnt <- subset(res_3_2_bnt_bnt, padj < 0.05) #excluir genes com padj > 5%
+res_3_2_bnt_bnt <- subset(res_3_2_bnt_bnt, log2FoldChange > 1.0 | log2FoldChange < -1.0)
+res_3_2_bnt_bnt <- res_3_2_bnt_bnt[order(res_3_2_bnt_bnt$padj),]  #ordenar por padj
+
+#Obtendo DEGs UP and DOWN
+res_3_2_bnt_bnt_up <- subset(res_3_2_bnt_bnt, log2FoldChange > 1.0 )
+res_3_2_bnt_bnt_down <- subset(res_3_2_bnt_bnt, log2FoldChange < -1.0 )
+
+# Criar uma tabela de DEGs
+res_3_2_bnt_bnt_degs_table <- data.frame(res_3_2_bnt_bnt)
+#Salvar tabela
+write.csv(res_3_2_bnt_bnt_degs_table, file = "GSE199750_T3-T2_DEGs_2PF-1PF.csv", row.names = TRUE)
+
+######### PFIZER ######### 
+res_3_2_bnt_mo <- results(dds, contrast= c("AllVaccines", "V3A_BNT162b2_3A_mRNA-1273", "V2A_BNT162b2_3A_BNT162b2"))
+res_3_2_bnt_mo <- subset(res_3_2_bnt_mo, padj < 0.05) #excluir genes com padj > 5%
+res_3_2_bnt_mo <- subset(res_3_2_bnt_mo, log2FoldChange > 1.0 | log2FoldChange < -1.0)
+res_3_2_bnt_mo <- res_3_2_bnt_mo[order(res_3_2_bnt_mo$padj),]  #ordenar por padj
+
+#Obtendo DEGs UP and DOWN
+res_3_2_bnt_mo_up <- subset(res_3_2_bnt_mo, log2FoldChange > 1.0 )
+res_3_2_bnt_mo_down <- subset(res_3_2_bnt_mo, log2FoldChange < -1.0 )
+
+# Criar uma tabela de DEGs
+res_3_2_bnt_mo_degs_table <- data.frame(res_3_2_bnt_mo)
+#Salvar tabela
+write.csv(res_3_2_bnt_mo_degs_table, file = "GSE199750_T3-T2_DEGs_2PF-1MO.csv", row.names = TRUE)
+
+#### ASTRAZENECA
+
+##### Tempos 0 e 1
+
+resultsNames(dds)
+######### ASTRAZENECA ######### 
+# Obter comparação
+res_1_0_chad <- results(dds, contrast= c("Group_I_II","ChAdOx1V1","ChAdOx1V0"))
+res_1_0_chad <- subset(res_1_0_chad, padj < 0.05)
+res_1_0_chad <- subset(res_1_0_chad, log2FoldChange > 1.0 | log2FoldChange < -1.0)
+res_1_0_chad <- res_1_0_chad[order(res_1_0_chad$padj),]  #ordenar por padj
+
+#Obtendo DEGs UP and DOWN
+res_up <- subset(res, log2FoldChange > 1.0 )
+res_down <- subset(res, log2FoldChange < -1.0 )
+
+# Criar uma tabela de DEGs
+res_1_0_chad_degs_table <- data.frame(Gene = rownames(res_1_0_chad),
+                          log2FoldChange = res_1_0_chad$log2FoldChange,
+                          pvalue = res_1_0_chad$pvalue,
+                          padj = res_1_0_chad$padj)
+#Salvar tabela
+write.csv(res_1_0_chad_degs_table, file = "GSE199750_T0-T1_DEGs-AZ.csv", row.names = TRUE)
+write.csv(res_1_0_chad_degs_table, file = "GSE199750_T0-T1_DEGs-AZ.rds")
+
+######### Tempos 2 versus 0 ######### 
+# Obter comparação
+res_2_0_chad <- results(dds, contrast= c("Group_I_II","ChAdOx1V2A","ChAdOx1V0"))
+res_2_0_chad <- subset(res_2_0_chad, padj < 0.05) #excluir genes com padj > 5%
+res_2_0_chad <- subset(res_2_0_chad, log2FoldChange > 1.0 | log2FoldChange < -1.0)
+res_2_0_chad <- res_2_0_chad[order(res_2_0_chad$padj),]  #ordenar por padj
+summary(res_2_0_chad) #Up e Down
+
+# Criar uma tabela de DEGs
+res_2_0_chad_degs_table <- data.frame(Gene = rownames(res_2_0_chad),
+                          log2FoldChange = res_2_0_chad$log2FoldChange,
+                          pvalue = res_2_0_chad$pvalue,
+                          padj = res_2_0_chad$padj)
+#Salvar tabela
+write.csv(res_2_0_chad_degs_table, file = "GSE199750_T0-T2_DEGs-AZ.csv", row.names = FALSE)
+saveRDS(res_2_0_chad_degs_table, file = "GSE199750_T0-T2_DEGs-AZ.rds")
+
+######### Tempos 2 versus 1 ######### 
+# Obter comparação
+res_2_1_chad <- results(dds, contrast= c("Group_I_II","ChAdOx1V2A","ChAdOx1V1")) # Acessar comparação usando contrast. O valor referencia é sempre o segundo termo definido.
+res_2_1_chad <- subset(res_2_1_chad, padj < 0.05) #excluir genes com padj > 5%
+res_2_1_chad <- subset(res_2_1_chad, log2FoldChange > 1.0 | log2FoldChange < -1.0)
+res_2_1_chad <- res_2_1_chad[order(res_2_1_chad$padj),]  #ordenar por padj
+summary(res_2_1_chad) #Up e Down
+
+# Criar uma tabela de DEGs
+res_2_1_chad_degs_table <- data.frame(Gene = rownames(res_2_1_chad),
+                          log2FoldChange = res_2_1_chad$log2FoldChange,
+                          pvalue = res_2_1_chad$pvalue,
+                          padj = res_2_1_chad$padj)
+#Salvar tabela
+write.csv(res_2_1_chad_degs_table, file = "GSE199750_T1-T2_DEGs-AZ.csv", row.names = FALSE)
+
+######### ASTRAZENECA ######### 
+# Obter comparação
+resultsNames(dds)
+res_3_0_chad_bnt <- results(dds, contrast= c("AllVaccines", "V3A_ChAdOx1_3A_BNT162b2", "V0_ChAdOx1_3A_Missing"))
+res_3_0_chad_bnt <- subset(res_3_0_chad_bnt, padj < 0.05) #excluir genes com padj > 5%
+res_3_0_chad_bnt <- subset(res_3_0_chad_bnt, log2FoldChange > 1.0 | log2FoldChange < -1.0)
+res_3_0_chad_bnt <- res_3_0_chad_bnt[order(res_3_0_chad_bnt$padj),]  #ordenar por padj
+
+#Obtendo DEGs UP and DOWN
+res_3_0_chad_bnt_up <- subset(res_3_0_chad_bnt, log2FoldChange > 1.0 )
+res_3_0_chad_bnt_down <- subset(res_3_0_chad_bnt, log2FoldChange < -1.0 )
+
+# Criar uma tabela de DEGs
+res_3_0_chad_bnt_degs_table <- data.frame(res_3_0_chad_bnt)
+#Salvar tabela
+write.csv(res_3_0_chad_bnt_degs_table, file = "GSE199750_T3-T0_DEGs_2AZ-1PF.csv", row.names = TRUE)
+
+######### ASTRAZENECA ######### 
+# Obter comparação
+resultsNames(dds)
+res_3_2_chad_bnt <- results(dds, contrast= c("AllVaccines", "V3A_ChAdOx1_3A_BNT162b2", "V2A_ChAdOx1_3A_Missing"))
+res_3_2_chad_bnt <- subset(res_3_2_chad_bnt, padj < 0.05) #excluir genes com padj (=False discovery rate) > 5%
+res_3_2_chad_bnt <- subset(res_3_2_chad_bnt, log2FoldChange > 1.0 | log2FoldChange < -1.0)
+res_3_2_chad_bnt <- res_3_2_chad_bnt[order(res_3_2_chad_bnt$padj),]  #ordenar por padj
+
+#Obtendo DEGs UP and DOWN
+res_3_2_chad_bnt_up <- subset(res_3_2_chad_bnt, log2FoldChange > 1.0 )
+res_3_2_chad_bnt_down <- subset(res_3_2_chad_bnt, log2FoldChange < -1.0 )
+
+# Criar uma tabela de DEGs
+res_3_2_chad_bnt_degs_table <- data.frame(res_3_2_chad_bnt)
+#Salvar tabela
+write.csv(res_3_2_chad_bnt_degs_table, file = "GSE199750_T3-T2_DEGs_2AZ-1PF.csv", row.names = TRUE)
 ```
+
 
 
 

@@ -1103,12 +1103,13 @@ ggsave(ggplot_stats2, file = "ImmuneGO_genes_shared_major_process.png", width = 
 
 library(ExpressionNormalizationWorkflow)
 
+#Covariants
 cvrts = ann_vaccines_samples %>% 
   select(sample, everything()) %>% 
   arrange(sample) %>% 
   column_to_rownames("sample")
 
-
+#Expression data
 exprs = all_matrices_counts %>% 
   column_to_rownames("genes") %>% 
   replace(is.na(.), 0) %>% 
@@ -1126,23 +1127,15 @@ exprs = all_matrices_counts %>%
              by = "sample") %>% 
   column_to_rownames("sample") %>% 
   t() %>% 
-  as.data.frame()
-
-a = exprs %>% 
-  mutate_if(is.character, as.numeric)
-a.1 = a %>% 
+  as.data.frame() %>% 
+  mutate_if(is.character, as.numeric) %>% 
   replace(., . == -Inf, 0) %>% 
   replace(., . == Inf, 0) %>% 
   replace(is.na(.), 0)
 
-exprs = a.1
 
-inpData <- expSetobj(exprs, 
-                     cvrts)
-
-
-cvrts_eff_var <- c("age", "sex", "vaccine", "gse_id", "day")
-
+# Input
+inpData <- expSetobj(exprs, cvrts)
 pct_thrsh <- 0.75 
 pvca = pvcAnaly(inpData, pct_thrsh, cvrts_eff_var)
 
@@ -1152,25 +1145,22 @@ pvca_df = pvca$dat %>%
   as.data.frame() %>% 
   rename(wavgpv = V1) %>% 
   cbind(pvca$label %>% as.data.frame() %>% rename(batch = '.')) %>% 
-  as.data.frame()
-
-pvca_df = pvca_df %>% 
+  as.data.frame() %>% 
   mutate(batch = as.factor(batch),
          wavgpv = as.numeric(wavgpv),
          batch = fct_reorder(batch, wavgpv)) %>% 
-  arrange(batch, wavgpv) %>% 
-ggplot() +
+  arrange(batch, wavgpv)
+
+# Visualize
+
+pvca_df_plot = ggplot(pvca_df) +
   aes(x = batch, y = wavgpv) +
   geom_col(fill = "#112246") +
   theme_minimal()
 
-ggsave(pvca_df, file = "pvca.png")
-
-
-
+ggsave(pvca_df_plot, file = "pvca.png")
 
 ##### DESEQ2 Normalization
-
 library(DESeq2)
 
 exprs = all_matrices_counts %>% 
@@ -1187,15 +1177,11 @@ exprs = all_matrices_counts %>%
              by = "sample") %>% 
   column_to_rownames("sample") %>% 
   t() %>% 
-  as.data.frame()
-
-head(exprs)
-
-a = exprs %>% 
-    drop_na() %>% 
-    mutate_if(is.character, as.integer) %>% 
-    drop_na() 
-
+  as.data.frame() %>% 
+  exprs %>% 
+  drop_na() %>% 
+  mutate_if(is.character, as.integer) %>% 
+  drop_na() 
 
 cvrts = cvrts %>% 
   mutate(condition = as.factor(condition),
@@ -1206,9 +1192,7 @@ cvrts = cvrts %>%
          gse_id = as.factor(gse_id))
   
 dds <- DESeqDataSetFromMatrix(countData = a, colData = cvrts, design = ~ condition)
-
 dds <- estimateSizeFactors(dds)
-
 normalized_counts <- counts(dds, normalized=TRUE) %>% 
   as.data.frame()
 
