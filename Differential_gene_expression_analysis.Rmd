@@ -1687,7 +1687,7 @@ write.csv(res_3_2_chad_bnt_degs_table, file = "GSE199750_T3-T2_DEGs_2AZ-1PF.csv"
 ```
 
 
-##Combinar tabela de genes sequenciados (raw)
+## Combine tables (raw)
 
 ```{r}
 #TABELA DE GENES SEQUENCIADOS
@@ -1704,13 +1704,11 @@ gse199750 = gse199750_counts_ready %>%
   rownames_to_column("genes") 
 gse206023 = gse206023_counts_ready %>% 
   select(genes, everything(), -"...1")
-
 all_matrices_counts = gse189039 %>% 
   full_join(gse201530, by = "genes") %>% 
   full_join(gse201533, by = "genes") %>% 
   full_join(gse199750, by = "genes") %>% 
   full_join(gse206023, by = "genes")
-
 write_tsv(all_matrices_counts, file = "all_matrices_counts.tsv")
 
 ```
