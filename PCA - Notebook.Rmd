@@ -1096,7 +1096,6 @@ ggsave(ggplot_stats2, file = "ImmuneGO_genes_shared_major_process.png", width = 
 # Gene expression by gender
 
 ```{r}
-
 ###### Batch effects ----
 
 # BiocManager::install("ExpressionNormalizationWorkflow")
@@ -1104,28 +1103,35 @@ ggsave(ggplot_stats2, file = "ImmuneGO_genes_shared_major_process.png", width = 
 library(ExpressionNormalizationWorkflow)
 
 #Covariants
-cvrts = ann_vaccines_samples %>% 
-  select(sample, everything()) %>% 
-  arrange(sample) %>% 
-  column_to_rownames("sample")
-
+cvrts = ann_vaccines %>% 
+  select(gse_id, condition:previous_vaccination) %>% 
+  arrange(condition) %>%
+  filter(day != 0) %>% 
+  distinct() %>% 
+  column_to_rownames("condition")
 #Expression data
-exprs = all_matrices_counts %>% 
+
+degs_lg2fc_wide = degs_updown_filtered_p_05_vac_infected %>% 
+  select(condition, genes, log2fold_change) %>%
+  distinct() %>% 
+  arrange(condition) %>% 
+  pivot_wider(names_from = "condition", values_from = "log2fold_change", values_fn = mean)
+  
+exprs = degs_lg2fc_wide %>% 
   column_to_rownames("genes") %>% 
   replace(is.na(.), 0) %>% 
-  log2() %>% 
   replace(., . == -Inf, 0) %>% 
   replace(., . == Inf, 0) %>% 
   t() %>% 
   as.data.frame() %>% 
-  rownames_to_column("sample") %>% 
-  arrange(sample) %>% 
+  rownames_to_column("condition") %>% 
+  arrange(condition) %>% 
   inner_join(cvrts %>% 
-               rownames_to_column("sample"),
-               select(sample) %>% 
+               rownames_to_column("condition"),
+               select(condition) %>% 
                distinct(), 
-             by = "sample") %>% 
-  column_to_rownames("sample") %>% 
+             by = "condition") %>% 
+  column_to_rownames("condition") %>% 
   t() %>% 
   as.data.frame() %>% 
   mutate_if(is.character, as.numeric) %>% 
@@ -1133,8 +1139,18 @@ exprs = all_matrices_counts %>%
   replace(., . == Inf, 0) %>% 
   replace(is.na(.), 0)
 
+cvrts = cvrts %>% 
+  rownames_to_column("condition") %>% 
+  inner_join(exprs %>% 
+               colnames() %>% 
+               as.data.frame() %>% 
+               select(condition = "."), 
+             by = "condition") %>% 
+  column_to_rownames("condition")
+
 
 # Input
+cvrts_eff_var = c("day", "gse_id", "dose", "prior_infection", "previous_vaccination", "severity", "disease_vac", "regimen", "type" )
 inpData <- expSetobj(exprs, cvrts)
 pct_thrsh <- 0.75 
 pvca = pvcAnaly(inpData, pct_thrsh, cvrts_eff_var)
