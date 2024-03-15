@@ -1164,18 +1164,22 @@ pvca_df = pvca$dat %>%
   as.data.frame() %>% 
   mutate(batch = as.factor(batch),
          wavgpv = as.numeric(wavgpv),
-         batch = fct_reorder(batch, wavgpv)) %>% 
+         batch = fct_rev(fct_reorder(batch, wavgpv))) %>% 
   arrange(batch, wavgpv)
 
 # Visualize
 
 pvca_df_plot = ggplot(pvca_df) +
   aes(x = batch, y = wavgpv) +
-  geom_col(fill = "#112246") +
-  theme_minimal()
+  geom_col(fill = "#5e60ce") +
+  theme_minimal() +
+  theme(axis.text.x = element_text(size = 20, angle = 45, vjust = 1, hjust=1, color = "black"))
 
-ggsave(pvca_df_plot, file = "pvca.png")
+ggsave(pvca_df_plot, file = "pvca_log2foldchange.png", width = 12, height = 10)
+```
 
+
+```{r}
 ##### DESEQ2 Normalization
 library(DESeq2)
 
