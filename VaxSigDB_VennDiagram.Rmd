@@ -2379,12 +2379,14 @@ degs_all_updown_covid= degs_updown_p_05_vac_infected %>%
 degs_all_updown_covid_other = bind_rows(degs_all_updown_vax, degs_all_updown_covid) %>% 
   distinct()
 
+degs_all_updown_covid_other = degs_all_updown_covid_vax_other
+
 degs_all_updown_covid_other_immune = degs_all_updown_covid_other %>% 
-  inner_join(immunego %>% select(genes) %>% distinct(), by = "genes") %>% 
+  inner_join(ImmuneGO_Annotated_Genes %>% select(genes) %>% distinct(), by = "genes") %>% 
   distinct()
 
 degs_all_updown_covid_other_nonimmune = degs_all_updown_covid_other %>% 
-  anti_join(immunego %>% select(genes) %>% distinct(), by = "genes") %>% 
+  anti_join(ImmuneGO_Annotated_Genes %>% select(genes) %>% distinct(), by = "genes") %>% 
   distinct()
 
 write.csv(degs_all_updown_covid_other, file = "degs_all_updown_covid_vax_other.csv")
@@ -2458,7 +2460,7 @@ shared_genes_df$pvalue <- mapply(fisher_exact_test,
                                     shared_genes_df$NotShared_cond2)
 
 shared_genes_df <- shared_genes_df %>%
-  filter(pvalue < 1) %>% 
+  filter(pvalue <= 1) %>% 
   mutate(qvalue = qvalue(pvalue)$pvalue)
 
 #Duplicar e trocar colunas (Vacina 1 e Vacina 2)
@@ -2479,7 +2481,7 @@ write.csv(shared_genes_df_mirror, file = paste0(filename, "_shared.csv"))
 ```
 
 
-Other comparisons (didn't do)
+Other comparisons 
 ```{r}
 ############# VACCINE
 #Use "vax_degs_up_VAXSigDB_sharedgenes_ann.csv" for comparing UP degs with UP degs from other conditions
@@ -2579,14 +2581,14 @@ data = shared_genes_df_mirror %>%
   filter(qvalue <0.25) %>% 
   inner_join(ann_vaccines_covid_other %>% 
                select(Cond1 = condition, everything()), by = "Cond1") %>% 
-  inner_join(ann_vaccines_19_1_24 %>% 
+  inner_join(ann_vaccines %>% 
                select(Cond2 = condition, everything()), by = "Cond2") %>% 
   clean_names() %>% 
   rename(vac_ref = cond1, vac_condition = cond2)
 
 # Matrix ------
 matrix = data %>%
-  filter(qvalue <= 0.25) %>% 
+  filter(qvalue <= 0.10) %>% 
   select(vac_condition, vac_ref, shared) %>% 
   pivot_wider(names_from = vac_condition, values_from = shared, values_fn = mean) %>% 
   replace(is.na(.), 0) %>%
@@ -2650,6 +2652,7 @@ matrix_data = matrix %>%
 
 #Verificar dimensões do dataset
 dim(matrix_data)
+max(matrix_data)
 dim(ann_rows_heatmap)
 dim(ann_cols_heatmap)
 
@@ -2668,7 +2671,7 @@ row_ha = rowAnnotation(df =  ann_rows_heatmap,
                        col = ann_vaxsig_colors)
 
 # Values colors
-col_fun <- colorRamp2(c(0, 200), c("white", "#ed6a5a"))
+col_fun <- colorRamp2(c(0, max(matrix_data)), c("white", "#ed6a5a"))
 
 
 mat = matrix_data
@@ -2676,8 +2679,8 @@ width_image = 40
 height_image = 30
 width = unit(20, "cm")
 height = unit(15, "cm")
-column_names_gp = gpar(fontsize = 12)
-row_names_gp = gpar(fontsize = 12)
+column_names_gp = gpar(fontsize = 10)
+row_names_gp = gpar(fontsize = 10)
 file = paste0("VAXSig_", filename_2)
 
 fileimageheatmap_grouped = paste0(filename, sep ="_", "Complexheatmap_ALL_CLUSTERED.png")
@@ -2733,7 +2736,60 @@ dev.off()
 
 ```
 
+### Clustering all vs all
+```{r}
 
+# INPUT ------
+matrix = shared_genes_df_mirror %>% 
+  filter(qvalue <0.10) %>% 
+  inner_join(ann_vaccines_covid_other %>% 
+               select(Cond1 = condition, everything()), by = "Cond1") %>% 
+  inner_join(ann_vaccines_covid_other %>% 
+               select(Cond2 = condition, everything()), by = "Cond2") %>% 
+  clean_names() %>% 
+  rename(vac_ref = cond1, vac_condition = cond2) %>%
+  filter(qvalue <= 0.10) %>% 
+  select(vac_condition, vac_ref, shared) %>% 
+  pivot_wider(names_from = vac_condition, values_from = shared, values_fn = mean) %>% 
+  replace(is.na(.), 0) %>%
+  column_to_rownames(var="vac_ref") %>%
+  as.matrix() %>%
+  round(0)
+
+
+#Hierarchical clustering | https://rpubs.com/TX-YXL/662586
+library(dendextend)
+library(ggdendro)
+
+
+cluster = matrix %>% 
+  dist() %>% 
+  hclust(method = 'complete') %>% 
+  as.dendrogram() -> dend
+
+my_colors <- ann_vaccines_covid_other %>% 
+ mutate(color = case_when(
+    type == "VLP" ~ "#D7B0EE",
+    type == "LA" ~ "#ffadc7",
+    type == "CONJ" ~ "#015BA0",
+    type == "IN" ~ "#76c893",
+    type == "VV" ~ "#5e60ce",
+    type == "RNA" ~ "#56cfe1",
+    type == "SU" ~ "#b5e48c",
+    type == "I" ~ "#f72585",
+    TRUE ~ NA_character_))
+
+png(paste0(filename, "_covid_other_allvsall_shared_dendrogram.png"), width = 800, height = 1000)
+par(mar=c(5,5,1,12))
+dend %>%
+  set("labels_col", value = c("black"), k=10) %>%
+  set("branches_k_color", value = c("black"), k = 10) %>%
+  plot(horiz=TRUE, axes=TRUE)
+dev.off()
+
+
+
+```
 
 
 
