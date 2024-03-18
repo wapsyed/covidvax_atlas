@@ -2788,6 +2788,10 @@ dend %>%
 dev.off()
 
 
+my_colors %>% select(condition, color) %>% 
+  write_tsv("covid_others_colors.tsv")
+
+
 
 ```
 
