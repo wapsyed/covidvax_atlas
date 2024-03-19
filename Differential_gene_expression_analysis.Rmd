@@ -576,7 +576,7 @@ samples_by_condition  = ann_vaccines %>%
 
 
 a = samples_by_condition %>% 
-  ggplot(aes(x = fct_reorder(condition, samples), weight = samples, fill = vaccine)) +
+  ggplot(aes(x = fct_reorder(condition, -samples), weight = samples, fill = vaccine)) +
   geom_bar() +
   scale_fill_manual(name = "Vaccine or infection", labels = c("BBIBP", 
                                                                 "BNT", 
@@ -593,23 +593,24 @@ a = samples_by_condition %>%
                 "I" = "#f72585",
                 "H" = "grey80")) +
   theme_minimal() +
-  theme(legend.position = "right",
-        axis.text.x = element_blank(),
-        axis.text.y = element_text(size = 11, color = "black", angle = 0),
+  theme(legend.position = "bottom",
+        axis.text.x = element_text(size = 15, color = "black", angle = 45, hjust = 1, vjust = 1.1),
+        axis.text.y = element_blank(), 
+        axis.title.y = element_text(angle = 180, color = "white"),
         panel.grid.major = element_blank(), 
         panel.grid.minor = element_blank()) +
-  geom_text(aes(label = samples, y = samples), 
+  geom_label(aes(label = samples, y = samples),
+             fill = "white",
             position = position_dodge(width = 0), 
-            vjust = 0.5, 
-            hjust = -0.2, 
+            vjust = -0.5, 
+            # hjust = 1, 
             size = 4,
             angle = 0) +
-  coord_flip() +
   ggtitle("Samples by condition") +
   labs(x = "") +
   ylim(0, 80)
 a
-ggsave(a, file = "demographics_samples-by-condition.png", width = 6, height = 10)
+ggsave(a, file = "demographics_samples-by-condition.png", width = 20, height = 10)
 
 ```
 
