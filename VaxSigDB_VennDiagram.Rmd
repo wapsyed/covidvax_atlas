@@ -2770,7 +2770,7 @@ cluster = matrix %>%
 my_colors <- ann_vaccines_covid_other %>% 
  mutate(color = case_when(
     type == "VLP" ~ "#D7B0EE",
-    type == "LA" ~ "#ffadc7",
+    type == "LA" ~ "#ffb703",
     type == "CONJ" ~ "#015BA0",
     type == "IN" ~ "#76c893",
     type == "VV" ~ "#5e60ce",
@@ -2779,6 +2779,9 @@ my_colors <- ann_vaccines_covid_other %>%
     type == "I" ~ "#f72585",
     TRUE ~ NA_character_))
 
+my_colors %>% select(condition, color) %>% 
+  write_tsv("covid_others_colors.tsv")
+
 png(paste0(filename, "_covid_other_allvsall_shared_dendrogram.png"), width = 800, height = 1000)
 par(mar=c(5,5,1,12))
 dend %>%
@@ -2786,10 +2789,6 @@ dend %>%
   set("branches_k_color", value = c("black"), k = 10) %>%
   plot(horiz=TRUE, axes=TRUE)
 dev.off()
-
-
-my_colors %>% select(condition, color) %>% 
-  write_tsv("covid_others_colors.tsv")
 
 
 
