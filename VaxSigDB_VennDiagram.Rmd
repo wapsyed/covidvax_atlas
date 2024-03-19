@@ -3150,8 +3150,6 @@ dev.off()
 
 ```{r}
 # Gene sets for annotation
-ImmuneGO_Annotated_Genes = ImmuneGO_Annotated_Genes_28_2_24
-
 OtherGOs_Annotated_Genes = OtherGOs_Annotated_Genes %>% 
   filter(annotation == "Major process",
          term != "Immune system") %>% 
@@ -3600,7 +3598,9 @@ write.csv(gene_cluster, file = paste0(file, "_clustered_genes.csv"), row.names =
 
 ```{r}
 #### Immune -----
-stats_1 = degs_all_updown_covid_other_immune %>% 
+ann_vaccines_covid_other = ann_vaccines_vaxsig_covid
+
+stats_1 = degs_all_updown_covid_vax_other_immune %>% 
   inner_join(ann_vaccines_covid_other, by = "condition") %>% 
   group_by(genes, covid_other) %>% 
   summarise(n_conditions = n()) %>% 
@@ -3612,6 +3612,24 @@ stats_1 = degs_all_updown_covid_other_immune %>%
   ungroup() %>% 
   slice_head(n = 50) %>% 
   pivot_longer(-genes, names_to = "covid_other", values_to = "n_conditions")
+
+
+stats_1 = degs_all_updown_covid_vax_other_immune %>% 
+  inner_join(ann_vaccines_covid_other, by = "condition") %>% 
+  group_by(genes, covid_other) %>% 
+  summarise(n_conditions = n()) %>% 
+  filter(all(c("COVID", "OTHER") %in% covid_other)) %>% 
+  arrange(desc(n_conditions), genes) %>% 
+  group_by(genes) %>% 
+  pivot_wider(., names_from = "covid_other", values_from = n_conditions) %>% 
+  arrange(desc(OTHER)) %>% 
+  ungroup() %>% 
+  slice_head(n = 50) %>% 
+  pivot_longer(-genes, names_to = "covid_other", values_to = "n_conditions")
+
+stats_1 %>% 
+  select(genes) %>% 
+  distinct()
 
 ggplot_stats1 = ggplot(stats_1) +
   aes(x = reorder(genes, n_conditions), fill = covid_other, weight = n_conditions) +
@@ -3647,7 +3665,8 @@ ggsave(ggplot_stats1, file = "Covid_Vax_genes_shared_column.png", width = 10, he
 covid_other_immune_genes_50_mostshared_all = stats_1 %>% 
   select(genes) %>% 
   distinct() %>% 
-  inner_join(Immune_GO_genes_All, by = "genes")
+  inner_join(degs_all_updown_covid_vax_other_immune %>% 
+               select(condition, genes), by = "genes")
 ```
 
 
@@ -3710,8 +3729,8 @@ covid_other_notimmune_genes_50_mostshared_all %>% select(genes) %>% distinct()
 #### Heatmap
 ```{r}
 ####### INPUT
-data_2 = covid_other_notimmune_genes_50_mostshared_all
-filename_2 = paste0("NOTImmune_GO_genes_All_50", "_VAX_COVID")
+data_2 = covid_other_immune_genes_50_mostshared_all
+filename_2 = paste0("mmune_GO_genes_All_50", "_VAX_COVID")
 
 ######## Matrix
 matrix = data_2 %>% 
@@ -3836,9 +3855,9 @@ col_fun <- colorRamp2(c(-1, 0, 1), c("#9bc1bc", "white", "#ed6a5a"))
 file = filename_2
 mat = matrix_data
 width_image = 50
-height_image = 30
+height_image = 50
 width = unit(30, "cm")
-height = unit(15, "cm")
+height = unit(30, "cm")
 column_names_gp = gpar(fontsize = 12)
 row_names_gp = gpar(fontsize = 8)
 rect_gp = gpar(col = "gray80", lwd = 0.5)
@@ -3914,9 +3933,9 @@ col_fun <- colorRamp2(c(-1, 0, 1), c("#9bc1bc", "white", "#ed6a5a"))
 file = filename_2
 mat = matrix_data
 width_image = 50
-height_image = 30
+height_image = 50
 width = unit(30, "cm")
-height = unit(15, "cm")
+height = unit(30, "cm")
 column_names_gp = gpar(fontsize = 12)
 row_names_gp = gpar(fontsize = 8)
 rect_gp = gpar(col = "gray80", lwd = 0.5)
@@ -3973,69 +3992,6 @@ dev.off()
 ```
 
 
-#Distance matrix
-
-https://www.r-bloggers.com/2021/10/cluster-analysis-using-r-2/
-
-```{r}
-library(plyr)
-install.packages("arm")
-library(arm)
-library(reshape2)
-
-nba <- read.csv("http://datasets.flowingdata.com/ppg2008.csv")
-nba$Name <- with(nba, reorder(Name, PTS))
-nba.m <- melt(nba)
-nba.m <- ddply(nba.m, .(variable), transform,
-rescale = rescale(value))
-(p <- ggplot(nba.m, aes(variable, Name)) + geom_tile(aes(fill = rescale),
-colour = "white") + scale_fill_gradient(low = "white",
-high = "steelblue")+geom_text(aes(label=round(rescale,1))))
-
-
-# Distance matrix (base R)
-dist_m = shared_degs_updown_immune_SharedDEGS_Venn_fisher %>% 
-  dplyr::select(Cond1, Cond2, Shared) %>% 
-  replace(is.na(.), 0) %>% 
-  pivot_wider(names_from = Cond2, values_from = Shared) %>% 
-  column_to_rownames("Cond1") %>% 
-  dist() 
-
-
-# Distance matrix (factoextra)
-library(factoextra)
-
-library(esquisse)
-esquisser(shared_degs_updown_immune_SharedDEGS_Venn_fisher)
-
-dist_m = shared_degs_updown_immune_SharedDEGS_Venn_fisher %>% 
-  dplyr::select(Cond1, Cond2, Shared) %>% 
-  pivot_wider(names_from = Cond2, values_from = Shared) %>% 
-  column_to_rownames("Cond1") %>% 
-    replace(is.na(.), 0)
-
-res.dist <- get_dist(dist_m, method = "kendall")
-
-res.dist %>% 
-  as.matrix() %>% 
-  as.data.frame() %>% 
-  rownames_to_column("Cond1") %>% 
-  pivot_longer(cols = -Cond1, names_to = "Cond2", values_to = "kendall")
-
-
-#Heatmap
-
-fviz_dist(res.dist, 
-   gradient = list(low = "#00AFBB", mid = "white", high = "#FC4E07"))
-
-
-# Network graph
-dist_mi = 1/dist_m
-jpeg('example_forcedraw.jpg', width=3000, height=3000, unit='px')
-qgraph(dist_mi, layout='spring', vsize=3)
-dev.off()
-
-```
 
 
 
