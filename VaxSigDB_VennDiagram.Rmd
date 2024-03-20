@@ -3431,7 +3431,7 @@ More refs: https://debrowser.readthedocs.io/en/master/heatmap/heatmap.html
 #Heatmap annotation
 ha = HeatmapAnnotation(df = ann_cols_heatmap, 
                        col = ann_vaxsig_colors,
-                       annotation_name_side = "right")
+                       annotation_name_side = "left")
 
 row_ha = HeatmapAnnotation(df = ann_rows_immune,
                        col = col_process_immune,
