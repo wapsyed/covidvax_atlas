@@ -1,4 +1,3 @@
-
 ---
 title: "PCA"
 output: html_notebook
@@ -6,12 +5,10 @@ output: html_notebook
 
 # PCA
 
-Tutoriais
-<https://www.datacamp.com/tutorial/pca-analysis-r> 
-<https://rpkgs.datanovia.com/factoextra/index.html> <http://www.sthda.com/english/articles/31-principal-component-methods-in-r-practical-guide/114-mca-multiple-correspondence-analysis-in-r-essentials/>
-<https://statisticsglobe.com/pca-before-k-means-clustering-r>>
+Tutoriais <https://www.datacamp.com/tutorial/pca-analysis-r> <https://rpkgs.datanovia.com/factoextra/index.html> <http://www.sthda.com/english/articles/31-principal-component-methods-in-r-practical-guide/114-mca-multiple-correspondence-analysis-in-r-essentials/> <https://statisticsglobe.com/pca-before-k-means-clustering-r>\>
 
 Bibliotecas
+
 ```{r}
 library(tidyverse)
 library(ggrepel) #load before factoextra
@@ -28,14 +25,11 @@ library(circlize)
 library(ggExtra)
 ```
 
-
-
 ### Process data
+
 ```{r}
 
-ImmuneGO_Annotated_Genes = 
-
-ImmuneGO_Annotated_Genes_all= ImmuneGO_Annotated_Genes_28_2_24 
+ImmuneGO_Annotated_Genes_all = ImmuneGO_Annotated_Genes_28_2_24 
 
 ImmuneGO_Annotated_Genes = ImmuneGO_Annotated_Genes_all %>% 
   filter(!process %in% c("TCR REPERTOIRE", "BCR REPERTOIRE"))
@@ -57,7 +51,6 @@ nonImmuneGO_Genes = all_degs_p_05_vac_infected_19_12_23 %>%
                by = "genes") %>% 
   distinct()
 ```
-
 
 ```{r}
 #INPUT
@@ -178,7 +171,6 @@ print(scree_plot)
 
 ```
 
-
 ```{r}
 # Graph of the variables
 options(ggrepel.max.overlaps = Inf)
@@ -200,6 +192,7 @@ ggsave(circle_contrib, file = paste0(filename, "_circle_contrib.png"), width = 5
 ```
 
 CORES
+
 ```{r}
 condition_col = c(
                                 "BBIBP (V3, D07)" = "gray50",
@@ -250,7 +243,6 @@ condition_col = c(
                                 "ZF2001 (V3, D28)" = "#b5179e"
                               )
 ```
-
 
 ```{r}
 ############### KNN classification
@@ -435,10 +427,10 @@ ggsave(pca_plot_knn_cluster_marginal, file = paste0(filename, pcas, "_KNN_Cluste
 
 ```
 
-
 #Heatmap
 
 ## Genes annotated
+
 ```{r}
 ####### INPUT
 PC1 = var$cos2 %>%
@@ -920,6 +912,7 @@ col_process_immune = list(
 ```
 
 ### Plot
+
 ```{r}
 #Heatmap annotation -----
 ha = HeatmapAnnotation(df = ann_cols_heatmap, 
@@ -995,9 +988,7 @@ dev.off()
 
 ```
 
-
 ### STATS
-
 
 ```{r}
 stats_1 = covid_other_immunego_genes %>% 
@@ -1090,9 +1081,8 @@ ggsave(ggplot_stats2, file = "ImmuneGO_genes_shared_major_process.png", width = 
 
 ```
 
-
-
 PVCA of normalized raw counts
+
 ```{r}
 #### PVCA of normalized raw counts -----
 # BiocManager::install("ExpressionNormalizationWorkflow")
@@ -1179,8 +1169,6 @@ pvca_df_plot
 ggsave(pvca_df_plot, file = "pvca_raw_normalized_immunegenes_allconditions.png", width = 12, height = 10)
 
 ```
-
-
 
 PVCA of log2FC
 
@@ -1269,7 +1257,6 @@ ggsave(pvca_df_plot, file = "pvca_log2foldchange.png", width = 12, height = 10)
 
 ```
 
-
 # Gene expression by gender
 
 ```{r}
@@ -1313,7 +1300,6 @@ saveRDS(normalized_counts, file = "all_matrices_normalized_counts.rds")
 
 normalized_counts = all_matrices_normalized_counts
 ```
-
 
 ```{r}
 #### PC1 -------
@@ -1441,8 +1427,3 @@ ggsave(pc2_5genes_age, file = "pc2_5genes_age.png", width = 10, height = 20)
 
 
 ```
-
-
-
-
-

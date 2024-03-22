@@ -1,0 +1,329 @@
+---
+title: "Random forest"
+author: "Wasim Syed"
+date: "2024-03-20"
+output: html_document
+---
+
+
+# Libraries
+```{r}
+# install.packages("randomForest")
+# install.packages("caret")
+# install.packages("rpart")
+# install.packages("rpart.plot")
+
+library(randomForest)
+library(caret)
+library(tidyverse)
+library(rpart)
+library(rpart.plot)
+library(here)
+
+```
+
+
+# Classify data
+The goal here is to only classify data, not training and testing/validating (*Source*{"https://carpentries-incubator.github.io/r-ml-tabular-data/04-Decision-Forests/index.html"})
+```{r}
+download.file("https://www.openml.org/data/get_csv/49817/wine_quality.arff", 
+               here("data", "wine.csv"))
+wine <- read_csv(here("data", "wine.csv"))
+
+redwineClass <- wine %>%
+  slice(1:1599) %>%  # just the red wine samples
+  mutate(grade = as_factor(if_else(quality < 5.5, "bad", "good"))) %>%  
+  select(-quality) # get rid of the quality variable
+summary(redwineClass$grade)
+
+# Train and test data
+trainSize <- round(0.80 * nrow(redwineClass))
+set.seed(1234) 
+trainIndex <- sample(nrow(redwineClass), trainSize)
+trainDF <- redwineClass %>% slice(trainIndex)
+testDF <- redwineClass %>% slice(-trainIndex)
+
+
+library(randomForest)
+set.seed(4567)
+redwineForest <- randomForest(grade ~ ., data = trainDF)
+rwpred2 <- predict(redwineForest, testDF)
+head(rwpred2)
+sum(testDF$grade == rwpred2)/nrow(testDF) # Accuracy
+print(redwineForest) #OOB error
+set.seed(2345)
+rwforFull <- randomForest(grade ~ ., data = redwineClass, importance = TRUE)
+importance(rwforFull, type = 1)
+
+```
+
+
+
+#Train and test data
+## Define custom parameters
+```{r}
+# Define parameters ----
+set.seed(420)
+customRF <- list(type = "Classification",
+                   library = "randomForest",
+                   loop = NULL)
+  
+customRF$parameters <- data.frame(parameter = c("mtry", "ntree"),
+                                    class = rep("numeric", 2),
+                                    label = c("mtry", "ntree"))
+  
+customRF$grid <- function(x, y, len = NULL, search = "grid") {}
+
+customRF$fit <- function(x, y, wts, param, lev, last, weights, classProbs) {
+    randomForest(x, y,
+                 mtry = param$mtry,
+                 ntree=param$ntree)
+  }
+  
+customRF$predict <- function(modelFit, newdata, preProc = NULL, submodels = NULL)
+    predict(modelFit, newdata)
+customRF$prob <- function(modelFit, newdata, preProc = NULL, submodels = NULL)
+    predict(modelFit, newdata, type = "prob")
+customRF$sort <- function(x) x[order(x[,1]),]
+customRF$levels <- function(x) x$classes
+```
+
+
+```{r}
+# Input data ----
+filename = "ImmuneGO_Genes"
+df_input = all_matrices_normalized_counts
+
+#Data manipulation
+df_random_forest = df_input %>% 
+  rownames_to_column("genes") %>% 
+  inner_join(ImmuneGO_Annotated_Genes %>% select(genes) %>% distinct(), by = "genes") %>% 
+  column_to_rownames("genes") %>% 
+  t() %>% 
+  as.data.frame() %>% 
+  rownames_to_column("sample") %>% 
+  inner_join(ann_vaccines_samples %>% select(sample, disease_vac), by = "sample") %>% 
+  select(sample, disease_vac, everything()) %>% 
+  column_to_rownames("sample") %>% 
+  filter(disease_vac != "H", 
+         disease_vac != "Healthy")  %>% 
+  rename_with(~ gsub("-", "", .)) %>%
+  mutate(disease_vac = if_else(disease_vac == "V", 0, 1))
+
+# Stats
+tabyl(df_random_forest$disease_vac)
+
+# Allocate train and test data
+sample(1:nrow(df_random_forest), 387) -> train_all # Sample ~70% of total data
+df_random_forest[ train_all,] -> all_train # Allocate the 70% to train data
+df_random_forest[-train_all,] -> all_test # Allocate the remaining to test data
+
+#Check stats
+table(all_train$disease_vac)
+table(all_test$disease_vac)
+
+
+# Control parameters -----
+#Sample control by bootstraping
+ctrl = trainControl(method = 'cv', 
+                    number = 20, 
+                    allowParallel = T)
+
+grid = expand.grid(.mtry = c(1:15), 
+                   .ntree = c(500,
+                              1500,
+                              2000,
+                              2500))
+# Train -----
+rfFit = train(disease_vac ~ .,
+              method = customRF,
+              tuneGrid = grid,
+              trControl = ctrl,
+              metric = 'Accuracy',
+              data = all_train)
+# Check results
+png(file = "randomforest_ntree_mtry_train_plot.png", width = 20, height = 10, units = "cm", res = 320)
+plot(rfFit) 
+dev.off()
+
+summary(rfFit)
+
+```
+
+
+```{r}
+# Weight factors
+vector_RF <- if_else(all_train$disease_vac == 'I', 330, 57)
+
+# Random forest
+rf_aab_Pd = randomForest(factor(disease_vac) ~ .,
+                         data = all_train, 
+                         importance = T,
+                         mtry = 7,
+                         ntree = 1000,
+                         type = 'class',
+                         keep.inbag = TRUE
+                         #weights = vector_RF
+                         )
+                         
+print(rf_aab_Pd)
+
+
+# Importance -----
+importance(rf_aab_Pd, type = 2, scale= F)
+
+t = importance(rf_aab_Pd, type = 2) %>%  
+  as.data.frame() %>% 
+  rownames_to_column("var")
+
+imps <- data.frame(var = t$var, imps = t$MeanDecreaseGini/max(t$MeanDecreaseGini)) %>%
+  filter(imps > 0.6)
+```
+
+
+```{r}
+# Plotting ----
+
+# Importance scores
+png("random_with_symp1.png", units="in", width=6, height=6, res=300)
+color = ifelse(imps$imps < 0.6, '< 0.6', 
+               ifelse(imps$imps > 0.7, '0.6-0.7', '> 0.7'))
+imps |>
+  ggplot(aes(imps, x = reorder(var, imps))) +
+  coord_flip() +
+  geom_point(aes(size = imps, fill = color), colour = "black", shape = 21) +
+  labs(x = "Predictors", y = "Importance scores") +
+  theme_bw(18)+
+  scale_fill_manual(values = c('gray', 'red', 'royalblue'))
+dev.off()
+
+# OOB error
+oob.err.data = data.frame(Trees = rep(1:nrow(rf_aab_Pd$err.rate), 3),
+                          Type = rep(c("OOB","0","1"), each = nrow(rf_aab_Pd$err.rate)),
+                          Error = c(rf_aab_Pd$err.rate[,"OOB"],rf_aab_Pd$err.rate[,"0"],rf_aab_Pd$err.rate[,"1"]))
+
+
+
+png("error_rate11.png", units="in", width=5, height=4, res=300)
+ggplot(data = oob.err.data, aes(x = Trees, y= Error)) +
+  geom_line(aes(color = Type)) +
+  theme_bw(18) +
+  ylim(0,1) +
+  scale_color_manual(values = c('gray','orange', 'black'))
+dev.off()
+
+# decision tree
+fit.tree_score = rpart(disease_vac ~ .,
+                       data = all_train,
+                       method = "class",
+                       cp=0.0008,
+                       minsplit = 60)
+# Decision tree 
+png("decision_tree.png", units="in", width=4, height=3, res=300)
+rpart.plot(fit.tree_score, box.palette = "Blues") # plot decision tree 
+dev.off()
+
+# ROC curve
+roc_data = data.frame()
+target_variables = colnames(RF_data[2:554])
+pred_rf = predict(rf_aab_Pd, all_test, type = 'prob')
+pred_rf_df = pred_rf_aab %>% 
+  as.data.frame() %>% 
+  rownames_to_column("sample")
+
+
+
+
+
+```
+# Heatmap with L2FC 
+```{r}
+
+all_matrices_normalized_counts
+
+# Matrix
+l2fc_imps = imps %>% 
+  select(genes = var, importance = imps) %>% 
+  inner_join(all_matrices_normalized_counts %>% rownames_to_column("genes"), by = "genes") %>%
+  select(genes, condition) %>% 
+ pivot_wider(names_from = condition, values_from = log2fold_change) %>% 
+  column_to_rownames("genes") %>% 
+  as.matrix() %>% 
+  replace(is.na(.), 0)
+
+#Annotations
+colors_col = imps %>% 
+  select(genes = var, importance = imps) %>% 
+  inner_join(ImmuneGO_Genes, by = "genes") %>%
+  inner_join(covid_others_colors %>% select(condition, color), by = "condition") %>% 
+  select(condition,color) %>% 
+  distinct() %>% 
+  .$color
+
+colors_row <- imps %>% 
+  select(genes = var, importance = imps) %>% 
+  inner_join(ImmuneGO_Genes, by = "genes") %>%
+  select(genes, condition, log2fold_change, importance) %>% 
+  pivot_wider(names_from = condition, values_from = log2fold_change) %>% 
+  mutate(imp_color = circlize::colorRamp2(c(min(importance), max(importance)), c("white", "red"))(importance)) %>% 
+  .$imp_color
+
+#Plot
+png("randomforest_heatmap_conditions_l2fc.png", units="in", width=10, height=10, res=300)
+heatmap(l2fc_imps, ColSideColors = colors, RowSideColors = colors_row, scale = "none",  margins = c(10, 10))
+dev.off()
+
+```
+
+
+
+
+# Heatmap with L2FC 
+```{r}
+
+ImmuneGO_Annotated_Genes_all = ImmuneGO_Annotated_Genes_28_2_24 %>% 
+  filter(!process %in% c("TCR REPERTOIRE", "BCR REPERTOIRE"))
+
+ImmuneGO_Genes = all_degs_p_05_vac_infected_19_12_23 %>% 
+  select(-"...1", -"...12") %>% 
+  inner_join(ImmuneGO_Annotated_Genes %>% 
+               select(genes, process) %>% 
+               distinct() %>% 
+               select(genes),
+               by = "genes") %>% 
+  distinct()
+
+# Matrix
+l2fc_imps = imps %>% 
+  select(genes = var, importance = imps) %>% 
+  inner_join(ImmuneGO_Genes, by = "genes") %>%
+  select(genes, condition, log2fold_change) %>% 
+ pivot_wider(names_from = condition, values_from = log2fold_change) %>% 
+  column_to_rownames("genes") %>% 
+  as.matrix() %>% 
+  replace(is.na(.), 0)
+
+#Annotations
+colors_col = imps %>% 
+  select(genes = var, importance = imps) %>% 
+  inner_join(ImmuneGO_Genes, by = "genes") %>%
+  inner_join(covid_others_colors %>% select(condition, color), by = "condition") %>% 
+  select(condition,color) %>% 
+  distinct() %>% 
+  .$color
+
+colors_row <- imps %>% 
+  select(genes = var, importance = imps) %>% 
+  inner_join(ImmuneGO_Genes, by = "genes") %>%
+  select(genes, condition, log2fold_change, importance) %>% 
+  pivot_wider(names_from = condition, values_from = log2fold_change) %>% 
+  mutate(imp_color = circlize::colorRamp2(c(min(importance), max(importance)), c("white", "red"))(importance)) %>% 
+  .$imp_color
+
+#Plot
+png("randomforest_heatmap_conditions_l2fc.png", units="in", width=10, height=10, res=300)
+heatmap(l2fc_imps, ColSideColors = colors, RowSideColors = colors_row, scale = "none",  margins = c(10, 10))
+dev.off()
+
+```
+

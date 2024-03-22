@@ -1,13 +1,13 @@
-
-
-
 ---
 title: "VAX SIG DB"
 output: html_notebook
+editor_options: 
+  markdown: 
+    wrap: 72
 ---
 
-
 # Libraries
+
 ```{r}
 library(janitor)
 library(tidyverse)
@@ -17,10 +17,7 @@ library(ComplexHeatmap)
 library(magick)
 ```
 
-
-
 # VAX Sig DB
-
 
 ## Colors
 
@@ -411,8 +408,8 @@ col_process_immune = list(
 
 ```
 
-
-Os estudos foram filtrados pelo tamanho do conjunto de genes compartilhados (GSSize \> 10 ou \>50) e com pvalue (\<0.25).
+Os estudos foram filtrados pelo tamanho do conjunto de genes
+compartilhados (GSSize \> 10 ou \>50) e com pvalue (\<0.25).
 
 Os dados foram anotados no R e depois avaliados iterativamente no excel.
 
@@ -710,7 +707,6 @@ VAX_GeneSets_Blood_PBMC_VAC.stats = VAX_GeneSets_Blood_PBMC_VAC %>%
 
 ```
 
-
 *Qual a relação entre os genes de cada dataset?*
 
 ```{r}
@@ -721,7 +717,6 @@ data = VAX_Genes_Annotated_RAW %>%
   mutate(VACCINE_REG_TIME = paste0(VACCINE, "_", `DATE-TIME`, "_", REGULATION))
 
 ```
-
 
 ```{r}
 # Função para calcular a sobreposição entre pares de vacinas e a porcentagem de genes compartilhados
@@ -806,15 +801,12 @@ write.csv(shared_genes_df_mirror, file = "AigD_sharedenes.csv") #Alterar
 
 ```
 
-
 ##Heatmap
-
-
 
 ### VAC ONLY
 
-
 #### TOTAL SHARED
+
 ```{r}
 argDB_sharedgenes = shared_genes_df_mirror
 filename = "VAXSigDB_sharedgenes_VAC_ONLY_DOWN_DON" 
@@ -1005,6 +997,7 @@ dev.off()
 ```
 
 #### IDENTITY COND 1
+
 ```{r}
 VAXSigDB_sharedgenes = shared_genes_df_mirror
 filename = "VAXSigDB_sharedgenes_DOWN_DOWN_IDENTITY_COND1"
@@ -1193,7 +1186,9 @@ draw(heatmap_plot_all, annotation_legend_side = "left", heatmap_legend_side = "l
 
 dev.off()
 ```
+
 #### IDENTITY COND 2
+
 ```{r}
 VAXSigDB_sharedgenes = shared_genes_df_mirror
 filename = "VAXSigDB_sharedgenes_DOWN_DOWN_IDENTITY_COND2"
@@ -1385,10 +1380,8 @@ draw(heatmap_plot_all, annotation_legend_side = "left", heatmap_legend_side = "l
 dev.off()
 ```
 
-
-
-
 ### CORRELATION ANTIBODIES
+
 ```{r}
 VAXSigDB_sharedgenes = shared_genes_df_mirror
 filename = "VAXSigDB_sharedgenes_UP_UP_Antibodies"
@@ -1578,8 +1571,8 @@ draw(heatmap_plot_all, annotation_legend_side = "left", heatmap_legend_side = "l
 dev.off()
 ```
 
-
 #### IDENTITY COND 1
+
 ```{r}
 VAXSigDB_sharedgenes = shared_genes_df_mirror
 filename = "VAXSigDB_sharedgenes_DOWN_DOWN_Antibodies_Cond1"
@@ -1766,6 +1759,7 @@ dev.off()
 ```
 
 #### IDENTITY COND 1
+
 ```{r}
 VAXSigDB_sharedgenes = shared_genes_df_mirror
 filename = "VAXSigDB_sharedgenes_DOWN_DOWN_Antibodies_COND2"
@@ -1951,9 +1945,8 @@ draw(heatmap_plot_all, annotation_legend_side = "left", heatmap_legend_side = "l
 dev.off()
 ```
 
-
-
 ## ORA VAXGO com ImmuneIMMUNE GO
+
 *Qual a relação entre os genes de cada dataset?*
 
 ```{r}
@@ -1987,7 +1980,6 @@ Immune_GO_T2G = ImmuneGO_Annotated_Genes%>%
          !process %in% c("TCR REPERTOIRE", "BCR REPERTOIRE", "ADAPTIVE IMMUNE SYSTEM", "INNATE IMMUNE SYSTEM")) %>% 
   select(process, genes)
 ```
-
 
 ```{r}
 # Função para realizar a análise GSEA para uma condição específica
@@ -2057,8 +2049,8 @@ write.csv(VAX_immune_GO_ORA, file = "VAX_immune_GO_ORA.csv")
 view(VAX_immune_GO_ORA)
 ```
 
-
 ### Heatmap
+
 ```{r}
 ####### INPUT
 data_2 = VAX_immune_GO_ORA
@@ -2109,7 +2101,6 @@ dim(matrix_data)
 dim(ann_cols_heatmap)
 ```
 
-
 ```{r}
 ################## Colors
 
@@ -2155,7 +2146,6 @@ ann_vaxsig_colors = list(
   )
 
 ```
-
 
 ```{r}
 ################# Plotar
@@ -2277,7 +2267,6 @@ draw(heatmap_plot,
 dev.off()
 ```
 
-
 ```{r}
 # WITH values
 fileimageheatmap_grouped = paste0(file, sep ="_", "Complexheatmap_VALUES.png")
@@ -2330,21 +2319,10 @@ dev.off()
 
 ```
 
-
-
-
-
-
-
-
-
-
-
-
-
 # COVID-19 vaccines comparison
 
 ### VENN DIAGRAM
+
 ```{r}
 # Input files ------
 
@@ -2394,7 +2372,6 @@ write.csv(degs_all_updown_covid_other_immune, file = "degs_all_updown_covid_vax_
 write.csv(degs_all_updown_covid_other_nonimmune, file = "degs_all_updown_covid_vax_other_nonimmune.csv")
 ```
 
-
 ```{r}
 #Input
 data = degs_all_updown_covid_other_nonimmune %>% 
@@ -2404,7 +2381,6 @@ data = degs_all_updown_covid_other_nonimmune %>%
 filename = "degs_all_updown_covid_other_nonimmune"
   
 ```
-
 
 ```{r}
 # Função para calcular a sobreposição entre pares de vacinas e a porcentagem de genes compartilhados
@@ -2480,8 +2456,8 @@ write.csv(shared_genes_df_mirror, file = paste0(filename, "_shared.csv"))
 
 ```
 
+Other comparisons
 
-Other comparisons 
 ```{r}
 ############# VACCINE
 #Use "vax_degs_up_VAXSigDB_sharedgenes_ann.csv" for comparing UP degs with UP degs from other conditions
@@ -2575,6 +2551,7 @@ corr_cell_negative = shared_genes_ann_corr %>%
 ```
 
 Heatmap
+
 ```{r}
 # INPUT ------
 data = shared_genes_df_mirror %>% 
@@ -2658,8 +2635,8 @@ dim(ann_cols_heatmap)
 
 ```
 
-
 Plot
+
 ```{r}
 
 #Heatmap annotation
@@ -2737,6 +2714,7 @@ dev.off()
 ```
 
 ### Clustering all vs all
+
 ```{r}
 
 # INPUT ------
@@ -2794,11 +2772,8 @@ dev.off()
 
 ```
 
-
-
-
-
 ### ORA COVID vs. VAXGO com ImmuneGO
+
 *Qual a relação entre os genes de cada dataset?*
 
 ```{r}
@@ -2833,7 +2808,6 @@ Immune_GO_T2G = ImmuneGO_Annotated_Genes %>%
          !process %in% c("TCR REPERTOIRE", "BCR REPERTOIRE", "ADAPTIVE IMMUNE SYSTEM", "INNATE IMMUNE SYSTEM")) %>% 
   select(process, genes)
 ```
-
 
 ```{r}
 # Função para realizar a análise GSEA para uma condição específica
@@ -2883,7 +2857,6 @@ perform_ORA <- function(df, Immune_GO_T2G) {
 }
 ```
 
-
 ```{r}
 
 df_resultados <- perform_ORA(degs_all_updown_covid_other, Immune_GO_T2G)
@@ -2902,8 +2875,8 @@ write.csv(immune_GO_ORA_covid_other, file = "COVID_VAX_immune_GO_ORA.csv")
 view(immune_GO_ORA_covid_other)
 ```
 
-
 #### Heatmap
+
 ```{r}
 ####### INPUT
 data_2 = immune_GO_ORA_covid_other
@@ -2951,7 +2924,6 @@ matrix_data = matrix %>%
 dim(matrix_data)
 dim(ann_cols)
 ```
-
 
 ```{r}
 
@@ -3064,7 +3036,6 @@ ann_vaxsig_colors = list(
 
 ```
 
-
 ```{r}
 ################# Plotar
 
@@ -3145,7 +3116,9 @@ dev.off()
 
 
 ```
+
 ## GENES COVID vs. VAXGO com ImmuneGO
+
 *Qual a relação entre os genes de cada dataset?*
 
 ```{r}
@@ -3246,7 +3219,6 @@ covid_other_notimmune_genes = degs_all_updown_covid_other_notimmune %>%
 
 ```
 
-
 ```{r}
 ###### Gene sets Immune GO ------
 
@@ -3296,9 +3268,8 @@ Immune_GO_genes_Ig = Immune_GO_genes_All %>%
 
 ```
 
-
-
 #### Heatmap
+
 ```{r}
 ####### INPUT
 data_2 = Immune_GO_genes_All
@@ -3404,27 +3375,27 @@ dim(ann_rows_immune)
 
 ```
 
+Sizes: 1. Cellular adaptive immune system: width = unit(25, "cm"),
+height = unit(60, "cm") #254 genes 2. Humoral adaptive immune system:
+width = unit(25, "cm"), height = unit(30, "cm") #51 genes 3. T cells:
+width = unit(25, "cm"), height = unit(60, "cm") #221 genes 4. B cells:
+width = unit(25, "cm"), height = unit(50, "cm") #146 genes 5. Ig
+mediated: width = unit(25, "cm"), height = unit(10, "cm") #146 genes 6.
+Inflammation: width = unit(25, "cm"), height = unit(10, "cm") 7. ARPP:
+width = unit(25, "cm"), height = unit(30, "cm") 60 genes 8. IFN: width =
+unit(25, "cm"), height = unit(30, "cm") 93 genes 9. DC: width = unit(25,
+"cm"), height = unit(20, "cm") #29 genes 10. Macrophages: width =
+unit(25, "cm"), height = unit(25, "cm") \# 52 genes 11. Neutrophils:
+width = unit(25, "cm"), height = unit(40, "cm") \# 70 genes 12.
+Eosinophil: width = unit(25, "cm"), height = unit(10, "cm") \# 42 genes
+13. Complement: width = unit(25, "cm"), height = unit(10, "cm") \# 40
+genes 13. Monocytes: width = unit(25, "cm"), height = unit(15, "cm") \#
+48 genes 15. All immune genes: width_image = 60, height_image = 70,
+width = unit(30, "cm"), height = unit(60, "cm"), row_split = 7,
+column_split = 2
 
-
-Sizes:
-1. Cellular adaptive immune system: width = unit(25, "cm"), height = unit(60, "cm") #254 genes
-2. Humoral adaptive immune system: width = unit(25, "cm"), height = unit(30, "cm") #51 genes
-3. T cells: width = unit(25, "cm"), height = unit(60, "cm") #221 genes
-4. B cells: width = unit(25, "cm"), height = unit(50, "cm") #146 genes
-5. Ig mediated: width = unit(25, "cm"), height = unit(10, "cm") #146 genes
-6. Inflammation: width = unit(25, "cm"), height = unit(10, "cm")
-7. ARPP: width = unit(25, "cm"), height = unit(30, "cm") 60 genes
-8. IFN: width = unit(25, "cm"), height = unit(30, "cm") 93 genes
-9. DC: width = unit(25, "cm"), height = unit(20, "cm") #29 genes
-10. Macrophages: width = unit(25, "cm"), height = unit(25, "cm") # 52 genes
-11. Neutrophils:  width = unit(25, "cm"), height = unit(40, "cm") # 70 genes
-12. Eosinophil:  width = unit(25, "cm"), height = unit(10, "cm") # 42 genes
-13. Complement: width = unit(25, "cm"), height = unit(10, "cm") # 40 genes
-13. Monocytes: width = unit(25, "cm"), height = unit(15, "cm") # 48 genes
-15. All immune genes: width_image = 60, height_image = 70, width = unit(30, "cm"), height = unit(60, "cm"), row_split = 7, column_split = 2
-
-More refs: https://debrowser.readthedocs.io/en/master/heatmap/heatmap.html
-
+More refs:
+<https://debrowser.readthedocs.io/en/master/heatmap/heatmap.html>
 
 ```{r}
 ################# Immune 
@@ -3502,8 +3473,6 @@ heatmap_plot = draw(heatmap_plot)
 dev.off()
 
 ```
-
-
 
 ```{r}
 ################# NOT Immune 
@@ -3604,7 +3573,6 @@ data_2 = Immune_GO_genes_All %>%
 filename_2 = paste0("Immune_GO_genes_cluster1", "_VAX_COVID")
 ```
 
-
 ```{r}
 ######## Matrix
 matrix = data_2 %>% 
@@ -3680,11 +3648,8 @@ dim(ann_rows_immune)
 
 ```
 
-
-
-
-More refs: https://debrowser.readthedocs.io/en/master/heatmap/heatmap.html
-
+More refs:
+<https://debrowser.readthedocs.io/en/master/heatmap/heatmap.html>
 
 ```{r}
 ################# Immune 
@@ -3838,7 +3803,6 @@ covid_other_immune_genes_50_mostshared_all = stats_1 %>%
                select(condition, genes), by = "genes")
 ```
 
-
 ```{r}
 #### Not Immune -----
 stats_2 = covid_other_notimmune_genes %>% 
@@ -3894,8 +3858,8 @@ covid_other_notimmune_genes_50_mostshared_all %>% select(genes) %>% distinct()
 
 ```
 
-
 #### Heatmap
+
 ```{r}
 ####### INPUT
 data_2 = covid_other_immune_genes_50_mostshared_all
@@ -3999,11 +3963,8 @@ dim(ann_rows_immune)
 
 ```
 
-
-
-
-More refs: https://debrowser.readthedocs.io/en/master/heatmap/heatmap.html
-
+More refs:
+<https://debrowser.readthedocs.io/en/master/heatmap/heatmap.html>
 
 ```{r}
 ################# Immune 
@@ -4081,8 +4042,6 @@ dev.off()
 
 ```
 
-
-
 ```{r}
 ################# NOT Immune 
 #Heatmap annotation
@@ -4159,8 +4118,3 @@ heatmap_plot
 
 dev.off()
 ```
-
-
-
-
-
