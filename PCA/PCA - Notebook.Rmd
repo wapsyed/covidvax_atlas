@@ -29,7 +29,7 @@ library(ggExtra)
 
 ```{r}
 
-ImmuneGO_Annotated_Genes_all = ImmuneGO_Annotated_Genes_28_2_24 
+ImmuneGO_Annotated_Genes_all = ImmuneGO_Annotated_Genes
 
 ImmuneGO_Annotated_Genes = ImmuneGO_Annotated_Genes_all %>% 
   filter(!process %in% c("TCR REPERTOIRE", "BCR REPERTOIRE"))
@@ -436,36 +436,23 @@ ggsave(pca_plot_knn_cluster_marginal, file = paste0(filename, pcas, "_KNN_Cluste
 PC1 = var$cos2 %>%
   as.data.frame() %>%
   arrange(desc(Dim.1)) %>%
-  slice_head(n = 20) %>%
+  filter(Dim.1 >= 0.50) %>%
   rownames_to_column("genes") %>% 
   distinct() %>% 
-  select(genes, Dim.1) %>% 
+  select(genes, cos2 = Dim.1) %>% 
     mutate(dimension = "PC1")
 
 PC2 = var$cos2 %>%
   as.data.frame() %>%
-  arrange(desc(Dim.2)) %>%
+  filter(Dim.2 >= 0.50) %>%
   slice_head(n = 20) %>%
   rownames_to_column("genes") %>% 
   distinct() %>% 
-  select(genes, Dim.2) %>% 
+  select(genes, cos2 = Dim.2) %>% 
   mutate(dimension = "PC2")
 
-PC3 = var$cos2 %>%
-  as.data.frame() %>%
-  arrange(desc(Dim.3)) %>%
-  slice_head(n = 20) %>%
-  rownames_to_column("genes") %>% 
-  distinct() %>% 
-  select(genes, Dim.3)
-
-PC4 = var$cos2 %>%
-  as.data.frame() %>%
-  arrange(desc(Dim.4)) %>%
-  slice_head(n = 20) %>%
-  rownames_to_column("genes") %>% 
-  distinct() %>% 
-  select(genes, Dim.4)
+PC1_2 = bind_rows(PC1, PC2) 
+PC1_2 %>% write.csv(file = "PC_1_2_cos2.csv", row.names = F)
 
 
 # Gene annotation

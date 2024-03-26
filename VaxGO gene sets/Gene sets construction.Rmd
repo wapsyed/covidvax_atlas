@@ -509,6 +509,19 @@ ImmuneGO_ARPP = ImmuneGO_Annotated_unique %>%
   `GO.TERM` = "Manual") %>% 
   clean_names()
 
+
+ImmuneGO_Innate_DC <- ImmuneGO_Annotated_unique %>%
+  filter(immune_tissue == "Dendritic cell") %>% 
+  summarize(set_size = n(), 
+            genes = paste(genes, collapse = ",")) %>% 
+  mutate(process = "DENDRITIC CELL",
+  `Gene set, short` = "Dendritic cell",
+  `Immune system` = "Innate",
+  `Immune sub-system` = "Cell",
+  `Immune tissue` = "APC",
+  `GO.TERM` = "Manual") %>% 
+  clean_names()
+
 ImmuneGO_Innate_Macrophage <- ImmuneGO_Annotated_unique %>%
   filter(immune_tissue == "Macrophage") %>% 
   summarize(set_size = n(), 
@@ -703,13 +716,13 @@ ImmuneGO_Annotated_GO = bind_rows(ImmuneGO_Adaptive,
                             ImmuneGO_Adap_Ig,
                             ImmuneGO_other,
                             ImmuneGO_antimicrobial,
+                            ImmuneGO_Innate_DC,
                             ImmuneGO_Annotated_unique) %>% 
-  select(process:go_term, set_size:genes)
+  select(process:go_term, set_size:genes) %>% 
+  distinct()
 
 ImmuneGO_Annotated_Genes = ImmuneGO_Annotated_GO %>% 
    separate_rows(genes, sep = ",")
-
-
 
 # Separate TCR and BCR repertoire genes
 TCR_BCR_repertoire = ImmuneGO_Annotated_Genes %>% 
@@ -726,8 +739,9 @@ TCR_BCR_repertoire = ImmuneGO_Annotated_Genes %>%
          immune_sub_system = if_else(process == "TCR REPERTOIRE", "Cellular", "Humoral"),
          immune_tissue = if_else(process == "TCR REPERTOIRE", "Cellular", "Humoral"))
 
-immunego_manual = immunego_manual %>% 
-  anti_join(TCR_BCR_repertoire_genes %>% select(genes) %>% distinct(), by = "genes") %>% 
+immunego_manual = ImmuneGO_Annotated_Genes %>%
+  filter(go_term == "Manual") %>% 
+  anti_join(TCR_BCR_repertoire %>% select(genes) %>% distinct(), by = "genes") %>% 
   bind_rows()
 
 #Verify if all genes are annotated. If there are no left genes, you are good to go
@@ -736,9 +750,9 @@ ImmuneGO_Annotated_Genes %>% select(process, genes, immune_system) %>% anti_join
 
 
 #Salvar
-write.csv(ImmuneGO_Annotated_GO, file = "ImmuneGO_Annotated_GO_14-3-24_2.csv", row.names = F)
-saveRDS(ImmuneGO_Annotated_GO, file = "ImmuneGO_Annotated_GO_14-3-24_2.rds")
-saveRDS(ImmuneGO_Annotated_Genes, file = "ImmuneGO_Annotated_Genes_14-3-24.rds")
+write.csv(ImmuneGO_Annotated_GO, file = paste0("ImmuneGO_Annotated_GO_", today(), ".csv"), row.names = F)
+saveRDS(ImmuneGO_Annotated_GO, file = paste0("ImmuneGO_Annotated_GO_", today(), ".rds"))
+saveRDS(ImmuneGO_Annotated_Genes, file = paste0("ImmuneGO_Annotated_Genes_", today(), ".rds"))
 
 #Display
 view(ImmuneGO_Annotated_GO)

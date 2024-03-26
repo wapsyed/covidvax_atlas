@@ -104,12 +104,12 @@ Importar e padronizar tabelas
 ############## Arquivos necessários
 
 # Informações sobre os processos/Gene sets
-ImmuneGO = `ImmuneGO_Annotated_GO_14-3-24_2` %>% 
+ImmuneGO = ImmuneGO_Annotated_GO %>% 
   select(process:immune_tissue, set_size) %>% 
   distinct()
 
 # Genes por gene sets
-immunego_genes = `ImmuneGO_Annotated_Genes_14-3-24` %>%
+immunego_genes = ImmuneGO_Annotated_Genes%>%
   filter(go_term == "Manual") %>% 
   select(process,genes)
 
@@ -131,73 +131,434 @@ Immune_GO_genes_All = data.immunego %>%
   clean_names()
 
 ###### Gene sets
-
-# Sistema inato
+# Immune_GO_genes_general = Immune_GO_genes_All %>%
+#   filter(process == "GENERAL")
+# Immune_GO_genes_antimicrobial = Immune_GO_genes_All %>%
+#   filter(process == "ANTIMICROBIAL")
 # Immune_GO_genes_Innate = Immune_GO_genes_All %>%
 #  filter(process == "INNATE IMMUNE SYSTEM")
 # Immune_GO_genes_Adaptive = Immune_GO_genes_All %>%
 #  filter(process == "ADAPTIVE IMMUNE SYSTEM")
-Immune_GO_genes_Inflammation = Immune_GO_genes_All %>%
-  filter(process == "INFLAMMATION")
-Immune_GO_genes_ARPP = Immune_GO_genes_All %>%
-  filter(process == "ARPP")
-Immune_GO_genes_IFN = Immune_GO_genes_All %>%
-  filter(process == "ANTIVIRAL AND INTERFERON")
-Immune_GO_genes_Neutrophil = Immune_GO_genes_All %>%
-  filter(process == "NEUTROPHIL")
-Immune_GO_genes_Eosinophil = Immune_GO_genes_All %>%
-  filter(process == "EOSINOPHIL")
-Immune_GO_genes_Complement = Immune_GO_genes_All %>%
-  filter(process == "COMPLEMENT IMMUNE SYSTEM")
-Immune_GO_genes_Monocytes = Immune_GO_genes_All %>%
-  filter(process == "MONOCYTES")
-Immune_GO_genes_DC = Immune_GO_genes_All %>%
-  filter(process == "DENDRITIC CELLS")
-Immune_GO_genes_Macro = Immune_GO_genes_All %>%
-  filter(process == "MACROPHAGES")
-Immune_GO_genes_NK = Immune_GO_genes_All %>%
-  filter(process == "NK CELL")
-Immune_GO_genes_Mast = Immune_GO_genes_All %>%
-  filter(process == "MAST CELL") %>%
-  distinct()
+
+# Sistema inato
+# Immune_GO_genes_Inflammation = Immune_GO_genes_All %>%
+#   filter(process == "INFLAMMATION")
+# Immune_GO_genes_ARPP = Immune_GO_genes_All %>%
+#   filter(process == "ARPP")
+# Immune_GO_genes_IFN = Immune_GO_genes_All %>%
+#   filter(process == "ANTIVIRAL & IFN")
+# Immune_GO_genes_Neutrophil = Immune_GO_genes_All %>%
+#   filter(process == "NEUTROPHIL")
+# Immune_GO_genes_Eosinophil = Immune_GO_genes_All %>%
+#   filter(process == "EOSINOPHIL")
+# Immune_GO_genes_Complement = Immune_GO_genes_All %>%
+#   filter(process == "COMPLEMENT")
+# Immune_GO_genes_Monocytes = Immune_GO_genes_All %>%
+#   filter(process == "MONOCYTE")
+# Immune_GO_genes_DC = Immune_GO_genes_All %>%
+#   filter(process == "DENDRITIC CELLS")
+# Immune_GO_genes_Macro = Immune_GO_genes_All %>%
+#   filter(process == "MACROPHAGES")
+# Immune_GO_genes_NK = Immune_GO_genes_All %>%
+#   filter(process == "NK CELL")
+# Immune_GO_genes_Mast = Immune_GO_genes_All %>%
+#   filter(process == "MAST CELL") %>%
+#   distinct()
 
 # Sistema adaptativo
-Immune_GO_genes_Cellular = Immune_GO_genes_All %>%
-  filter(process == "CELLULAR ADAPTIVE IMMUNE SYSTEM")
-Immune_GO_genes_Humoral = Immune_GO_genes_All %>%
-  filter(process == "HUMORAL ADAPTIVE IMMUNE SYSTEM")
-Immune_GO_genes_Tcells = Immune_GO_genes_All %>%
-  filter(process == "T CELLS")
-Immune_GO_genes_Bcells = Immune_GO_genes_All %>%
-  filter(process == "B CELLS")
-Immune_GO_genes_Ig = Immune_GO_genes_All %>%
-  filter(process == "IMMUNOGLOBULIN MEDIATED IMMUNE RESPONSE") %>%
-  distinct()
+# Immune_GO_genes_Cellular = Immune_GO_genes_All %>%
+#   filter(process == "CELLULAR ADAPTIVE IMMUNE SYSTEM")
+# Immune_GO_genes_Humoral = Immune_GO_genes_All %>%
+#   filter(process == "HUMORAL ADAPTIVE IMMUNE SYSTEM")
+# Immune_GO_genes_Tcells = Immune_GO_genes_All %>%
+#   filter(process == "T CELLS")
+# Immune_GO_genes_Th = Immune_GO_genes_All %>%
+#   filter(process == "T HELPER CELLS")
+# Immune_GO_genes_Bcells = Immune_GO_genes_All %>%
+#   filter(process == "B CELLS")
+# Immune_GO_genes_Ig = Immune_GO_genes_All %>%
+#   filter(process == "IMMUNOGLOBULIN MEDIATED RESPONSE") %>%
+#   distinct()
+
 ```
 
-Os heatmaps gerados variam em dimensão em função do número de linhas (no caso, genes) e condições. Some 20 cm a mais na dimensão da imagem.
+Os heatmaps gerados variam em dimensão em função do número de linhas (no caso, genes) e condições. Some 10 cm a mais na altura da imagem.
 
 
-Tamanhos:
-1. Cellular adaptive immune system: width = unit(30, "cm"), height = unit(70, "cm") 
-2. Humoral adaptive immune system: width = unit(30, "cm"), height = unit(30, "cm")
-3. T cells: width = unit(30, "cm"), height = unit(50, "cm")
-4. B cells: width = unit(30, "cm"), height = unit(50, "cm")
-5. Ig mediated: width = unit(30, "cm"), height = unit(10, "cm")
-6. Inflammation: width = unit(30, "cm"), height = unit(10, "cm")
-7. ARPP: width = unit(30, "cm"), height = unit(3
-0, "cm") 
-8. IFN: width = unit(30, "cm"), height = unit(50, "cm")
-9. DC: width = unit(30, "cm"), height = unit(20, "cm")
-10. Macrophages: width = unit(30, "cm"), height = unit(20, "cm")
-11. Neutrophils:  width = unit(30, "cm"), height = unit(40, "cm") # 70 genes
-12. Eosinophils:  width = unit(30, "cm"), height = unit(10, "cm") # 30 genes
-13. Complement:  width = unit(30, "cm"), height = unit(10, "cm") # 30 genes
-14. Monocytes:  width = unit(30, "cm"), height = unit(10, "cm") # 30 genes
-15. Mast cells: width = unit(30, "cm"), height = unit(10, "cm") # 27 genes
+### General
+```{r}
+####### Input
+#Troque pelo geneset de interesse
+
+heatmap_data = Immune_GO_genes_general
+file = "Immune_GO_genes_general"
+
+########## Processar dados e criar matriz
+
+#Excluir linhas com Target ou Source == NA
+heatmap_data_l2fc= heatmap_data %>% 
+  filter(condition != "NA", 
+         process != "NA") %>% 
+  select(genes, condition, log2fold_change)
+
+# Converter para wide table
+matrix_data <- dcast(heatmap_data_l2fc, 
+                         genes ~ condition, 
+                         value.var = "log2fold_change", 
+                         fun.aggregate = mean) %>% 
+  column_to_rownames('genes') %>% 
+  mutate_if(is.character, as.numeric) %>% 
+  replace(is.na(.), 0)
+
+#Arredondar valores para facilitar visualização
+matrix_data_ready =  matrix_data %>% 
+  round(2)
+
+# Verificar se todas as vacinas da anotação estão na matriz e unir as tabelas
+ann_vaccines_complex = heatmap_data %>% 
+  select(condition) %>% 
+  distinct() %>% 
+  inner_join(ann_vaccines %>% select(condition, disease_vac, type, week), by = "condition")
+
+# Unir tabela de anotações
+ann_vaccines_heatmap = matrix_data %>% 
+  colnames() %>% 
+  data.frame() %>% 
+  filter(. != "genes") %>% 
+  rename(condition = '.') %>% 
+  merge(ann_vaccines_complex, by = "condition", all.x = TRUE) %>% 
+  arrange(condition) %>% 
+  column_to_rownames(var= "condition") 
+
+# Ordenar colunas da matriz para a mesma ordem das linhas da tabela de anotações
+matrix_data_ordered = matrix_data %>% 
+  t() %>% 
+  as.data.frame() %>% 
+  rownames_to_column(var= "condition") %>% 
+  merge(ann_vaccines_complex, by.y = "condition", all.x=TRUE) %>% 
+  arrange(condition) %>% #Trocar a variável pela qual deseja ordenar (Vaccine, Day, Condition, etc.)
+  select(!c(disease_vac, type, week)) %>% 
+  column_to_rownames("condition") %>% 
+  t() %>% 
+  as.data.frame() %>% 
+  mutate_if(is.character, as.numeric) %>% #Converter em numéricos
+  replace(is.na(.), 0) %>% 
+  as.matrix() 
+
+#Verificar se as linhas sao iguais
+dim(matrix_data_ordered) #Usar se for ordenar por colunas
+dim(ann_vaccines_heatmap) #Anotações sobre as colunas
 
 
+#Criar heatmap annotation
+ha = HeatmapAnnotation(df = ann_vaccines_heatmap, 
+                       col = ann_colors, 
+                       annotation_name_side = "left")
 
+
+col_fun <- colorRamp2(c(-2, -1, 0, 1, 2), c("#5AFFE9", "#9bc1bc", "black", "#ed6a5a", "#F11A02"))
+
+
+#Parameters
+mat = matrix_data_ordered
+width_image = 40
+height_image = 90
+width = unit(30, "cm")
+height = unit(80, "cm")
+column_names_gp = gpar(fontsize = 10)
+row_names_gp = gpar(fontsize = 3)
+
+
+#Plotar e salvar imagem
+fileimageheatmap_ungrouped= paste0(file, sep ="_", "Ungrouped_Complexheatmap.png")
+
+png(file = fileimageheatmap_ungrouped, width=width_image, height=height_image,units="cm",res=800)
+
+heatmap_plot_all = Heatmap(mat,
+                        top_annotation = ha,
+                        show_row_names = TRUE,
+                        show_heatmap_legend = TRUE,
+                        heatmap_legend_param = list(direction = "horizontal"),
+                        name = "L2FC", #Legend
+                        col = col_fun, #color
+                        column_title = fileimageheatmap_ungrouped,
+                        column_title_gp = gpar(fontsize = 15, fontface = "bold"),
+                        column_names_rot = 45,
+                        column_names_gp = gpar(fontsize = 10),
+                        rect_gp = gpar(col = "gray90", lwd = 1),
+                        cluster_rows = TRUE,
+                        row_names_gp = row_names_gp,
+                        row_split = NULL, #Split row clusters
+                        row_gap = unit(2, "mm"),
+                        cluster_columns = TRUE,
+                        #column_split = 2, #Split group clusters
+                        #column_km = 2,
+                        column_gap = unit(8, "mm"),
+                        show_column_dend = TRUE,
+                        show_row_dend = TRUE,
+                        row_dend_side = "left",
+                        column_dend_side = "top",
+                        clustering_distance_rows = "euclidean",
+                        border = TRUE,
+                        column_dend_reorder = TRUE,
+                        width = width, 
+                        height = height
+)
+
+draw(heatmap_plot_all, annotation_legend_side = "right", heatmap_legend_side = "right")
+
+dev.off()
+```
+
+### Antimicrobial
+```{r}
+####### Input
+#Troque pelo geneset de interesse
+
+heatmap_data = Immune_GO_genes_antimicrobial
+file = "Immune_GO_genes_antimicrobial"
+
+########## Processar dados e criar matriz
+
+#Excluir linhas com Target ou Source == NA
+heatmap_data_l2fc= heatmap_data %>% 
+  filter(condition != "NA", 
+         process != "NA") %>% 
+  select(genes, condition, log2fold_change)
+
+# Converter para wide table
+matrix_data <- dcast(heatmap_data_l2fc, 
+                         genes ~ condition, 
+                         value.var = "log2fold_change", 
+                         fun.aggregate = mean) %>% 
+  column_to_rownames('genes') %>% 
+  mutate_if(is.character, as.numeric) %>% 
+  replace(is.na(.), 0)
+
+#Arredondar valores para facilitar visualização
+matrix_data_ready =  matrix_data %>% 
+  round(2)
+
+# Verificar se todas as vacinas da anotação estão na matriz e unir as tabelas
+ann_vaccines_complex = heatmap_data %>% 
+  select(condition) %>% 
+  distinct() %>% 
+  inner_join(ann_vaccines %>% select(condition, disease_vac, type, week), by = "condition")
+
+# Unir tabela de anotações
+ann_vaccines_heatmap = matrix_data %>% 
+  colnames() %>% 
+  data.frame() %>% 
+  filter(. != "genes") %>% 
+  rename(condition = '.') %>% 
+  merge(ann_vaccines_complex, by = "condition", all.x = TRUE) %>% 
+  arrange(condition) %>% 
+  column_to_rownames(var= "condition") 
+
+# Ordenar colunas da matriz para a mesma ordem das linhas da tabela de anotações
+matrix_data_ordered = matrix_data %>% 
+  t() %>% 
+  as.data.frame() %>% 
+  rownames_to_column(var= "condition") %>% 
+  merge(ann_vaccines_complex, by.y = "condition", all.x=TRUE) %>% 
+  arrange(condition) %>% #Trocar a variável pela qual deseja ordenar (Vaccine, Day, Condition, etc.)
+  select(!c(disease_vac, type, week)) %>% 
+  column_to_rownames("condition") %>% 
+  t() %>% 
+  as.data.frame() %>% 
+  mutate_if(is.character, as.numeric) %>% #Converter em numéricos
+  replace(is.na(.), 0) %>% 
+  as.matrix() 
+
+#Verificar se as linhas sao iguais
+dim(matrix_data_ordered) #Usar se for ordenar por colunas
+dim(ann_vaccines_heatmap) #Anotações sobre as colunas
+
+
+#Criar heatmap annotation
+ha = HeatmapAnnotation(df = ann_vaccines_heatmap, 
+                       col = ann_colors, 
+                       annotation_name_side = "left")
+
+
+col_fun <- colorRamp2(c(-2, -1, 0, 1, 2), c("#5AFFE9", "#9bc1bc", "black", "#ed6a5a", "#F11A02"))
+
+
+#Parameters
+mat = matrix_data_ordered
+width = unit(30, "cm")
+height = unit(20, "cm")
+width_image = 40
+height_image = 30
+column_names_gp = gpar(fontsize = 10)
+row_names_gp = gpar(fontsize = 10)
+
+
+#Plotar e salvar imagem
+fileimageheatmap_ungrouped= paste0(file, sep ="_", "Ungrouped_Complexheatmap.png")
+
+png(file = fileimageheatmap_ungrouped, width=width_image, height=height_image,units="cm",res=800)
+
+heatmap_plot_all = Heatmap(mat,
+                        top_annotation = ha,
+                        show_row_names = TRUE,
+                        show_heatmap_legend = TRUE,
+                        heatmap_legend_param = list(direction = "horizontal"),
+                        name = "L2FC", #Legend
+                        col = col_fun, #color
+                        column_title = fileimageheatmap_ungrouped,
+                        column_title_gp = gpar(fontsize = 15, fontface = "bold"),
+                        column_names_rot = 45,
+                        column_names_gp = gpar(fontsize = 10),
+                        rect_gp = gpar(col = "gray90", lwd = 1),
+                        cluster_rows = TRUE,
+                        row_names_gp = row_names_gp,
+                        row_split = NULL, #Split row clusters
+                        row_gap = unit(2, "mm"),
+                        cluster_columns = TRUE,
+                        #column_split = 2, #Split group clusters
+                        #column_km = 2,
+                        column_gap = unit(8, "mm"),
+                        show_column_dend = TRUE,
+                        show_row_dend = TRUE,
+                        row_dend_side = "left",
+                        column_dend_side = "top",
+                        clustering_distance_rows = "euclidean",
+                        border = TRUE,
+                        column_dend_reorder = TRUE,
+                        width = width, 
+                        height = height
+)
+
+draw(heatmap_plot_all, annotation_legend_side = "right", heatmap_legend_side = "right")
+
+dev.off()
+```
+
+### Complement
+```{r}
+####### Input
+#Troque pelo geneset de interesse
+
+heatmap_data = Immune_GO_genes_Complement
+file = "Immune_GO_genes_Complement"
+
+########## Processar dados e criar matriz
+
+#Excluir linhas com Target ou Source == NA
+heatmap_data_l2fc= heatmap_data %>% 
+  filter(condition != "NA", 
+         process != "NA") %>% 
+  select(genes, condition, log2fold_change)
+
+# Converter para wide table
+matrix_data <- dcast(heatmap_data_l2fc, 
+                         genes ~ condition, 
+                         value.var = "log2fold_change", 
+                         fun.aggregate = mean) %>% 
+  column_to_rownames('genes') %>% 
+  mutate_if(is.character, as.numeric) %>% 
+  replace(is.na(.), 0)
+
+#Arredondar valores para facilitar visualização
+matrix_data_ready =  matrix_data %>% 
+  round(2)
+
+# Verificar se todas as vacinas da anotação estão na matriz e unir as tabelas
+ann_vaccines_complex = heatmap_data %>% 
+  select(condition) %>% 
+  distinct() %>% 
+  inner_join(ann_vaccines %>% select(condition, disease_vac, type, week), by = "condition")
+
+# Unir tabela de anotações
+ann_vaccines_heatmap = matrix_data %>% 
+  colnames() %>% 
+  data.frame() %>% 
+  filter(. != "genes") %>% 
+  rename(condition = '.') %>% 
+  merge(ann_vaccines_complex, by = "condition", all.x = TRUE) %>% 
+  arrange(condition) %>% 
+  column_to_rownames(var= "condition") 
+
+# Ordenar colunas da matriz para a mesma ordem das linhas da tabela de anotações
+matrix_data_ordered = matrix_data %>% 
+  t() %>% 
+  as.data.frame() %>% 
+  rownames_to_column(var= "condition") %>% 
+  merge(ann_vaccines_complex, by.y = "condition", all.x=TRUE) %>% 
+  arrange(condition) %>% #Trocar a variável pela qual deseja ordenar (Vaccine, Day, Condition, etc.)
+  select(!c(disease_vac, type, week)) %>% 
+  column_to_rownames("condition") %>% 
+  t() %>% 
+  as.data.frame() %>% 
+  mutate_if(is.character, as.numeric) %>% #Converter em numéricos
+  replace(is.na(.), 0) %>% 
+  as.matrix() 
+
+#Verificar se as linhas sao iguais
+dim(matrix_data_ordered) #Usar se for ordenar por colunas
+dim(ann_vaccines_heatmap) #Anotações sobre as colunas
+
+
+#Criar heatmap annotation
+ha = HeatmapAnnotation(df = ann_vaccines_heatmap, 
+                       col = ann_colors, 
+                       annotation_name_side = "left")
+
+
+col_fun <- colorRamp2(c(-2, -1, 0, 1, 2), c("#5AFFE9", "#9bc1bc", "black", "#ed6a5a", "#F11A02"))
+
+
+#Parameters
+mat = matrix_data_ordered
+width = unit(30, "cm")
+height = unit(15, "cm")
+width_image = 40
+height_image = 25
+column_names_gp = gpar(fontsize = 10)
+row_names_gp = gpar(fontsize = 10)
+
+
+#Plotar e salvar imagem
+fileimageheatmap_ungrouped= paste0(file, sep ="_", "Ungrouped_Complexheatmap.png")
+
+png(file = fileimageheatmap_ungrouped, width=width_image, height=height_image,units="cm",res=800)
+
+heatmap_plot_all = Heatmap(mat,
+                        top_annotation = ha,
+                        show_row_names = TRUE,
+                        show_heatmap_legend = TRUE,
+                        heatmap_legend_param = list(direction = "horizontal"),
+                        name = "L2FC", #Legend
+                        col = col_fun, #color
+                        column_title = fileimageheatmap_ungrouped,
+                        column_title_gp = gpar(fontsize = 15, fontface = "bold"),
+                        column_names_rot = 45,
+                        column_names_gp = gpar(fontsize = 10),
+                        rect_gp = gpar(col = "gray90", lwd = 1),
+                        cluster_rows = TRUE,
+                        row_names_gp = row_names_gp,
+                        row_split = NULL, #Split row clusters
+                        row_gap = unit(2, "mm"),
+                        cluster_columns = TRUE,
+                        column_split = 2, #Split group clusters
+                        #column_km = 2,
+                        column_gap = unit(8, "mm"),
+                        show_column_dend = TRUE,
+                        show_row_dend = TRUE,
+                        row_dend_side = "left",
+                        column_dend_side = "top",
+                        clustering_distance_rows = "euclidean",
+                        border = TRUE,
+                        column_dend_reorder = TRUE,
+                        width = width, 
+                        height = height
+)
+
+draw(heatmap_plot_all, annotation_legend_side = "right", heatmap_legend_side = "right")
+
+dev.off()
+```
 
 ### Inflammation
 ```{r}
@@ -317,6 +678,1882 @@ heatmap_plot_all = Heatmap(mat,
                         column_dend_reorder = TRUE,
                         width = unit(30, "cm"), 
                         height = unit(10, "cm")
+)
+
+draw(heatmap_plot_all, annotation_legend_side = "right", heatmap_legend_side = "right")
+
+dev.off()
+```
+
+### ARPP
+```{r}
+####### Input
+#Troque pelo geneset de interesse
+
+heatmap_data = Immune_GO_genes_ARPP
+file = "Immune_GO_genes_ARPP"
+
+########## Processar dados e criar matriz
+
+#Excluir linhas com Target ou Source == NA
+heatmap_data_l2fc= heatmap_data %>% 
+  filter(condition != "NA", 
+         process != "NA") %>% 
+  select(genes, condition, log2fold_change)
+
+# Converter para wide table
+matrix_data <- dcast(heatmap_data_l2fc, 
+                         genes ~ condition, 
+                         value.var = "log2fold_change", 
+                         fun.aggregate = mean) %>% 
+  column_to_rownames('genes') %>% 
+  mutate_if(is.character, as.numeric) %>% 
+  replace(is.na(.), 0)
+
+#Arredondar valores para facilitar visualização
+matrix_data_ready =  matrix_data %>% 
+  round(2)
+
+# Verificar se todas as vacinas da anotação estão na matriz e unir as tabelas
+ann_vaccines_complex = heatmap_data %>% 
+  select(condition) %>% 
+  distinct() %>% 
+  inner_join(ann_vaccines %>% select(condition, disease_vac, type, week), by = "condition")
+
+# Unir tabela de anotações
+ann_vaccines_heatmap = matrix_data %>% 
+  colnames() %>% 
+  data.frame() %>% 
+  filter(. != "genes") %>% 
+  rename(condition = '.') %>% 
+  merge(ann_vaccines_complex, by = "condition", all.x = TRUE) %>% 
+  arrange(condition) %>% 
+  column_to_rownames(var= "condition") 
+
+# Ordenar colunas da matriz para a mesma ordem das linhas da tabela de anotações
+matrix_data_ordered = matrix_data %>% 
+  t() %>% 
+  as.data.frame() %>% 
+  rownames_to_column(var= "condition") %>% 
+  merge(ann_vaccines_complex, by.y = "condition", all.x=TRUE) %>% 
+  arrange(condition) %>% #Trocar a variável pela qual deseja ordenar (Vaccine, Day, Condition, etc.)
+  select(!c(disease_vac, type, week)) %>% 
+  column_to_rownames("condition") %>% 
+  t() %>% 
+  as.data.frame() %>% 
+  mutate_if(is.character, as.numeric) %>% #Converter em numéricos
+  replace(is.na(.), 0) %>% 
+  as.matrix() 
+
+#Verificar se as linhas sao iguais
+dim(matrix_data_ordered) #Usar se for ordenar por colunas
+dim(ann_vaccines_heatmap) #Anotações sobre as colunas
+
+
+#Criar heatmap annotation
+ha = HeatmapAnnotation(df = ann_vaccines_heatmap, 
+                       col = ann_colors, 
+                       annotation_name_side = "left")
+
+
+col_fun <- colorRamp2(c(-2, -1, 0, 1, 2), c("#5AFFE9", "#9bc1bc", "black", "#ed6a5a", "#F11A02"))
+
+
+#Parameters
+mat = matrix_data_ordered
+width = unit(30, "cm")
+height = unit(50, "cm")
+width_image = 40
+height_image = 60
+column_names_gp = gpar(fontsize = 10)
+row_names_gp = gpar(fontsize = 10)
+
+
+#Plotar e salvar imagem
+fileimageheatmap_ungrouped= paste0(file, sep ="_", "Ungrouped_Complexheatmap.png")
+
+png(file = fileimageheatmap_ungrouped, width=width_image, height=height_image,units="cm",res=800)
+
+heatmap_plot_all = Heatmap(mat,
+                        top_annotation = ha,
+                        show_row_names = TRUE,
+                        show_heatmap_legend = TRUE,
+                        heatmap_legend_param = list(direction = "horizontal"),
+                        name = "L2FC", #Legend
+                        col = col_fun, #color
+                        column_title = fileimageheatmap_ungrouped,
+                        column_title_gp = gpar(fontsize = 15, fontface = "bold"),
+                        column_names_rot = 45,
+                        column_names_gp = gpar(fontsize = 10),
+                        rect_gp = gpar(col = "gray90", lwd = 1),
+                        cluster_rows = TRUE,
+                        row_names_gp = row_names_gp,
+                        row_split = NULL, #Split row clusters
+                        row_gap = unit(2, "mm"),
+                        cluster_columns = TRUE,
+                        column_split = 2, #Split group clusters
+                        #column_km = 2,
+                        column_gap = unit(8, "mm"),
+                        show_column_dend = TRUE,
+                        show_row_dend = TRUE,
+                        row_dend_side = "left",
+                        column_dend_side = "top",
+                        clustering_distance_rows = "euclidean",
+                        border = TRUE,
+                        column_dend_reorder = TRUE,
+                        width = width, 
+                        height = height
+)
+
+draw(heatmap_plot_all, annotation_legend_side = "right", heatmap_legend_side = "right")
+
+dev.off()
+```
+
+### AV and IFN
+```{r}
+####### Input
+#Troque pelo geneset de interesse
+
+heatmap_data = Immune_GO_genes_IFN
+file = "Immune_GO_genes_IFN"
+
+########## Processar dados e criar matriz
+
+#Excluir linhas com Target ou Source == NA
+heatmap_data_l2fc= heatmap_data %>% 
+  filter(condition != "NA", 
+         process != "NA") %>% 
+  select(genes, condition, log2fold_change)
+
+# Converter para wide table
+matrix_data <- dcast(heatmap_data_l2fc, 
+                         genes ~ condition, 
+                         value.var = "log2fold_change", 
+                         fun.aggregate = mean) %>% 
+  column_to_rownames('genes') %>% 
+  mutate_if(is.character, as.numeric) %>% 
+  replace(is.na(.), 0)
+
+#Arredondar valores para facilitar visualização
+matrix_data_ready =  matrix_data %>% 
+  round(2)
+
+# Verificar se todas as vacinas da anotação estão na matriz e unir as tabelas
+ann_vaccines_complex = heatmap_data %>% 
+  select(condition) %>% 
+  distinct() %>% 
+  inner_join(ann_vaccines %>% select(condition, disease_vac, type, week), by = "condition")
+
+# Unir tabela de anotações
+ann_vaccines_heatmap = matrix_data %>% 
+  colnames() %>% 
+  data.frame() %>% 
+  filter(. != "genes") %>% 
+  rename(condition = '.') %>% 
+  merge(ann_vaccines_complex, by = "condition", all.x = TRUE) %>% 
+  arrange(condition) %>% 
+  column_to_rownames(var= "condition") 
+
+# Ordenar colunas da matriz para a mesma ordem das linhas da tabela de anotações
+matrix_data_ordered = matrix_data %>% 
+  t() %>% 
+  as.data.frame() %>% 
+  rownames_to_column(var= "condition") %>% 
+  merge(ann_vaccines_complex, by.y = "condition", all.x=TRUE) %>% 
+  arrange(condition) %>% #Trocar a variável pela qual deseja ordenar (Vaccine, Day, Condition, etc.)
+  select(!c(disease_vac, type, week)) %>% 
+  column_to_rownames("condition") %>% 
+  t() %>% 
+  as.data.frame() %>% 
+  mutate_if(is.character, as.numeric) %>% #Converter em numéricos
+  replace(is.na(.), 0) %>% 
+  as.matrix() 
+
+#Verificar se as linhas sao iguais
+dim(matrix_data_ordered) #Usar se for ordenar por colunas
+dim(ann_vaccines_heatmap) #Anotações sobre as colunas
+
+
+#Criar heatmap annotation
+ha = HeatmapAnnotation(df = ann_vaccines_heatmap, 
+                       col = ann_colors, 
+                       annotation_name_side = "left")
+
+
+col_fun <- colorRamp2(c(-2, -1, 0, 1, 2), c("#5AFFE9", "#9bc1bc", "black", "#ed6a5a", "#F11A02"))
+
+
+#Parameters
+mat = matrix_data_ordered
+width = unit(30, "cm")
+height = unit(50, "cm")
+width_image = 40
+height_image = 60
+column_names_gp = gpar(fontsize = 10)
+row_names_gp = gpar(fontsize = 10)
+
+
+#Plotar e salvar imagem
+fileimageheatmap_ungrouped= paste0(file, sep ="_", "Ungrouped_Complexheatmap.png")
+
+png(file = fileimageheatmap_ungrouped, width=width_image, height=height_image,units="cm",res=800)
+
+heatmap_plot_all = Heatmap(mat,
+                        top_annotation = ha,
+                        show_row_names = TRUE,
+                        show_heatmap_legend = TRUE,
+                        heatmap_legend_param = list(direction = "horizontal"),
+                        name = "L2FC", #Legend
+                        col = col_fun, #color
+                        column_title = fileimageheatmap_ungrouped,
+                        column_title_gp = gpar(fontsize = 15, fontface = "bold"),
+                        column_names_rot = 45,
+                        column_names_gp = gpar(fontsize = 10),
+                        rect_gp = gpar(col = "gray90", lwd = 1),
+                        cluster_rows = TRUE,
+                        row_names_gp = row_names_gp,
+                        row_split = NULL, #Split row clusters
+                        row_gap = unit(2, "mm"),
+                        cluster_columns = TRUE,
+                        column_split = 2, #Split group clusters
+                        #column_km = 2,
+                        column_gap = unit(8, "mm"),
+                        show_column_dend = TRUE,
+                        show_row_dend = TRUE,
+                        row_dend_side = "left",
+                        column_dend_side = "top",
+                        clustering_distance_rows = "euclidean",
+                        border = TRUE,
+                        column_dend_reorder = TRUE,
+                        width = width, 
+                        height = height
+)
+
+draw(heatmap_plot_all, annotation_legend_side = "right", heatmap_legend_side = "right")
+
+dev.off()
+```
+
+### Neutrophil
+```{r}
+####### Input
+#Troque pelo geneset de interesse
+
+heatmap_data = Immune_GO_genes_Neutrophil
+file = "Immune_GO_genes_Neutrophil"
+
+########## Processar dados e criar matriz
+
+#Excluir linhas com Target ou Source == NA
+heatmap_data_l2fc= heatmap_data %>% 
+  filter(condition != "NA", 
+         process != "NA") %>% 
+  select(genes, condition, log2fold_change)
+
+# Converter para wide table
+matrix_data <- dcast(heatmap_data_l2fc, 
+                         genes ~ condition, 
+                         value.var = "log2fold_change", 
+                         fun.aggregate = mean) %>% 
+  column_to_rownames('genes') %>% 
+  mutate_if(is.character, as.numeric) %>% 
+  replace(is.na(.), 0)
+
+#Arredondar valores para facilitar visualização
+matrix_data_ready =  matrix_data %>% 
+  round(2)
+
+# Verificar se todas as vacinas da anotação estão na matriz e unir as tabelas
+ann_vaccines_complex = heatmap_data %>% 
+  select(condition) %>% 
+  distinct() %>% 
+  inner_join(ann_vaccines %>% select(condition, disease_vac, type, week), by = "condition")
+
+# Unir tabela de anotações
+ann_vaccines_heatmap = matrix_data %>% 
+  colnames() %>% 
+  data.frame() %>% 
+  filter(. != "genes") %>% 
+  rename(condition = '.') %>% 
+  merge(ann_vaccines_complex, by = "condition", all.x = TRUE) %>% 
+  arrange(condition) %>% 
+  column_to_rownames(var= "condition") 
+
+# Ordenar colunas da matriz para a mesma ordem das linhas da tabela de anotações
+matrix_data_ordered = matrix_data %>% 
+  t() %>% 
+  as.data.frame() %>% 
+  rownames_to_column(var= "condition") %>% 
+  merge(ann_vaccines_complex, by.y = "condition", all.x=TRUE) %>% 
+  arrange(condition) %>% #Trocar a variável pela qual deseja ordenar (Vaccine, Day, Condition, etc.)
+  select(!c(disease_vac, type, week)) %>% 
+  column_to_rownames("condition") %>% 
+  t() %>% 
+  as.data.frame() %>% 
+  mutate_if(is.character, as.numeric) %>% #Converter em numéricos
+  replace(is.na(.), 0) %>% 
+  as.matrix() 
+
+#Verificar se as linhas sao iguais
+dim(matrix_data_ordered) #Usar se for ordenar por colunas
+dim(ann_vaccines_heatmap) #Anotações sobre as colunas
+
+
+#Criar heatmap annotation
+ha = HeatmapAnnotation(df = ann_vaccines_heatmap, 
+                       col = ann_colors, 
+                       annotation_name_side = "left")
+
+
+col_fun <- colorRamp2(c(-2, -1, 0, 1, 2), c("#5AFFE9", "#9bc1bc", "black", "#ed6a5a", "#F11A02"))
+
+
+#Parameters
+mat = matrix_data_ordered
+width = unit(30, "cm")
+height = unit(50, "cm")
+width_image = 40
+height_image = 60
+column_names_gp = gpar(fontsize = 10)
+row_names_gp = gpar(fontsize = 10)
+
+
+#Plotar e salvar imagem
+fileimageheatmap_ungrouped= paste0(file, sep ="_", "Ungrouped_Complexheatmap.png")
+
+png(file = fileimageheatmap_ungrouped, width=width_image, height=height_image,units="cm",res=800)
+
+heatmap_plot_all = Heatmap(mat,
+                        top_annotation = ha,
+                        show_row_names = TRUE,
+                        show_heatmap_legend = TRUE,
+                        heatmap_legend_param = list(direction = "horizontal"),
+                        name = "L2FC", #Legend
+                        col = col_fun, #color
+                        column_title = fileimageheatmap_ungrouped,
+                        column_title_gp = gpar(fontsize = 15, fontface = "bold"),
+                        column_names_rot = 45,
+                        column_names_gp = gpar(fontsize = 10),
+                        rect_gp = gpar(col = "gray90", lwd = 1),
+                        cluster_rows = TRUE,
+                        row_names_gp = row_names_gp,
+                        row_split = NULL, #Split row clusters
+                        row_gap = unit(2, "mm"),
+                        cluster_columns = TRUE,
+                        column_split = 2, #Split group clusters
+                        #column_km = 2,
+                        column_gap = unit(8, "mm"),
+                        show_column_dend = TRUE,
+                        show_row_dend = TRUE,
+                        row_dend_side = "left",
+                        column_dend_side = "top",
+                        clustering_distance_rows = "euclidean",
+                        border = TRUE,
+                        column_dend_reorder = TRUE,
+                        width = width, 
+                        height = height
+)
+
+draw(heatmap_plot_all, annotation_legend_side = "right", heatmap_legend_side = "right")
+
+dev.off()
+```
+
+
+### Eosinophil
+```{r}
+####### Input
+#Troque pelo geneset de interesse
+
+heatmap_data = Immune_GO_genes_Eosinophil
+file = "Immune_GO_genes_Eosinophil"
+
+########## Processar dados e criar matriz
+
+#Excluir linhas com Target ou Source == NA
+heatmap_data_l2fc= heatmap_data %>% 
+  filter(condition != "NA", 
+         process != "NA") %>% 
+  select(genes, condition, log2fold_change)
+
+# Converter para wide table
+matrix_data <- dcast(heatmap_data_l2fc, 
+                         genes ~ condition, 
+                         value.var = "log2fold_change", 
+                         fun.aggregate = mean) %>% 
+  column_to_rownames('genes') %>% 
+  mutate_if(is.character, as.numeric) %>% 
+  replace(is.na(.), 0)
+
+#Arredondar valores para facilitar visualização
+matrix_data_ready =  matrix_data %>% 
+  round(2)
+
+# Verificar se todas as vacinas da anotação estão na matriz e unir as tabelas
+ann_vaccines_complex = heatmap_data %>% 
+  select(condition) %>% 
+  distinct() %>% 
+  inner_join(ann_vaccines %>% select(condition, disease_vac, type, week), by = "condition")
+
+# Unir tabela de anotações
+ann_vaccines_heatmap = matrix_data %>% 
+  colnames() %>% 
+  data.frame() %>% 
+  filter(. != "genes") %>% 
+  rename(condition = '.') %>% 
+  merge(ann_vaccines_complex, by = "condition", all.x = TRUE) %>% 
+  arrange(condition) %>% 
+  column_to_rownames(var= "condition") 
+
+# Ordenar colunas da matriz para a mesma ordem das linhas da tabela de anotações
+matrix_data_ordered = matrix_data %>% 
+  t() %>% 
+  as.data.frame() %>% 
+  rownames_to_column(var= "condition") %>% 
+  merge(ann_vaccines_complex, by.y = "condition", all.x=TRUE) %>% 
+  arrange(condition) %>% #Trocar a variável pela qual deseja ordenar (Vaccine, Day, Condition, etc.)
+  select(!c(disease_vac, type, week)) %>% 
+  column_to_rownames("condition") %>% 
+  t() %>% 
+  as.data.frame() %>% 
+  mutate_if(is.character, as.numeric) %>% #Converter em numéricos
+  replace(is.na(.), 0) %>% 
+  as.matrix() 
+
+#Verificar se as linhas sao iguais
+dim(matrix_data_ordered) #Usar se for ordenar por colunas
+dim(ann_vaccines_heatmap) #Anotações sobre as colunas
+
+
+#Criar heatmap annotation
+ha = HeatmapAnnotation(df = ann_vaccines_heatmap, 
+                       col = ann_colors, 
+                       annotation_name_side = "left")
+
+
+col_fun <- colorRamp2(c(-2, -1, 0, 1, 2), c("#5AFFE9", "#9bc1bc", "black", "#ed6a5a", "#F11A02"))
+
+
+#Parameters
+mat = matrix_data_ordered
+width = unit(30, "cm")
+height = unit(15, "cm")
+width_image = 40
+height_image = 25
+column_names_gp = gpar(fontsize = 10)
+row_names_gp = gpar(fontsize = 10)
+
+
+#Plotar e salvar imagem
+fileimageheatmap_ungrouped= paste0(file, sep ="_", "Ungrouped_Complexheatmap.png")
+
+png(file = fileimageheatmap_ungrouped, width=width_image, height=height_image,units="cm",res=800)
+
+heatmap_plot_all = Heatmap(mat,
+                        top_annotation = ha,
+                        show_row_names = TRUE,
+                        show_heatmap_legend = TRUE,
+                        heatmap_legend_param = list(direction = "horizontal"),
+                        name = "L2FC", #Legend
+                        col = col_fun, #color
+                        column_title = fileimageheatmap_ungrouped,
+                        column_title_gp = gpar(fontsize = 15, fontface = "bold"),
+                        column_names_rot = 45,
+                        column_names_gp = gpar(fontsize = 10),
+                        rect_gp = gpar(col = "gray90", lwd = 1),
+                        cluster_rows = TRUE,
+                        row_names_gp = row_names_gp,
+                        row_split = NULL, #Split row clusters
+                        row_gap = unit(2, "mm"),
+                        cluster_columns = TRUE,
+                        column_split = 2, #Split group clusters
+                        #column_km = 2,
+                        column_gap = unit(8, "mm"),
+                        show_column_dend = TRUE,
+                        show_row_dend = TRUE,
+                        row_dend_side = "left",
+                        column_dend_side = "top",
+                        clustering_distance_rows = "euclidean",
+                        border = TRUE,
+                        column_dend_reorder = TRUE,
+                        width = width, 
+                        height = height
+)
+
+draw(heatmap_plot_all, annotation_legend_side = "right", heatmap_legend_side = "right")
+
+dev.off()
+```
+
+### Monocyte
+```{r}
+####### Input
+#Troque pelo geneset de interesse
+
+heatmap_data = Immune_GO_genes_Monocytes
+file = "Immune_GO_genes_Monocytes"
+
+########## Processar dados e criar matriz
+
+#Excluir linhas com Target ou Source == NA
+heatmap_data_l2fc= heatmap_data %>% 
+  filter(condition != "NA", 
+         process != "NA") %>% 
+  select(genes, condition, log2fold_change)
+
+# Converter para wide table
+matrix_data <- dcast(heatmap_data_l2fc, 
+                         genes ~ condition, 
+                         value.var = "log2fold_change", 
+                         fun.aggregate = mean) %>% 
+  column_to_rownames('genes') %>% 
+  mutate_if(is.character, as.numeric) %>% 
+  replace(is.na(.), 0)
+
+#Arredondar valores para facilitar visualização
+matrix_data_ready =  matrix_data %>% 
+  round(2)
+
+# Verificar se todas as vacinas da anotação estão na matriz e unir as tabelas
+ann_vaccines_complex = heatmap_data %>% 
+  select(condition) %>% 
+  distinct() %>% 
+  inner_join(ann_vaccines %>% select(condition, disease_vac, type, week), by = "condition")
+
+# Unir tabela de anotações
+ann_vaccines_heatmap = matrix_data %>% 
+  colnames() %>% 
+  data.frame() %>% 
+  filter(. != "genes") %>% 
+  rename(condition = '.') %>% 
+  merge(ann_vaccines_complex, by = "condition", all.x = TRUE) %>% 
+  arrange(condition) %>% 
+  column_to_rownames(var= "condition") 
+
+# Ordenar colunas da matriz para a mesma ordem das linhas da tabela de anotações
+matrix_data_ordered = matrix_data %>% 
+  t() %>% 
+  as.data.frame() %>% 
+  rownames_to_column(var= "condition") %>% 
+  merge(ann_vaccines_complex, by.y = "condition", all.x=TRUE) %>% 
+  arrange(condition) %>% #Trocar a variável pela qual deseja ordenar (Vaccine, Day, Condition, etc.)
+  select(!c(disease_vac, type, week)) %>% 
+  column_to_rownames("condition") %>% 
+  t() %>% 
+  as.data.frame() %>% 
+  mutate_if(is.character, as.numeric) %>% #Converter em numéricos
+  replace(is.na(.), 0) %>% 
+  as.matrix() 
+
+#Verificar se as linhas sao iguais
+dim(matrix_data_ordered) #Usar se for ordenar por colunas
+dim(ann_vaccines_heatmap) #Anotações sobre as colunas
+
+
+#Criar heatmap annotation
+ha = HeatmapAnnotation(df = ann_vaccines_heatmap, 
+                       col = ann_colors, 
+                       annotation_name_side = "left")
+
+
+col_fun <- colorRamp2(c(-2, -1, 0, 1, 2), c("#5AFFE9", "#9bc1bc", "black", "#ed6a5a", "#F11A02"))
+
+
+#Parameters
+mat = matrix_data_ordered
+width = unit(30, "cm")
+height = unit(15, "cm")
+width_image = 40
+height_image = 25
+column_names_gp = gpar(fontsize = 10)
+row_names_gp = gpar(fontsize = 10)
+
+
+#Plotar e salvar imagem
+fileimageheatmap_ungrouped= paste0(file, sep ="_", "Ungrouped_Complexheatmap.png")
+
+png(file = fileimageheatmap_ungrouped, width=width_image, height=height_image,units="cm",res=800)
+
+heatmap_plot_all = Heatmap(mat,
+                        top_annotation = ha,
+                        show_row_names = TRUE,
+                        show_heatmap_legend = TRUE,
+                        heatmap_legend_param = list(direction = "horizontal"),
+                        name = "L2FC", #Legend
+                        col = col_fun, #color
+                        column_title = fileimageheatmap_ungrouped,
+                        column_title_gp = gpar(fontsize = 15, fontface = "bold"),
+                        column_names_rot = 45,
+                        column_names_gp = gpar(fontsize = 10),
+                        rect_gp = gpar(col = "gray90", lwd = 1),
+                        cluster_rows = TRUE,
+                        row_names_gp = row_names_gp,
+                        row_split = NULL, #Split row clusters
+                        row_gap = unit(2, "mm"),
+                        cluster_columns = TRUE,
+                        #column_split = 2, #Split group clusters
+                        #column_km = 2,
+                        column_gap = unit(8, "mm"),
+                        show_column_dend = TRUE,
+                        show_row_dend = TRUE,
+                        row_dend_side = "left",
+                        column_dend_side = "top",
+                        clustering_distance_rows = "euclidean",
+                        border = TRUE,
+                        column_dend_reorder = TRUE,
+                        width = width, 
+                        height = height
+)
+
+draw(heatmap_plot_all, annotation_legend_side = "right", heatmap_legend_side = "right")
+
+dev.off()
+```
+
+### DC
+```{r}
+####### Input
+#Troque pelo geneset de interesse
+
+heatmap_data = Immune_GO_genes_DC
+file = "Immune_GO_genes_DC"
+
+########## Processar dados e criar matriz
+
+#Excluir linhas com Target ou Source == NA
+heatmap_data_l2fc= heatmap_data %>% 
+  filter(condition != "NA", 
+         process != "NA") %>% 
+  select(genes, condition, log2fold_change)
+
+# Converter para wide table
+matrix_data <- dcast(heatmap_data_l2fc, 
+                         genes ~ condition, 
+                         value.var = "log2fold_change", 
+                         fun.aggregate = mean) %>% 
+  column_to_rownames('genes') %>% 
+  mutate_if(is.character, as.numeric) %>% 
+  replace(is.na(.), 0)
+
+#Arredondar valores para facilitar visualização
+matrix_data_ready =  matrix_data %>% 
+  round(2)
+
+# Verificar se todas as vacinas da anotação estão na matriz e unir as tabelas
+ann_vaccines_complex = heatmap_data %>% 
+  select(condition) %>% 
+  distinct() %>% 
+  inner_join(ann_vaccines %>% select(condition, disease_vac, type, week), by = "condition")
+
+# Unir tabela de anotações
+ann_vaccines_heatmap = matrix_data %>% 
+  colnames() %>% 
+  data.frame() %>% 
+  filter(. != "genes") %>% 
+  rename(condition = '.') %>% 
+  merge(ann_vaccines_complex, by = "condition", all.x = TRUE) %>% 
+  arrange(condition) %>% 
+  column_to_rownames(var= "condition") 
+
+# Ordenar colunas da matriz para a mesma ordem das linhas da tabela de anotações
+matrix_data_ordered = matrix_data %>% 
+  t() %>% 
+  as.data.frame() %>% 
+  rownames_to_column(var= "condition") %>% 
+  merge(ann_vaccines_complex, by.y = "condition", all.x=TRUE) %>% 
+  arrange(condition) %>% #Trocar a variável pela qual deseja ordenar (Vaccine, Day, Condition, etc.)
+  select(!c(disease_vac, type, week)) %>% 
+  column_to_rownames("condition") %>% 
+  t() %>% 
+  as.data.frame() %>% 
+  mutate_if(is.character, as.numeric) %>% #Converter em numéricos
+  replace(is.na(.), 0) %>% 
+  as.matrix() 
+
+#Verificar se as linhas sao iguais
+dim(matrix_data_ordered) #Usar se for ordenar por colunas
+dim(ann_vaccines_heatmap) #Anotações sobre as colunas
+
+
+#Criar heatmap annotation
+ha = HeatmapAnnotation(df = ann_vaccines_heatmap, 
+                       col = ann_colors, 
+                       annotation_name_side = "left")
+
+
+col_fun <- colorRamp2(c(-2, -1, 0, 1, 2), c("#5AFFE9", "#9bc1bc", "black", "#ed6a5a", "#F11A02"))
+
+
+#Parameters
+mat = matrix_data_ordered
+width = unit(30, "cm")
+height = unit(15, "cm")
+width_image = 40
+height_image = 25
+column_names_gp = gpar(fontsize = 10)
+row_names_gp = gpar(fontsize = 10)
+
+
+#Plotar e salvar imagem
+fileimageheatmap_ungrouped= paste0(file, sep ="_", "Ungrouped_Complexheatmap.png")
+
+png(file = fileimageheatmap_ungrouped, width=width_image, height=height_image,units="cm",res=800)
+
+heatmap_plot_all = Heatmap(mat,
+                        top_annotation = ha,
+                        show_row_names = TRUE,
+                        show_heatmap_legend = TRUE,
+                        heatmap_legend_param = list(direction = "horizontal"),
+                        name = "L2FC", #Legend
+                        col = col_fun, #color
+                        column_title = fileimageheatmap_ungrouped,
+                        column_title_gp = gpar(fontsize = 15, fontface = "bold"),
+                        column_names_rot = 45,
+                        column_names_gp = gpar(fontsize = 10),
+                        rect_gp = gpar(col = "gray90", lwd = 1),
+                        cluster_rows = TRUE,
+                        row_names_gp = row_names_gp,
+                        row_split = NULL, #Split row clusters
+                        row_gap = unit(2, "mm"),
+                        cluster_columns = TRUE,
+                        #column_split = 2, #Split group clusters
+                        #column_km = 2,
+                        column_gap = unit(8, "mm"),
+                        show_column_dend = TRUE,
+                        show_row_dend = TRUE,
+                        row_dend_side = "left",
+                        column_dend_side = "top",
+                        clustering_distance_rows = "euclidean",
+                        border = TRUE,
+                        column_dend_reorder = TRUE,
+                        width = width, 
+                        height = height
+)
+
+draw(heatmap_plot_all, annotation_legend_side = "right", heatmap_legend_side = "right")
+
+dev.off()
+```
+
+### Macrophage
+```{r}
+####### Input
+#Troque pelo geneset de interesse
+
+heatmap_data = Immune_GO_genes_Macro
+file = "Immune_GO_genes_Macro"
+
+########## Processar dados e criar matriz
+
+#Excluir linhas com Target ou Source == NA
+heatmap_data_l2fc= heatmap_data %>% 
+  filter(condition != "NA", 
+         process != "NA") %>% 
+  select(genes, condition, log2fold_change)
+
+# Converter para wide table
+matrix_data <- dcast(heatmap_data_l2fc, 
+                         genes ~ condition, 
+                         value.var = "log2fold_change", 
+                         fun.aggregate = mean) %>% 
+  column_to_rownames('genes') %>% 
+  mutate_if(is.character, as.numeric) %>% 
+  replace(is.na(.), 0)
+
+#Arredondar valores para facilitar visualização
+matrix_data_ready =  matrix_data %>% 
+  round(2)
+
+# Verificar se todas as vacinas da anotação estão na matriz e unir as tabelas
+ann_vaccines_complex = heatmap_data %>% 
+  select(condition) %>% 
+  distinct() %>% 
+  inner_join(ann_vaccines %>% select(condition, disease_vac, type, week), by = "condition")
+
+# Unir tabela de anotações
+ann_vaccines_heatmap = matrix_data %>% 
+  colnames() %>% 
+  data.frame() %>% 
+  filter(. != "genes") %>% 
+  rename(condition = '.') %>% 
+  merge(ann_vaccines_complex, by = "condition", all.x = TRUE) %>% 
+  arrange(condition) %>% 
+  column_to_rownames(var= "condition") 
+
+# Ordenar colunas da matriz para a mesma ordem das linhas da tabela de anotações
+matrix_data_ordered = matrix_data %>% 
+  t() %>% 
+  as.data.frame() %>% 
+  rownames_to_column(var= "condition") %>% 
+  merge(ann_vaccines_complex, by.y = "condition", all.x=TRUE) %>% 
+  arrange(condition) %>% #Trocar a variável pela qual deseja ordenar (Vaccine, Day, Condition, etc.)
+  select(!c(disease_vac, type, week)) %>% 
+  column_to_rownames("condition") %>% 
+  t() %>% 
+  as.data.frame() %>% 
+  mutate_if(is.character, as.numeric) %>% #Converter em numéricos
+  replace(is.na(.), 0) %>% 
+  as.matrix() 
+
+#Verificar se as linhas sao iguais
+dim(matrix_data_ordered) #Usar se for ordenar por colunas
+dim(ann_vaccines_heatmap) #Anotações sobre as colunas
+
+
+#Criar heatmap annotation
+ha = HeatmapAnnotation(df = ann_vaccines_heatmap, 
+                       col = ann_colors, 
+                       annotation_name_side = "left")
+
+
+col_fun <- colorRamp2(c(-2, -1, 0, 1, 2), c("#5AFFE9", "#9bc1bc", "black", "#ed6a5a", "#F11A02"))
+
+
+#Parameters
+mat = matrix_data_ordered
+width = unit(30, "cm")
+height = unit(15, "cm")
+width_image = 40
+height_image = 25
+column_names_gp = gpar(fontsize = 10)
+row_names_gp = gpar(fontsize = 10)
+
+
+#Plotar e salvar imagem
+fileimageheatmap_ungrouped= paste0(file, sep ="_", "Ungrouped_Complexheatmap.png")
+
+png(file = fileimageheatmap_ungrouped, width=width_image, height=height_image,units="cm",res=800)
+
+heatmap_plot_all = Heatmap(mat,
+                        top_annotation = ha,
+                        show_row_names = TRUE,
+                        show_heatmap_legend = TRUE,
+                        heatmap_legend_param = list(direction = "horizontal"),
+                        name = "L2FC", #Legend
+                        col = col_fun, #color
+                        column_title = fileimageheatmap_ungrouped,
+                        column_title_gp = gpar(fontsize = 15, fontface = "bold"),
+                        column_names_rot = 45,
+                        column_names_gp = gpar(fontsize = 10),
+                        rect_gp = gpar(col = "gray90", lwd = 1),
+                        cluster_rows = TRUE,
+                        row_names_gp = row_names_gp,
+                        row_split = NULL, #Split row clusters
+                        row_gap = unit(2, "mm"),
+                        cluster_columns = TRUE,
+                        #column_split = 2, #Split group clusters
+                        #column_km = 2,
+                        column_gap = unit(8, "mm"),
+                        show_column_dend = TRUE,
+                        show_row_dend = TRUE,
+                        row_dend_side = "left",
+                        column_dend_side = "top",
+                        clustering_distance_rows = "euclidean",
+                        border = TRUE,
+                        column_dend_reorder = TRUE,
+                        width = width, 
+                        height = height
+)
+
+draw(heatmap_plot_all, annotation_legend_side = "right", heatmap_legend_side = "right")
+
+dev.off()
+```
+
+### NK
+```{r}
+####### Input
+#Troque pelo geneset de interesse
+
+heatmap_data = Immune_GO_genes_NK
+file = "Immune_GO_genes_NK"
+
+########## Processar dados e criar matriz
+
+#Excluir linhas com Target ou Source == NA
+heatmap_data_l2fc= heatmap_data %>% 
+  filter(condition != "NA", 
+         process != "NA") %>% 
+  select(genes, condition, log2fold_change)
+
+# Converter para wide table
+matrix_data <- dcast(heatmap_data_l2fc, 
+                         genes ~ condition, 
+                         value.var = "log2fold_change", 
+                         fun.aggregate = mean) %>% 
+  column_to_rownames('genes') %>% 
+  mutate_if(is.character, as.numeric) %>% 
+  replace(is.na(.), 0)
+
+#Arredondar valores para facilitar visualização
+matrix_data_ready =  matrix_data %>% 
+  round(2)
+
+# Verificar se todas as vacinas da anotação estão na matriz e unir as tabelas
+ann_vaccines_complex = heatmap_data %>% 
+  select(condition) %>% 
+  distinct() %>% 
+  inner_join(ann_vaccines %>% select(condition, disease_vac, type, week), by = "condition")
+
+# Unir tabela de anotações
+ann_vaccines_heatmap = matrix_data %>% 
+  colnames() %>% 
+  data.frame() %>% 
+  filter(. != "genes") %>% 
+  rename(condition = '.') %>% 
+  merge(ann_vaccines_complex, by = "condition", all.x = TRUE) %>% 
+  arrange(condition) %>% 
+  column_to_rownames(var= "condition") 
+
+# Ordenar colunas da matriz para a mesma ordem das linhas da tabela de anotações
+matrix_data_ordered = matrix_data %>% 
+  t() %>% 
+  as.data.frame() %>% 
+  rownames_to_column(var= "condition") %>% 
+  merge(ann_vaccines_complex, by.y = "condition", all.x=TRUE) %>% 
+  arrange(condition) %>% #Trocar a variável pela qual deseja ordenar (Vaccine, Day, Condition, etc.)
+  select(!c(disease_vac, type, week)) %>% 
+  column_to_rownames("condition") %>% 
+  t() %>% 
+  as.data.frame() %>% 
+  mutate_if(is.character, as.numeric) %>% #Converter em numéricos
+  replace(is.na(.), 0) %>% 
+  as.matrix() 
+
+#Verificar se as linhas sao iguais
+dim(matrix_data_ordered) #Usar se for ordenar por colunas
+dim(ann_vaccines_heatmap) #Anotações sobre as colunas
+
+
+#Criar heatmap annotation
+ha = HeatmapAnnotation(df = ann_vaccines_heatmap, 
+                       col = ann_colors, 
+                       annotation_name_side = "left")
+
+
+col_fun <- colorRamp2(c(-2, -1, 0, 1, 2), c("#5AFFE9", "#9bc1bc", "black", "#ed6a5a", "#F11A02"))
+
+
+#Parameters
+mat = matrix_data_ordered
+width = unit(30, "cm")
+height = unit(15, "cm")
+width_image = 40
+height_image = 25
+column_names_gp = gpar(fontsize = 10)
+row_names_gp = gpar(fontsize = 10)
+
+
+#Plotar e salvar imagem
+fileimageheatmap_ungrouped= paste0(file, sep ="_", "Ungrouped_Complexheatmap.png")
+
+png(file = fileimageheatmap_ungrouped, width=width_image, height=height_image,units="cm",res=800)
+
+heatmap_plot_all = Heatmap(mat,
+                        top_annotation = ha,
+                        show_row_names = TRUE,
+                        show_heatmap_legend = TRUE,
+                        heatmap_legend_param = list(direction = "horizontal"),
+                        name = "L2FC", #Legend
+                        col = col_fun, #color
+                        column_title = fileimageheatmap_ungrouped,
+                        column_title_gp = gpar(fontsize = 15, fontface = "bold"),
+                        column_names_rot = 45,
+                        column_names_gp = gpar(fontsize = 10),
+                        rect_gp = gpar(col = "gray90", lwd = 1),
+                        cluster_rows = TRUE,
+                        row_names_gp = row_names_gp,
+                        row_split = NULL, #Split row clusters
+                        row_gap = unit(2, "mm"),
+                        cluster_columns = TRUE,
+                        #column_split = 2, #Split group clusters
+                        #column_km = 2,
+                        column_gap = unit(8, "mm"),
+                        show_column_dend = TRUE,
+                        show_row_dend = TRUE,
+                        row_dend_side = "left",
+                        column_dend_side = "top",
+                        clustering_distance_rows = "euclidean",
+                        border = TRUE,
+                        column_dend_reorder = TRUE,
+                        width = width, 
+                        height = height
+)
+
+draw(heatmap_plot_all, annotation_legend_side = "right", heatmap_legend_side = "right")
+
+dev.off()
+```
+
+### Mast cell
+```{r}
+####### Input
+#Troque pelo geneset de interesse
+
+heatmap_data = Immune_GO_genes_Mast
+file = "Immune_GO_genes_Mast"
+
+########## Processar dados e criar matriz
+
+#Excluir linhas com Target ou Source == NA
+heatmap_data_l2fc= heatmap_data %>% 
+  filter(condition != "NA", 
+         process != "NA") %>% 
+  select(genes, condition, log2fold_change)
+
+# Converter para wide table
+matrix_data <- dcast(heatmap_data_l2fc, 
+                         genes ~ condition, 
+                         value.var = "log2fold_change", 
+                         fun.aggregate = mean) %>% 
+  column_to_rownames('genes') %>% 
+  mutate_if(is.character, as.numeric) %>% 
+  replace(is.na(.), 0)
+
+#Arredondar valores para facilitar visualização
+matrix_data_ready =  matrix_data %>% 
+  round(2)
+
+# Verificar se todas as vacinas da anotação estão na matriz e unir as tabelas
+ann_vaccines_complex = heatmap_data %>% 
+  select(condition) %>% 
+  distinct() %>% 
+  inner_join(ann_vaccines %>% select(condition, disease_vac, type, week), by = "condition")
+
+# Unir tabela de anotações
+ann_vaccines_heatmap = matrix_data %>% 
+  colnames() %>% 
+  data.frame() %>% 
+  filter(. != "genes") %>% 
+  rename(condition = '.') %>% 
+  merge(ann_vaccines_complex, by = "condition", all.x = TRUE) %>% 
+  arrange(condition) %>% 
+  column_to_rownames(var= "condition") 
+
+# Ordenar colunas da matriz para a mesma ordem das linhas da tabela de anotações
+matrix_data_ordered = matrix_data %>% 
+  t() %>% 
+  as.data.frame() %>% 
+  rownames_to_column(var= "condition") %>% 
+  merge(ann_vaccines_complex, by.y = "condition", all.x=TRUE) %>% 
+  arrange(condition) %>% #Trocar a variável pela qual deseja ordenar (Vaccine, Day, Condition, etc.)
+  select(!c(disease_vac, type, week)) %>% 
+  column_to_rownames("condition") %>% 
+  t() %>% 
+  as.data.frame() %>% 
+  mutate_if(is.character, as.numeric) %>% #Converter em numéricos
+  replace(is.na(.), 0) %>% 
+  as.matrix() 
+
+#Verificar se as linhas sao iguais
+dim(matrix_data_ordered) #Usar se for ordenar por colunas
+dim(ann_vaccines_heatmap) #Anotações sobre as colunas
+
+
+#Criar heatmap annotation
+ha = HeatmapAnnotation(df = ann_vaccines_heatmap, 
+                       col = ann_colors, 
+                       annotation_name_side = "left")
+
+
+col_fun <- colorRamp2(c(-2, -1, 0, 1, 2), c("#5AFFE9", "#9bc1bc", "black", "#ed6a5a", "#F11A02"))
+
+
+#Parameters
+mat = matrix_data_ordered
+width = unit(30, "cm")
+height = unit(15, "cm")
+width_image = 40
+height_image = 25
+column_names_gp = gpar(fontsize = 10)
+row_names_gp = gpar(fontsize = 10)
+
+
+#Plotar e salvar imagem
+fileimageheatmap_ungrouped= paste0(file, sep ="_", "Ungrouped_Complexheatmap.png")
+
+png(file = fileimageheatmap_ungrouped, width=width_image, height=height_image,units="cm",res=800)
+
+heatmap_plot_all = Heatmap(mat,
+                        top_annotation = ha,
+                        show_row_names = TRUE,
+                        show_heatmap_legend = TRUE,
+                        heatmap_legend_param = list(direction = "horizontal"),
+                        name = "L2FC", #Legend
+                        col = col_fun, #color
+                        column_title = fileimageheatmap_ungrouped,
+                        column_title_gp = gpar(fontsize = 15, fontface = "bold"),
+                        column_names_rot = 45,
+                        column_names_gp = gpar(fontsize = 10),
+                        rect_gp = gpar(col = "gray90", lwd = 1),
+                        cluster_rows = TRUE,
+                        row_names_gp = row_names_gp,
+                        row_split = NULL, #Split row clusters
+                        row_gap = unit(2, "mm"),
+                        cluster_columns = TRUE,
+                        #column_split = 2, #Split group clusters
+                        #column_km = 2,
+                        column_gap = unit(8, "mm"),
+                        show_column_dend = TRUE,
+                        show_row_dend = TRUE,
+                        row_dend_side = "left",
+                        column_dend_side = "top",
+                        clustering_distance_rows = "euclidean",
+                        border = TRUE,
+                        column_dend_reorder = TRUE,
+                        width = width, 
+                        height = height
+)
+
+draw(heatmap_plot_all, annotation_legend_side = "right", heatmap_legend_side = "right")
+
+dev.off()
+```
+
+### Cellular adaptive immune system
+```{r}
+####### Input
+#Troque pelo geneset de interesse
+
+heatmap_data = Immune_GO_genes_Cellular
+file = "Immune_GO_genes_Cellular"
+
+########## Processar dados e criar matriz
+
+#Excluir linhas com Target ou Source == NA
+heatmap_data_l2fc= heatmap_data %>% 
+  filter(condition != "NA", 
+         process != "NA") %>% 
+  select(genes, condition, log2fold_change)
+
+# Converter para wide table
+matrix_data <- dcast(heatmap_data_l2fc, 
+                         genes ~ condition, 
+                         value.var = "log2fold_change", 
+                         fun.aggregate = mean) %>% 
+  column_to_rownames('genes') %>% 
+  mutate_if(is.character, as.numeric) %>% 
+  replace(is.na(.), 0)
+
+#Arredondar valores para facilitar visualização
+matrix_data_ready =  matrix_data %>% 
+  round(2)
+
+# Verificar se todas as vacinas da anotação estão na matriz e unir as tabelas
+ann_vaccines_complex = heatmap_data %>% 
+  select(condition) %>% 
+  distinct() %>% 
+  inner_join(ann_vaccines %>% select(condition, disease_vac, type, week), by = "condition")
+
+# Unir tabela de anotações
+ann_vaccines_heatmap = matrix_data %>% 
+  colnames() %>% 
+  data.frame() %>% 
+  filter(. != "genes") %>% 
+  rename(condition = '.') %>% 
+  merge(ann_vaccines_complex, by = "condition", all.x = TRUE) %>% 
+  arrange(condition) %>% 
+  column_to_rownames(var= "condition") 
+
+# Ordenar colunas da matriz para a mesma ordem das linhas da tabela de anotações
+matrix_data_ordered = matrix_data %>% 
+  t() %>% 
+  as.data.frame() %>% 
+  rownames_to_column(var= "condition") %>% 
+  merge(ann_vaccines_complex, by.y = "condition", all.x=TRUE) %>% 
+  arrange(condition) %>% #Trocar a variável pela qual deseja ordenar (Vaccine, Day, Condition, etc.)
+  select(!c(disease_vac, type, week)) %>% 
+  column_to_rownames("condition") %>% 
+  t() %>% 
+  as.data.frame() %>% 
+  mutate_if(is.character, as.numeric) %>% #Converter em numéricos
+  replace(is.na(.), 0) %>% 
+  as.matrix() 
+
+#Verificar se as linhas sao iguais
+dim(matrix_data_ordered) #Usar se for ordenar por colunas
+dim(ann_vaccines_heatmap) #Anotações sobre as colunas
+
+
+#Criar heatmap annotation
+ha = HeatmapAnnotation(df = ann_vaccines_heatmap, 
+                       col = ann_colors, 
+                       annotation_name_side = "left")
+
+
+col_fun <- colorRamp2(c(-2, -1, 0, 1, 2), c("#5AFFE9", "#9bc1bc", "black", "#ed6a5a", "#F11A02"))
+
+
+#Parameters
+mat = matrix_data_ordered
+width = unit(30, "cm")
+height = unit(70, "cm")
+width_image = 40
+height_image = 80
+column_names_gp = gpar(fontsize = 10)
+row_names_gp = gpar(fontsize = 5)
+
+
+#Plotar e salvar imagem
+fileimageheatmap_ungrouped= paste0(file, sep ="_", "Ungrouped_Complexheatmap.png")
+
+png(file = fileimageheatmap_ungrouped, width=width_image, height=height_image,units="cm",res=800)
+
+heatmap_plot_all = Heatmap(mat,
+                        top_annotation = ha,
+                        show_row_names = TRUE,
+                        show_heatmap_legend = TRUE,
+                        heatmap_legend_param = list(direction = "horizontal"),
+                        name = "L2FC", #Legend
+                        col = col_fun, #color
+                        column_title = fileimageheatmap_ungrouped,
+                        column_title_gp = gpar(fontsize = 15, fontface = "bold"),
+                        column_names_rot = 45,
+                        column_names_gp = gpar(fontsize = 10),
+                        rect_gp = gpar(col = "gray90", lwd = 1),
+                        cluster_rows = TRUE,
+                        row_names_gp = row_names_gp,
+                        row_split = NULL, #Split row clusters
+                        row_gap = unit(2, "mm"),
+                        cluster_columns = TRUE,
+                        #column_split = 2, #Split group clusters
+                        #column_km = 2,
+                        column_gap = unit(8, "mm"),
+                        show_column_dend = TRUE,
+                        show_row_dend = TRUE,
+                        row_dend_side = "left",
+                        column_dend_side = "top",
+                        clustering_distance_rows = "euclidean",
+                        border = TRUE,
+                        column_dend_reorder = TRUE,
+                        width = width, 
+                        height = height
+)
+
+draw(heatmap_plot_all, annotation_legend_side = "right", heatmap_legend_side = "right")
+
+dev.off()
+```
+
+### T Cell
+```{r}
+####### Input
+#Troque pelo geneset de interesse
+
+heatmap_data = Immune_GO_genes_Tcells
+file = "Immune_GO_genes_Tcells"
+
+########## Processar dados e criar matriz
+
+#Excluir linhas com Target ou Source == NA
+heatmap_data_l2fc= heatmap_data %>% 
+  filter(condition != "NA", 
+         process != "NA") %>% 
+  select(genes, condition, log2fold_change)
+
+# Converter para wide table
+matrix_data <- dcast(heatmap_data_l2fc, 
+                         genes ~ condition, 
+                         value.var = "log2fold_change", 
+                         fun.aggregate = mean) %>% 
+  column_to_rownames('genes') %>% 
+  mutate_if(is.character, as.numeric) %>% 
+  replace(is.na(.), 0)
+
+#Arredondar valores para facilitar visualização
+matrix_data_ready =  matrix_data %>% 
+  round(2)
+
+# Verificar se todas as vacinas da anotação estão na matriz e unir as tabelas
+ann_vaccines_complex = heatmap_data %>% 
+  select(condition) %>% 
+  distinct() %>% 
+  inner_join(ann_vaccines %>% select(condition, disease_vac, type, week), by = "condition")
+
+# Unir tabela de anotações
+ann_vaccines_heatmap = matrix_data %>% 
+  colnames() %>% 
+  data.frame() %>% 
+  filter(. != "genes") %>% 
+  rename(condition = '.') %>% 
+  merge(ann_vaccines_complex, by = "condition", all.x = TRUE) %>% 
+  arrange(condition) %>% 
+  column_to_rownames(var= "condition") 
+
+# Ordenar colunas da matriz para a mesma ordem das linhas da tabela de anotações
+matrix_data_ordered = matrix_data %>% 
+  t() %>% 
+  as.data.frame() %>% 
+  rownames_to_column(var= "condition") %>% 
+  merge(ann_vaccines_complex, by.y = "condition", all.x=TRUE) %>% 
+  arrange(condition) %>% #Trocar a variável pela qual deseja ordenar (Vaccine, Day, Condition, etc.)
+  select(!c(disease_vac, type, week)) %>% 
+  column_to_rownames("condition") %>% 
+  t() %>% 
+  as.data.frame() %>% 
+  mutate_if(is.character, as.numeric) %>% #Converter em numéricos
+  replace(is.na(.), 0) %>% 
+  as.matrix() 
+
+#Verificar se as linhas sao iguais
+dim(matrix_data_ordered) #Usar se for ordenar por colunas
+dim(ann_vaccines_heatmap) #Anotações sobre as colunas
+
+
+#Criar heatmap annotation
+ha = HeatmapAnnotation(df = ann_vaccines_heatmap, 
+                       col = ann_colors, 
+                       annotation_name_side = "left")
+
+
+col_fun <- colorRamp2(c(-2, -1, 0, 1, 2), c("#5AFFE9", "#9bc1bc", "black", "#ed6a5a", "#F11A02"))
+
+
+#Parameters
+mat = matrix_data_ordered
+width = unit(30, "cm")
+height = unit(20, "cm")
+width_image = 40
+height_image = 30
+column_names_gp = gpar(fontsize = 10)
+row_names_gp = gpar(fontsize = 10)
+
+
+#Plotar e salvar imagem
+fileimageheatmap_ungrouped= paste0(file, sep ="_", "Ungrouped_Complexheatmap.png")
+
+png(file = fileimageheatmap_ungrouped, width=width_image, height=height_image,units="cm",res=800)
+
+heatmap_plot_all = Heatmap(mat,
+                        top_annotation = ha,
+                        show_row_names = TRUE,
+                        show_heatmap_legend = TRUE,
+                        heatmap_legend_param = list(direction = "horizontal"),
+                        name = "L2FC", #Legend
+                        col = col_fun, #color
+                        column_title = fileimageheatmap_ungrouped,
+                        column_title_gp = gpar(fontsize = 15, fontface = "bold"),
+                        column_names_rot = 45,
+                        column_names_gp = gpar(fontsize = 10),
+                        rect_gp = gpar(col = "gray90", lwd = 1),
+                        cluster_rows = TRUE,
+                        row_names_gp = row_names_gp,
+                        row_split = NULL, #Split row clusters
+                        row_gap = unit(2, "mm"),
+                        cluster_columns = TRUE,
+                        #column_split = 2, #Split group clusters
+                        #column_km = 2,
+                        column_gap = unit(8, "mm"),
+                        show_column_dend = TRUE,
+                        show_row_dend = TRUE,
+                        row_dend_side = "left",
+                        column_dend_side = "top",
+                        clustering_distance_rows = "euclidean",
+                        border = TRUE,
+                        column_dend_reorder = TRUE,
+                        width = width, 
+                        height = height
+)
+
+draw(heatmap_plot_all, annotation_legend_side = "right", heatmap_legend_side = "right")
+
+dev.off()
+```
+
+### Th Cell
+```{r}
+####### Input
+#Troque pelo geneset de interesse
+
+heatmap_data = Immune_GO_genes_Th
+file = "Immune_GO_genes_Th"
+
+########## Processar dados e criar matriz
+
+#Excluir linhas com Target ou Source == NA
+heatmap_data_l2fc= heatmap_data %>% 
+  filter(condition != "NA", 
+         process != "NA") %>% 
+  select(genes, condition, log2fold_change)
+
+# Converter para wide table
+matrix_data <- dcast(heatmap_data_l2fc, 
+                         genes ~ condition, 
+                         value.var = "log2fold_change", 
+                         fun.aggregate = mean) %>% 
+  column_to_rownames('genes') %>% 
+  mutate_if(is.character, as.numeric) %>% 
+  replace(is.na(.), 0)
+
+#Arredondar valores para facilitar visualização
+matrix_data_ready =  matrix_data %>% 
+  round(2)
+
+# Verificar se todas as vacinas da anotação estão na matriz e unir as tabelas
+ann_vaccines_complex = heatmap_data %>% 
+  select(condition) %>% 
+  distinct() %>% 
+  inner_join(ann_vaccines %>% select(condition, disease_vac, type, week), by = "condition")
+
+# Unir tabela de anotações
+ann_vaccines_heatmap = matrix_data %>% 
+  colnames() %>% 
+  data.frame() %>% 
+  filter(. != "genes") %>% 
+  rename(condition = '.') %>% 
+  merge(ann_vaccines_complex, by = "condition", all.x = TRUE) %>% 
+  arrange(condition) %>% 
+  column_to_rownames(var= "condition") 
+
+# Ordenar colunas da matriz para a mesma ordem das linhas da tabela de anotações
+matrix_data_ordered = matrix_data %>% 
+  t() %>% 
+  as.data.frame() %>% 
+  rownames_to_column(var= "condition") %>% 
+  merge(ann_vaccines_complex, by.y = "condition", all.x=TRUE) %>% 
+  arrange(condition) %>% #Trocar a variável pela qual deseja ordenar (Vaccine, Day, Condition, etc.)
+  select(!c(disease_vac, type, week)) %>% 
+  column_to_rownames("condition") %>% 
+  t() %>% 
+  as.data.frame() %>% 
+  mutate_if(is.character, as.numeric) %>% #Converter em numéricos
+  replace(is.na(.), 0) %>% 
+  as.matrix() 
+
+#Verificar se as linhas sao iguais
+dim(matrix_data_ordered) #Usar se for ordenar por colunas
+dim(ann_vaccines_heatmap) #Anotações sobre as colunas
+
+
+#Criar heatmap annotation
+ha = HeatmapAnnotation(df = ann_vaccines_heatmap, 
+                       col = ann_colors, 
+                       annotation_name_side = "left")
+
+
+col_fun <- colorRamp2(c(-2, -1, 0, 1, 2), c("#5AFFE9", "#9bc1bc", "black", "#ed6a5a", "#F11A02"))
+
+
+#Parameters
+mat = matrix_data_ordered
+width = unit(30, "cm")
+height = unit(15, "cm")
+width_image = 40
+height_image = 25
+column_names_gp = gpar(fontsize = 10)
+row_names_gp = gpar(fontsize = 10)
+
+
+#Plotar e salvar imagem
+fileimageheatmap_ungrouped= paste0(file, sep ="_", "Ungrouped_Complexheatmap.png")
+
+png(file = fileimageheatmap_ungrouped, width=width_image, height=height_image,units="cm",res=800)
+
+heatmap_plot_all = Heatmap(mat,
+                        top_annotation = ha,
+                        show_row_names = TRUE,
+                        show_heatmap_legend = TRUE,
+                        heatmap_legend_param = list(direction = "horizontal"),
+                        name = "L2FC", #Legend
+                        col = col_fun, #color
+                        column_title = fileimageheatmap_ungrouped,
+                        column_title_gp = gpar(fontsize = 15, fontface = "bold"),
+                        column_names_rot = 45,
+                        column_names_gp = gpar(fontsize = 10),
+                        rect_gp = gpar(col = "gray90", lwd = 1),
+                        cluster_rows = TRUE,
+                        row_names_gp = row_names_gp,
+                        row_split = NULL, #Split row clusters
+                        row_gap = unit(2, "mm"),
+                        cluster_columns = TRUE,
+                        #column_split = 2, #Split group clusters
+                        #column_km = 2,
+                        column_gap = unit(8, "mm"),
+                        show_column_dend = TRUE,
+                        show_row_dend = TRUE,
+                        row_dend_side = "left",
+                        column_dend_side = "top",
+                        clustering_distance_rows = "euclidean",
+                        border = TRUE,
+                        column_dend_reorder = TRUE,
+                        width = width, 
+                        height = height
+)
+
+draw(heatmap_plot_all, annotation_legend_side = "right", heatmap_legend_side = "right")
+
+dev.off()
+```
+
+### Humoral adaptive immune system
+```{r}
+####### Input
+#Troque pelo geneset de interesse
+
+heatmap_data = Immune_GO_genes_Humoral
+file = "Immune_GO_genes_Humoral"
+
+########## Processar dados e criar matriz
+
+#Excluir linhas com Target ou Source == NA
+heatmap_data_l2fc= heatmap_data %>% 
+  filter(condition != "NA", 
+         process != "NA") %>% 
+  select(genes, condition, log2fold_change)
+
+# Converter para wide table
+matrix_data <- dcast(heatmap_data_l2fc, 
+                         genes ~ condition, 
+                         value.var = "log2fold_change", 
+                         fun.aggregate = mean) %>% 
+  column_to_rownames('genes') %>% 
+  mutate_if(is.character, as.numeric) %>% 
+  replace(is.na(.), 0)
+
+#Arredondar valores para facilitar visualização
+matrix_data_ready =  matrix_data %>% 
+  round(2)
+
+# Verificar se todas as vacinas da anotação estão na matriz e unir as tabelas
+ann_vaccines_complex = heatmap_data %>% 
+  select(condition) %>% 
+  distinct() %>% 
+  inner_join(ann_vaccines %>% select(condition, disease_vac, type, week), by = "condition")
+
+# Unir tabela de anotações
+ann_vaccines_heatmap = matrix_data %>% 
+  colnames() %>% 
+  data.frame() %>% 
+  filter(. != "genes") %>% 
+  rename(condition = '.') %>% 
+  merge(ann_vaccines_complex, by = "condition", all.x = TRUE) %>% 
+  arrange(condition) %>% 
+  column_to_rownames(var= "condition") 
+
+# Ordenar colunas da matriz para a mesma ordem das linhas da tabela de anotações
+matrix_data_ordered = matrix_data %>% 
+  t() %>% 
+  as.data.frame() %>% 
+  rownames_to_column(var= "condition") %>% 
+  merge(ann_vaccines_complex, by.y = "condition", all.x=TRUE) %>% 
+  arrange(condition) %>% #Trocar a variável pela qual deseja ordenar (Vaccine, Day, Condition, etc.)
+  select(!c(disease_vac, type, week)) %>% 
+  column_to_rownames("condition") %>% 
+  t() %>% 
+  as.data.frame() %>% 
+  mutate_if(is.character, as.numeric) %>% #Converter em numéricos
+  replace(is.na(.), 0) %>% 
+  as.matrix() 
+
+#Verificar se as linhas sao iguais
+dim(matrix_data_ordered) #Usar se for ordenar por colunas
+dim(ann_vaccines_heatmap) #Anotações sobre as colunas
+
+
+#Criar heatmap annotation
+ha = HeatmapAnnotation(df = ann_vaccines_heatmap, 
+                       col = ann_colors, 
+                       annotation_name_side = "left")
+
+
+col_fun <- colorRamp2(c(-2, -1, 0, 1, 2), c("#5AFFE9", "#9bc1bc", "black", "#ed6a5a", "#F11A02"))
+
+
+#Parameters
+mat = matrix_data_ordered
+width = unit(30, "cm")
+height = unit(30, "cm")
+width_image = 40
+height_image = 40
+column_names_gp = gpar(fontsize = 10)
+row_names_gp = gpar(fontsize = 10)
+
+
+#Plotar e salvar imagem
+fileimageheatmap_ungrouped= paste0(file, sep ="_", "Ungrouped_Complexheatmap.png")
+
+png(file = fileimageheatmap_ungrouped, width=width_image, height=height_image,units="cm",res=800)
+
+heatmap_plot_all = Heatmap(mat,
+                        top_annotation = ha,
+                        show_row_names = TRUE,
+                        show_heatmap_legend = TRUE,
+                        heatmap_legend_param = list(direction = "horizontal"),
+                        name = "L2FC", #Legend
+                        col = col_fun, #color
+                        column_title = fileimageheatmap_ungrouped,
+                        column_title_gp = gpar(fontsize = 15, fontface = "bold"),
+                        column_names_rot = 45,
+                        column_names_gp = gpar(fontsize = 10),
+                        rect_gp = gpar(col = "gray90", lwd = 1),
+                        cluster_rows = TRUE,
+                        row_names_gp = row_names_gp,
+                        row_split = NULL, #Split row clusters
+                        row_gap = unit(2, "mm"),
+                        cluster_columns = TRUE,
+                        #column_split = 2, #Split group clusters
+                        #column_km = 2,
+                        column_gap = unit(8, "mm"),
+                        show_column_dend = TRUE,
+                        show_row_dend = TRUE,
+                        row_dend_side = "left",
+                        column_dend_side = "top",
+                        clustering_distance_rows = "euclidean",
+                        border = TRUE,
+                        column_dend_reorder = TRUE,
+                        width = width, 
+                        height = height
+)
+
+draw(heatmap_plot_all, annotation_legend_side = "right", heatmap_legend_side = "right")
+
+dev.off()
+```
+
+### B cells
+```{r}
+####### Input
+#Troque pelo geneset de interesse
+
+heatmap_data = Immune_GO_genes_Bcells
+file = "Immune_GO_genes_Bcells"
+
+########## Processar dados e criar matriz
+
+#Excluir linhas com Target ou Source == NA
+heatmap_data_l2fc= heatmap_data %>% 
+  filter(condition != "NA", 
+         process != "NA") %>% 
+  select(genes, condition, log2fold_change)
+
+# Converter para wide table
+matrix_data <- dcast(heatmap_data_l2fc, 
+                         genes ~ condition, 
+                         value.var = "log2fold_change", 
+                         fun.aggregate = mean) %>% 
+  column_to_rownames('genes') %>% 
+  mutate_if(is.character, as.numeric) %>% 
+  replace(is.na(.), 0)
+
+#Arredondar valores para facilitar visualização
+matrix_data_ready =  matrix_data %>% 
+  round(2)
+
+# Verificar se todas as vacinas da anotação estão na matriz e unir as tabelas
+ann_vaccines_complex = heatmap_data %>% 
+  select(condition) %>% 
+  distinct() %>% 
+  inner_join(ann_vaccines %>% select(condition, disease_vac, type, week), by = "condition")
+
+# Unir tabela de anotações
+ann_vaccines_heatmap = matrix_data %>% 
+  colnames() %>% 
+  data.frame() %>% 
+  filter(. != "genes") %>% 
+  rename(condition = '.') %>% 
+  merge(ann_vaccines_complex, by = "condition", all.x = TRUE) %>% 
+  arrange(condition) %>% 
+  column_to_rownames(var= "condition") 
+
+# Ordenar colunas da matriz para a mesma ordem das linhas da tabela de anotações
+matrix_data_ordered = matrix_data %>% 
+  t() %>% 
+  as.data.frame() %>% 
+  rownames_to_column(var= "condition") %>% 
+  merge(ann_vaccines_complex, by.y = "condition", all.x=TRUE) %>% 
+  arrange(condition) %>% #Trocar a variável pela qual deseja ordenar (Vaccine, Day, Condition, etc.)
+  select(!c(disease_vac, type, week)) %>% 
+  column_to_rownames("condition") %>% 
+  t() %>% 
+  as.data.frame() %>% 
+  mutate_if(is.character, as.numeric) %>% #Converter em numéricos
+  replace(is.na(.), 0) %>% 
+  as.matrix() 
+
+#Verificar se as linhas sao iguais
+dim(matrix_data_ordered) #Usar se for ordenar por colunas
+dim(ann_vaccines_heatmap) #Anotações sobre as colunas
+
+
+#Criar heatmap annotation
+ha = HeatmapAnnotation(df = ann_vaccines_heatmap, 
+                       col = ann_colors, 
+                       annotation_name_side = "left")
+
+
+col_fun <- colorRamp2(c(-2, -1, 0, 1, 2), c("#5AFFE9", "#9bc1bc", "black", "#ed6a5a", "#F11A02"))
+
+
+#Parameters
+mat = matrix_data_ordered
+width = unit(30, "cm")
+height = unit(50, "cm")
+width_image = 40
+height_image = 60
+column_names_gp = gpar(fontsize = 10)
+row_names_gp = gpar(fontsize = 10)
+
+
+#Plotar e salvar imagem
+fileimageheatmap_ungrouped= paste0(file, sep ="_", "Ungrouped_Complexheatmap.png")
+
+png(file = fileimageheatmap_ungrouped, width=width_image, height=height_image,units="cm",res=800)
+
+heatmap_plot_all = Heatmap(mat,
+                        top_annotation = ha,
+                        show_row_names = TRUE,
+                        show_heatmap_legend = TRUE,
+                        heatmap_legend_param = list(direction = "horizontal"),
+                        name = "L2FC", #Legend
+                        col = col_fun, #color
+                        column_title = fileimageheatmap_ungrouped,
+                        column_title_gp = gpar(fontsize = 15, fontface = "bold"),
+                        column_names_rot = 45,
+                        column_names_gp = gpar(fontsize = 10),
+                        rect_gp = gpar(col = "gray90", lwd = 1),
+                        cluster_rows = TRUE,
+                        row_names_gp = row_names_gp,
+                        row_split = NULL, #Split row clusters
+                        row_gap = unit(2, "mm"),
+                        cluster_columns = TRUE,
+                        #column_split = 2, #Split group clusters
+                        #column_km = 2,
+                        column_gap = unit(8, "mm"),
+                        show_column_dend = TRUE,
+                        show_row_dend = TRUE,
+                        row_dend_side = "left",
+                        column_dend_side = "top",
+                        clustering_distance_rows = "euclidean",
+                        border = TRUE,
+                        column_dend_reorder = TRUE,
+                        width = width, 
+                        height = height
+)
+
+draw(heatmap_plot_all, annotation_legend_side = "right", heatmap_legend_side = "right")
+
+dev.off()
+```
+
+### Ig mediated response
+```{r}
+####### Input
+#Troque pelo geneset de interesse
+
+heatmap_data = Immune_GO_genes_Ig
+file = "Immune_GO_genes_Ig"
+
+########## Processar dados e criar matriz
+
+#Excluir linhas com Target ou Source == NA
+heatmap_data_l2fc= heatmap_data %>% 
+  filter(condition != "NA", 
+         process != "NA") %>% 
+  select(genes, condition, log2fold_change)
+
+# Converter para wide table
+matrix_data <- dcast(heatmap_data_l2fc, 
+                         genes ~ condition, 
+                         value.var = "log2fold_change", 
+                         fun.aggregate = mean) %>% 
+  column_to_rownames('genes') %>% 
+  mutate_if(is.character, as.numeric) %>% 
+  replace(is.na(.), 0)
+
+#Arredondar valores para facilitar visualização
+matrix_data_ready =  matrix_data %>% 
+  round(2)
+
+# Verificar se todas as vacinas da anotação estão na matriz e unir as tabelas
+ann_vaccines_complex = heatmap_data %>% 
+  select(condition) %>% 
+  distinct() %>% 
+  inner_join(ann_vaccines %>% select(condition, disease_vac, type, week), by = "condition")
+
+# Unir tabela de anotações
+ann_vaccines_heatmap = matrix_data %>% 
+  colnames() %>% 
+  data.frame() %>% 
+  filter(. != "genes") %>% 
+  rename(condition = '.') %>% 
+  merge(ann_vaccines_complex, by = "condition", all.x = TRUE) %>% 
+  arrange(condition) %>% 
+  column_to_rownames(var= "condition") 
+
+# Ordenar colunas da matriz para a mesma ordem das linhas da tabela de anotações
+matrix_data_ordered = matrix_data %>% 
+  t() %>% 
+  as.data.frame() %>% 
+  rownames_to_column(var= "condition") %>% 
+  merge(ann_vaccines_complex, by.y = "condition", all.x=TRUE) %>% 
+  arrange(condition) %>% #Trocar a variável pela qual deseja ordenar (Vaccine, Day, Condition, etc.)
+  select(!c(disease_vac, type, week)) %>% 
+  column_to_rownames("condition") %>% 
+  t() %>% 
+  as.data.frame() %>% 
+  mutate_if(is.character, as.numeric) %>% #Converter em numéricos
+  replace(is.na(.), 0) %>% 
+  as.matrix() 
+
+#Verificar se as linhas sao iguais
+dim(matrix_data_ordered) #Usar se for ordenar por colunas
+dim(ann_vaccines_heatmap) #Anotações sobre as colunas
+
+
+#Criar heatmap annotation
+ha = HeatmapAnnotation(df = ann_vaccines_heatmap, 
+                       col = ann_colors, 
+                       annotation_name_side = "left")
+
+
+col_fun <- colorRamp2(c(-2, -1, 0, 1, 2), c("#5AFFE9", "#9bc1bc", "black", "#ed6a5a", "#F11A02"))
+
+
+#Parameters
+mat = matrix_data_ordered
+width = unit(30, "cm")
+height = unit(50, "cm")
+width_image = 40
+height_image = 60
+column_names_gp = gpar(fontsize s= 10)
+row_names_gp = gpar(fontsize = 10)
+
+
+#Plotar e salvar imagem
+fileimageheatmap_ungrouped= paste0(file, sep ="_", "Ungrouped_Complexheatmap.png")
+
+png(file = fileimageheatmap_ungrouped, width=width_image, height=height_image,units="cm",res=800)
+
+heatmap_plot_all = Heatmap(mat,
+                        top_annotation = ha,
+                        show_row_names = TRUE,
+                        show_heatmap_legend = TRUE,
+                        heatmap_legend_param = list(direction = "horizontal"),
+                        name = "L2FC", #Legend
+                        col = col_fun, #color
+                        column_title = fileimageheatmap_ungrouped,
+                        column_title_gp = gpar(fontsize = 15, fontface = "bold"),
+                        column_names_rot = 45,
+                        column_names_gp = gpar(fontsize = 10),
+                        rect_gp = gpar(col = "gray90", lwd = 1),
+                        cluster_rows = TRUE,
+                        row_names_gp = row_names_gp,
+                        row_split = NULL, #Split row clusters
+                        row_gap = unit(2, "mm"),
+                        cluster_columns = TRUE,
+                        #column_split = 2, #Split group clusters
+                        #column_km = 2,
+                        column_gap = unit(8, "mm"),
+                        show_column_dend = TRUE,
+                        show_row_dend = TRUE,
+                        row_dend_side = "left",
+                        column_dend_side = "top",
+                        clustering_distance_rows = "euclidean",
+                        border = TRUE,
+                        column_dend_reorder = TRUE,
+                        width = width, 
+                        height = height
 )
 
 draw(heatmap_plot_all, annotation_legend_side = "right", heatmap_legend_side = "right")
