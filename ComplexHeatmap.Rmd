@@ -123,23 +123,20 @@ Importar e padronizar tabelas
 ############## Arquivos necessários
 
 # Informações sobre os processos/Gene sets
-ImmuneGO = ImmuneGO_Annotated_GO_1_1_24 %>% 
+ImmuneGO = `ImmuneGO_Annotated_GO_14-3-24_2` %>% 
   select(process:immune_tissue, set_size) %>% 
   distinct()
 
 # Genes por gene sets
-immunego_genes = ImmuneGO_Annotated_Genes_8_1_24 %>%
+immunego_genes = `ImmuneGO_Annotated_Genes_14-3-24` %>%
   filter(go_term == "Manual") %>% 
   select(process,genes)
 
 # Anotações das amostras/condições (Vacinas)
-ann_vaccines = ann_vaccines_18_1_24 %>%
-  distinct() %>% 
-  clean_names()
-
+ann_vaccines = ann_vaccines_19_1_24
 
 # Dados 
-data.immunego = all_degs_p_05_vac_infected %>% 
+data.immunego = all_degs_p_05_vac_infected_19_12_23 %>% 
   select(condition:padj)
 
 ############## Processar dados
@@ -157,14 +154,12 @@ Immune_GO_genes_All = data.immunego %>%
 # Sistema inato
 # Immune_GO_genes_Innate = Immune_GO_genes_All %>%
 #  filter(process == "INNATE IMMUNE SYSTEM")
-Immune_GO_genes_Adaptive = Immune_GO_genes_All %>%
- filter(process == "ADAPTIVE IMMUNE SYSTEM")
-
-
-# Immune_GO_genes_Inflammation = Immune_GO_genes_All %>%
-#   filter(process == "INFLAMMATION")
-# Immune_GO_genes_ARPP = Immune_GO_genes_All %>%
-#   filter(process == "ARPP")
+# Immune_GO_genes_Adaptive = Immune_GO_genes_All %>%
+#  filter(process == "ADAPTIVE IMMUNE SYSTEM")
+Immune_GO_genes_Inflammation = Immune_GO_genes_All %>%
+  filter(process == "INFLAMMATION")
+Immune_GO_genes_ARPP = Immune_GO_genes_All %>%
+  filter(process == "ARPP")
 Immune_GO_genes_IFN = Immune_GO_genes_All %>%
   filter(process == "ANTIVIRAL AND INTERFERON")
 Immune_GO_genes_Neutrophil = Immune_GO_genes_All %>%
@@ -194,9 +189,9 @@ Immune_GO_genes_Tcells = Immune_GO_genes_All %>%
   filter(process == "T CELLS")
 Immune_GO_genes_Bcells = Immune_GO_genes_All %>%
   filter(process == "B CELLS")
-# Immune_GO_genes_Ig = Immune_GO_genes_All %>% 
-#   filter(process == "IMMUNOGLOBULIN MEDIATED IMMUNE RESPONSE") %>% 
-#   distinct()
+Immune_GO_genes_Ig = Immune_GO_genes_All %>%
+  filter(process == "IMMUNOGLOBULIN MEDIATED IMMUNE RESPONSE") %>%
+  distinct()
 ```
 
 
@@ -204,8 +199,8 @@ Immune_GO_genes_Bcells = Immune_GO_genes_All %>%
 ####### Input
 #Troque pelo geneset de interesse
 
-heatmap_data = Immune_GO_genes_Innate
-file = "Immune_GO_genes_Innate"
+heatmap_data = Immune_GO_genes_Inflammation
+file = "Immune_GO_genes_Inflammation"
 
 ########## Processar dados e criar matriz
 
@@ -287,7 +282,7 @@ type = ann_vaccines_heatmap$type
 dend_cols_type = cluster_within_group(matrix_data_ordered, type)
 
 
-col_fun <- colorRamp2(c(-2, 0, 2), c("#9bc1bc", "white", "#ed6a5a"))
+col_fun <- colorRamp2(c(-2, 0, 2), c("#9bc1bc", "black", "#ed6a5a"))
 
 
 ```
@@ -320,7 +315,7 @@ Tamanhos:
 
 #Parameters
 mat = matrix_data_ordered
-width_image = 50
+width_image = 40
 height_image = 80
 width = unit(30, "cm")
 height = unit(70, "cm")
@@ -2075,11 +2070,15 @@ Quais genes participam de mais de um processo?
 ```{r}
 #Input
 
+degs_all_updown = all_degs_p_05_vac_infected_19_12_23
+ann_vaccines = ann_vaccines_19_1_24
+ImmuneGO_Annotated_Genes = `ImmuneGO_Annotated_Genes_14-3-24`
+
 degs_all_updown_covid_l2fc = degs_all_updown %>% 
   as.data.frame() %>% 
   select(condition:direction) %>% 
   inner_join(ann_vaccines, by = "condition") %>% 
-  inner_join(immunego_genes, by = "genes") %>% 
+  inner_join(ImmuneGO_Annotated_Genes %>% select(genes) %>% distinct(), by = "genes") %>% 
   distinct() %>% 
   select(condition, genes, regulation = log2fold_change)  %>% 
   distinct()
