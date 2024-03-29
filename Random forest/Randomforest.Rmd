@@ -14,10 +14,10 @@ https://juliasilge.com/blog/sf-trees-random-tuning/
 # install.packages("rpart.plot")
 # install.packages("tidymodels")
 # install.packages("reticulate")
-install.packages("themis")
-install.packages("ranger")
-tidymodels_prefer()
+# install.packages("themis")
+# install.packages("ranger")
 
+tidymodels_prefer()
 library(randomForest)
 library(unbalanced)
 library(ranger)
@@ -29,6 +29,7 @@ library(tidyverse)
 library(rpart)
 library(rpart.plot)
 library(here)
+library(ggrepel)
 ```
 
 
@@ -69,12 +70,17 @@ importance(rwforFull, type = 1)
 
 #Tidymodels
 ```{r}
+
+# Input data ----
 filename = "ImmuneGO_Genes"
+outcomevar = "type"
 df = all_matrices_normalized_counts
 ann_vaccines_samples = ann_vaccines_samples
 
 #Select only important genes
 PC1_2 = PC_1_2_cos2
+
+# Prepare data ------
 
 df_input <- df %>%
   rownames_to_column("genes") %>%
@@ -83,41 +89,46 @@ df_input <- df %>%
   t() %>%
   as.data.frame() %>%
   rownames_to_column("sample") %>%
-  inner_join(ann_vaccines_samples %>% select(sample,disease_vac), by = "sample") %>%
-  select(sample, disease_vac, everything()) %>%
+  inner_join(ann_vaccines_samples %>% select(sample,type), by = "sample") %>%
+  select(sample, type, everything()) %>%
   column_to_rownames("sample") %>%
-  filter(disease_vac != "H", disease_vac != "Healthy") %>%
   rename_with(~ gsub("-", "", .)) %>% 
   mutate_if(is.character, factor)
 
-#  Divisão dos dados em treinamento, validação e teste
+# Split data
 set.seed(123)  
-split <- initial_split(df_input, prop = 0.7, strata = "disease_vac")
+split <- initial_split(df_input, prop = 0.7, strata = "type")
 trees_train <- training(split)
 trees_test <- testing(split)
 
-tree_rec <- recipe(disease_vac ~ ., data = train_data) %>%
+# Create recipe
+tree_rec <- recipe(type ~ ., data = trees_train) %>%
   step_dummy(all_nominal(), -all_outcomes()) %>%
-  step_upsample(disease_vac)
+  step_upsample(type) #Upsample unbalanced data
 
 tree_prep <- prep(tree_rec)
+
 juiced <- juice(trtree_prep)
 
+# Set random forest hyper parameters
 tune_spec <- rand_forest(
   mtry = tune(),
   trees = 2000,
   min_n = tune()
 ) %>%
-  set_mode("classification") %>%
+  set_mode("classification") %>% 
   set_engine("ranger")
 
+# Create workflow
 tune_wf <- workflow() %>%
   add_recipe(tree_rec) %>%
   add_model(tune_spec)
 
+#Cross validation
 set.seed(234)
 trees_folds <- vfold_cv(trees_train)
 
+# Parallel computing 
 doParallel::registerDoParallel()
 
 set.seed(345)
@@ -127,10 +138,9 @@ tune_res <- tune_grid(
   grid = 20
 )
 
-tune_res
-
-#AUC
-tune_res %>%
+# Assess data ----
+# AUC
+ggsave(tune_res %>%
   collect_metrics() %>%
   filter(.metric == "roc_auc") %>%
   select(mean, min_n, mtry) %>%
@@ -139,11 +149,198 @@ tune_res %>%
     names_to = "parameter"
   ) %>%
   ggplot(aes(value, mean, color = parameter)) +
+  geom_line() +
   geom_point(show.legend = FALSE) +
+  geom_text_repel(aes(label = value))+
   facet_wrap(~parameter, scales = "free_x") +
-  labs(x = NULL, y = "AUC")
+  labs(x = NULL, y = "AUC"), file = paste0(outcomevar, "_tidymodels_tune_res.png", width = 10, height = 6)
+
+# Tune hyperparameters ----
+rf_grid <- grid_regular(
+  mtry(range = c(6,20)),
+  min_n(range = c(6,15)),
+  levels = 5
+)
+
+set.seed(456)
+regular_res <- tune_grid(
+  tune_wf,
+  resamples = trees_folds,
+  grid = rf_grid
+)
+
+# Assess performance -----
+regular_res %>%
+  collect_metrics() %>%
+  filter(.metric == "roc_auc") %>%
+  mutate(min_n = factor(min_n)) %>%
+  ggplot(aes(mtry, mean, color = min_n)) +
+  geom_line(alpha = 0.5, size = 1.5) +
+  geom_point() +
+  labs(y = "AUC")
+
+# Select best model -----
+best_auc <- select_best(regular_res, metric = "roc_auc")
+final_rf <- finalize_model(
+  tune_spec,
+  best_auc
+)
+```
+
+
+```{r}
+library(vip)
+
+final = final_rf %>%
+  set_engine("ranger", importance = "permutation") %>%
+  fit(type ~ .,
+    data = juice(tree_prep)
+  ) %>% 
+  vip()
+
+final
+
+final %>% ggsave(file = paste0("vipgenes_tidymodels_", outcomevar, today(), ".png"))
+
+genes_rf = final$data
+genes_rf
+genes_rf %>% write.csv(file = paste0("vipgenes_tidymodels_", outcomevar, today(), ".csv"), row.names = F)
+```
+
+
+```{r}
+# Train final model with tuned hyperparameters
+final_wf <- workflow() %>%
+  add_recipe(tree_rec) %>%
+  add_model(final_rf)
+
+final_res <- final_wf %>%
+  last_fit(split)
+
+final_res %>%
+  collect_metrics()
+
+final_res %>%
+  collect_predictions() %>%
+  mutate(correct = case_when(
+    type == .pred_class ~ "Correct",
+    TRUE ~ "Incorrect"
+  )) %>%
+  bind_cols(trees_test)
+```
+
+
+```{r}
+# Heatmap with gene counts per sample 
+all_matrices_normalized_counts
+
+# Matrix
+counts_imps = genes_rf %>% 
+  select(genes = Variable) %>% 
+  inner_join(all_matrices_normalized_counts %>% rownames_to_column("genes"), by = "genes") %>%
+  pivot_longer(cols =-genes, names_to = "sample", values_to = 'counts') %>% 
+  inner_join(ann_vaccines_samples, by = "sample") %>% 
+  select(condition, samples = sample, counts, genes) %>% 
+  pivot_wider(names_from = c("condition", "samples"), values_from = 'counts') %>% 
+  column_to_rownames("genes") %>% 
+  as.matrix() %>% 
+  replace(is.na(.), 0)
+
+#Annotations
+colors_col = genes_rf %>% 
+  select(genes = Variable, Importance) %>% 
+  inner_join(all_matrices_normalized_counts %>% rownames_to_column("genes") %>% pivot_longer(cols = -genes, names_to = "sample", values_to = "counts"), by = "genes") %>%
+  left_join(ann_vaccines_samples, by = "sample") %>%
+  left_join(covid_others_colors %>% select(condition, color), by = "condition") %>% 
+  select(sample, color) %>% 
+  distinct() %>% 
+  .$color
+
+colors_row <- genes_rf %>% 
+  select(genes = Variable, importance = Importance) %>% 
+  inner_join(all_matrices_normalized_counts %>% rownames_to_column("genes") %>% pivot_longer(cols = -genes, names_to = "sample", values_to = "counts"), by = "genes") %>%
+  select(genes, importance) %>%
+  distinct() %>% 
+  mutate(imp_color = circlize::colorRamp2(c(min(importance), max(importance)), c("white", "red"))(importance)) %>% 
+  .$imp_color
+
+head(counts_imps)
+dim(counts_imps)
+length(colors_col)
+length(colors_row)
+
+
+#Plot
+png(paste0("randomforest_heatmap_conditions_counts_tidymodels_", outcomevar, today(), ".png"), units="in", width=10, height=10, res=300)
+heatmap(counts_imps, 
+        col = hcl.colors(100, palette = "reds", rev = T),
+        ColSideColors = colors_col, 
+        RowSideColors = colors_row, 
+        scale = "row",
+        margins = c(10, 10))
+dev.off()
 
 ```
+
+# Heatmap with L2FC 
+```{r}
+
+ImmuneGO_Annotated_Genes_all = ImmuneGO_Annotated_Genes_28_2_24 %>% 
+  filter(!process %in% c("TCR REPERTOIRE", "BCR REPERTOIRE"))
+
+ImmuneGO_Genes = all_degs_p_05_vac_infected_19_12_23 %>% 
+  select(-"...1", -"...12") %>% 
+  inner_join(ImmuneGO_Annotated_Genes %>% 
+               select(genes, process) %>% 
+               distinct() %>% 
+               select(genes),
+               by = "genes") %>% 
+  distinct()
+
+# Matrix
+l2fc_imps = genes_rf %>% 
+  select(genes = Variable, importance = Importance) %>% 
+  inner_join(ImmuneGO_Genes, by = "genes") %>%
+  select(genes, condition, log2fold_change) %>% 
+  pivot_wider(names_from = condition, values_from = log2fold_change) %>% 
+  column_to_rownames("genes") %>% 
+  as.matrix() %>% 
+  replace(is.na(.), 0)
+
+#Annotations
+colors_col = genes_rf %>% 
+  select(genes = Variable, importance = Importance) %>% 
+  inner_join(ImmuneGO_Genes, by = "genes") %>%
+  inner_join(covid_others_colors %>% select(condition, color), by = "condition") %>% 
+  select(condition,color) %>% 
+  distinct() %>% 
+  .$color
+
+colors_row <- genes_rf %>% 
+  select(genes = Variable, importance = Importance) %>% 
+  inner_join(ImmuneGO_Genes, by = "genes") %>%
+  select(genes, condition, log2fold_change, importance) %>% 
+  pivot_wider(names_from = condition, values_from = log2fold_change) %>% 
+  mutate(imp_color = circlize::colorRamp2(c(min(importance), max(importance)), c("white", "red"))(importance)) %>% 
+  .$imp_color
+
+#Plot
+png(paste0("randomforest_heatmap_conditions_l2fc", outcomevar, today(), ".png"), units="in", width=10, height=10, res=300)
+heatmap(l2fc_imps,
+        col = hcl.colors(100, palette = "reds", rev = T),
+        ColSideColors = colors_col, 
+        RowSideColors = colors_row, 
+        scale = "row",
+        margins = c(10, 10))
+dev.off()
+
+```
+
+
+
+
+
+
 
 
 
@@ -322,11 +519,13 @@ pred_rf_df = pred_rf_aab %>%
   as.data.frame() %>% 
   rownames_to_column("sample")
 
-
-
-
-
 ```
+
+
+# Heatmap with counts
+
+
+
 # Heatmap with L2FC 
 ```{r}
 
