@@ -5,6 +5,9 @@ output: html_notebook
 # Bibliotecas
 
 ```{r}
+#devtools::install_github("thomasp85/patchwork")
+
+
 library(readr)
 library(qvalue)
 library(explore)
@@ -34,6 +37,7 @@ library(ComplexHeatmap)
 library(janitor)
 library(scales)
 library(ggstatsplot)
+library(patchwork)
 
 ```
 
@@ -44,90 +48,65 @@ library(ggstatsplot)
 
 ####Cores
 ```{r}
-# Definir variáveis de cores
-vaxcolors = c(
-  "BBIBP" = "#ffd000",
-  "BNT" = "#56cfe1",
-  "ChAd" = "#80ffdb",
-  "ChAd-BNT" = "#72efdd",
-  "ZF2001" = "#b5179e")
 
-dose_colors = c(
-    "1" = "#56cfe1",
-    "2" = "#5978d4",
-    "3" = "#b5179e")
-
-day_colors = c(
-    "1" = "#caf0f8",
-    "3" = "#90e0ef",
-    "6" = "#00b4d8",
-    "7" = "#0077b6",
-    "14" = "#023e8a",
-    "28" = "#03045e")
-
-type_colors = c('IN'= "#ffd000", #First generation vaccines
-           'LA' = "#ffff3f",
-           'CONJ' = "#f4a261",
-           'VLP' = "#da1e37", #Second generation vaccines
-           'SU' = "#ff4d6d",
-           'PEP' = "#f48498",
-           'VV' = "#72efdd", #Third generation vaccines
-           'RNA' = "#56cfe1",
-           'VV-RNA' = "#5e60ce",
-           'IN-SU' = "#b5179e")
-
-regimen_colors = c('HO' = "#56cfe1",
-              'HE' = "#5e60ce")
-
-immune_system_colors = c(
-    "Innate" = "#faedcd",
-    "Adaptive" = "#ffb5a7",
-    "General" = "#99d98c",
-    "Other" = "#e5e5e5",
-    "Complement" = "#7400b8")
-
-immune_subsystem_colors = c(
-    "Adaptive" = "#ffb5a7",
-    "Cellular" = "#ff758f",
-    "Humoral" = "#ff758f",
-    "Antibacterial" = "#4895ef",
-    "Antifungal" = "#4361ee",
-    "Antimicrobial" = "#7400b8",
-    "General" = "#99d98c",
-    "Antigen presentation" = "#e4c4a5",
-    "APC" = "#ccd5ae",
-    "Eosinophil" = "#faedcd",
-    "Granulocyte" = "#faedcd",
-    "Leukocyte" = "#ffb5a7",
-    "Neutrophil" = "#ccd5ae",
-    "Innate immune response" = "#faedcd",
-    "Interferon" = "#a4c3b2",
-    "Antiviral" = "#60495a",
-    "Pattern recognition receptor" = "#f4f4d5",
-    "Natural killer" = "#fedd96",
-    "Mucosa" = "#c3dfe0",
-    "Erythrocyte" = "#4895ef")
-
-
-
-########## Colors dictionary
-
-#Vaccines
-ann_colors = list(
-  vaccine = c(
-  "BBIBP" = "#dee2e6",
-  "BNT" = "#56cfe1",
-  "ChAd" = "#80ffdb",
-  "ChAd-BNT" = "#5e60ce",
-  "ZF2001" = "#b5179e",
-  "INFECTION" = "#ff4d6d",
-  "INFECTION-VACCINE"= "#ffccd5"),
+### VAX SIG DB ----
+ann_vaxsig_colors = list(
+  type = c("VLP" = "#7E6148FF",
+           "LA" =  "#E64B35FF",
+           "CONJ" = "#F39B7FFF", 
+           'IN'= "#00A087FF", #1st Gen  vaccines
+           'VV' = "#3C5488FF", #3rd Gen vaccines
+           'RNA' = "#4DBBD5FF",
+           'SU' = "#8491B4FF",
+           'I'= "#DC0000FF",
+           "H" = "grey95"),
+  target_pathogen_disease = c('MENINGOCOCCUS'	= "#00A087FF",
+                              'PNEUMOCOCCUS'	= "#44C199",
+                              'TUBERCULOSIS'	= "#99e2b4",
+                              'F TULARENSIS'	= "#4DBBD5FF",
+                              'LEISHMANIA'	= "#118ab2",
+                              'MALARIA' = "#015BA0",
+                              'EBOV'	= "#5e60ce",
+                              'HBV'	= "#D7B0EE",
+                              'HBV, HAV'	= "#D7B0EE",
+                              'HIV'	= "#b5179e",
+                              'HPV'	= "#c77dff",
+                              'INFLUENZA'	= "#deaaff",
+                              'MEASLES'	= "#9d4edd",
+                              'MMR'	= "#7b2cbf",
+                              'SMALLPOX'	= "#e5b3fe",
+                              'VEEV'	= "#ecbcfd",
+                              'VZV'	= "#c8b6ff",
+                              'YF'	= "#b8c0ff"),
+  covid_other = c("COVID" = "#DC0000FF",
+                  "OTHER" = "#4DBBD5FF"),
+  microbe_type = c("VIRUS" = "#5e60ce",
+                   'BACTERIUM' = "#00A087FF",
+                   'PARASITE' = "#7E6148FF"),
+  
+  week = c("0" = "#ECF8FA",
+           "1" = "#caf0f8",
+           "2" = "#6CD5EA",
+           "3" = "#0087BF",
+           "4" = "#015BA0", 
+           "6" = "#03045e",
+           "7" = "#03045e",
+           "8" = "#03045e"),
+  month = c("1" = "#caf0f8",
+            "0" = "#6CD5EA",
+            "2" = "#015BA0"),
+  vaccine = c("BBIBP" = "#00A087FF",
+              "ZF2001" = "#8491B4FF",
+              "BNT" = "#4DBBD5FF",
+              "MO" = "#72ddf7",
+              "ChAd" = "#3C5488FF",
+              "I" = "grey95",
+              "H" = "grey95"),
   dose = c(
-    "NA" = "white",
-    "0" = "white",
-    "1" = "#56cfe1",
-    "2" = "#5978d4",
-    "3" = "#b5179e"),
+    "0" = "grey95",
+    "1" = "#91D1C2A0",
+    "2" = "#00A087FF",
+    "3" = "#3C5488FF"),
   day = c(
     "0" = "white",
     "1" = "#caf0f8",
@@ -138,46 +117,312 @@ ann_colors = list(
     "6" = "#00b4d8",
     "7" = "#0096c7",
     "10" = "#0087BF",
+    "11" = "#0087BF",
     "14" = "#0077b6",
     "26" = "#015BA0",
     "28" = "#023e8a",
     "51" = "#03045e"),
-  type = c('IN'= "#e5e5e5", #1st Gen  vaccines
-           'SU' = "#00a896",
-           'VV' = "#72efdd", #3rd Gen vaccines
-           'RNA' = "#56cfe1",
-           'VV-RNA' = "#5e60ce", #Heterologous
-           'IN-SU' = "#b5179e",
-           'INFECTION'= "#da1e37"), #Infection
-  regimen = c('HO' = "grey90",
-              'HE' = "#8d99ae",
-              "V-I-V" = "#36248f",
-              "V-I" = "#D7B0EE",
-              "I-V-I" = "#7400b8",
-              "I-I" = "#5390d9",
-              "I" = "#64dfdf"),
-  infection = c("none" = "white",
-                "1" = "#56cfe1",
-                "2" = "#5e60ce"),
-  variant = c("NA" = "white",
-              "Beta" = "#72efdd",
-              "Omicron" = "#5e60ce"),
-  severity = c("A (9%) MI (81%) MO (0) S (4%)" = "#caf0f8",
-               "A (29%) MI (57%) MO (14) S (0%)" = "#56cfe1",
-               "A (0%) MI (89%) MO (11%) S (0%)" = "#72efdd",
-               "A (9%) MI (47%) MO (21%) S (3%)" = "#64dfdf",
-               "S" = "#5e60ce",
-               "MO" = "#64dfdf",
-               "MI" = "#72efdd",
-               "NA" = "white"),
-  gse_id = c("GSE199750" = "#80ffdb",
-               "GSE201533" = "#5e60ce", 
-               "GSE201530" = "#7400b8",
-               "GSE206023" = "#4361ee",
-               "GSE189039" = "#48bfe3"))
+  infection = c("0" = "white",
+                "1" = "#00A087FF",
+                "2" = "#3C5488FF"),
+  variant = c("None" = "grey95",
+              "Beta" = "#00A087FF",
+              "Omicron" = "#3C5488FF"),
+  severity = c("H" = "grey95",
+               "S" = "#DC0000FF",
+               "MO" = "#8491B4FF",
+               "MI" = "#91D1C2FF",
+               "NA" = "grey95"),
+  sex = c("Male" = "#4DBBD5FF",
+          "Female" = "#E64B35FF",
+          "M/F" = "#8491B4FF"),
+  disease_vac = c("I" = "#DC0000FF",
+                  "V" = "#4DBBD5FF")
+)
 
 
-  
+# Not immune processes -----
+col_process_notimmune = list(
+  "1" = c("Cellular" = "#3C5488FF",
+          "Interspecies interaction" = "#00A087FF",
+          "Metabolism" = "#4DBBD5FF",
+          "Reg. of BP" = "#E64B35FF",
+          "."="white"),
+  "2" = c("Cellular" = "#3C5488FF",
+          "Interspecies interaction" = "#00A087FF",
+          "Metabolism" = "#4DBBD5FF",
+          "Reg. of BP" = "#E64B35FF",
+          "."="white"),
+  "3" = c("Cellular" = "#3C5488FF",
+          "Interspecies interaction" = "#00A087FF",
+          "Metabolism" = "#4DBBD5FF",
+          "Reg. of BP" = "#E64B35FF",
+          "."="white"),
+  "4" = c("Cellular" = "#3C5488FF",
+          "Interspecies interaction" = "#00A087FF",
+          "Metabolism" = "#4DBBD5FF",
+          "Reg. of BP" = "#E64B35FF",
+          "."="white"),
+  "5" = c("Cellular" = "#3C5488FF",
+          "Interspecies interaction" = "#00A087FF",
+          "Metabolism" = "#4DBBD5FF",
+          "Reg. of BP" = "#E64B35FF",
+          "."="white"))
+
+
+#Immune processes ------
+col_process_immune = list(
+  "1" = c("ADAPTIVE IMMUNE SYSTEM" = "#6f2dbd",
+          "B CELL" = "#7b2cbf",
+          "CELLULAR ADAPTIVE IMMUNE SYSTEM" = "#e0aaff",
+          "HUMORAL ADAPTIVE IMMUNE SYSTEM" = "#9d4edd",
+          "IMMUNOGLOBULIN MEDIATED RESPONSE"= "#5a189a",
+          "T CELLS" = "#c77dff",
+          "T HELPER CELLS" = "#c77dcc",
+          "COMPLEMENT" = "#ffadc7",
+          "ANTIVIRAL & IFN" = "#88d4ab",
+          "ARPP" = "#14746f",
+          "DENDRITIC CELL" = "#036666",
+          "EOSINOPHIL" = "#67b99a",
+          "INFLAMMATION" = "#99e2b4",
+          "INNATE IMMUNE SYSTEM" = "#06d6a0",
+          "MAST CELL" = "#56ab91",
+          "MONOCYTE" = "#358f80",
+          "NEUTROPHIL" = "#78c6a3",
+          "NK CELL" = "#469d89",
+          "MACROPHAGE" = "#14746f",
+          "GENERAL" = "#343a40",
+          "ANTIMICROBIAL" = "#48cae4",
+          "."="white"),
+  "2" = c("ADAPTIVE IMMUNE SYSTEM" = "#6f2dbd",
+          "B CELLS" = "#7b2cbf",
+          "CELLULAR ADAPTIVE IMMUNE SYSTEM" = "#e0aaff",
+          "HUMORAL ADAPTIVE IMMUNE SYSTEM" = "#9d4edd",
+          "IMMUNOGLOBULIN MEDIATED RESPONSE"= "#5a189a",
+          "T CELL" = "#c77dff",
+          "T HELPER CELLS" = "#c77dcc",
+          "COMPLEMENT" = "#ffadc7",
+          "ANTIVIRAL & IFN" = "#88d4ab",
+          "ARPP" = "#14746f",
+          "DENDRITIC CELL" = "#036666",
+          "EOSINOPHIL" = "#67b99a",
+          "INFLAMMATION" = "#99e2b4",
+          "INNATE IMMUNE SYSTEM" = "#06d6a0",
+          "MAST CELL" = "#56ab91",
+          "MONOCYTE" = "#358f80",
+          "NEUTROPHIL" = "#78c6a3",
+          "NK CELL" = "#469d89",
+          "MACROPHAGE" = "#14746f",
+          "GENERAL" = "#343a40",
+          "ANTIMICROBIAL" = "#48cae4",
+          "."="white"),
+  "3" = c("ADAPTIVE IMMUNE SYSTEM" = "#6f2dbd",
+          "B CELL" = "#7b2cbf",
+          "CELLULAR ADAPTIVE IMMUNE SYSTEM" = "#e0aaff",
+          "HUMORAL ADAPTIVE IMMUNE SYSTEM" = "#9d4edd",
+          "IMMUNOGLOBULIN MEDIATED RESPONSE"= "#5a189a",
+          "T CELL" = "#c77dff",
+          "T HELPER CELLS" = "#c77dcc",
+          "COMPLEMENT" = "#ffadc7",
+          "ANTIVIRAL & IFN" = "#88d4ab",
+          "ARPP" = "#14746f",
+          "DENDRITIC CELL" = "#036666",
+          "EOSINOPHIL" = "#67b99a",
+          "INFLAMMATION" = "#99e2b4",
+          "INNATE IMMUNE SYSTEM" = "#06d6a0",
+          "MAST CELL" = "#56ab91",
+          "MONOCYTE" = "#358f80",
+          "NEUTROPHIL" = "#78c6a3",
+          "NK CELL" = "#469d89",
+          "MACROPHAGE" = "#14746f",
+          "GENERAL" = "#343a40",
+          "ANTIMICROBIAL" = "#48cae4",
+          "."="white"),
+  "4" = c("ADAPTIVE IMMUNE SYSTEM" = "#6f2dbd",
+          "B CELL" = "#7b2cbf",
+          "CELLULAR ADAPTIVE IMMUNE SYSTEM" = "#e0aaff",
+          "HUMORAL ADAPTIVE IMMUNE SYSTEM" = "#9d4edd",
+          "IMMUNOGLOBULIN MEDIATED RESPONSE"= "#5a189a",
+          "T CELL" = "#c77dff",
+          "T HELPER CELLS" = "#c77dcc",
+          "COMPLEMENT" = "#ffadc7",
+          "ANTIVIRAL & IFN" = "#88d4ab",
+          "ARPP" = "#14746f",
+          "DENDRITIC CELL" = "#036666",
+          "EOSINOPHIL" = "#67b99a",
+          "INFLAMMATION" = "#99e2b4",
+          "INNATE IMMUNE SYSTEM" = "#06d6a0",
+          "MAST CELL" = "#56ab91",
+          "MONOCYTE" = "#358f80",
+          "NEUTROPHIL" = "#78c6a3",
+          "NK CELL" = "#469d89",
+          "MACROPHAGE" = "#14746f",
+          "GENERAL" = "#343a40",
+          "ANTIMICROBIAL" = "#48cae4",
+          "."="white"),
+  "5" = c("ADAPTIVE IMMUNE SYSTEM" = "#6f2dbd",
+          "B CELL" = "#7b2cbf",
+          "CELLULAR ADAPTIVE IMMUNE SYSTEM" = "#e0aaff",
+          "HUMORAL ADAPTIVE IMMUNE SYSTEM" = "#9d4edd",
+          "IMMUNOGLOBULIN MEDIATED RESPONSE"= "#5a189a",
+          "T CELL" = "#c77dff",
+          "T HELPER CELLS" = "#c77dcc",
+          "COMPLEMENT" = "#ffadc7",
+          "ANTIVIRAL & IFN" = "#88d4ab",
+          "ARPP" = "#14746f",
+          "DENDRITIC CELL" = "#036666",
+          "EOSINOPHIL" = "#67b99a",
+          "INFLAMMATION" = "#99e2b4",
+          "INNATE IMMUNE SYSTEM" = "#06d6a0",
+          "MAST CELL" = "#56ab91",
+          "MONOCYTE" = "#358f80",
+          "NEUTROPHIL" = "#78c6a3",
+          "NK CELL" = "#469d89",
+          "MACROPHAGE" = "#14746f",
+          "GENERAL" = "#343a40",
+          "ANTIMICROBIAL" = "#48cae4",
+          "."="white"),
+  "6" = c("ADAPTIVE IMMUNE SYSTEM" = "#6f2dbd",
+          "B CELL" = "#7b2cbf",
+          "CELLULAR ADAPTIVE IMMUNE SYSTEM" = "#e0aaff",
+          "HUMORAL ADAPTIVE IMMUNE SYSTEM" = "#9d4edd",
+          "IMMUNOGLOBULIN MEDIATED RESPONSE"= "#5a189a",
+          "T CELL" = "#c77dff",
+          "T HELPER CELLS" = "#c77dcc",
+          "COMPLEMENT" = "#ffadc7",
+          "ANTIVIRAL & IFN" = "#88d4ab",
+          "ARPP" = "#14746f",
+          "DENDRITIC CELL" = "#036666",
+          "EOSINOPHIL" = "#67b99a",
+          "INFLAMMATION" = "#99e2b4",
+          "INNATE IMMUNE SYSTEM" = "#06d6a0",
+          "MAST CELL" = "#56ab91",
+          "MONOCYTE" = "#358f80",
+          "NEUTROPHIL" = "#78c6a3",
+          "NK CELL" = "#469d89",
+          "MACROPHAGE" = "#14746f",
+          "GENERAL" = "#343a40",
+          "ANTIMICROBIAL" = "#48cae4",
+          "."="white"),
+  "7" =c("ADAPTIVE IMMUNE SYSTEM" = "#6f2dbd",
+         "B CELL" = "#7b2cbf",
+         "CELLULAR ADAPTIVE IMMUNE SYSTEM" = "#e0aaff",
+         "HUMORAL ADAPTIVE IMMUNE SYSTEM" = "#9d4edd",
+         "IMMUNOGLOBULIN MEDIATED RESPONSE"= "#5a189a",
+         "T CELL" = "#c77dff",
+         "T HELPER CELLS" = "#c77dcc",
+         "COMPLEMENT" = "#ffadc7",
+         "ANTIVIRAL & IFN" = "#88d4ab",
+         "ARPP" = "#14746f",
+         "DENDRITIC CELL" = "#036666",
+         "EOSINOPHIL" = "#67b99a",
+         "INFLAMMATION" = "#99e2b4",
+         "INNATE IMMUNE SYSTEM" = "#06d6a0",
+         "MAST CELL" = "#56ab91",
+         "MONOCYTE" = "#358f80",
+         "NEUTROPHIL" = "#78c6a3",
+         "NK CELL" = "#469d89",
+         "MACROPHAGE" = "#14746f",
+         "GENERAL" = "#343a40",
+         "ANTIMICROBIAL" = "#48cae4",
+         "."="white"),
+  "8" = c("ADAPTIVE IMMUNE SYSTEM" = "#6f2dbd",
+          "B CELL" = "#7b2cbf",
+          "CELLULAR ADAPTIVE IMMUNE SYSTEM" = "#e0aaff",
+          "HUMORAL ADAPTIVE IMMUNE SYSTEM" = "#9d4edd",
+          "IMMUNOGLOBULIN MEDIATED RESPONSE"= "#5a189a",
+          "T CELL" = "#c77dff",
+          "T HELPER CELLS" = "#c77dcc",
+          "COMPLEMENT" = "#ffadc7",
+          "ANTIVIRAL & IFN" = "#88d4ab",
+          "ARPP" = "#14746f",
+          "DENDRITIC CELL" = "#036666",
+          "EOSINOPHIL" = "#67b99a",
+          "INFLAMMATION" = "#99e2b4",
+          "INNATE IMMUNE SYSTEM" = "#06d6a0",
+          "MAST CELL" = "#56ab91",
+          "MONOCYTE" = "#358f80",
+          "NEUTROPHIL" = "#78c6a3",
+          "NK CELL" = "#469d89",
+          "MACROPHAGE" = "#14746f",
+          "GENERAL" = "#343a40",
+          "ANTIMICROBIAL" = "#48cae4",
+          "."="white"),
+  "9" = c("ADAPTIVE IMMUNE SYSTEM" = "#6f2dbd",
+          "B CELL" = "#7b2cbf",
+          "CELLULAR ADAPTIVE IMMUNE SYSTEM" = "#e0aaff",
+          "HUMORAL ADAPTIVE IMMUNE SYSTEM" = "#9d4edd",
+          "IMMUNOGLOBULIN MEDIATED RESPONSE"= "#5a189a",
+          "T CELL" = "#c77dff",
+          "T HELPER CELLS" = "#c77dcc",
+          "COMPLEMENT" = "#ffadc7",
+          "ANTIVIRAL & IFN" = "#88d4ab",
+          "ARPP" = "#14746f",
+          "DENDRITIC CELL" = "#036666",
+          "EOSINOPHIL" = "#67b99a",
+          "INFLAMMATION" = "#99e2b4",
+          "INNATE IMMUNE SYSTEM" = "#06d6a0",
+          "MAST CELL" = "#56ab91",
+          "MONOCYTE" = "#358f80",
+          "NEUTROPHIL" = "#78c6a3",
+          "NK CELL" = "#469d89",
+          "MACROPHAGE" = "#14746f",
+          "GENERAL" = "#343a40",
+          "ANTIMICROBIAL" = "#48cae4",
+          "."="white"),
+  "10" = c("ADAPTIVE IMMUNE SYSTEM" = "#6f2dbd",
+           "B CELL" = "#7b2cbf",
+           "CELLULAR ADAPTIVE IMMUNE SYSTEM" = "#e0aaff",
+           "HUMORAL ADAPTIVE IMMUNE SYSTEM" = "#9d4edd",
+           "IMMUNOGLOBULIN MEDIATED RESPONSE"= "#5a189a",
+           "T CELL" = "#c77dff",
+           "T HELPER CELLS" = "#c77dcc",
+           "COMPLEMENT" = "#ffadc7",
+           "ANTIVIRAL & IFN" = "#88d4ab",
+           "ARPP" = "#14746f",
+           "DENDRITIC CELL" = "#036666",
+           "EOSINOPHIL" = "#67b99a",
+           "INFLAMMATION" = "#99e2b4",
+           "INNATE IMMUNE SYSTEM" = "#06d6a0",
+           "MAST CELL" = "#56ab91",
+           "MONOCYTE" = "#358f80",
+           "NEUTROPHIL" = "#78c6a3",
+           "NK CELL" = "#469d89",
+           "MACROPHAGE" = "#14746f",
+           "GENERAL" = "#343a40",
+           "ANTIMICROBIAL" = "#48cae4",
+           "."="white"))
+
+
+immune_system_colors = c(
+  "Innate" = "#faedcd",
+  "Adaptive" = "#ffb5a7",
+  "General" = "#99d98c",
+  "Other" = "#e5e5e5",
+  "Complement" = "#7400b8")
+
+immune_subsystem_colors = c(
+  "Adaptive" = "#ffb5a7",
+  "Cellular" = "#ff758f",
+  "Humoral" = "#ff758f",
+  "Antibacterial" = "#4895ef",
+  "Antifungal" = "#4361ee",
+  "Antimicrobial" = "#7400b8",
+  "General" = "#99d98c",
+  "Antigen presentation" = "#e4c4a5",
+  "APC" = "#ccd5ae",
+  "Eosinophil" = "#faedcd",
+  "Granulocyte" = "#faedcd",
+  "Leukocyte" = "#ffb5a7",
+  "Neutrophil" = "#ccd5ae",
+  "Innate immune response" = "#faedcd",
+  "Interferon" = "#a4c3b2",
+  "Antiviral" = "#60495a",
+  "Pattern recognition receptor" = "#f4f4d5",
+  "Natural killer" = "#fedd96",
+  "Mucosa" = "#c3dfe0",
+  "Erythrocyte" = "#4895ef")
+
 
 ```
 
@@ -585,20 +830,21 @@ a = samples_by_condition %>%
                                                                 "Infection",
                                                                 "MO",
                                                                 "ZF2001"),
-    values = c("BBIBP" = "#76c893",
-                "ZF2001" = "#b5e48c",
-                "BNT" = "#56cfe1",
+    values = c("BBIBP" = "#00A087FF",
+                "ZF2001" = "#8491B4FF",
+                "BNT" = "#4DBBD5FF",
                 "MO" = "#72ddf7",
-                "ChAd" = "#5e60ce",
-                "I" = "#f72585",
+                "ChAd" = "#3C5488FF",
+                "I" = "#DC0000FF",
                 "H" = "grey80")) +
   theme_minimal() +
-  theme(legend.position = "bottom",
+  theme(legend.position = "right",
         axis.text.x = element_text(size = 15, color = "black", angle = 45, hjust = 1, vjust = 1.1),
         axis.text.y = element_blank(), 
         axis.title.y = element_text(angle = 180, color = "white"),
         panel.grid.major = element_blank(), 
-        panel.grid.minor = element_blank()) +
+        panel.grid.minor = element_blank(),
+        plot.margin = margin(2, 2, 2, 2, "cm")) +
   geom_label(aes(label = samples, y = samples),
              fill = "white",
             position = position_dodge(width = 0), 
@@ -2027,6 +2273,9 @@ write.csv(shared_genes_df_mirror, file = paste0("shared_", filename, "_fisher.cs
 *pHeatmap*
 
 ```{r}
+filename = "shared_degs_updown_immune_SharedDEGS_Venn_fisher"
+shared_genes_df_mirror = shared_degs_updown_immune_SharedDEGS_Venn_fisher
+#shared_genes_df_mirror = shared_degs_updown_nonimmune_SharedDEGS_Venn_fisher
 
 #Anotar colunas
 # Converter para wide table
@@ -2086,79 +2335,6 @@ dim(ann_vaccines_heatmap) #Anotações sobre as colunas
 # dim(matrix_data_rows_cols_ordered) #Usar se ordenar por colunas e linhas
 # dim(ann_genesets_heatmap) #Anotações sobre as linhas
 
-```
-
-
-4. Cores.
-Defina as cores de cada elemento da tabela das anotações das colunas e/ou linhas.
-
-```{r}
-########## Definir Cores dos grupos
-#Vaccines
-ann_colors = list(
-  vaccine = c(
-  "BBIBP" = "#76c893",
-  "ZF2001" = "#b5e48c",
-  "BNT" = "#56cfe1",
-  "MO" = "#72ddf7",
-  "ChAd" = "#5e60ce",
-  "I" = "grey95",
-  "H" = "grey95"),
-  dose = c(
-    "0" = "grey95",
-    "1" = "#bbdefb",
-    "2" = "#1e88e5",
-    "3" = "#0d47a1"),
-  day = c(
-    "0" = "white",
-    "1" = "#e3f2fd",
-    "2" = "#ade8f4",
-    "3" = "#90e0ef",
-    "4" = "#6CD5EA",
-    "5" = "#48cae4",
-    "6" = "#00b4d8",
-    "7" = "#0096c7",
-    "10" = "#0087BF",
-    "11" = "#0087BF",
-    "14" = "#0077b6",
-    "26" = "#015BA0",
-    "28" = "#023e8a",
-    "51" = "#03045e"),
-  week = c("1" = "#e3f2fd",
-           "2" = "#6CD5EA",
-           "3" = "#0087BF",
-           "4" = "#015BA0", 
-           "7" = "#03045e"),
-  type = c('IN'= "#76c893", #1st Gen  vaccines
-           'VV' = "#5e60ce", #3rd Gen vaccines
-           'RNA' = "#56cfe1",
-           'SU' = "#b5e48c",
-           'I'= "#f72585",
-           "H" = "grey95"), #Infection
-  regimen = c('HO' = "grey90",
-              'HE' = "#8d99ae",
-              "V-I-V" = "#36248f",
-              "V-I" = "#D7B0EE",
-              "I-V-I" = "#7400b8",
-              "I-I" = "#5390d9",
-              "I" = "#64dfdf",
-              "H" = "grey95"),
-  infection = c("0" = "#64dfdf",
-                "1" = "#f72585",
-                "2" = "#a4161a"),
-  variant = c("None" = "grey95",
-              "Beta" = "#72efdd",
-              "Omicron" = "#5e60ce"),
-  severity = c("H" = "grey95",
-               "S" = "#0d47a1",
-               "MO" = "#1e88e5",
-               "MI" = "#bbdefb",
-               "NA" = "grey95"),
-  sex = c("Male" = "#64dfdf",
-          "Female" = "#5e60ce",
-          "M/F" = "#D7B0EE"))
-
-
 #Definir cores do gráfico
 # Defina os valores mínimos e máximos para o espectro de cores
 min(matrix_data_ordered_rows)
@@ -2179,11 +2355,11 @@ ann_vaccines_heatmap = ann_vaccines_heatmap %>%
   select(type, vaccine, day)
 
 ha = HeatmapAnnotation(df = ann_vaccines_heatmap, 
-                       col = ann_colors, 
+                       col = ann_vaxsig_colors, 
                        annotation_name_side = "left")
 
 row_ha = rowAnnotation(df = ann_vaccines_heatmap, 
-                       col = ann_colors)
+                       col = ann_vaxsig_colors)
 
 
 
@@ -2444,7 +2620,7 @@ write.csv(gse_counts_all_long, file = "gse_counts_all_long.csv")
 ```
 
 
-### DEGs quantification analysis
+## DEGs quantification analysis
 
 ```{r}
 degs_all_updown = all_degs_p_05_vac_infected_29_11_23 %>% 
@@ -2743,16 +2919,13 @@ main_go_2 = degs_GO %>%
   inner_join(ann_vaccines_19_1_24 %>% select(condition, type, disease_vac), by = "condition")
   
 write.csv(main_go_2, file = "degs_annotated_mainGOs_stats.csv", row.names = F)
-
-
-
-
-
 ```
 
 
 ```{r}
 ### Bar plot by term -----
+
+main_go_2 = degs_annotated_mainGOs_stats
 
 main_go_2_plot = main_go_2 %>% 
   mutate(direction = if_else(direction == "UP", "↑", "↓")) %>% 
@@ -2764,11 +2937,11 @@ main_go_2_plot = main_go_2 %>%
  theme(legend.position = "top") +
  facet_grid(vars(direction),  vars(term_ancestor)) +
    scale_fill_manual(name = "Type",
-    values = c('IN'= "#76c893", #1st Gen  vaccines
-           'VV' = "#5e60ce", #3rd Gen vaccines
-           'RNA' = "#56cfe1",
-           'SU' = "#b5e48c",
-           'I'= "#f72585",
+    values = c('IN'= "#00A087FF", #1st Gen  vaccines
+           'VV' = "#3C5488FF", #3rd Gen vaccines
+           'RNA' = "#4DBBD5FF",
+           'SU' = "#8491B4FF",
+           'I'= "#DC0000FF",
            "H" = "grey95")) +
   theme(legend.position = "right",
           legend.title = element_text(size = 15),
@@ -2798,8 +2971,10 @@ main_go_2_plot = main_go_2 %>%
 
 
 ggsave(main_go_2_plot, file = "main_go_2_plot_values.png", width = 20, height = 15)
+```
 
 
+```{r}
 ### Totals ------
 
 main_go_2_plot_totals_values = main_go_2 %>%
@@ -2815,11 +2990,11 @@ main_go_2_plot_totals_values = main_go_2 %>%
  theme(legend.position = "top") +
  facet_grid(direction~ stat, scales = "free") +
    scale_fill_manual(
-    values = c('IN'= "#76c893", #1st Gen  vaccines
-           'VV' = "#5e60ce", #3rd Gen vaccines
-           'RNA' = "#56cfe1",
-           'SU' = "#b5e48c",
-           'I'= "#f72585",
+    values = c('IN'= "#00A087FF", #1st Gen  vaccines
+           'VV' = "#3C5488FF", #3rd Gen vaccines
+           'RNA' = "#4DBBD5FF",
+           'SU' = "#8491B4FF",
+           'I'= "#DC0000FF",
            "H" = "grey95")) +
     theme(legend.position = "right",
           legend.title = element_text(size = 15),
@@ -2925,7 +3100,17 @@ write.csv(shared_genes_comparisons, file = "shared_genes_infection_vaccination_c
 
 ```{r}
 # Vaccine and infection ----
-shared_genes_vaccines_infection_plot = shared_genes_vaccines_infection %>% 
+shared_genes_infection_vaccination = shared_genes_infection_vaccination_comparisons %>% 
+  filter(comparison == "Infection and vaccination")
+
+shared_genes_infection = shared_genes_infection_vaccination_comparisons %>% 
+  filter(comparison == "Infection only")
+
+shared_genes_vaccines = shared_genes_infection_vaccination_comparisons %>% 
+  filter(comparison == "Vaccination only")
+
+
+shared_genes_vaccines_infection_plot = shared_genes_infection_vaccination %>% 
   select(genes, infection_vaccination, n_conditions, comparison) %>% 
   distinct() %>%
   slice_head(n=40) %>%  
@@ -2937,22 +3122,19 @@ shared_genes_vaccines_infection_plot = shared_genes_vaccines_infection %>%
   ) +
   geom_col() +
   scale_fill_manual(
-    values = c("Vaccination" = "#5e60ce",
-              "Infection" = "#f72585")
+    values = c("Vaccination" = "#4DBBD5FF",
+              "Infection" = "#DC0000FF")
     )+
   theme_minimal() +
   labs(fill = "Infection and vaccination") +
   xlab("Genes") + 
   ylab("Number of shared conditions") +
   theme(legend.position = "right",
-        axis.text.x = element_text(angle = 45, vjust = 1, hjust=1, size = 12),
-        axis.text.y = element_text(size = 7, angle = 90),
+        axis.text.x = element_text(angle = 45, vjust = 1, hjust=1, size = 10, color = "black"),
+        axis.text.y = element_text(size = 10, angle = 90, color = "black"),
         panel.grid.minor.y = element_blank(),
-        legend.text = element_text(size=12),
-        legend.title = element_text(size = 12, face = "bold")) +
-  ggtitle("Infection and vaccination") 
-
-ggsave(shared_genes_vaccines_infection_plot, file = "Genes_shared_Vaccination_Infection.png", width = 10, height = 3)
+        legend.text = element_text(size=10),
+        legend.title = element_text(size = 10, face = "bold")) 
 
 #Vaccination only -----
 shared_genes_vaccines_only = shared_genes_vaccines %>% 
@@ -2973,21 +3155,18 @@ shared_genes_vaccines_only_plot = shared_genes_vaccines_only %>%
       weight = n_conditions) +
   geom_bar() +
   scale_fill_manual(
-    values = c("Vaccination only" = "#5e60ce",
-              "Infection only" = "#f72585")) +
+    values = c("Vaccination only" = "#4DBBD5FF",
+              "Infection only" = "#DC0000FF")) +
   theme_minimal() +
   labs(fill = "Vaccination only") +
   xlab("Genes") + 
   ylab("Number of shared conditions") +
   theme(legend.position = "right",
-        axis.text.x = element_text(angle = 45, vjust = 1, hjust=1, size = 12),
-        axis.text.y = element_text(size = 7, angle = 0),
+        axis.text.x = element_text(angle = 45, vjust = 1, hjust=1, size = 10, color = "black"),
+        axis.text.y = element_text(size = 10, angle = 0, color = "black"),
         panel.grid.minor.y = element_blank(),
-        legend.text = element_text(size=12),
-        legend.title = element_text(size = 12, face = "bold")) +
-  ggtitle("Vaccination only") 
-
-ggsave(shared_genes_vaccines_only_plot, file = "Genes_shared_Vaccination_only.png", width = 10, height = 3)
+        legend.text = element_text(size=10),
+        legend.title = element_text(size = 10, face = "bold")) 
 
 
 # Infection only
@@ -3009,22 +3188,21 @@ shared_genes_infection_only_plot = shared_genes_infection_only %>%
       weight = n_conditions) +
   geom_bar() +
   scale_fill_manual(
-    values = c("Vaccination only" = "#56cfe1",
-              "Infection only" = "#f72585")) +
+    values = c("Vaccination only" = "#4DBBD5FF",
+              "Infection only" = "#DC0000FF")) +
   theme_minimal() +
   labs(fill = "Infection only") +
   xlab("Genes") + 
   ylab("Number of shared conditions") +
   theme(legend.position = "right",
-        axis.text.x = element_text(angle = 45, vjust = 1, hjust=1, size = 12),
-        axis.text.y = element_text(size = 7, angle = 0),
+        axis.text.x = element_text(angle = 45, vjust = 1, hjust=1, size = 10, color = "black"),
+        axis.text.y = element_text(size = 10, angle = 0, color = "black"),
         panel.grid.minor.y = element_blank(),
-        legend.text = element_text(size=12),
-        legend.title = element_text(size = 12, face = "bold")) +
-  ggtitle("Infection only") 
+        legend.text = element_text(size=10),
+        legend.title = element_text(size = 10, face = "bold"))
 
-ggsave(shared_genes_infection_only_plot, file = "Genes_shared_Infection_only.png", width = 10, height = 3)
 
+ggsave(shared_genes_vaccines_infection_plot/shared_genes_vaccines_only_plot/shared_genes_infection_only_plot, file = "Genes_shared_Vaccination_Infection_united.png", width = 10, height = 9)
 
 ```
 
@@ -3090,15 +3268,27 @@ shared_genes_comparisons = bind_rows(shared_genes_infection,
   arrange(desc(n_conditions))
 
 write.csv(shared_genes_comparisons, file = "non_Immune_shared_genes_infection_vaccination_comparisons.csv")
+```
 
 
+```{r}
 # Plotting ------
+shared_genes_infection_vaccination = non_Immune_shared_genes_infection_vaccination_comparisons %>%
+  select(-"...1") %>% 
+  filter(comparison == "Infection and vaccination")
 
-#Infection -----
+shared_genes_infection = non_Immune_shared_genes_infection_vaccination_comparisons %>% 
+  filter(comparison == "Infection only")
+
+shared_genes_vaccines = non_Immune_shared_genes_infection_vaccination_comparisons %>% 
+  filter(comparison == "Vaccination only")
+
+
+#Infection and vaccination
 shared_genes_vaccines_infection_plot = shared_genes_vaccines_infection %>% 
-  select(genes, infection_vaccination, n_conditions, comparison) %>% 
+  select(genes, infection_vaccination, n_conditions) %>% 
   distinct() %>%
-  slice_head(n=40) %>%  
+  slice_head(n=40) %>% 
   ggplot() +
   aes(
     x = reorder(genes, -n_conditions),
@@ -3107,22 +3297,18 @@ shared_genes_vaccines_infection_plot = shared_genes_vaccines_infection %>%
   ) +
   geom_col() +
   scale_fill_manual(
-    values = c("Vaccination" = "#5e60ce",
-              "Infection" = "#f72585")
-    )+
+    values = c("Vaccination" = "#4DBBD5FF",
+              "Infection" = "#DC0000FF")) +
   theme_minimal() +
-  labs(fill = "Infection and vaccination") +
+  labs(fill = "Infection only") +
   xlab("Genes") + 
   ylab("Number of shared conditions") +
   theme(legend.position = "right",
-        axis.text.x = element_text(angle = 45, vjust = 1, hjust=1, size = 12),
-        axis.text.y = element_text(size = 7, angle = 90),
+        axis.text.x = element_text(angle = 45, vjust = 1, hjust=1, size = 10, color = "black"),
+        axis.text.y = element_text(size = 10, angle = 0, color = "black"),
         panel.grid.minor.y = element_blank(),
-        legend.text = element_text(size=12),
-        legend.title = element_text(size = 12, face = "bold")) +
-  ggtitle("Infection and vaccination") 
-
-ggsave(shared_genes_vaccines_infection_plot, file = "Non_immune_Genes_shared_Vaccination_Infection.png", width = 10, height = 3)
+        legend.text = element_text(size=10),
+        legend.title = element_text(size = 10, face = "bold"))
 
 #Vaccination only -----
 
@@ -3137,22 +3323,19 @@ shared_genes_vaccines_only_plot = shared_genes_vaccines %>%
       weight = n_conditions) +
   geom_bar() +
   scale_fill_manual(
-    values = c("Vaccination only" = "#5e60ce",
-              "Infection only" = "#f72585")) +
+    values = c("Vaccination only" = "#4DBBD5FF",
+              "Infection only" = "#DC0000FF")) +
   theme_minimal() +
-  labs(fill = "Vaccination only") +
+  labs(fill = "Infection only") +
   xlab("Genes") + 
   ylab("Number of shared conditions") +
-  scale_y_continuous(breaks= pretty_breaks())+
   theme(legend.position = "right",
-        axis.text.x = element_text(angle = 45, vjust = 1, hjust=1, size = 12),
-        axis.text.y = element_text(size = 7, angle = 0),
+        axis.text.x = element_text(angle = 45, vjust = 1, hjust=1, size = 10, color = "black"),
+        axis.text.y = element_text(size = 10, angle = 0, color = "black"),
         panel.grid.minor.y = element_blank(),
-        legend.text = element_text(size=12),
-        legend.title = element_text(size = 12, face = "bold")) +
-  ggtitle("Vaccination only") 
+        legend.text = element_text(size=10),
+        legend.title = element_text(size = 10, face = "bold")) 
 
-ggsave(shared_genes_vaccines_only_plot, file = "Non_immune_shared_Vaccination_only.png", width = 10, height = 3)
 
 
 # Infection only -------
@@ -3168,22 +3351,21 @@ shared_genes_infection_only_plot = shared_genes_infection %>%
       weight = n_conditions) +
   geom_bar() +
   scale_fill_manual(
-    values = c("Vaccination only" = "#56cfe1",
-              "Infection only" = "#f72585")) +
+    values = c("Vaccination only" = "#4DBBD5FF",
+              "Infection only" = "#DC0000FF")) +
   theme_minimal() +
   labs(fill = "Infection only") +
   xlab("Genes") + 
   ylab("Number of shared conditions") +
   theme(legend.position = "right",
-        axis.text.x = element_text(angle = 45, vjust = 1, hjust=1, size = 12),
-        axis.text.y = element_text(size = 7, angle = 0),
+        axis.text.x = element_text(angle = 45, vjust = 1, hjust=1, size = 10, color = "black"),
+        axis.text.y = element_text(size = 10, angle = 0, color = "black"),
         panel.grid.minor.y = element_blank(),
-        legend.text = element_text(size=12),
-        legend.title = element_text(size = 12, face = "bold")) +
-  ggtitle("Infection only") 
+        legend.text = element_text(size=10),
+        legend.title = element_text(size = 10, face = "bold"))
 
-ggsave(shared_genes_infection_only_plot, file = "Non_immune_shared_Infection_only.png", width = 10, height = 3)
 
+ggsave(shared_genes_vaccines_infection_plot/shared_genes_vaccines_only_plot/shared_genes_infection_only_plot, file = "NonImmune_Genes_shared_Vaccination_Infection_united.png", width = 10, height = 9)
 ```
 
 

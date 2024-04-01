@@ -143,7 +143,7 @@ col_process_immune = list(
         "CELLULAR ADAPTIVE IMMUNE SYSTEM" = "#e0aaff",
         "HUMORAL ADAPTIVE IMMUNE SYSTEM" = "#9d4edd",
         "IMMUNOGLOBULIN MEDIATED RESPONSE"= "#5a189a",
-        "T CELL" = "#c77dff",
+        "T CELLS" = "#c77dff",
         "T HELPER CELLS" = "#c77dcc",
         "COMPLEMENT" = "#ffadc7",
         "ANTIVIRAL & IFN" = "#88d4ab",
@@ -368,22 +368,22 @@ ImmuneGO_Annotated_GO %>% filter(go_term == "Manual") %>% select(process) %>% di
 https://juliasilge.com/blog/sf-trees-random-tuning/
 # Libraries
 ```{r}
-# install.packages("randomForest")
-# install.packages("caret")
-# install.packages("rpart")
-# install.packages("rpart.plot")
-# install.packages("tidymodels")
-# install.packages("reticulate")
-# install.packages("themis")
-# install.packages("ranger")
+install.packages("randomForest")
+install.packages("caret")
+install.packages("rpart")
+install.packages("rpart.plot")
+install.packages("tidymodels")
+install.packages("reticulate")
+install.packages("themis")
+install.packages("ranger")
 
+
+library(tidymodels)
 tidymodels_prefer()
 library(randomForest)
-library(unbalanced)
 library(ranger)
 library(caret)
 library(reticulate)
-library(tidymodels)
 library(themis)
 library(tidyverse)
 library(rpart)
@@ -392,6 +392,7 @@ library(here)
 library(ggrepel)
 library(ComplexHeatmap)
 library(janitor)
+library(ggsci)
 ```
 
 
@@ -399,7 +400,7 @@ library(janitor)
 ```{r}
 # Input data ----
 filename = "ImmuneGO_Genes"
-outcomevar = "type_age_sex_day_dose"
+outcomevar = "sex"
 df = all_matrices_normalized_counts
 ann_vaccines_samples = ann_vaccines_samples
 
@@ -536,6 +537,35 @@ final %>% ggsave(file = paste0("vipgenes_tidymodels_", outcomevar, today(), ".pn
 genes_rf = final$data
 genes_rf
 genes_rf %>% write.csv(file = paste0("vipgenes_tidymodels_", outcomevar, today(), ".csv"), row.names = F)
+
+
+
+ggplot(vipgenes_tidymodels_type2024_03_29) +
+aes(x = reorder(Variable, Importance),
+    y = Importance,
+    color = Importance,
+      weight = Importance) +
+  geom_segment(aes(x=Variable, xend=Variable, y=0, yend=Importance)) +
+  geom_point(shape = "circle", size = 3) +
+  theme_minimal() +
+  xlab("Genes") + 
+  ylab("Importance") +
+  geom_text(aes(label = round(Importance, 4), y = Importance),
+            hjust = -0.5, 
+            size = 3,
+            angle = 0,
+            color = "black")+
+  ylim(0, 0.03)+
+  scale_color_gradient(low = "#4DBBD5FF", high = "#DC0000FF") +
+  theme(legend.position = "right",
+        axis.text.x = element_text(angle = 90, vjust = 1, hjust=1, size = 10, color = "black"),
+        axis.text.y = element_text(size = 10, angle = 0, color = "black"),
+        panel.grid.minor.y = element_blank(),
+        legend.text = element_text(size=10),
+        legend.title = element_text(size = 10, face = "bold")) +
+    coord_flip()
+
+
 ```
 
 
@@ -670,6 +700,8 @@ dev.off()
 
 
 ```{r}
+ImmuneGO_Annotated_Genes= `ImmuneGO_Annotated_Genes_2024-03-26`
+outcomevar = "_Type_"
 
 rf_genes = vipgenes_tidymodels_type2024_03_29 %>% 
   clean_names() %>% 
@@ -750,7 +782,6 @@ ann_rows_immune = matrix_data %>%
   replace(is.na(.), ".") %>% 
   mutate(`1` = if_else(`1` == ".", "INNATE IMMUNE SYSTEM", `1`))
 
-
 #Verificar dimensões do dataset
 dim(matrix)
 dim(matrix_data)
@@ -765,23 +796,23 @@ ha = HeatmapAnnotation(df = ann_cols_heatmap,
                        col = ann_vaxsig_colors,
                        annotation_name_side = "right")
 
-row_ha = row_ha = HeatmapAnnotation(df = ann_rows_immune,
+row_ha = HeatmapAnnotation(df = ann_rows_immune,
                        col = col_process_immune,
                        which= "row",
                        show_annotation_name = F,
                        show_legend = F)
 
 # Values colors
-col_fun <- colorRamp2(c(-1, 0, 1), c("#9bc1bc", "white", "#ed6a5a"))
+col_fun <- colorRamp2(c(-2, 0, 2), c("#9bc1bc", "white", "#ed6a5a"))
 
 file = filename_2
 mat = matrix_data
 width_image = 30
-height_image = 20
+height_image = 10
 width = unit(15, "cm")
-height = unit(10, "cm")
-column_names_gp = gpar(fontsize = 12)
-row_names_gp = gpar(fontsize = 8)
+height = unit(5, "cm")
+column_names_gp = gpar(fontsize = 10)
+row_names_gp = gpar(fontsize = 10)
 rect_gp = gpar(col = "gray80", lwd = 0.5)
 
 fileimageheatmap_grouped = paste0(file, sep ="_", "Complexheatmap.png")
@@ -794,7 +825,7 @@ png(file = fileimageheatmap_grouped,
 
 heatmap_plot = Heatmap(mat,
                         top_annotation = ha,
-                       left_annotation = row_ha,
+                        left_annotation = row_ha,
                         show_row_names = TRUE,
                         row_names_side = "right",
                         show_heatmap_legend = TRUE,
@@ -810,11 +841,11 @@ heatmap_plot = Heatmap(mat,
                         cluster_rows = TRUE,
                         row_names_gp = row_names_gp,
                         row_dend_width = unit(0, "cm"),
-                        row_split = NULL,
-                        column_split = 2,
+                        row_split = 2,
+                        column_split = 4,
                         row_gap = unit(2, "mm"),
                         cluster_columns = TRUE,
-                        column_gap = unit(8, "mm"),
+                        column_gap = unit(2, "mm"),
                         show_column_dend = F,
                         show_row_dend = F,
                         row_dend_side = "left",
@@ -827,8 +858,6 @@ heatmap_plot = Heatmap(mat,
 heatmap_plot = draw(heatmap_plot, 
      annotation_legend_side = "left", 
      heatmap_legend_side = "left")
-
-heatmap_plot
 
 dev.off()
 
@@ -1065,52 +1094,5 @@ dev.off()
 
 
 
-# Heatmap with L2FC 
-```{r}
 
-ImmuneGO_Annotated_Genes_all = ImmuneGO_Annotated_Genes_28_2_24 %>% 
-  filter(!process %in% c("TCR REPERTOIRE", "BCR REPERTOIRE"))
-
-ImmuneGO_Genes = all_degs_p_05_vac_infected_19_12_23 %>% 
-  select(-"...1", -"...12") %>% 
-  inner_join(ImmuneGO_Annotated_Genes %>% 
-               select(genes, process) %>% 
-               distinct() %>% 
-               select(genes),
-               by = "genes") %>% 
-  distinct()
-
-# Matrix
-l2fc_imps = imps %>% 
-  select(genes = var, importance = imps) %>% 
-  inner_join(ImmuneGO_Genes, by = "genes") %>%
-  select(genes, condition, log2fold_change) %>% 
- pivot_wider(names_from = condition, values_from = log2fold_change) %>% 
-  column_to_rownames("genes") %>% 
-  as.matrix() %>% 
-  replace(is.na(.), 0)
-
-#Annotations
-colors_col = imps %>% 
-  select(genes = var, importance = imps) %>% 
-  inner_join(ImmuneGO_Genes, by = "genes") %>%
-  inner_join(covid_others_colors %>% select(condition, color), by = "condition") %>% 
-  select(condition,color) %>% 
-  distinct() %>% 
-  .$color
-
-colors_row <- imps %>% 
-  select(genes = var, importance = imps) %>% 
-  inner_join(ImmuneGO_Genes, by = "genes") %>%
-  select(genes, condition, log2fold_change, importance) %>% 
-  pivot_wider(names_from = condition, values_from = log2fold_change) %>% 
-  mutate(imp_color = circlize::colorRamp2(c(min(importance), max(importance)), c("white", "red"))(importance)) %>% 
-  .$imp_color
-
-#Plot
-png("randomforest_heatmap_conditions_l2fc.png", units="in", width=10, height=10, res=300)
-heatmap(l2fc_imps, ColSideColors = colors, RowSideColors = colors_row, scale = "none",  margins = c(10, 10))
-dev.off()
-
-```
 
