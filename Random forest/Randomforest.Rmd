@@ -540,30 +540,32 @@ genes_rf %>% write.csv(file = paste0("vipgenes_tidymodels_", outcomevar, today()
 
 
 
-ggplot(vipgenes_tidymodels_type2024_03_29) +
-aes(x = reorder(Variable, Importance),
+importance_plot = ggplot(vipgenes_tidymodels_type2024_03_29) +
+  aes(x = reorder(Variable, Importance),
     y = Importance,
     color = Importance,
       weight = Importance) +
   geom_segment(aes(x=Variable, xend=Variable, y=0, yend=Importance)) +
-  geom_point(shape = "circle", size = 3) +
+  geom_point(shape = "circle", size = 5) +
   theme_minimal() +
   xlab("Genes") + 
   ylab("Importance") +
   geom_text(aes(label = round(Importance, 4), y = Importance),
             hjust = -0.5, 
-            size = 3,
+            size = 4,
             angle = 0,
             color = "black")+
-  ylim(0, 0.03)+
+  ylim(0, 0.035)+
   scale_color_gradient(low = "#4DBBD5FF", high = "#DC0000FF") +
   theme(legend.position = "right",
-        axis.text.x = element_text(angle = 90, vjust = 1, hjust=1, size = 10, color = "black"),
-        axis.text.y = element_text(size = 10, angle = 0, color = "black"),
+        axis.text.x = element_text(angle = 90, vjust = 1, hjust=1, size = 12, color = "black"),
+        axis.text.y = element_text(size = 12, angle = 0, color = "black"),
         panel.grid.minor.y = element_blank(),
-        legend.text = element_text(size=10),
-        legend.title = element_text(size = 10, face = "bold")) +
+        legend.text = element_text(size=12),
+        legend.title = element_text(size = 12, face = "bold")) +
     coord_flip()
+
+ggsave(importance_plot, file = paste0("vipgenes_tidymodels_", outcomevar, today(), ".png"), width = 8, height = 5)
 
 
 ```
@@ -863,235 +865,192 @@ dev.off()
 
 ```
 
-
-
-
-
-
-
-
-#Train and test data
-## Define custom parameters
-```{r}
-# Define parameters ----
-set.seed(420)
-customRF <- list(type = "Classification",
-                   library = "randomForest",
-                   loop = NULL)
-  
-customRF$parameters <- data.frame(parameter = c("mtry", "ntree"),
-                                    class = rep("numeric", 2),
-                                    label = c("mtry", "ntree"))
-  
-customRF$grid <- function(x, y, len = NULL, search = "grid") {}
-
-customRF$fit <- function(x, y, wts, param, lev, last, weights, classProbs) {
-    randomForest(x, y,
-                 mtry = param$mtry,
-                 ntree=param$ntree)
-  }
-  
-customRF$predict <- function(modelFit, newdata, preProc = NULL, submodels = NULL)
-    predict(modelFit, newdata)
-customRF$prob <- function(modelFit, newdata, preProc = NULL, submodels = NULL)
-    predict(modelFit, newdata, type = "prob")
-customRF$sort <- function(x) x[order(x[,1]),]
-customRF$levels <- function(x) x$classes
-```
-
+### Random forest genes in COVID and other vaccines
 
 ```{r}
-# Input data ----
-filename = "ImmuneGO_Genes"
-df_input = all_matrices_normalized_counts
-ann_vaccines_samples = ann_vaccines_samples
 
-#Select only important genes
-PC1_2 = PC_1_2_cos2
 
-#Data manipulation
-df_random_forest = df_input %>% 
-  rownames_to_column("genes") %>% 
-  inner_join(PC1_2 %>% select(genes) %>% distinct(), by = "genes") %>% 
-  column_to_rownames("genes") %>% 
+
+
+####### INPUT
+data_2 = covid_other_immunego_genes %>% 
+  inner_join(rf_genes, by = "genes")
+filename_2 = paste0("RF_Genes", "_VAX_COVID")
+
+######## Matrix
+matrix = data_2 %>% 
+  select(genes, condition, regulation_numeric) %>%
+  pivot_wider(names_from = "condition", 
+              values_from = "regulation_numeric", 
+              values_fn = mean) %>% 
+  replace(is.na(.), 0) %>%
+  arrange(genes) %>% 
+  column_to_rownames(var="genes") %>% 
+  as.matrix()
+
+######## Annotations
+ann_vaccines_covid_other_2 = data_2 %>% 
+  inner_join(ann_vaccines_covid_other, by = "condition") %>% 
+  select(condition, covid_other, microbe_type, disease_vac, type, week) %>% 
+  distinct()
+
+#Columns
+ann_cols_heatmap = matrix %>% 
+  colnames() %>% 
+  data.frame() %>% 
+  filter(. != "genes") %>% 
+  rename(condition = '.') %>% 
+  inner_join(ann_vaccines_covid_other_2, by = "condition") %>% 
+  distinct() %>% 
+  arrange(condition) %>% 
+  column_to_rownames("condition")
+
+matrix_data = matrix %>% 
   t() %>% 
   as.data.frame() %>% 
-  rownames_to_column("sample") %>% 
-  inner_join(ann_vaccines_samples %>% select(sample, disease_vac), by = "sample") %>% 
-  select(sample, disease_vac, everything()) %>% 
-  column_to_rownames("sample") %>% 
-  filter(disease_vac != "H", 
-         disease_vac != "Healthy")  %>% 
-  rename_with(~ gsub("-", "", .)) %>%
-  mutate(disease_vac = if_else(disease_vac == "V", 0, 1))
-
-# Stats
-tabyl(df_random_forest$disease_vac)
-
-# Allocate train and test data
-sample(1:nrow(df_random_forest), 387) -> train_all # Sample ~70% of total data
-df_random_forest[ train_all,] -> all_train # Allocate the 70% to train data
-df_random_forest[-train_all,] -> all_test # Allocate the remaining to test data
-
-#Check stats
-table(all_train_upsample$disease_vac)
-table(all_test$disease_vac)
-
-# Control parameters -----
-#Sample control by bootstraping
-ctrl = trainControl(method = 'cv', 
-                    number = 20, 
-                    allowParallel = T)
-
-grid = expand.grid(.mtry = c(1:15), 
-                   .ntree = c(500,
-                              1500,
-                              2000,
-                              2500))
-# Train -----
-rfFit = train(factor(disease_vac) ~ .,
-              method = customRF,
-              tuneGrid = grid,
-              trControl = ctrl,
-              metric = 'Accuracy',
-              data = all_train)
-# Check results
-png(file = "randomforest_ntree_mtry_train_plot.png", width = 20, height = 10, units = "cm", res = 320)
-plot(rfFit) 
-dev.off()
-
-summary(rfFit)
-
-```
-
-
-```{r}
-# Weight factors
-vector_RF <- if_else(all_train$disease_vac == 'I', 330, 57)
-
-# Random forest
-rf_aab_Pd = randomForest(factor(disease_vac) ~ .,
-                         data = all_train, 
-                         importance = T,
-                         mtry = 7,
-                         ntree = 1000,
-                         type = 'class',
-                         keep.inbag = TRUE
-                         #weights = vector_RF
-                         )
-                         
-print(rf_aab_Pd)
-
-
-# Importance -----
-importance(rf_aab_Pd, type = 2, scale= F)
-
-t = importance(rf_aab_Pd, type = 2) %>%  
+  rownames_to_column(var= "condition") %>% 
+  inner_join(ann_cols_heatmap %>% rownames_to_column("condition"), by = "condition") %>% 
+  select(!c(covid_other:week)) %>% 
+  arrange(condition) %>% 
+  column_to_rownames("condition") %>% 
+  t() %>% 
   as.data.frame() %>% 
-  rownames_to_column("var")
+  filter(rowSums(. != 0) > 1) %>% 
+  mutate_if(is.character, as.numeric) %>%
+  as.matrix() 
 
-imps <- data.frame(var = t$var, imps = t$MeanDecreaseGini/max(t$MeanDecreaseGini)) %>%
-  filter(imps > 0.6)
+#Rows Immune ----
+ann_rows_immune = matrix_data %>%
+  as.data.frame() %>%
+  rownames_to_column("genes") %>%
+  left_join(ImmuneGO_Annotated_Genes %>%
+              filter(go_term == "Manual",
+                     !process %in% c("TCR REPERTOIRE", "BCR REPERTOIRE")), by = "genes") %>%
+  select(genes, process) %>%
+  distinct() %>%
+  group_by(genes) %>%
+  arrange(genes, factor(process, levels = c("INNATE IMMUNE SYSTEM", "ADAPTIVE IMMUNE SYSTEM")), .by_group = TRUE) %>%
+  mutate(i_process = row_number()) %>%
+  pivot_wider(., names_from = "i_process", values_from = "process") %>%
+  column_to_rownames("genes") %>%
+  t() %>%
+  as.data.frame() %>%
+  rownames_to_column("index") %>%
+  mutate(index = as.numeric(index)) %>%
+  arrange(desc(index)) %>%
+  column_to_rownames("index") %>%
+  t() %>%
+  as.data.frame() %>%
+  replace(is.na(.), ".")
+
+
+# Rows Not immune -----
+# ann_rows_notimmune = matrix_data %>%
+#   as.data.frame() %>%
+#   rownames_to_column("genes") %>%
+#   left_join(ann_genes %>%
+#                select(process = term, genes = symbol, annotation) %>%
+#                filter(annotation == "Major process",
+#                       process != "Immune system"), by = "genes") %>%
+#   select(genes, process) %>%
+#   distinct() %>%
+#   group_by(genes) %>%
+#   mutate(i_process = row_number()) %>%
+#   pivot_wider(., names_from = "i_process", values_from = "process") %>%
+#   column_to_rownames("genes") %>%
+#   t() %>%
+#   as.data.frame() %>%
+#   rownames_to_column("index") %>%
+#   arrange(desc(index)) %>%
+#   column_to_rownames("index") %>%
+#   t() %>%
+#   as.data.frame() %>%
+#   replace(is.na(.), ".")
+
+
+#Verificar dimensões do dataset
+dim(matrix_data)
+dim(ann_cols_heatmap)
+# dim(ann_rows_notimmune)
+dim(ann_rows_immune)
+
 ```
-
 
 ```{r}
-# Plotting ----
+#Heatmap annotation
+ha = HeatmapAnnotation(df = ann_cols_heatmap, 
+                       col = ann_vaxsig_colors,
+                       annotation_name_side = "left")
 
-# Importance scores
-png("random_with_symp1.png", units="in", width=6, height=6, res=300)
-color = ifelse(imps$imps < 0.6, '< 0.6', 
-               ifelse(imps$imps > 0.7, '0.6-0.7', '> 0.7'))
-imps |>
-  ggplot(aes(imps, x = reorder(var, imps))) +
-  coord_flip() +
-  geom_point(aes(size = imps, fill = color), colour = "black", shape = 21) +
-  labs(x = "Predictors", y = "Importance scores") +
-  theme_bw(18)+
-  scale_fill_manual(values = c('gray', 'red', 'royalblue'))
-dev.off()
+row_ha = HeatmapAnnotation(df = ann_rows_immune,
+                       col = col_process_immune,
+                       which= "row",
+                       show_annotation_name = F,
+                       show_legend = F)
 
-# OOB error
-oob.err.data = data.frame(Trees = rep(1:nrow(rf_aab_Pd$err.rate), 3),
-                          Type = rep(c("OOB","0","1"), each = nrow(rf_aab_Pd$err.rate)),
-                          Error = c(rf_aab_Pd$err.rate[,"OOB"],rf_aab_Pd$err.rate[,"0"],rf_aab_Pd$err.rate[,"1"]))
+# Values colors
+col_fun <- colorRamp2(c(-1, 0, 1), c("#9bc1bc", "white", "#ed6a5a"))
 
-
-
-png("error_rate11.png", units="in", width=5, height=4, res=300)
-ggplot(data = oob.err.data, aes(x = Trees, y= Error)) +
-  geom_line(aes(color = Type)) +
-  theme_bw(18) +
-  ylim(0,1) +
-  scale_color_manual(values = c('gray','orange', 'black'))
-dev.off()
-
-# decision tree
-fit.tree_score = rpart(disease_vac ~ .,
-                       data = all_train,
-                       method = "class",
-                       cp=0.0008,
-                       minsplit = 60)
-# Decision tree 
-png("decision_tree.png", units="in", width=4, height=3, res=300)
-rpart.plot(fit.tree_score, box.palette = "Blues") # plot decision tree 
-dev.off()
-
-# ROC curve
-roc_data = data.frame()
-target_variables = colnames(RF_data[2:554])
-pred_rf = predict(rf_aab_Pd, all_test, type = 'prob')
-pred_rf_df = pred_rf_aab %>% 
-  as.data.frame() %>% 
-  rownames_to_column("sample")
-
-```
+file = filename_2
+mat = matrix_data
+width_image = 20
+height_image = 10
+width = unit(10, "cm")
+height = unit(2, "cm")
+column_names_gp = gpar(fontsize = 10)
+row_names_gp = gpar(fontsize = 10)
+rect_gp = gpar(col = "gray80", lwd = 0)
+row_split = 2
+column_split = 2
 
 
-# Heatmap with counts
+fileimageheatmap_grouped = paste0(file, sep ="_", "Complexheatmap.png")
 
+png(file = fileimageheatmap_grouped, 
+    width = width_image, 
+    height = height_image, 
+    units="cm", 
+    res=900)
 
+heatmap_plot = Heatmap(mat,
+                        top_annotation = ha,
+                        left_annotation = row_ha,
+                        show_row_names = TRUE,
+                        row_names_side = "right",
+                        show_heatmap_legend = TRUE,
+                        heatmap_legend_param = list(direction = "horizontal"),
+                        col = col_fun, #color
+                        show_column_names = TRUE,
+                        column_title = fileimageheatmap_grouped,
+                        column_title_gp = gpar(fontsize = 10, fontface = "bold"),
+                        column_names_rot = 45,
+                        column_names_gp = column_names_gp,
+                        rect_gp = rect_gp,
+                        na_col = "white",
+                        cluster_rows = TRUE,
+                        row_names_gp = row_names_gp,
+                        row_dend_width = unit(5, "cm"),
+                        row_split = row_split,
+                        column_split = column_split,
+                        row_gap = unit(2, "mm"),
+                        cluster_columns = TRUE,
+                        column_gap = unit(8, "mm"),
+                        show_column_dend = F,
+                        show_row_dend = F,
+                        row_dend_side = "right",
+                        column_dend_side = "top",
+                        clustering_distance_rows = "euclidean",
+                        clustering_distance_columns = "euclidean",
+                        border = TRUE,
+                        width = width,
+                        height = height,
+                        use_raster = F)
 
-# Heatmap with L2FC 
-```{r}
+heatmap_plot = draw(heatmap_plot)
 
-all_matrices_normalized_counts
-
-# Matrix
-l2fc_imps = imps %>% 
-  select(genes = var, importance = imps) %>% 
-  inner_join(all_matrices_normalized_counts %>% rownames_to_column("genes"), by = "genes") %>%
-  select(genes, condition) %>% 
- pivot_wider(names_from = condition, values_from = log2fold_change) %>% 
-  column_to_rownames("genes") %>% 
-  as.matrix() %>% 
-  replace(is.na(.), 0)
-
-#Annotations
-colors_col = imps %>% 
-  select(genes = var, importance = imps) %>% 
-  inner_join(ImmuneGO_Genes, by = "genes") %>%
-  inner_join(covid_others_colors %>% select(condition, color), by = "condition") %>% 
-  select(condition,color) %>% 
-  distinct() %>% 
-  .$color
-
-colors_row <- imps %>% 
-  select(genes = var, importance = imps) %>% 
-  inner_join(ImmuneGO_Genes, by = "genes") %>%
-  select(genes, condition, log2fold_change, importance) %>% 
-  pivot_wider(names_from = condition, values_from = log2fold_change) %>% 
-  mutate(imp_color = circlize::colorRamp2(c(min(importance), max(importance)), c("white", "red"))(importance)) %>% 
-  .$imp_color
-
-#Plot
-png("randomforest_heatmap_conditions_l2fc.png", units="in", width=10, height=10, res=300)
-heatmap(l2fc_imps, ColSideColors = colors, RowSideColors = colors_row, scale = "none",  margins = c(10, 10))
 dev.off()
 
 ```
-
-
 
 
 
