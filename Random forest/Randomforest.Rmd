@@ -993,15 +993,15 @@ col_fun <- colorRamp2(c(-1, 0, 1), c("#9bc1bc", "white", "#ed6a5a"))
 
 file = filename_2
 mat = matrix_data
-width_image = 20
+width_image = 30
 height_image = 10
-width = unit(10, "cm")
+width = unit(5, "cm")
 height = unit(2, "cm")
 column_names_gp = gpar(fontsize = 10)
 row_names_gp = gpar(fontsize = 10)
 rect_gp = gpar(col = "gray80", lwd = 0)
-row_split = 2
-column_split = 2
+row_split = NULL
+column_split = NULL
 
 
 fileimageheatmap_grouped = paste0(file, sep ="_", "Complexheatmap.png")
