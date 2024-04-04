@@ -45,6 +45,8 @@ install.packages("factoextra")
 install.packages("esquisse")
 install.packages("corto")
 install.packages("reshape2")
+install.packages("explore")
+
 
 #Instale os pacotes do BioConductor.
 
@@ -62,13 +64,10 @@ BiocManager::install("BiasedUrn") #Algoritmos para inferência de enriquecimento
 BiocManager::install("GSVA") # Análise de enriquecimento de vias genéticas usando a variação da atividade de genes ao longo de um conjunto de amostras.
 BiocManager::install("sva") #Métodos para ajustar fatores de confusão em análises de expressão genética
 BiocManager::install("clusterProfiler") #Fornece ferramentas para análise de enriquecimento funcional e perfilagem de conjuntos de genes
-BiocManager::install("ggupset", update = FALSE)
-BiocManager::install("pheatmap") #Criação de heatmaps personalizados para visualização de dados de expressão genética.
-BiocManager::install("org.Hs.eg.db") #Anotações de genes
-BiocManager::install("msigdbr", update = FALSE)
+BiocManager::install("ggupset")
+BiocManager::install("msigdbr")
 BiocManager::install("EnhancedVolcano")
 BiocManager::install("AnnotationDbi")
-install.packages("explore")
 
 ```
 

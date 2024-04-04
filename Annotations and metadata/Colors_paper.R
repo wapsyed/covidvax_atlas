@@ -1,40 +1,12 @@
 library(ggsci)
 library("gridExtra")
 library("scales")
-scale_fill_npg()
-pal_npg()
 
-data("diamonds")
-
-p1 <- ggplot(
-  subset(diamonds, carat >= 2.2),
-  aes(x = table, y = price, colour = cut)
-) +
-  geom_point(alpha = 0.7) +
-  geom_smooth(method = "loess", alpha = 0.05, linewidth = 1, span = 1) +
-  theme_bw()
-
-p2 <- ggplot(
-  subset(diamonds, carat > 2.2 & depth > 55 & depth < 70),
-  aes(x = depth, fill = cut)
-) +
-  geom_histogram(colour = "black", binwidth = 1, position = "dodge") +
-  theme_bw()
-
-p1_npg <- p1 + scale_color_npg()
-p2_npg <- p2 + scale_fill_npg()
-grid.arrange(p1_npg, p2_npg, ncol = 2)
-
-
-#Pallete generator
+# Pallete generator ----
 pal_npg("nrc")(9) #Generate pallette
 show_col(pal_npg("nrc")(9)) #Visualize colors
 
-
-
-# Colors -----------
-
-### VAX SIG DB ----
+# VAX SIG DB ----
 ann_vaxsig_colors = list(
   type = c("VLP" = "#7E6148FF",
            "LA" =  "#E64B35FF",
