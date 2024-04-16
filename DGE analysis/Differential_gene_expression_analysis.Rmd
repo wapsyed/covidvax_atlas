@@ -2921,6 +2921,106 @@ main_go_2 = degs_GO %>%
 write.csv(main_go_2, file = "degs_annotated_mainGOs_stats.csv", row.names = F)
 ```
 
+## Boxplot
+```{r}
+# Table
+df =  degs_annotated_mainGOs_stats %>% 
+  inner_join(ann_vaccines, by = "condition") %>% 
+  select(condition, 
+         direction, 
+         term_ancestor, 
+         n_genes, 
+         n_genes_perc,
+         type = type.x,
+         week,
+         disease_vac = disease_vac.x) %>% 
+  filter(term_ancestor != "Not mapped") %>% 
+  mutate(week = as.factor(week),
+         term_ancestor = if_else(term_ancestor == "Interspecies interaction", 
+                                 "Interspecies", 
+                                 term_ancestor),
+         term_ancestor = fct_relevel(term_ancestor, "Immune system", "Interpecies", "Cellular", "Metabolism"))
+
+# UP
+up = df %>% 
+  filter(direction == "UP") %>% 
+  group_by(disease_vac) %>%
+  arrange(desc(n_genes_perc)) %>% 
+  ggplot() +
+  aes(
+    x = week,
+    y = n_genes_perc,
+    label = condition
+  ) +
+  geom_boxplot(aes(fill = disease_vac),
+               outlier.shape = NA,
+               alpha = 0.3) +
+  geom_point(aes(colour = disease_vac,
+                  shape = type,
+                 size = n_genes),
+              na.rm = T) +
+  theme_minimal() +
+  facet_wrap(~term_ancestor, nrow=1) +
+  theme(axis.text.x = element_text(size = 10),
+        axis.text.y = element_text(size = 10),
+        strip.text.x = element_text(size = 12),
+        plot.title = element_text(hjust = 0.5,
+                                  face = "bold"))+
+  labs(title = "Up regulated genes",
+       x = "Week",
+       y = "Number of genes (%)",
+       size = "Total number of genes",
+       shape = "Type")+ 
+  scale_fill_npg() + 
+  scale_colour_npg() +
+  scale_size_continuous(range=c(1,3), breaks=c(10,500,1000))
+  
+  
+down = df %>% 
+  filter(direction == "DOWN") %>% 
+  group_by(disease_vac) %>%
+  arrange(desc(n_genes_perc)) %>% 
+  ggplot() +
+  aes(
+    x = week,
+    y = n_genes_perc,
+    label = condition
+  ) +
+  geom_boxplot(aes(fill = disease_vac),
+               outlier.shape = NA,
+               alpha = 0.3) +
+  geom_jitter(aes(colour = disease_vac,
+                 shape = type,
+                 size = n_genes),
+             na.rm = T) +
+  theme_minimal() +
+  facet_wrap(~term_ancestor, nrow=1) +
+  theme(axis.text.x = element_text(size = 10),
+        axis.text.y = element_text(size = 10),
+        strip.text.x = element_text(size = 12),
+        plot.title = element_text(hjust = 0.5,
+                                  face = "bold"))+
+  labs(title = "Down regulated genes",
+       x = "Week",
+       y = "Number of genes (%)",
+       size = "Total number of genes",
+       shape = "Type")+ 
+  scale_fill_npg() + 
+  scale_colour_npg() +
+  scale_size_continuous(range=c(1,3), breaks=c(10,500,1000))
+
+patch = up/down
+patch
+ggsave(patch, width = 20, height = 10, file = "boxplot_up_down.png")
+
+#Interactive
+ggplotly(up)
+ggplotly(down)
+```
+
+
+
+## Barplot by term
 
 ```{r}
 ### Bar plot by term -----

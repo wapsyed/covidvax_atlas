@@ -500,7 +500,6 @@ regular_res <- tune_grid(
 )
 
 # Assess performance -----
-
 regular_res %>%
   collect_metrics() %>% 
   write.csv(file = paste("metrics_finalmodel_", outcomevar, today(), ".csv"), row.names = F)

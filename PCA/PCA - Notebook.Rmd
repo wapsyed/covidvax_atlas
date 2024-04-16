@@ -42,13 +42,13 @@ ImmuneGO_Genes = all_degs_p_05_vac_infected_19_12_23 %>%
                by = "genes") %>% 
   distinct()
 
-nonImmuneGO_Genes = all_degs_p_05_vac_infected_19_12_23 %>% 
-  select(-"...1", -"...12") %>% 
-  anti_join(ImmuneGO_Annotated_Genes_all %>% 
-               select(genes) %>% 
-               distinct(),
-               by = "genes") %>% 
-  distinct()
+# nonImmuneGO_Genes = all_degs_p_05_vac_infected_19_12_23 %>% 
+#   select(-"...1", -"...12") %>% 
+#   anti_join(ImmuneGO_Annotated_Genes_all %>% 
+#                select(genes) %>% 
+#                distinct(),
+#                by = "genes") %>% 
+#   distinct()
 ```
 
 ```{r}
