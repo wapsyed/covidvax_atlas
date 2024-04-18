@@ -2961,13 +2961,15 @@ up = df %>%
               na.rm = T) +
   theme_minimal() +
   facet_wrap(~term_ancestor, nrow=1) +
-  theme(axis.text.x = element_text(size = 12, color = "black"),
-        axis.text.y = element_text(size = 12, color = "black"),
-        axis.title.x = element_text(size = 12, color = "black"),
-        axis.title.y = element_text(size = 12, color = "black"),
-        strip.text.x = element_text(size = 12),
-        plot.tag = element_text(size = 12, color = "black"),
+  theme(axis.text.x = element_text(size = 15, color = "black"),
+        axis.text.y = element_text(size = 15, color = "black"),
+        axis.title.x = element_text(size = 15, color = "black"),
+        axis.title.y = element_text(size = 15, color = "black"),
+        strip.text.x = element_text(size = 15, face = "bold"),
+        legend.text = element_text(size=15, color = "black"),
+        legend.title = element_text(size=15, color = "black"),
         plot.title = element_text(hjust = 0.5,
+                                  size = 15,
                                   face = "bold"))+
   labs(title = "Up regulated genes",
        x = "Week",
@@ -2998,10 +3000,15 @@ down = df %>%
              na.rm = T) +
   theme_minimal() +
   facet_wrap(~term_ancestor, nrow=1) +
-  theme(axis.text.x = element_text(size = 10),
-        axis.text.y = element_text(size = 10),
-        strip.text.x = element_text(size = 12),
+  theme(axis.text.x = element_text(size = 15, color = "black"),
+        axis.text.y = element_text(size = 15, color = "black"),
+        axis.title.x = element_text(size = 15, color = "black"),
+        axis.title.y = element_text(size = 15, color = "black"),
+        strip.text.x = element_text(size = 15, face = "bold"),
+        legend.text = element_text(size=15, color = "black"),
+        legend.title = element_text(size=15, color = "black"),
         plot.title = element_text(hjust = 0.5,
+                                  size = 15,
                                   face = "bold"))+
   labs(title = "Down regulated genes",
        x = "Week",
@@ -3014,7 +3021,6 @@ down = df %>%
 
 patch = up/down + plot_layout(guides = "collect")
 
-patch
 ggsave(patch, width = 20, height = 10, file = "MainGOs_percgenes_boxplot_up_down.png")
 
 #Interactive
