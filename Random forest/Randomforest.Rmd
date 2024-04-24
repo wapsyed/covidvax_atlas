@@ -368,14 +368,14 @@ ImmuneGO_Annotated_GO %>% filter(go_term == "Manual") %>% select(process) %>% di
 https://juliasilge.com/blog/sf-trees-random-tuning/
 # Libraries
 ```{r}
-install.packages("randomForest")
-install.packages("caret")
-install.packages("rpart")
-install.packages("rpart.plot")
-install.packages("tidymodels")
-install.packages("reticulate")
-install.packages("themis")
-install.packages("ranger")
+# install.packages("randomForest")
+# install.packages("caret")
+# install.packages("rpart")
+# install.packages("rpart.plot")
+# install.packages("tidymodels")
+# install.packages("reticulate")
+# install.packages("themis")
+# install.packages("ranger")
 
 
 library(tidymodels)
@@ -400,11 +400,12 @@ library(ggsci)
 ```{r}
 # Input data ----
 filename = "ImmuneGO_Genes"
-outcomevar = "sex"
+outcomevar = "disease_vac"
 df = all_matrices_normalized_counts
 ann_vaccines_samples = ann_vaccines_samples
 
 #Select only important genes
+"PC_1_2_cos2.csv"
 PC1_2 = PC_1_2_cos2
 
 # Prepare data ------
@@ -416,8 +417,8 @@ df_input <- df %>%
   t() %>%
   as.data.frame() %>%
   rownames_to_column("sample") %>%
-  inner_join(ann_vaccines_samples %>% select(sample,type, day, age, sex, dose), by = "sample") %>%
-  select(sample, type, everything()) %>%
+  inner_join(ann_vaccines_samples %>% select(sample, disease_vac), by = "sample") %>%
+  select(sample, disease_vac, everything()) %>%
   column_to_rownames("sample") %>%
   mutate_if(is.character, factor)
 
@@ -425,18 +426,18 @@ glimpse(df_input)
 
 # Split data
 set.seed(123)  
-split <- initial_split(df_input, prop = 0.7, strata = "type")
+split <- initial_split(df_input, prop = 0.7, strata = "disease_vac")
 trees_train <- training(split)
 trees_test <- testing(split)
 
 # Create recipe
-tree_rec <- recipe(type ~ ., data = trees_train) %>%
+tree_rec <- recipe(disease_vac ~ ., data = trees_train) %>%
   step_dummy(all_nominal(), -all_outcomes()) %>%
-  step_upsample(type) #Upsample unbalanced data
+  step_upsample(disease_vac) #Upsample unbalanced data
 
 tree_prep <- prep(tree_rec)
 
-juiced <- juice(trtree_prep)
+juiced <- juice(tree_prep)
 
 # Set random forest hyper parameters
 tune_spec <- rand_forest(
@@ -483,12 +484,17 @@ metrics_tuneres = tune_res %>%
   facet_wrap(~parameter, scales = "free_x") +
   labs(x = NULL, y = "AUC")
 
-ggsave(metrics_tuneres, file = paste0(outcomevar, "_tidymodels_tune_res.png"), width = 10, height = 6)
+metrics_tuneres
 
+ggsave(metrics_tuneres, file = paste0(outcomevar, "_tidymodels_tune_res.png"), width = 10, height = 6)
+```
+
+
+```{r}
 # Tune hyperparameters ----
 rf_grid <- grid_regular(
-  mtry(range = c(86,100)),
-  min_n(range = c(7,11)),
+  mtry(range = c(6,14)),
+  min_n(range = c(5,8)),
   levels = 5
 )
 
@@ -504,14 +510,15 @@ regular_res %>%
   collect_metrics() %>% 
   write.csv(file = paste("metrics_finalmodel_", outcomevar, today(), ".csv"), row.names = F)
 
-ggsave(regular_res %>%
+roc_auc = regular_res %>%
   collect_metrics() %>%
   filter(.metric == "roc_auc") %>%
   mutate(min_n = factor(min_n)) %>%
   ggplot(aes(mtry, mean, color = min_n)) +
   geom_line(alpha = 0.5, size = 1.5) +
   geom_point() +
-  labs(y = "AUC"), file = paste("roc_auc_", outcomevar, today(), ".png"), width = 10, height = 6)
+  labs(y = "AUC") 
+ggsave(roc_auc, file = paste("roc_auc_", outcomevar, today(), ".png"), width = 10, height = 6)
 
 # Select best model -----
 best_auc <- select_best(regular_res, metric = "roc_auc")
@@ -524,7 +531,7 @@ library(vip)
 
 final = final_rf %>%
   set_engine("ranger", importance = "permutation") %>%
-  fit(type ~ .,
+  fit(disease_vac ~ .,
     data = juice(tree_prep)
   ) %>% 
   vip()
@@ -539,7 +546,7 @@ genes_rf %>% write.csv(file = paste0("vipgenes_tidymodels_", outcomevar, today()
 
 
 
-importance_plot = ggplot(vipgenes_tidymodels_type2024_03_29) +
+importance_plot = ggplot(genes_rf) +
   aes(x = reorder(Variable, Importance),
     y = Importance,
     color = Importance,
@@ -583,13 +590,23 @@ final_res %>%
   collect_metrics() %>% 
 write.csv(file = paste0("rf_metrics", outcomevar, today(), ".csv"), row.names = F)
 
-final_res %>%
+final_res_preds = final_res %>%
   collect_predictions() %>%
   mutate(correct = case_when(
-    type == .pred_class ~ "Correct",
+    disease_vac == .pred_class ~ "Correct",
     TRUE ~ "Incorrect"
   )) %>%
   bind_cols(trees_test)
+
+
+final_res_preds %>% 
+  group_by(correct, disease_vac...8) %>% 
+  tabyl(correct, disease_vac...8) %>% 
+  as.data.frame() %>% 
+  group_by(correct) %>% 
+  summarize(sensitivity = V/(I + V),
+            specificity = I/(I + V))
+
 ```
 
 ### Heatmaps
@@ -649,7 +666,7 @@ dev.off()
 
 #### Gene L2FC per condition
 ```{r}
-ImmuneGO_Annotated_Genes_all = ImmuneGO_Annotated_Genes_28_2_24 %>% 
+ImmuneGO_Annotated_Genes_all = ImmuneGO_Annotated_Genes %>% 
   filter(!process %in% c("TCR REPERTOIRE", "BCR REPERTOIRE"))
 
 ImmuneGO_Genes = all_degs_p_05_vac_infected_19_12_23 %>% 
@@ -671,40 +688,18 @@ l2fc_imps = genes_rf %>%
   as.matrix() %>% 
   replace(is.na(.), 0)
 
-#Annotations
-colors_col = genes_rf %>% 
-  select(genes = Variable, importance = Importance) %>% 
-  inner_join(ImmuneGO_Genes, by = "genes") %>%
-  inner_join(covid_others_colors %>% select(condition, color), by = "condition") %>% 
-  select(condition,color) %>% 
-  distinct() %>% 
-  .$color
-
-colors_row <- genes_rf %>% 
-  select(genes = Variable, importance = Importance) %>% 
-  inner_join(ImmuneGO_Genes, by = "genes") %>%
-  select(genes, condition, log2fold_change, importance) %>% 
-  pivot_wider(names_from = condition, values_from = log2fold_change) %>% 
-  mutate(imp_color = circlize::colorRamp2(c(min(importance), max(importance)), c("white", "red"))(importance)) %>% 
-  .$imp_color
-
-#Plot
-png(paste0("randomforest_heatmap_conditions_l2fc", outcomevar, today(), ".png"), units="in", width=10, height=10, res=300)
-heatmap(l2fc_imps,
-        col = hcl.colors(100, palette = "reds", rev = T),
-        ColSideColors = colors_col, 
-        RowSideColors = colors_row, 
-        scale = "row",
-        margins = c(10, 10))
-dev.off()
 ```
 
 
 ```{r}
 ImmuneGO_Annotated_Genes= `ImmuneGO_Annotated_Genes_2024-03-26`
+vipgenes_tidymodels_disease_vac2024_04_24 <- read_csv("vipgenes_tidymodels_disease_vac2024-04-24.csv")
+vipgenes_tidymodels_type2024_03_29 <- read_csv("vipgenes_tidymodels_type2024-03-29.csv")
+
+vip_genes = vipgenes_tidymodels_type2024_03_29
 outcomevar = "_Type_"
 
-rf_genes = vipgenes_tidymodels_type2024_03_29 %>% 
+rf_genes = vip_genes %>% 
   clean_names() %>% 
   select(genes = variable, importance)
 
@@ -733,8 +728,10 @@ matrix = data_2 %>%
 
 ######## Annotations
 ann_vaccines_covid_other_2 = data_2 %>% 
-  select(condition, disease_vac, type, week) %>% 
-  distinct()
+  select(condition) %>% 
+  inner_join(ann_vaccines, by = "condition") %>% 
+  distinct() %>% 
+  select(condition, disease_vac, type,week)
 
 #Columns
 ann_cols_heatmap = matrix %>% 
@@ -788,9 +785,10 @@ dim(matrix)
 dim(matrix_data)
 dim(ann_cols_heatmap)
 dim(ann_rows_immune)
+```
 
 
-
+```{r}
 ################# Immune 
 #Heatmap annotation
 ha = HeatmapAnnotation(df = ann_cols_heatmap, 
@@ -801,7 +799,8 @@ row_ha = HeatmapAnnotation(df = ann_rows_immune,
                        col = col_process_immune,
                        which= "row",
                        show_annotation_name = F,
-                       show_legend = F)
+                       show_legend = F,
+                       simple_anno_size = unit(2, "mm"))
 
 # Values colors
 col_fun <- colorRamp2(c(-2, 0, 2), c("#9bc1bc", "white", "#ed6a5a"))
@@ -843,7 +842,7 @@ heatmap_plot = Heatmap(mat,
                         row_names_gp = row_names_gp,
                         row_dend_width = unit(0, "cm"),
                         row_split = 2,
-                        column_split = 4,
+                        column_split = 2,
                         row_gap = unit(2, "mm"),
                         cluster_columns = TRUE,
                         column_gap = unit(2, "mm"),

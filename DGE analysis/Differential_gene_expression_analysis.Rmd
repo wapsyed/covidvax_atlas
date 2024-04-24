@@ -5,9 +5,6 @@ output: html_notebook
 # Bibliotecas
 
 ```{r}
-#devtools::install_github("thomasp85/patchwork")
-
-
 library(readr)
 library(qvalue)
 library(explore)
@@ -38,6 +35,7 @@ library(janitor)
 library(scales)
 library(ggstatsplot)
 library(patchwork)
+library(ggsci)
 
 ```
 
@@ -2922,7 +2920,9 @@ write.csv(main_go_2, file = "degs_annotated_mainGOs_stats.csv", row.names = F)
 ```
 
 ## Boxplot
-```{r}
+```{r warning=FALSE}
+degs_annotated_mainGOs_stats <- read_csv("degs_annotated_mainGOs_stats.csv")
+
 # Table
 df =  degs_annotated_mainGOs_stats %>% 
   inner_join(ann_vaccines, by = "condition") %>% 
@@ -2934,13 +2934,17 @@ df =  degs_annotated_mainGOs_stats %>%
          type = type.x,
          week,
          disease_vac = disease_vac.x) %>% 
-  filter(term_ancestor != "Not mapped") %>% 
+  filter(!term_ancestor %in% c("Not mapped", "Interspecies interaction")) %>% 
   mutate(week = as.factor(week),
+         week_dv = paste(week, sep = "",  " (", disease_vac, ")"),
          term_ancestor = if_else(term_ancestor == "Interspecies interaction", 
                                  "Interspecies", 
                                  term_ancestor),
          term_ancestor = fct_relevel(term_ancestor, "Immune system", "Interpecies", "Cellular", "Metabolism"))
+```
 
+
+```{r warning=FALSE}
 # UP
 up = df %>% 
   filter(direction == "UP") %>% 
@@ -2948,22 +2952,22 @@ up = df %>%
   arrange(desc(n_genes_perc)) %>% 
   ggplot() +
   aes(
-    x = week,
+    x = week_dv,
     y = n_genes_perc,
-    label = condition
-  ) +
-  geom_boxplot(aes(fill = disease_vac),
-               outlier.shape = NA,
-               alpha = 0.3) +
+    label = condition) +
   geom_jitter(aes(colour = disease_vac,
-                  shape = type,
+                 shape = type,
                  size = n_genes),
-              na.rm = T) +
+             na.rm = T) +
+    geom_boxplot(aes(fill = disease_vac, color = disease_vac),
+               outlier.shape = NA,
+               alpha = 0) +
+
   theme_minimal() +
   facet_wrap(~term_ancestor, nrow=1) +
-  theme(axis.text.x = element_text(size = 15, color = "black"),
+  theme(axis.text.x = element_text(size = 15, color = "black", angle = 90, vjust = 0.5),
         axis.text.y = element_text(size = 15, color = "black"),
-        axis.title.x = element_text(size = 15, color = "black"),
+        axis.title.x = element_text(size = 15, color = "black", vjust = -1),
         axis.title.y = element_text(size = 15, color = "black"),
         strip.text.x = element_text(size = 15, face = "bold"),
         legend.text = element_text(size=15, color = "black"),
@@ -2977,9 +2981,9 @@ up = df %>%
        size = "Total number of genes",
        shape = "Type")+ 
   scale_fill_npg() + 
-  scale_colour_npg() +
-  scale_size_continuous(range=c(1,3), breaks=c(10,500,1000))
-  
+  scale_colour_npg()+
+  scale_size_continuous(range=c(1,3), breaks=c(100,500,1000))
+up
   
 down = df %>% 
   filter(direction == "DOWN") %>% 
@@ -2987,22 +2991,21 @@ down = df %>%
   arrange(desc(n_genes_perc)) %>% 
   ggplot() +
   aes(
-    x = week,
+    x = week_dv,
     y = n_genes_perc,
-    label = condition
-  ) +
-  geom_boxplot(aes(fill = disease_vac),
-               outlier.shape = NA,
-               alpha = 0.3) +
+    label = condition) +
   geom_jitter(aes(colour = disease_vac,
                  shape = type,
                  size = n_genes),
              na.rm = T) +
+    geom_boxplot(aes(fill = disease_vac, color = disease_vac),
+               outlier.shape = NA,
+               alpha = 0) +
   theme_minimal() +
   facet_wrap(~term_ancestor, nrow=1) +
-  theme(axis.text.x = element_text(size = 15, color = "black"),
+  theme(axis.text.x = element_text(size = 15, color = "black", angle = 90, vjust = 0.5),
         axis.text.y = element_text(size = 15, color = "black"),
-        axis.title.x = element_text(size = 15, color = "black"),
+        axis.title.x = element_text(size = 15, color = "black", vjust = -1),
         axis.title.y = element_text(size = 15, color = "black"),
         strip.text.x = element_text(size = 15, face = "bold"),
         legend.text = element_text(size=15, color = "black"),
@@ -3016,13 +3019,18 @@ down = df %>%
        size = "Total number of genes",
        shape = "Type")+ 
   scale_fill_npg() + 
-  scale_colour_npg() +
-  scale_size_continuous(range=c(1,3), breaks=c(10,500,1000))
+  scale_colour_npg()+
+  scale_size_continuous(range=c(1.5,3), breaks=c(100,500,1000))
+
+down
 
 patch = up/down + plot_layout(guides = "collect")
+patch
+ggsave(patch, width = 15, height = 10, file = "MainGOs_percgenes_boxplot_up_down.png")
+```
 
-ggsave(patch, width = 20, height = 10, file = "MainGOs_percgenes_boxplot_up_down.png")
 
+```{r}
 #Interactive
 ggplotly(up)
 ggplotly(down)
