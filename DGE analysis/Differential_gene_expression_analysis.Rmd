@@ -3041,12 +3041,14 @@ ggplotly(down)
 ## Barplot by term
 
 ```{r}
-### Bar plot by term -----
+### Bar plot by term (United) -----
 
-main_go_2 = degs_annotated_mainGOs_stats
-
-main_go_2_plot = main_go_2 %>% 
-  mutate(direction = if_else(direction == "UP", "↑", "↓")) %>% 
+#UP regulated
+main_go_2_plot_up = main_go_2 %>% 
+  mutate(direction = if_else(direction == "UP", "↑", "↓"),
+         term_ancestor = fct_relevel(term_ancestor, "Immune system", "Cellular", "Metabolism", "Reg. of BP")) %>%
+  filter(direction == "↑", 
+         term_ancestor %in% c("Immune system", "Cellular", "Metabolism", "Reg. of BP")) %>% 
   ggplot() +
  aes(x = forcats::fct_rev(factor(condition)), y = n_genes_perc, fill = type) +
  geom_col() +
@@ -3066,40 +3068,85 @@ main_go_2_plot = main_go_2 %>%
           legend.text =element_text(size=15),
         axis.text.x = element_text(size = 12, color = "black", angle = 0, hjust = 1),
         axis.text.y = element_text(size = 12, color = "black", angle = 0, hjust = 1),
-        strip.text.x = element_text(size = 12, color = "white", hjust = 0.5),
-        strip.text.y = element_text(size = 15, angle = 0),
+        strip.text.x = element_text(size = 20, color = "black", hjust = 0.5, face = "bold"),
+        strip.text.y = element_text(size = 20, angle = 0, color = "white", face = "bold"),
         strip.background.x = element_rect(
-          fill = "black", 
-          color = "black", 
+          fill = "white", 
+          color = "white", 
           linewidth = 1 ),
         strip.background.y = element_rect(
-          fill = "gray70", 
-          color = "gray70", 
+          fill = "#DC0000FF", 
+          color = "#DC0000FF", 
           linewidth = 1 )
         ) +
   geom_text(aes(label = paste0(n_genes_perc, "% (", n_genes, ")"), 
                 y = n_genes_perc), 
             hjust = 0, 
-            size = 3,
+            size = 4,
             angle = 0) +
-  labs(title = "DEGs by Biological Process",
+  labs(title = "",
        x = "",
+       y = "") +
+  ylim(0,120)
+
+#DOWN regulated
+main_go_2_plot_down = main_go_2 %>% 
+  mutate(direction = if_else(direction == "UP", "↑", "↓"),
+         term_ancestor = fct_relevel(term_ancestor, "Immune system", "Cellular", "Metabolism", "Reg. of BP")) %>%
+  filter(direction == "↓", 
+         term_ancestor %in% c("Immune system", "Cellular", "Metabolism", "Reg. of BP")) %>% 
+  ggplot() +
+ aes(x = forcats::fct_rev(factor(condition)), y = n_genes_perc, fill = type) +
+ geom_col() +
+ coord_flip() +
+ theme_minimal() +
+ theme(legend.position = "top") +
+ facet_grid(vars(direction),  vars(term_ancestor)) +
+   scale_fill_manual(name = "Type",
+    values = c('IN'= "#00A087FF", #1st Gen  vaccines
+           'VV' = "#3C5488FF", #3rd Gen vaccines
+           'RNA' = "#4DBBD5FF",
+           'SU' = "#8491B4FF",
+           'I'= "#DC0000FF",
+           "H" = "grey95")) +
+  theme(legend.position = "right",
+          legend.title = element_text(size = 15),
+          legend.text =element_text(size=15),
+        axis.text.x = element_text(size = 12, color = "black", angle = 0, hjust = 1),
+        axis.text.y = element_text(size = 12, color = "black", angle = 0, hjust = 1),
+        strip.text.x = element_blank(),
+        strip.text.y = element_text(size = 20, angle = 0, color = "black", face = "bold"),
+        strip.background.x = element_blank(),
+        strip.background.y = element_rect(
+          fill = "#4DBBD5FF", 
+          color = "#4DBBD5FF", 
+          linewidth = 1)
+        ) +
+  geom_text(aes(label = paste0(n_genes_perc, "% (", n_genes, ")"), 
+                y = n_genes_perc), 
+            hjust = 0, 
+            size = 4,
+            angle = 0) +
+  labs(x = "",
        y = "Number of genes (%)") +
   ylim(0,120)
 
+main_go_2_plot_down
+patch = (main_go_2_plot_up/main_go_2_plot_down) + plot_layout(guides = "collect")
 
-ggsave(main_go_2_plot, file = "main_go_2_plot_values.png", width = 20, height = 15)
+ggsave(patch, file = "main_go_2_plot_values_UP_DOWN_regulated.png", width = 20, height = 15)
+
 ```
 
 
 ```{r}
 ### Totals ------
-
 main_go_2_plot_totals_values = main_go_2 %>%
   select(condition, n_genes_total, type, direction) %>% 
   distinct() %>% 
   mutate(stat = "Total genes",
-         direction = if_else(direction == "UP", "↑", "↓")) %>% 
+         direction = if_else(direction == "UP", "↑", "↓")) 
+
   ggplot() +
  aes(x = forcats::fct_rev(factor(condition)), y = n_genes_total, fill = type) +
  geom_col() +
@@ -3140,6 +3187,62 @@ main_go_2_plot_totals_values = main_go_2 %>%
 
 
 ggsave(main_go_2_plot_totals_values, file = "main_go_2_plot_totals_values.png", width = 8, height = 15)
+```
+
+
+```{r}
+### Immune in totals ------
+
+#UP
+immune_other_plot  = main_go_2 %>% 
+  mutate(direction = if_else(direction == "UP", "Upregulated", "Downregulated"),
+         term_ancestor = fct_relevel(term_ancestor, "Immune system", "Cellular", "Metabolism", "Reg. of BP")) %>%
+  filter(term_ancestor %in% c("Immune system")) %>% 
+  rename(n_genes_immune = n_genes) %>% 
+  pivot_longer(names_to = "totals", values_to = "total_number", cols = c(n_genes_immune, n_genes_total)) %>% 
+  select(condition, direction, term_ancestor, n_genes_perc, totals, total_number) %>% 
+  group_by(condition) %>% 
+  mutate(immune_genes = if_else(totals == "n_genes_immune", total_number, NA),
+         total_degs = if_else(totals == "n_genes_total", total_number, NA),
+         totals = fct_rev(factor(totals)),
+         direction = fct_rev(direction)) %>% 
+  fill(total_degs, .direction = "up") %>% 
+ggplot() +
+ aes(x = fct_rev(factor(condition)), y = total_number, fill = totals) +
+ geom_col() +
+ coord_flip() +
+ theme_minimal() +
+  scale_fill_manual(name = "",
+    values = c("n_genes_total" = "gray90",
+              "n_genes_immune" = "#4DBBD5FF"),
+    labels = c('Total', 'Immune')) +
+  facet_grid(~direction) +
+  theme(legend.position = "right", 
+        legend.title = element_text(size = 10),
+        legend.text = element_text(size=10),
+        axis.title.x = element_text(size = 10, color = "black"),
+        axis.text.x = element_text(size = 10, color = "black", angle = 0, hjust = 1),
+        axis.text.y = element_text(size = 10, color = "black", angle = 0, hjust = 1),
+                strip.text.x = element_text(size = 12, color = "white", hjust = 0.5),
+        strip.text.y = element_text(size = 15, angle = 0),
+        strip.background.x = element_rect(
+          fill = "black", 
+          color = "black", 
+          linewidth = 1 )) +
+  geom_text(aes(label = if_else(!is.na(immune_genes), paste0(immune_genes, " (", n_genes_perc, "% of ", total_degs,")") , NA), 
+                y = total_degs + immune_genes), 
+            hjust = -0.05, 
+            size = 3,
+            angle = 0) +
+  labs(title = "",
+       fill = "Gene type",
+       x = "",
+       y = "Number of genes") +
+  ylim(0, 4000)
+immune_other_plot
+
+ggsave(immune_other_plot, file = "immune_other_plot.png", width = 15, height = 7)
+
 
 ```
 
