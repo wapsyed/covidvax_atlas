@@ -2,6 +2,7 @@
 title: "Differential gene expression analysis"
 output: html_notebook
 ---
+
 # Bibliotecas
 
 ```{r}
@@ -39,13 +40,9 @@ library(ggsci)
 
 ```
 
+# 1. Standardize figures 
 
-# 1. Preparação dos dados
-
-## 2. Definir padrões de figuras
-
-####Cores
-```{r}
+```{r Colors}
 
 ### VAX SIG DB ----
 ann_vaxsig_colors = list(
@@ -391,45 +388,11 @@ col_process_immune = list(
            "ANTIMICROBIAL" = "#48cae4",
            "."="white"))
 
-
-immune_system_colors = c(
-  "Innate" = "#faedcd",
-  "Adaptive" = "#ffb5a7",
-  "General" = "#99d98c",
-  "Other" = "#e5e5e5",
-  "Complement" = "#7400b8")
-
-immune_subsystem_colors = c(
-  "Adaptive" = "#ffb5a7",
-  "Cellular" = "#ff758f",
-  "Humoral" = "#ff758f",
-  "Antibacterial" = "#4895ef",
-  "Antifungal" = "#4361ee",
-  "Antimicrobial" = "#7400b8",
-  "General" = "#99d98c",
-  "Antigen presentation" = "#e4c4a5",
-  "APC" = "#ccd5ae",
-  "Eosinophil" = "#faedcd",
-  "Granulocyte" = "#faedcd",
-  "Leukocyte" = "#ffb5a7",
-  "Neutrophil" = "#ccd5ae",
-  "Innate immune response" = "#faedcd",
-  "Interferon" = "#a4c3b2",
-  "Antiviral" = "#60495a",
-  "Pattern recognition receptor" = "#f4f4d5",
-  "Natural killer" = "#fedd96",
-  "Mucosa" = "#c3dfe0",
-  "Erythrocyte" = "#4895ef")
-
-
 ```
 
+# 2. Select studies and retrieve data
 
-
-# 3. Seleção de estudos
-
-
-## 3.1 Baixar dados
+## Download data
 
 ```{r eval=FALSE, include=FALSE}
 #Baixar dados de uma lista de estudos
@@ -488,7 +451,6 @@ write.csv(GSE201533_metadata, file = "GSE201533_metadata.csv")
 
 ```
 
-
 ```{r eval=FALSE, include=FALSE}
 ############ Obter Tabela de counts
 #GEO supplementary files. Baixar individualmente. Arquivos grandes devem ser baixados direto do navegador.
@@ -520,7 +482,7 @@ write.csv(GSE201530_metadata, file = "GSE201530_metadata.csv")
 #Anotar no excel com dados do artigo
 ```
 
-*Ler arquivos e transformar em tabela*
+**Ler arquivos e transformar em tabela**
 
 Abra a lista do estudo e analise suas informações. Ao descompactar, surgem diversos arquivos ".featureCounts.txt.gz", que devem ser descompactados. Para descompactar a lista de arquivos, use um loop.
 
@@ -695,14 +657,12 @@ saveRDS(normalized_counts, file = "all_matrices_normalized_counts.rds")
 
 ```
 
+# 3. Data analysis
 
+## Demographics
 
-# 4. Análise de dados
+**Tratamento de metadados**
 
-
-## 4.1.1 Demographics
-
-Tratamento de metadados
 ```{r}
 #Metadata ------
 gse189039_metadata_2 = GSE189039_metadata_1_ %>% 
@@ -769,9 +729,6 @@ ann_vaccines_samples_participants = ann_vaccines_samples_2 %>%
 
 write.csv(ann_vaccines_samples_participants, file = "ann_vaccines_samples.csv")
 ```
-
-
-
 
 ```{r}
 library(tidyverse)
@@ -858,7 +815,6 @@ ggsave(a, file = "demographics_samples-by-condition.png", width = 20, height = 1
 
 ```
 
-
 ```{r}
 #### AGE BY GSE -------------
 age = ann_vaccines_samples_participants %>% 
@@ -884,7 +840,6 @@ age = ggbetweenstats(
 
 ggsave(age, file = "Demographics_age.png", width = 10, height = 6)
 ```
-
 
 ```{r}
 #### Participants by condition ------
@@ -934,10 +889,9 @@ ggsave(p, file = "demographics_participants-by-condition.png", width = 12, heigh
 
 ```
 
+# 4. Differential Gene Expression Analysis
 
-## 4.1.2 Análise de expressão genica diferencial
-
-*Padronizando tabela de counts*
+**Standardize counts tables**
 
 ```{r eval=FALSE, include=FALSE}
 
@@ -982,15 +936,13 @@ GSE189039_metadata
 
 ```
 
-*Metadata*
+**Metadata**
 
 A tabela de counts fornecida pelo estudo é nomeada com o Subject ID + Timepoint e não com o codigo GSM. Por isso, teremos de tratar a tabela de metadados. Além disso, ela não possui a coluna de idade. É possível manipular estes dados no excel.
 
+**DESEQ2**
 
-*DESEQ2*
-
-*Preparando dados*
-
+**Preparando dados**
 
 ## GSE201530
 
@@ -1027,7 +979,7 @@ dds <- dds[keep,]
 
 ```
 
-*Executando DESEQ2*
+**Executando DESEQ2**
 
 ```{r}
 ###### Executar DESeq ######
@@ -1053,7 +1005,7 @@ write.csv(res, file = "gse201530_dds_DESeq2_Wald_disease_vac_AND_timepoint_day_A
 
 ```
 
-*Comparando tempos e condições*
+**Comparando tempos e condições**
 
 Nesta comparação, são encontradas DEGs de cada vacina individual nos diferentes tempos. Para comparar uma vacina com a outra em diferentes tempos, é necessário usar os argumentos "contrast" ou "name".
 
@@ -1079,7 +1031,8 @@ Nesta comparação, são encontradas DEGs de cada vacina individual nos diferent
 # contrast = c("disease_time", "I.I_D5", "H_D0")
 ```
 
-*H_BNT_I* 
+**H_BNT_I**
+
 ```{r}
 ######### H_BNT_I
 
@@ -1137,8 +1090,8 @@ write.csv(gse201530_H_BNT_I, "gse201530_H_BNT_I.csv")
 
 ```
 
+**I_BNT_I**
 
-*I_BNT_I* 
 ```{r}
 ######### I_BNT_I
 
@@ -1182,8 +1135,8 @@ write.csv(gse201530_I_BNT_I, "gse201530_I_BNT_I.csv")
 
 ```
 
+*H-I*
 
-*H-I* 
 ```{r}
 ######### H-I
 
@@ -1227,7 +1180,8 @@ write.csv(gse201530_H_I, "gse201530_H_I.csv")
 
 ```
 
-*H-I-I* 
+*H-I-I*
+
 ```{r}
 
 ######### H-I-I
@@ -1250,6 +1204,7 @@ write.csv(gse201530_H_I_I_D2, file = "gse201530_H_I_I_D2_DEGs-PF.csv")
 ```
 
 *I-I*
+
 ```{r}
 
 ######### I-I
@@ -1309,7 +1264,8 @@ gse201530_I_I = bind_rows(gse201530_I_I_D1,
 
 ```
 
-Unir raw datasets 
+**Unir raw datasets**
+
 ```{r}
 ########## GSE201530
 
@@ -1340,11 +1296,6 @@ write.csv(ann_vaccines_27_11_23, file = 'ann_vaccines_27_11_23.csv')
 
 
 ```
-
-
-
-
-
 
 ## GSE189039
 
@@ -1426,7 +1377,8 @@ contrast = c("disease_vac_severity_time", "BNT.I.BNT_mild_D51", "H_naive_vac_D0"
 
 ```
 
-*H_I* 
+*H_I*
+
 ```{r}
 ######### H_I
 
@@ -1545,8 +1497,8 @@ write.csv(gse189039_H_I, "gse189039_H_I_DEGS.csv")
 
 ```
 
+*H_BNT_I*
 
-*H_BNT_I* 
 ```{r}
 ######### H-BNT-I
 
@@ -1632,8 +1584,8 @@ write.csv(gse189039_H_BNT_I, file = "gse189039_H_BNT_I_DEGS.csv")
 
 ```
 
-
 *BNT-I-BNT*
+
 ```{r}
 ######### BNT-I-BNT	
 
@@ -1685,6 +1637,7 @@ write.csv(gse189039_BNT_I_BNT, file = "gse189039_BNT_I_BNT_DEGS.csv")
 ```
 
 *UNIR*
+
 ```{r}
 gse189039_DEGs = bind_rows(gse189039_BNT_I_BNT,
                            gse189039_H_I,
@@ -1727,7 +1680,6 @@ write.csv(gse_201530_189039, file = "gse_201530_189039_DEGs_27-11-23.csv")
 #Salvar
 write.csv(all_degs_p_05_vac_infected, file = 'all_degs_p_05_vac_infected_27-11-23.csv')
 ```
-
 
 ## GSE199750
 
@@ -1931,8 +1883,7 @@ res_3_2_chad_bnt_degs_table <- data.frame(res_3_2_chad_bnt)
 write.csv(res_3_2_chad_bnt_degs_table, file = "GSE199750_T3-T2_DEGs_2AZ-1PF.csv", row.names = TRUE)
 ```
 
-
-## Combine tables (raw)
+## Combine raw counts
 
 ```{r}
 #TABELA DE GENES SEQUENCIADOS
@@ -1958,15 +1909,11 @@ write_tsv(all_matrices_counts, file = "all_matrices_counts.tsv")
 
 ```
 
+# 5. Data visualization
 
-
-
-# 5. Visualização de dados
-
-## DEGs plot
+## Up and down-regulated DEGs
 
 ```{r}
-
 ann_vaccines = ann_vaccines_27_11_23 %>% clean_names()
 
 all_degs = all_degs_p_05_vac_infected %>% 
@@ -2006,9 +1953,6 @@ ggplot_degs_bars = all_degs %>%
   ggtitle("DEGs - all studies, p<0.05")
 
 ggsave(ggplot_degs_bars, file = "DEGs_up_down_barplot_pvalue05_1.png",  width = 10, height = 6) 
-
-
-esquisser(all_degs)
 
 #Plot 2
 ggplot_degs_bars_2 = all_degs %>%
@@ -2087,64 +2031,11 @@ ggsave(ggplot_degs_bars_4, file = "DEGs_up_down_barplot_pvalue05_4.png",  width 
 
 ```
 
-## 5.1. Volcanoplot
-
-Os volcanoplots das duas vacinas são os mesmos, mas espelhados. Isso significa que definir o nivel de referencia no fator de vacinas é importante para determinar as DEGs up e down. \#### ASTRAZENECA
-
-*Astrazeneca* 
-
-```{r}
-
-#All
-volcano_res <- EnhancedVolcano(res, 
-                                    lab = rownames(res),
-                                    x = 'log2FoldChange',
-                                    y = 'pvalue',
-                                    title='Differential expression of genes - All timepoints - ChAdOx1')
-# Save the plot as a PNG file
-png("gse199750_volcanoplot_DEGs_allfactores_AZ.png", width = 800, height = 600)
-print(volcano_res_chad)
-dev.off()
-
-#T1-T0
-volcano_res_chad_1_0 <- EnhancedVolcano(res_1_0_chad, 
-                                    lab = rownames(res_1_0_chad),
-                                    x = 'log2FoldChange',
-                                    y = 'pvalue',
-                                    title='Differential expression of genes - D1 vs. D0 - ChAdOx1')
-# Save the plot as a PNG file
-png("gse199750_volcanoplot_DEGs_D0-D1_AZ.png", width = 800, height = 600)
-print(volcano_res_chad_1_0)
-dev.off()
-
-#T2-T0
-volcano_res_chad_2_0 <- EnhancedVolcano(res_time0_time2_chad, 
-                                    lab = rownames(res_time0_time2_chad),
-                                    x = 'log2FoldChange',
-                                    y = 'pvalue',
-                                    title='Differential expression of genes - D2 vs. D0 - ChAdOx1')
-# Save the plot as a PNG file
-png("gse199750_volcanoplot_DEGs_D0-D2_AZ.png", width = 800, height = 600)
-print(volcano_res_chad_2_0)
-dev.off()
-
-#Plotar mais de um gráfico
-plot_grid(volcano_res_chad, volcano_res_chad_1_0, volcano_res_chad_2_0, ncol = 3) 
-
-```
-
-
-## 5.2. Diagrama de Venn com Heatmap
-
-*Tabela de overlaps de DEGs com teste exato de fisher*
+## Overlapping genes: Heatmap with Fisher's exact test
 
 Determinar a proporção de DEGs compartilhadas entre condições diferentes e sua significância. O código abaixo deve ter como input uma tabela longa chamada "degs_all" (coluna 1: condicoes/vacinas, coluna 2: DEGs). O output será uma tabela longa com as colunas Vacina 1, Vacina 2, shared degs, not shared vacina 1, not shared vacina 2, lista com nomes das degs, valor p de fisher (teste exato de fisher).
 
-
-
-
 ```{r}
-
 # DEGs table
 degs_all_updown = all_degs_p_05_vac_infected_19_12_23 %>% 
   filter(direction != "NEUTRAL") %>% 
@@ -2179,9 +2070,8 @@ filename = "degs_updown_nonimmune_SharedDEGS_Venn"
 
 ```
 
+```{r Calculate overlapping}
 
-```{r}
-# Função para calcular a sobreposição entre pares de vacinas e a porcentagem de genes compartilhados ----
 overlap_genes <- function(cond1, cond2, data) {
   genes_cond1 <- data$genes[data$condition == cond1] #Trocar coluna
   genes_cond2 <- data$genes[data$condition == cond2] #Trocar coluna
@@ -2267,8 +2157,7 @@ write.csv(shared_genes_df_mirror, file = paste0("shared_", filename, "_fisher.cs
 
 ```
 
-
-*pHeatmap*
+### Heatmap
 
 ```{r}
 filename = "shared_degs_updown_immune_SharedDEGS_Venn_fisher"
@@ -2345,7 +2234,6 @@ col_fun <- colorRamp2(c(0, 100, 1000, 2000), c("white", "#f098a7","#ef233c","#d9
 
 ```
 
-
 ```{r}
 
 ######## HEATMAP ANNOTATION
@@ -2417,7 +2305,7 @@ draw(heatmap_plot_all, annotation_legend_side = "left")
 dev.off()
 ```
 
-*Chord diagram*
+### Chord diagram
 
 ```{r}
 #Chord diagram
@@ -2521,9 +2409,7 @@ write.csv(circos_dose3_mirror, file = "Circos_DOWN_pvalue10_dose3.csv")
 
 ```
 
-### Visualização
-
-Dotplot
+## Dotplot
 
 ```{r}
 #### Identidade e -log(q)
@@ -2617,7 +2503,6 @@ write.csv(gse_counts_all_long, file = "gse_counts_all_long.csv")
 
 ```
 
-
 ## DEGs quantification analysis
 
 ```{r}
@@ -2665,8 +2550,8 @@ ggsave(ggplot_degs, file = "DEGs_up_down_barplot_pvalue05.png",  width = 10, hei
 
 ```
 
+## Immune and non-immune DEGs
 
-DEGs immune, cell cycle, and other
 ```{r}
 immunego = ImmuneGO_Annotated_GO_8_2_24 %>% 
   mutate(genes = str_split(genes, ",")) %>%
@@ -2675,10 +2560,6 @@ immunego = ImmuneGO_Annotated_GO_8_2_24 %>%
 immunego_2 = ImmuneGO_QuickGO_Unreviewed_19_2_24 %>% 
   select(genes = symbol) %>% 
   distinct()
-
-cellcycleGO = QuickGO_CellCycle %>% 
-  clean_names() %>% 
-  rename(genes = symbol)
 
 
 all_degs_p_05_vac_infected_29_11_23 = all_degs_p_05_vac_infected_29_11_23 %>% 
@@ -2700,7 +2581,6 @@ all_degs_infected_notimmune %>%
 write.csv(all_degs_infected_notimmune, file = "all_degs_p_05_vac_infected_notimmune.csv", row.names = F)
 ```
 
-
 ```{r}
 #### Immune
 all_degs_p_05_vac_infected_immune = all_degs_p_05_vac_infected_29_11_23 %>% 
@@ -2718,7 +2598,6 @@ all_degs_p_05_vac_infected_immune %>%
 write.csv(all_degs_p_05_vac_infected_immune, file = "all_degs_p_05_vac_infected_immune.csv", row.names = F)
 ```
 
-
 ```{r}
 ##### Immune and other
 all_degs_processes_immune_nonimmune = bind_rows(all_degs_p_05_vac_infected_immune, 
@@ -2733,8 +2612,7 @@ all_degs_processes_immune_nonimmune %>%
 write.csv(all_degs_processes_immune_nonimmune, file = "all_degs_processes_immune_nonimmune.csv", row.names = F)
 ```
 
-
-
+### Retrieving genes by Gene Ontology
 
 ```{r}
 organism = "org.Hs.eg.db"
@@ -2842,7 +2720,6 @@ go_bp_all_comma = go_bp_all %>%
 write.csv(go_bp_all_comma, file = "OtherGOs_Annotated_GOs.csv", row.names = F)
 ```
 
-
 ```{r}
 # DEGs to Entrez and GO ids --------
 degs_GO = all_degs_p_05_vac_infected_29_11_23 %>% 
@@ -2919,7 +2796,8 @@ main_go_2 = degs_GO %>%
 write.csv(main_go_2, file = "degs_annotated_mainGOs_stats.csv", row.names = F)
 ```
 
-## Boxplot
+### Boxplot
+
 ```{r warning=FALSE}
 degs_annotated_mainGOs_stats <- read_csv("degs_annotated_mainGOs_stats.csv")
 
@@ -2942,7 +2820,6 @@ df =  degs_annotated_mainGOs_stats %>%
                                  term_ancestor),
          term_ancestor = fct_relevel(term_ancestor, "Immune system", "Interpecies", "Cellular", "Metabolism"))
 ```
-
 
 ```{r warning=FALSE}
 # UP
@@ -3028,15 +2905,6 @@ patch = up/down + plot_layout(guides = "collect")
 patch
 ggsave(patch, width = 15, height = 10, file = "MainGOs_percgenes_boxplot_up_down.png")
 ```
-
-
-```{r}
-#Interactive
-ggplotly(up)
-ggplotly(down)
-```
-
-
 
 ## Barplot by term
 
@@ -3138,7 +3006,6 @@ ggsave(patch, file = "main_go_2_plot_values_UP_DOWN_regulated.png", width = 20, 
 
 ```
 
-
 ```{r}
 ### Totals ------
 main_go_2_plot_totals_values = main_go_2 %>%
@@ -3188,7 +3055,6 @@ main_go_2_plot_totals_values = main_go_2 %>%
 
 ggsave(main_go_2_plot_totals_values, file = "main_go_2_plot_totals_values.png", width = 8, height = 15)
 ```
-
 
 ```{r}
 ### Immune in totals ------
@@ -3245,8 +3111,6 @@ ggsave(immune_other_plot, file = "immune_other_plot.png", width = 15, height = 7
 
 
 ```
-
-
 
 ### Immune related only
 
@@ -3317,7 +3181,6 @@ shared_genes_comparisons = bind_rows(shared_genes_infection,
 write.csv(shared_genes_comparisons, file = "shared_genes_infection_vaccination_comparisons.csv")
 
 ```
-
 
 ```{r}
 # Vaccine and infection ----
@@ -3427,7 +3290,6 @@ ggsave(shared_genes_vaccines_infection_plot/shared_genes_vaccines_only_plot/shar
 
 ```
 
-
 ### not-immune related only
 
 ```{r}
@@ -3490,7 +3352,6 @@ shared_genes_comparisons = bind_rows(shared_genes_infection,
 
 write.csv(shared_genes_comparisons, file = "non_Immune_shared_genes_infection_vaccination_comparisons.csv")
 ```
-
 
 ```{r}
 # Plotting ------
@@ -3589,4 +3450,173 @@ shared_genes_infection_only_plot = shared_genes_infection %>%
 ggsave(shared_genes_vaccines_infection_plot/shared_genes_vaccines_only_plot/shared_genes_infection_only_plot, file = "NonImmune_Genes_shared_Vaccination_Infection_united.png", width = 10, height = 9)
 ```
 
+## Gene expression by gender
 
+```{r}
+##### DESEQ2 Normalization -------
+library(DESeq2)
+
+exprs = all_matrices_counts %>% 
+  column_to_rownames("genes") %>% 
+  t() %>% 
+  as.data.frame() %>% 
+  round(., 0) %>% 
+  rownames_to_column("sample") %>% 
+  arrange(sample) %>% 
+  inner_join(cvrts %>% 
+               rownames_to_column("sample"),
+               select(sample) %>% 
+               distinct(), 
+             by = "sample") %>% 
+  column_to_rownames("sample") %>% 
+  t() %>% 
+  as.data.frame() %>% 
+  exprs %>% 
+  drop_na() %>% 
+  mutate_if(is.character, as.integer) %>% 
+  drop_na() 
+
+cvrts = cvrts %>% 
+  mutate(condition = as.factor(condition),
+         age = as.factor(age),
+         sex = as.factor(sex),
+         vaccine = as.factor(vaccine),
+         day = as.factor(day),
+         gse_id = as.factor(gse_id))
+  
+dds <- DESeqDataSetFromMatrix(countData = a, colData = cvrts, design = ~ condition)
+dds <- estimateSizeFactors(dds)
+normalized_counts <- counts(dds, normalized=TRUE) %>% 
+  as.data.frame()
+
+saveRDS(normalized_counts, file = "all_matrices_normalized_counts.rds")
+
+normalized_counts = all_matrices_normalized_counts
+```
+
+```{r}
+#### PC1 -------
+PC1 = var$cos2 %>%
+  as.data.frame() %>%
+  arrange(desc(Dim.1)) %>%
+  slice_head(n = 5) %>%
+  rownames_to_column("genes") %>% 
+  distinct() %>% 
+  select(genes, Dim.1)
+
+PC1_genes_counts = normalized_counts %>% 
+  rownames_to_column("genes") %>% 
+  inner_join(PC1, by = "genes") %>% 
+  pivot_longer(cols = -c("genes", "Dim.1"), names_to = "sample", values_to = "counts") %>% 
+  mutate(counts = round(counts, 0)) %>% 
+  select(genes, sample, counts, Dim.1) %>% 
+  inner_join(ann_vaccines_samples, by = "sample") %>% 
+  filter(gse_id != "GSE206023") %>% 
+  group_by(condition) %>%
+  filter(any(sex == 'Male') & any(sex == 'Female'),
+         condition != "H (D0)") %>% 
+  ungroup() %>% 
+  mutate(age_inter = cut(age, breaks = c(10, 20, 30, 40, 50, 60, 70, 80, 90, 100), labels = c("10-20", "21-30", "31-40", "41-50", "51-60", "61-70", "71-80", "81-90", "91-100")))
+
+  
+write.csv(PC1_genes_counts, file = "PC1_genes_samples_counts.csv", row.names = F)
+
+
+#Sex ----
+pc1_5genes  = ggplot(PC1_genes_counts) +
+  aes(x = condition, y = counts, fill = sex, colour = sex) +
+  geom_boxplot() +
+  scale_fill_hue(h = c(180, 270)) +
+  scale_color_hue(h = c(180, 270)) +
+  scale_y_continuous(trans = "log2") +
+  theme_light() +
+  theme(legend.position = "top") +
+  facet_wrap(vars(genes), scales = "free", ncol =1) +
+  theme(axis.text.x = element_text(size = 10, color = "black", angle = 45, vjust = 1, hjust = 1),
+        axis.text.y = element_text(size = 10, color = "black"),
+        strip.background = element_rect(fill = "black"),
+        strip.text = element_text(color = "white", face = "bold", size = 15)) 
+
+ggsave(pc1_5genes, file = "pc1_5genes_sex.png", width = 10, height = 20)
+
+#Age ----
+
+pc1_5genes_age  = ggplot(PC1_genes_counts) +
+  aes(x = condition, y = counts, fill = age_inter) +
+  geom_boxplot() +
+  scale_fill_hue(h = c(180, 360)) +
+  scale_color_hue(h = c(180, 360)) +
+  scale_y_continuous(trans = "log2") +
+  theme_light() +
+  theme(legend.position = "top") +
+  theme(axis.text.x = element_text(size = 10, color = "black", angle = 45, vjust = 1, hjust = 1),
+        axis.text.y = element_text(size = 10, color = "black"),
+        strip.background = element_rect(fill = "black"),
+        strip.text = element_text(color = "white", face = "bold", size = 15)) +
+  facet_wrap(vars(genes), scales = "free", ncol = 1)
+ggsave(pc1_5genes_age, file = "pc1_5genes_age.png", width = 10, height = 20)
+
+
+#### PC2 -------
+PC2 = var$cos2 %>%
+  as.data.frame() %>%
+  arrange(desc(Dim.2)) %>%
+  slice_head(n = 5) %>%
+  rownames_to_column("genes") %>% 
+  distinct() %>% 
+  select(genes, Dim.1)
+
+PC2_genes_counts = normalized_counts %>% 
+  rownames_to_column("genes") %>% 
+  inner_join(PC2, by = "genes") %>% 
+  pivot_longer(cols = -c("genes", "Dim.1"), names_to = "sample", values_to = "counts") %>% 
+  mutate(counts = round(counts, 0)) %>% 
+  select(genes, sample, counts, Dim.1) %>% 
+  inner_join(ann_vaccines_samples, by = "sample") %>% 
+  filter(gse_id != "GSE206023") %>% 
+  group_by(condition) %>%
+  filter(any(sex == 'Male') & any(sex == 'Female'),
+         condition != "H (D0)") %>% 
+  ungroup() %>% 
+  mutate(age_inter = cut(age, breaks = c(10, 20, 30, 40, 50, 60, 70, 80, 90, 100), labels = c("10-20", "21-30", "31-40", "41-50", "51-60", "61-70", "71-80", "81-90", "91-100")))
+
+  
+write.csv(PC2_genes_counts, file = "PC2_genes_samples_counts.csv", row.names = F)
+
+
+#Sex ----
+pc2_5genes  = ggplot(PC2_genes_counts) +
+  aes(x = condition, y = counts, fill = sex, colour = sex) +
+  geom_boxplot() +
+  scale_fill_hue(h = c(180, 270)) +
+  scale_color_hue(h = c(180, 270)) +
+  scale_y_continuous(trans = "log2") +
+  theme_light() +
+  theme(legend.position = "top") +
+  facet_wrap(vars(genes), scales = "free", ncol =1) +
+  theme(axis.text.x = element_text(size = 10, color = "black", angle = 45, vjust = 1, hjust = 1),
+        axis.text.y = element_text(size = 10, color = "black"),
+        strip.background = element_rect(fill = "black"),
+        strip.text = element_text(color = "white", face = "bold", size = 15))
+
+ggsave(pc2_5genes, file = "pc2_5genes_sex.png", width = 10, height = 20)
+
+#Age ----
+
+pc2_5genes_age  = ggplot(PC2_genes_counts) +
+  aes(x = condition, y = counts, fill = age_inter, colour = age_inter) +
+  geom_boxplot() +
+  scale_fill_hue(h = c(180, 360)) +
+  scale_color_hue(h = c(180, 360)) +
+  scale_y_continuous(trans = "log2") +
+  theme_light() +
+  theme(legend.position = "top") +
+  theme(axis.text.x = element_text(size = 10, color = "black", angle = 45, vjust = 1, hjust = 1),
+        axis.text.y = element_text(size = 10, color = "black"),
+        strip.background = element_rect(fill = "black"),
+        strip.text = element_text(color = "white", face = "bold", size = 15)) +
+  facet_wrap(vars(genes), scales = "free", ncol = 1)
+ggsave(pc2_5genes_age, file = "pc2_5genes_age.png", width = 10, height = 20)
+
+
+```
