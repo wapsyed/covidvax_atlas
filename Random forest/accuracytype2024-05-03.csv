@@ -1,0 +1,13 @@
+"correct","type","value","perc"
+"Correct","H",1,50
+"Incorrect","H",1,50
+"Correct","I",16,94
+"Incorrect","I",1,6
+"Correct","IN",7,100
+"Incorrect","IN",0,0
+"Correct","RNA",87,99
+"Incorrect","RNA",1,1
+"Correct","SU",6,86
+"Incorrect","SU",1,14
+"Correct","VV",40,80
+"Incorrect","VV",10,20
