@@ -3151,7 +3151,85 @@ dev.off()
 ```
 
 
+### Inflammation
 
+```{r}
+################# Immune 
+#Heatmap annotation
+ha = HeatmapAnnotation(df = ann_cols_heatmap, 
+                       col = ann_vaxsig_colors,
+                       annotation_name_side = "left")
+
+row_ha = HeatmapAnnotation(df = ann_rows_immune,
+                       col = col_process_immune,
+                       which= "row",
+                       show_annotation_name = F,
+                       show_legend = F)
+
+# Values colors
+col_fun <- colorRamp2(c(-1, 0, 1), c("#9bc1bc", "white", "#ed6a5a"))
+
+file = filename_2
+mat = matrix_data
+width_image = 60
+height_image = 50
+width = unit(30, "cm")
+height = unit(40, "cm")
+column_names_gp = gpar(fontsize = 10)
+row_names_gp = gpar(fontsize = 0)
+rect_gp = gpar(col = "gray80", lwd = 0)
+row_split = 2
+column_split = 2
+
+
+fileimageheatmap_grouped = paste0(file, sep ="_", "Complexheatmap.png")
+
+png(file = fileimageheatmap_grouped, 
+    width = width_image, 
+    height = height_image, 
+    units="cm", 
+    res=900)
+
+heatmap_plot = Heatmap(mat,
+                        top_annotation = ha,
+                        left_annotation = row_ha,
+                        show_row_names = TRUE,
+                        row_names_side = "right",
+                        show_heatmap_legend = TRUE,
+                        heatmap_legend_param = list(direction = "vertical"),
+                        col = col_fun, #color
+                        name = "L2FC",
+                        show_column_names = TRUE,
+                        column_title = fileimageheatmap_grouped,
+                        column_title_gp = gpar(fontsize = 10, fontface = "bold"),
+                        column_names_rot = 45,
+                        column_names_gp = column_names_gp,
+                        rect_gp = rect_gp,
+                        na_col = "white",
+                        cluster_rows = TRUE,
+                        row_names_gp = row_names_gp,
+                        row_dend_width = unit(5, "cm"),
+                        row_split = row_split,
+                        column_split = column_split,
+                        row_gap = unit(2, "mm"),
+                        cluster_columns = TRUE,
+                        column_gap = unit(8, "mm"),
+                        show_column_dend = F,
+                        show_row_dend = F,
+                        row_dend_side = "right",
+                        column_dend_side = "top",
+                        clustering_distance_rows = "euclidean",
+                        clustering_distance_columns = "euclidean",
+                        border = TRUE,
+                        width = width,
+                        height = height,
+                        use_raster = F)
+
+heatmap_plot = draw(heatmap_plot)
+
+dev.off()
+
+```
 
 
 
