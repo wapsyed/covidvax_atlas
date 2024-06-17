@@ -393,33 +393,3 @@ col_process_immune = list(
            "GENERAL" = "#343a40",
            "ANTIMICROBIAL" = "#48cae4",
            "."="white"))
-
-
-immune_system_colors = c(
-  "Innate" = "#faedcd",
-  "Adaptive" = "#ffb5a7",
-  "General" = "#99d98c",
-  "Other" = "#e5e5e5",
-  "Complement" = "#7400b8")
-
-immune_subsystem_colors = c(
-  "Adaptive" = "#ffb5a7",
-  "Cellular" = "#ff758f",
-  "Humoral" = "#ff758f",
-  "Antibacterial" = "#4895ef",
-  "Antifungal" = "#4361ee",
-  "Antimicrobial" = "#7400b8",
-  "General" = "#99d98c",
-  "Antigen presentation" = "#e4c4a5",
-  "APC" = "#ccd5ae",
-  "Eosinophil" = "#faedcd",
-  "Granulocyte" = "#faedcd",
-  "Leukocyte" = "#ffb5a7",
-  "Neutrophil" = "#ccd5ae",
-  "Innate immune response" = "#faedcd",
-  "Interferon" = "#a4c3b2",
-  "Antiviral" = "#60495a",
-  "Pattern recognition receptor" = "#f4f4d5",
-  "Natural killer" = "#fedd96",
-  "Mucosa" = "#c3dfe0",
-  "Erythrocyte" = "#4895ef")
