@@ -97,6 +97,71 @@ write.csv(edges, file = paste0(filename, "Network_edges.csv"), row.names = F)
 write.csv(nodes, file = paste0(filename, "Network_nodes.csv"), row.names = F)
 ```
 
+# Immune GOs - Up and down
+```{r}
+##### Table source - target - annotations ------
+
+#Immune
+degs_all_updown_covid_immune = degs_all_updown %>% 
+  as.data.frame() %>% 
+  select(condition:direction) %>% 
+  inner_join(ann_vaccines, by = "condition") %>% 
+  inner_join(ImmuneGO_Annotated_Genes %>% select(genes) %>% distinct(), by = "genes") %>% 
+  distinct() %>% 
+  select(condition, genes, regulation = direction)  %>% 
+  distinct() %>% 
+  filter(regulation %in% c("UP", "DOWN")) %>% 
+  mutate(regulation_numeric = case_when(
+    regulation %in% c("UP") ~ 1,
+    regulation %in% c("DOWN") ~ -1,
+    TRUE ~ as.numeric(regulation))) %>% 
+  distinct()
+
+# Immune
+immune_source1 = degs_all_updown_covid_immune %>% 
+  inner_join(ImmuneGO_Annotated_Genes %>% filter(go_term == "Manual", 
+                                                 !(process %in% c("TCR REPERTOIRE", "BCR REPERTOIRE"))), 
+             by = "genes") %>% 
+  select(source = condition, target = genes, value = regulation_numeric) %>% 
+  distinct() %>% 
+  left_join(ann_vaccines_covid_other %>% rename(source = condition), by = "source") %>% 
+  mutate(covid_other = if_else(is.na(covid_other), "OTHER", covid_other),
+         annotation = paste0("Condition", covid_other))
+
+immune_source2 = degs_all_updown_covid_immune %>% 
+  inner_join(ImmuneGO_Annotated_Genes %>% filter(go_term == "Manual", 
+                                                 !(process %in% c("TCR REPERTOIRE", "BCR REPERTOIRE"))), 
+             by = "genes") %>% 
+  select(source = process, target = genes) %>% 
+  distinct() %>% 
+  mutate(value = 0, 
+         annotation = "Immune system",
+         type = "Immune system")
+
+immune = bind_rows(immune_source1, immune_source2) %>% mutate(id = source)
+
+immune =  immune %>% 
+   mutate(source = str_replace(source, ",", " "))
+
+write.csv(immune, file = paste0(filename, "Network.csv"), row.names = F)
+write_tsv(immune, file = paste0(filename, "Network.tsv"))
+
+##### Tables nodes and edges ------
+
+edges = immune %>% 
+  select(source, target, value) %>% 
+  mutate(type = "Directed")
+
+nodes = immune %>% 
+  select(source, annotation, vaccine:infection) %>% 
+  distinct() %>% 
+  mutate(id = source)
+
+write.csv(edges, file = paste0(filename, "Network_edges.csv"), row.names = F)
+write.csv(nodes, file = paste0(filename, "Network_nodes.csv"), row.names = F)
+```
+
+
 #COVID non immune genes
 
 ```{r}
@@ -268,7 +333,7 @@ write.csv(nodes, file = paste0(filename, "Network_immune_notimmune_nodes.csv"), 
 
 ```
 
-## COVID-COVID Network by statistics only
+## COVID-COVID Network by statistics only (TOTAL = UP AND DOWN)
 ```{r}
 # Vaccines and infection -----
 ann_vaccines_covid_other
@@ -299,14 +364,14 @@ edges_nodes = edges
 
 my_colors <- ann_vaccines_covid_other %>% 
  mutate(color = case_when(
-    type == "VLP" ~ "#D7B0EE",
-    type == "LA" ~ "#ffb703",
-    type == "CONJ" ~ "#015BA0",
-    type == "IN" ~ "#76c893",
-    type == "VV" ~ "#5e60ce",
-    type == "RNA" ~ "#56cfe1",
-    type == "SU" ~ "#b5e48c",
-    type == "I" ~ "#f72585",
+    type == "VLP" ~ "#7E6148FF",
+    type == "LA" ~ "#E64B35FF",
+    type == "CONJ" ~ "#F39B7FFF",
+    type == "IN" ~ "#00A087FF",
+    type == "VV" ~ "#3C5488FF",
+    type == "RNA" ~ "#4DBBD5FF",
+    type == "SU" ~ "#8491B4FF",
+    type == "I" ~ "#DC0000FF",
     TRUE ~ NA_character_),
     color_covid_other = if_else(covid_other == "COVID", "#56cfe1", "#343a40"))
 
@@ -358,9 +423,105 @@ write_tsv(edges_flourish, file = paste0(filename, "Network_Covid_Other_Vaccineso
 write.csv(edges_flourish, file = paste0(filename, "Network_Covid_Other_Vaccinesonly_sharedgenes_edges.csv"), row.names = F)
 write_tsv(nodes, file = paste0(filename, "Network_Covid_Other_sharedgenes_nodes.tsv"))
 
-
 ```
 
+
+## COVID-COVID Network (UP + DOWN)
+```{r}
+# Vaccines and infection -----
+ann_vaccines_covid_other
+
+degs_all_updown_covid_immune
+
+filename = "degs_all_updown_covid-covid_immune_shared_UPandDOWN_"
+
+edges 
+
+degs_all_updown_covid_immune %>% 
+  inner_join(degs_all_updown_covid_immune %>% select(target = condition, genes, regulation), by = "genes") %>% 
+  select(source = condition, genes, regulation)
+  inner_join(ann_vaccines_covid_other %>% filter(covid_other == "COVID"), by = join_by(Cond1 == condition)) %>% 
+  inner_join(ann_vaccines_covid_other %>% filter(covid_other == "COVID") %>% select(condition), by = join_by(Cond2 == condition)) %>% 
+  clean_names()
+```
+
+
+```{r}
+edges_mirror = edges %>% 
+  select(cond1:qvalue) %>% 
+  rename(cond2.1 = cond1, cond1.2 = cond2) %>% 
+  rename(cond2 = cond2.1, cond1 = cond1.2) %>% 
+  select(cond1, cond2, everything()) %>% 
+  inner_join(ann_vaccines_covid_other %>% filter(covid_other == "COVID"), by = join_by(cond1 == condition))
+
+edges_flourish = bind_rows(edges, edges_mirror)
+
+nodes = ann_vaccines_covid_other 
+edges_nodes = edges
+
+
+my_colors <- ann_vaccines_covid_other %>% 
+ mutate(color = case_when(
+    type == "VLP" ~ "#7E6148FF",
+    type == "LA" ~ "#E64B35FF",
+    type == "CONJ" ~ "#F39B7FFF",
+    type == "IN" ~ "#00A087FF",
+    type == "VV" ~ "#3C5488FF",
+    type == "RNA" ~ "#4DBBD5FF",
+    type == "SU" ~ "#8491B4FF",
+    type == "I" ~ "#DC0000FF",
+    TRUE ~ NA_character_),
+    color_covid_other = if_else(covid_other == "COVID", "#56cfe1", "#343a40"))
+
+my_colors %>% select(condition, color, color_covid_other) %>% 
+  write_tsv("covid_others_colors.tsv")
+
+
+write_tsv(edges_nodes, file = paste0(filename, "Network_Covid_Other_sharedgenes_edges_and_nodes.tsv"))
+write_tsv(edges_flourish, file = paste0(filename, "Network_Covid_Other_sharedgenes_edges.tsv"))
+write.csv(edges_flourish, file = paste0(filename, "Network_Covid_Other_sharedgenes_edges.csv"), row.names = F)
+write_tsv(nodes, file = paste0(filename, "Network_Covid_Other_sharedgenes_nodes.tsv"))
+
+# Only Covid vaccination (previous or no previous infection) vs other vaccines-----
+ann_vaccines_covid_other
+
+edges = degs_all_updown_covid_other_immune_shared %>% 
+  select(-"...1") %>% 
+  inner_join(ann_vaccines_covid_other %>% filter(covid_other == "COVID", !regimen %in% c("I", "I-I")), by = join_by(Cond1 == condition)) %>% 
+  inner_join(ann_vaccines_covid_other %>% filter(covid_other == "OTHER") %>% select(condition), by = join_by(Cond2 == condition)) %>% 
+  clean_names()
+
+edges_mirror = edges %>% 
+  select(cond1:qvalue) %>% 
+  rename(cond2.1 = cond1, cond1.2 = cond2) %>% 
+  rename(cond2 = cond2.1, cond1 = cond1.2) %>% 
+  select(cond1, cond2, everything()) %>% 
+  inner_join(ann_vaccines_covid_other %>% filter(covid_other == "OTHER"), by = join_by(cond1 == condition))
+
+edges_flourish = bind_rows(edges, edges_mirror)
+
+nodes = ann_vaccines_covid_other 
+my_colors <- ann_vaccines_covid_other %>% 
+ mutate(color = case_when(
+    type == "VLP" ~ "#D7B0EE",
+    type == "LA" ~ "#ffb703",
+    type == "CONJ" ~ "#015BA0",
+    type == "IN" ~ "#76c893",
+    type == "VV" ~ "#5e60ce",
+    type == "RNA" ~ "#56cfe1",
+    type == "SU" ~ "#b5e48c",
+    type == "I" ~ "#f72585",
+    TRUE ~ NA_character_),
+    color_covid_other = if_else(covid_other == "COVID", "#56cfe1", "#343a40"))
+
+my_colors %>% select(condition, color, color_covid_other) %>% 
+  write_tsv("covid_others_colors.tsv")
+
+write_tsv(edges_flourish, file = paste0(filename, "Network_Covid_Other_Vaccinesonly_sharedgenes_edges.tsv"))
+write.csv(edges_flourish, file = paste0(filename, "Network_Covid_Other_Vaccinesonly_sharedgenes_edges.csv"), row.names = F)
+write_tsv(nodes, file = paste0(filename, "Network_Covid_Other_sharedgenes_nodes.tsv"))
+
+```
 
 
 COVID and other vaccines
