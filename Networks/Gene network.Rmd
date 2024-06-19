@@ -620,14 +620,14 @@ edges_nodes = edges
 
 my_colors <- ann_vaccines_covid_other %>% 
  mutate(color = case_when(
-    type == "VLP" ~ "#D7B0EE",
-    type == "LA" ~ "#ffb703",
-    type == "CONJ" ~ "#015BA0",
-    type == "IN" ~ "#76c893",
-    type == "VV" ~ "#5e60ce",
-    type == "RNA" ~ "#56cfe1",
-    type == "SU" ~ "#b5e48c",
-    type == "I" ~ "#f72585",
+    type == "VLP" ~ "#7E6148FF",
+    type == "LA" ~ "#E64B35FF",
+    type == "CONJ" ~ "#F39B7FFF",
+    type == "IN" ~ "#00A087FF",
+    type == "VV" ~ "#3C5488FF",
+    type == "RNA" ~ "#4DBBD5FF",
+    type == "SU" ~ "#8491B4FF",
+    type == "I" ~ "#DC0000FF",
     TRUE ~ NA_character_),
     color_covid_other = if_else(covid_other == "COVID", "#56cfe1", "#343a40"))
 
@@ -661,19 +661,22 @@ edges_flourish = bind_rows(edges, edges_mirror)
 nodes = ann_vaccines_covid_other 
 my_colors <- ann_vaccines_covid_other %>% 
  mutate(color = case_when(
-    type == "VLP" ~ "#D7B0EE",
-    type == "LA" ~ "#ffb703",
-    type == "CONJ" ~ "#015BA0",
-    type == "IN" ~ "#76c893",
-    type == "VV" ~ "#5e60ce",
-    type == "RNA" ~ "#56cfe1",
-    type == "SU" ~ "#b5e48c",
-    type == "I" ~ "#f72585",
+    type == "VLP" ~ "#7E6148FF",
+    type == "LA" ~ "#c8b6ff",
+    type == "CONJ" ~ "#F39B7FFF",
+    type == "IN" ~ "#00A087FF",
+    type == "VV" ~ "#3C5488FF",
+    type == "RNA" ~ "#4DBBD5FF",
+    type == "SU" ~ "#8491B4FF",
+    type == "I" ~ "#DC0000FF",
     TRUE ~ NA_character_),
     color_covid_other = if_else(covid_other == "COVID", "#56cfe1", "#343a40"))
 
 my_colors %>% select(condition, color, color_covid_other) %>% 
   write_tsv("covid_others_colors.tsv")
+
+#Copiar e colar direto no flourish
+my_colors %>% select(condition, color) %>% mutate(combined = paste(condition, color, sep = ": ")) %>% select(combined)
 
 write_tsv(edges_flourish, file = paste0(filename, "Network_Covid_Other_Vaccinesonly_sharedgenes_edges.tsv"))
 write.csv(edges_flourish, file = paste0(filename, "Network_Covid_Other_Vaccinesonly_sharedgenes_edges.csv"), row.names = F)

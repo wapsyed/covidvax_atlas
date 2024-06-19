@@ -9,7 +9,7 @@ show_col(pal_npg("nrc")(9)) #Visualize colors
 # VAX SIG DB ----
 ann_vaxsig_colors = list(
   type = c("VLP" = "#7E6148FF",
-           "LA" =  "#E64B35FF",
+           "LA" =  "#c8b6ff",
            "CONJ" = "#F39B7FFF", 
            'IN'= "#00A087FF", #1st Gen  vaccines
            'VV' = "#3C5488FF", #3rd Gen vaccines
