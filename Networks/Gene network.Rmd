@@ -101,6 +101,8 @@ write.csv(nodes, file = paste0(filename, "Network_nodes.csv"), row.names = F)
 ```{r}
 ##### Table source - target - annotations ------
 
+filename = "COVID_ImmuneGOs_up_down_counts_"
+
 #Immune
 degs_all_updown_covid_immune = degs_all_updown %>% 
   as.data.frame() %>% 
@@ -118,29 +120,19 @@ degs_all_updown_covid_immune = degs_all_updown %>%
   distinct()
 
 # Immune
-immune_source1 = degs_all_updown_covid_immune %>% 
+immune_GOs_up_down = degs_all_updown_covid_immune %>% 
   inner_join(ImmuneGO_Annotated_Genes %>% filter(go_term == "Manual", 
                                                  !(process %in% c("TCR REPERTOIRE", "BCR REPERTOIRE"))), 
              by = "genes") %>% 
-  select(source = condition, target = genes, value = regulation_numeric) %>% 
+  select(source = condition, target = process, value = regulation) %>% 
+  group_by(source, value) %>% 
+  count(target) %>% 
   distinct() %>% 
   left_join(ann_vaccines_covid_other %>% rename(source = condition), by = "source") %>% 
   mutate(covid_other = if_else(is.na(covid_other), "OTHER", covid_other),
          annotation = paste0("Condition", covid_other))
 
-immune_source2 = degs_all_updown_covid_immune %>% 
-  inner_join(ImmuneGO_Annotated_Genes %>% filter(go_term == "Manual", 
-                                                 !(process %in% c("TCR REPERTOIRE", "BCR REPERTOIRE"))), 
-             by = "genes") %>% 
-  select(source = process, target = genes) %>% 
-  distinct() %>% 
-  mutate(value = 0, 
-         annotation = "Immune system",
-         type = "Immune system")
-
-immune = bind_rows(immune_source1, immune_source2) %>% mutate(id = source)
-
-immune =  immune %>% 
+immune =  immune_GOs_up_down %>% 
    mutate(source = str_replace(source, ",", " "))
 
 write.csv(immune, file = paste0(filename, "Network.csv"), row.names = F)
