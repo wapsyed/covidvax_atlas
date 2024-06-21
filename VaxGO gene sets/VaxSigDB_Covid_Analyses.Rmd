@@ -15,18 +15,18 @@ library(qvalue)
 library(circlize)
 library(ComplexHeatmap)
 library(magick)
+library(here)
 ```
 
 # VAX Sig DB
 
-Os estudos foram filtrados pelo tamanho do conjunto de genes
-compartilhados (GSSize \> 10 ou \>50) e com pvalue (\<0.25).
-
-Os dados foram anotados no R e depois avaliados manualmente no excel.
+Manual annotation Os estudos foram filtrados pelo tamanho do conjunto de
+genes compartilhados (GSSize \> 10 ou \>50) e com pvalue (\<0.25). Os
+dados foram anotados no R e depois avaliados manualmente no excel.
 
 ```{r}
 #Importar arquivo
-VaxSigDB_genesets = VAX_GeneSets_Annotated_26_10_23
+VaxSigDB_genesets = here("VaxGO gene sets", "VAX_GeneSets_Annotated_26_10_23")
 
 # Divida os dados em blocos de informações para cada vacina
 vaccines_att <- split(VaxSigDB_genesets$Col2, VaxSigDB_genesets$Col1)
@@ -104,11 +104,20 @@ VAX_GeneSets_annotated <- VAX_Genes %>%
   distinct() #Retirar linhas repetidas
 
 #Salvar
-write.csv(VAX_Genes, file = "VAX_Genes_Annotated_RAW.csv")
-write.csv(VAX_GeneSets_annotated, file = "VAX_Genesets_Annotated_RAW.csv")
+write.csv(VAX_Genes, file = here("VaxGO gene sets", "VAX_Genes_Annotated_RAW.csv"))
+write.csv(VAX_GeneSets_annotated, file = here("VaxGO gene sets", "VAX_Genesets_Annotated_RAW.csv"))
 
 #Display
 head(VAX_GeneSets_annotated)
+
+
+
+VAXSigDB_Annotated = VAXSigDB_Annotated %>% 
+  mutate(VACCINE_CONDITION = paste0(VACCINE, " (", `DATE-TIME`, ")")) %>% 
+  select(SYSTEMATIC_NAME, VACCINE_CONDITION, VACCINE, everything())
+
+VAXSigDB_Annotated %>% write.csv(file = here("VaxGO gene sets","VAXSigDB_Annotated.csv"), row.names = F)
+
 ```
 
 # Descriptive statistics
@@ -199,7 +208,7 @@ platforms_hist = ggplot(platforms) +
                                'SUB' = "#00bbf9",
                                'PEP' = "#c0fdff"))
 
-ggsave(platforms_hist, file = "VAXSigDB_Platforms_hist_1.png", width = 10, height = 5)
+ggsave(platforms_hist, file = here("VaxGO gene sets", "VAXSigDB_Platforms_hist_1.png"), width = 10, height = 5)
 
 
 # By pathogens ----
@@ -240,7 +249,7 @@ pathogens_hist = ggplot(pathogens) +
                              'VZV'	= "#ff9b85",
                              'YF'	= "#f38375"))
 
-ggsave(pathogens_hist, file = "VAXSigDB_Pathogens_hist_1.png", width = 10, height = 5)
+ggsave(pathogens_hist, file = here("VaxGO gene sets", "VAXSigDB_Pathogens_hist_1.png"), width = 10, height = 5)
 
 ```
 
@@ -278,7 +287,8 @@ unique(VAX_GeneSets_annotated$STUDY_SUBTYPE)
 
 
 # Subset de vacinas para as seguintes análises comparativas
-VAX_GeneSets_Blood_PBMC_VAC = VAX_GeneSets_annotateds_Atate_RA %>%   filter(SAMPLE_SOURCE %in% c("PBMC", "WHOLE BLOOD"), 
+VAX_GeneSets_Blood_PBMC_VAC = VAX_GeneSets_annotateds_Atate_RA %>%   
+  filter(SAMPLE_SOURCE %in% c("PBMC", "WHOLE BLOOD"), 
          STUDY_TYPE %in% c("VACCINE"))
 
 # Subset de vacinas com resultados de comparações entre vacinas, adjuvantes, idade e sexo
@@ -310,8 +320,10 @@ VAX_GeneSets_Blood_PBMC_VAC.stats = VAX_GeneSets_Blood_PBMC_VAC %>%
 #Input
 data = VAX_Genes_Annotated_RAW %>%
   as.data.frame() %>% 
+  select(-"...1") %>% 
   mutate(VACCINE_REG_TIME = paste0(VACCINE, "_", `DATE-TIME`, "_", REGULATION))
 
+data
 ```
 
 ```{r}
@@ -393,11 +405,11 @@ shared_genes_df_mirror = shared_genes_df_mirror %>%
          Percentage_Shared_Cond2 = round(Percentage_Shared_Cond2, 2))
 
 #Salvar resultados
-write.csv(shared_genes_df_mirror, file = "AigD_sharedenes.csv") #Alterar
+write.csv(shared_genes_df_mirror, file = here("VaxGO gene sets", "VaxMSigDB_sharedgenes.csv"))
 
 ```
 
-##Heatmap
+## Heatmap
 
 ### VAC ONLY
 
@@ -493,7 +505,7 @@ dim(matrix_rows_cols_ordered)
 dim(ann_heatmap)
 
 
-colfun = coloRamp(c(, 0), c("white", "#10BD"))
+colfun = coloRamp(c(0, 100), c("white", "#10BD"))
 
 #Criar heatmap annotation
 col_ha = HeatmapAnnotation(df = ann_heatmap, 
@@ -517,9 +529,9 @@ heatmap_plot_all = Heatmap(mat,
                         show_hetmp_leend = TRUE,
                         cell_fun = function(j, i, x, y, width, height, fill) {
                         grid.text(sprintf("%.1f", mat[i, j]), x, y, gp = gpar(fontsize = 6))}, #valor das células
-                        heatmap_legend_aa = lt(diretion = hoint"),
+                        heatmap_legend_aa = list(direction = "horizontal"),
                         name = "Total genes", #Legend
-                        o = col_fn, color
+                        colfun = col_fn,
                         column_title = fileimageheatmap_ungrouped,
                         column_title_gp = gpar(fontsize = , fontface = ""),
                         column_names_rot = ,
@@ -592,389 +604,6 @@ draw(heatmap_plot_all, annotation_legend_side = "left", heatmap_legend_side = "l
 dev.off()
 ```
 
-#### IDENTITY COND 1
-
-```{r}
-VAXSigDB_sharedgenes = shared_genes_df_mirror
-filename = "VAXSigDB_sharedgenes_DOWN_DOWN_IDENTITY_COND1"
-
-ann_data = data %>% 
-  clean_names() %>% 
-  select(vaccine_reg_time, microbe_type, 
-         pathogen = target_pathogen_disease, 
-         platform, 
-         vaccine, 
-         age_category, 
-         date_time:time, 
-         study_type,
-         study_subtype) %>% 
-  filter(age_category == "ADULT",
-         study_subtype == "VAC ONLY") %>% 
-  select(!c(age_category, study_type, study_subtype)) %>% 
-  distinct()
-
-
-matrix =  VAXSigDB_sharedgenes %>% 
-  select(Cond1, Cond2, Percentage_Shared_Cond1) %>% 
-  filter(grepl("_DOWN", Cond1) & grepl("_DOWN", Cond2)) %>% 
-  pivot_wider(names_from = "Cond2", 
-              values_from = "Percentage_Shared_Cond1",
-              values_fn = mean) %>% 
-  column_to_rownames(var="") %>% 
-  as.matrix() %>% 
-  round(0)
-
-dim(matrix)
-
-ann_heatmap = matrix %>% 
-  colnames() %>% 
-  data.frame() %>% 
-  filter(. != "vaccine_reg_time") %>% 
-  rename(vaccine_reg_time = '.') %>% 
-  merge(ann_data, by = "vaccine_reg_time", all.x = T) %>% 
-  mutate(vaccine_reg_time = sub("_UP$", "", vaccine_reg_time)) %>% 
-  arrange(vaccine_reg_time) %>% 
-  distinct() %>% 
-  column_to_rownames(var= "vaccine_reg_time") %>% 
-  mutate_all(as.factor) %>% 
-  mutate(
-    time = if_else(time == "ANY", "0", time),
-    time = as.numeric(time),
-    day_total = round(if_else(date == "H", time / 24, time), 0),
-    week = if_else(date == "M", time * 4, time),
-    week = day_total/7,
-    week = round(week, 0),
-    month = round(week/4),
-    day_month = case_when(
-      day_total >= 30 & day_total <= 60 ~ day_total / 2,
-      day_total > 60 & day_total <= 90 ~ day_total / 3,
-      TRUE ~ day_total),
-    day_month = round(day_month, 0),
-    month = as.factor(month)) %>% 
-  distinct() %>% 
-  select(-vaccine, -time, -day_total, -date_time, -date) %>% 
-  relocate(week, .before = day_month) %>% 
-  filter(microbe_type != "NA")
-
-matrix_rowsordered = matrix %>% 
-  as.data.frame() %>% 
-  rownames_to_column(var= "vaccine_reg_time") %>% 
-  merge(ann_data, by = "vaccine_reg_time", all.x = F, all.y = F) %>% 
-  arrange(vaccine_reg_time) %>% 
-  select(!microbe_type:time) %>% 
-  distinct() %>% 
-  column_to_rownames("vaccine_reg_time") %>% 
-  mutate_if(is.character, as.numeric) %>% 
-  as.matrix()
-
-matrix_rows_cols_ordered = matrix_rowsordered %>% 
-  t() %>% 
-  as.data.frame() %>% 
-  rownames_to_column(var= "vaccine_reg_time") %>% 
-  merge(ann_data, by = "vaccine_reg_time", all.x = F) %>% 
-  select(!microbe_type:time) %>% 
-  rename_all(~sub("_DOWN$", "", .)) %>% # Retirar up or down
-  mutate(vaccine_reg_time = sub("_DOWN$", "", vaccine_reg_time)) %>% # Retirar up or down
-  arrange(vaccine_reg_time) %>% 
-  distinct() %>% 
-  column_to_rownames("vaccine_reg_time") %>% 
-  as.matrix()
-
-dim(matrix_rows_cols_ordered)
-dim(ann_heatmap)
-
-
-col_fun <- colorRamp2(c(0, 100), c("white", "#16E0BD"))
-
-#Criar heatmap annotation
-col_ha = HeatmapAnnotation(df = ann_heatmap, 
-                       col = ann_vaxsig_colors, 
-                       annotation_name_side = "left")
-row_ha = rowAnnotation(df = ann_heatmap, col = ann_vaxsig_colors)
-
-
-#TOTAL GENES (with values)
-mat = matrix_rows_cols_ordered 
-
-fileimageheatmap_ungrouped= paste0(filename, sep ="_", "VALUES_Complexheatmap.png")
-
-png(file = fileimageheatmap_ungrouped, width=50, height=40,units="cm",res=900)
-
-heatmap_plot_all = Heatmap(mat,
-                        top_annotation = col_ha,
-                        left_annotation = row_ha,
-                        na_col = "black",
-                        show_row_names = TRUE,
-                        show_heatmap_legend = TRUE,
-                        cell_fun = function(j, i, x, y, width, height, fill) {
-                        grid.text(sprintf("%.1f", mat[i, j]), x, y, gp = gpar(fontsize = 6))}, #valor das células
-                        heatmap_legend_param = list(direction = "horizontal"),
-                        name = "Total genes", #Legend
-                        col = col_fun, #color
-                        column_title = fileimageheatmap_ungrouped,
-                        column_title_gp = gpar(fontsize = 8, fontface = "bold"),
-                        column_names_rot = 90,
-                        column_names_gp = gpar(fontsize = 8),
-                        rect_gp = gpar(col = "gray90", lwd = 1),
-                        cluster_rows = TRUE,
-                        row_names_gp = gpar(fontsize = 10),
-                        #row_split = 4, #Split row clusters
-                        row_gap = unit(2, "mm"),
-                        cluster_columns = TRUE,
-                        #column_split = 4, #Split group clusters
-                        column_gap = unit(8, "mm"),
-                        show_column_dend = FALSE,
-                        show_row_dend = FALSE,
-                        row_dend_side = "left",
-                        column_dend_side = "top",
-                        clustering_distance_rows = "euclidean",
-                        border = TRUE,
-                        column_dend_reorder = TRUE,
-                        width = unit(30, "cm"), 
-                        height = unit(30, "cm")
-)
-
-draw(heatmap_plot_all, annotation_legend_side = "left", heatmap_legend_side = "left")
-
-dev.off()
-
-
-#TOTAL GENES (no values)
-mat = matrix_rows_cols_ordered 
-
-fileimageheatmap_ungrouped= paste0(filename, sep ="_", "NO_VALUES_Complexheatmap.png")
-
-png(file = fileimageheatmap_ungrouped, width=50, height=40,units="cm",res=900)
-
-heatmap_plot_all = Heatmap(mat,
-                        top_annotation = col_ha,
-                        left_annotation = row_ha,
-                        na_col = "black",
-                        show_row_names = TRUE,
-                        show_heatmap_legend = TRUE,
-                        heatmap_legend_param = list(direction = "horizontal"),
-                        name = "Total genes", #Legend
-                        col = col_fun, #color
-                        column_title = fileimageheatmap_ungrouped,
-                        column_title_gp = gpar(fontsize = 8, fontface = "bold"),
-                        column_names_rot = 90,
-                        column_names_gp = gpar(fontsize = 8),
-                        rect_gp = gpar(col = "gray90", lwd = 1),
-                        cluster_rows = TRUE,
-                        row_names_gp = gpar(fontsize = 10),
-                        #row_split = 2, #Split row clusters
-                        row_gap = unit(2, "mm"),
-                        cluster_columns = TRUE,
-                        #column_split = 2, #Split group clusters
-                        column_gap = unit(8, "mm"),
-                        show_column_dend = FALSE,
-                        show_row_dend = FALSE,
-                        row_dend_side = "left",
-                        column_dend_side = "top",
-                        clustering_distance_rows = "euclidean",
-                        border = TRUE,
-                        column_dend_reorder = TRUE,
-                        width = unit(30, "cm"), 
-                        height = unit(30, "cm")
-)
-
-draw(heatmap_plot_all, annotation_legend_side = "left", heatmap_legend_side = "left")
-
-dev.off()
-```
-
-#### IDENTITY COND 2
-
-```{r}
-VAXSigDB_sharedgenes = shared_genes_df_mirror
-filename = "VAXSigDB_sharedgenes_DOWN_DOWN_IDENTITY_COND2"
-
-ann_data = data %>% 
-  clean_names() %>% 
-  select(vaccine_reg_time, microbe_type, 
-         pathogen = target_pathogen_disease, 
-         platform, 
-         vaccine, 
-         age_category, 
-         date_time:time, 
-         study_type,
-         study_subtype) %>% 
-  filter(age_category == "ADULT",
-         study_subtype == "VAC ONLY") %>% 
-  select(!c(age_category, study_type, study_subtype)) %>% 
-  distinct()
-
-
-matrix =  VAXSigDB_sharedgenes %>% 
-  select(Cond1, Cond2, Percentage_Shared_Cond2) %>% 
-  filter(grepl("_DOWN", Cond1) & grepl("_DOWN", Cond2)) %>% 
-  pivot_wider(names_from = "Cond1", 
-              values_from = "Percentage_Shared_Cond2",
-              values_fn = mean) %>% 
-  column_to_rownames(var="Cond2") %>% 
-  as.matrix() %>% 
-  round(0)
-
-dim(matrix)
-
-ann_heatmap = matrix %>% 
-  colnames() %>% 
-  data.frame() %>% 
-  filter(. != "vaccine_reg_time") %>% 
-  rename(vaccine_reg_time = '.') %>% 
-  merge(ann_data, by = "vaccine_reg_time", all.x = T) %>% 
-  mutate(vaccine_reg_time = sub("_DOWN$", "", vaccine_reg_time)) %>% 
-  arrange(vaccine_reg_time) %>% 
-  distinct() %>% 
-  column_to_rownames(var= "vaccine_reg_time") %>% 
-  mutate_all(as.factor) %>% 
-  mutate(
-    time = if_else(time == "ANY", "0", time),
-    time = as.numeric(time),
-    day_total = round(if_else(date == "H", time / 24, time), 0),
-    week = if_else(date == "M", time * 4, time),
-    week = day_total/7,
-    week = round(week, 0),
-    month = round(week/4),
-    day_month = case_when(
-      day_total >= 30 & day_total <= 60 ~ day_total / 2,
-      day_total > 60 & day_total <= 90 ~ day_total / 3,
-      TRUE ~ day_total),
-    day_month = round(day_month, 0),
-    month = as.factor(month)) %>% 
-  distinct() %>% 
-  select(-vaccine, -time, -day_total, -date_time, -date) %>% 
-  relocate(week, .before = day_month) %>% 
-  filter(microbe_type != "NA")
-
-matrix_rowsordered = matrix %>% 
-  as.data.frame() %>% 
-  rownames_to_column(var= "vaccine_reg_time") %>% 
-  merge(ann_data, by = "vaccine_reg_time", all.x = F, all.y = F) %>% 
-  arrange(vaccine_reg_time) %>% 
-  select(!microbe_type:time) %>% 
-  distinct() %>% 
-  column_to_rownames("vaccine_reg_time") %>% 
-  mutate_if(is.character, as.numeric) %>% 
-  as.matrix()
-
-matrix_rows_cols_ordered = matrix_rowsordered %>% 
-  t() %>% 
-  as.data.frame() %>% 
-  rownames_to_column(var= "vaccine_reg_time") %>% 
-  merge(ann_data, by = "vaccine_reg_time", all.x = F) %>% 
-  select(!microbe_type:time) %>% 
-  rename_all(~sub("_DOWN$", "", .)) %>% # Retirar up or down
-  mutate(vaccine_reg_time = sub("_UP$", "", vaccine_reg_time)) %>% # Retirar up or down
-  arrange(vaccine_reg_time) %>% 
-  distinct() %>% 
-  column_to_rownames("vaccine_reg_time") %>% 
-  as.matrix()
-
-dim(matrix_rows_cols_ordered)
-dim(ann_heatmap)
-
-
-
-
-col_fun <- colorRamp2(c(0, 100), c("white", "#16E0BD"))
-
-#Criar heatmap annotation
-col_ha = HeatmapAnnotation(df = ann_heatmap, 
-                       col = ann_vaxsig_colors, 
-                       annotation_name_side = "left")
-row_ha = rowAnnotation(df = ann_heatmap, col = ann_vaxsig_colors)
-
-
-#TOTAL GENES (with values)
-mat = matrix_rows_cols_ordered 
-
-fileimageheatmap_ungrouped= paste0(filename, sep ="_", "VALUES_Complexheatmap.png")
-
-png(file = fileimageheatmap_ungrouped, width=50, height=40,units="cm",res=900)
-
-heatmap_plot_all = Heatmap(mat,
-                        top_annotation = col_ha,
-                        left_annotation = row_ha,
-                        na_col = "black",
-                        show_row_names = TRUE,
-                        show_heatmap_legend = TRUE,
-                        cell_fun = function(j, i, x, y, width, height, fill) {
-                        grid.text(sprintf("%.1f", mat[i, j]), x, y, gp = gpar(fontsize = 6))}, #valor das células
-                        heatmap_legend_param = list(direction = "horizontal"),
-                        name = "IDENTITY", #Legend
-                        col = col_fun, #color
-                        column_title = fileimageheatmap_ungrouped,
-                        column_title_gp = gpar(fontsize = 8, fontface = "bold"),
-                        column_names_rot = 90,
-                        column_names_gp = gpar(fontsize = 8),
-                        rect_gp = gpar(col = "gray90", lwd = 1),
-                        cluster_rows = TRUE,
-                        row_names_gp = gpar(fontsize = 10),
-                        #row_split = 4, #Split row clusters
-                        row_gap = unit(2, "mm"),
-                        cluster_columns = TRUE,
-                        #column_split = 4, #Split group clusters
-                        column_gap = unit(8, "mm"),
-                        show_column_dend = FALSE,
-                        show_row_dend = FALSE,
-                        row_dend_side = "left",
-                        column_dend_side = "top",
-                        clustering_distance_rows = "euclidean",
-                        border = TRUE,
-                        column_dend_reorder = TRUE,
-                        width = unit(30, "cm"), 
-                        height = unit(30, "cm")
-)
-
-draw(heatmap_plot_all, annotation_legend_side = "left", heatmap_legend_side = "left")
-
-dev.off()
-
-
-#TOTAL GENES (no values)
-mat = matrix_rows_cols_ordered 
-
-fileimageheatmap_ungrouped= paste0(filename, sep ="_", "NO_VALUES_Complexheatmap.png")
-
-png(file = fileimageheatmap_ungrouped, width=50, height=40,units="cm",res=900)
-
-heatmap_plot_all = Heatmap(mat,
-                        top_annotation = col_ha,
-                        left_annotation = row_ha,
-                        na_col = "black",
-                        show_row_names = TRUE,
-                        show_heatmap_legend = TRUE,
-                        heatmap_legend_param = list(direction = "horizontal"),
-                        name = "IDENTITY", #Legend
-                        col = col_fun, #color
-                        column_title = fileimageheatmap_ungrouped,
-                        column_title_gp = gpar(fontsize = 8, fontface = "bold"),
-                        column_names_rot = 90,
-                        column_names_gp = gpar(fontsize = 8),
-                        rect_gp = gpar(col = "gray90", lwd = 1),
-                        cluster_rows = TRUE,
-                        row_names_gp = gpar(fontsize = 10),
-                        #row_split = 2, #Split row clusters
-                        row_gap = unit(2, "mm"),
-                        cluster_columns = TRUE,
-                        #column_split = 2, #Split group clusters
-                        column_gap = unit(8, "mm"),
-                        show_column_dend = FALSE,
-                        show_row_dend = FALSE,
-                        row_dend_side = "left",
-                        column_dend_side = "top",
-                        clustering_distance_rows = "euclidean",
-                        border = TRUE,
-                        column_dend_reorder = TRUE,
-                        width = unit(30, "cm"), 
-                        height = unit(30, "cm")
-)
-
-draw(heatmap_plot_all, annotation_legend_side = "left", heatmap_legend_side = "left")
-
-dev.off()
-```
 
 ### CORRELATION ANTIBODIES
 
@@ -1167,381 +796,7 @@ draw(heatmap_plot_all, annotation_legend_side = "left", heatmap_legend_side = "l
 dev.off()
 ```
 
-#### IDENTITY COND 1
-
-```{r}
-VAXSigDB_sharedgenes = shared_genes_df_mirror
-filename = "VAXSigDB_sharedgenes_DOWN_DOWN_Antibodies_Cond1"
-
-ann_data = data %>% 
-  clean_names() %>% 
-  select(vaccine_reg_time, microbe_type, 
-         pathogen = target_pathogen_disease, 
-         platform, 
-         vaccine, 
-         age_category, 
-         date_time:time, 
-         study_type,
-         study_subtype) %>% 
-  distinct() %>% 
-  filter(age_category == "ADULT",
-         study_subtype == "ANTIBODY") %>% 
-  select(!c(age_category, study_type, study_subtype))
-
-matrix =  VAXSigDB_sharedgenes %>% 
-  select(Cond1, Cond2, Percentage_Shared_Cond1) %>% 
-  filter(grepl("_DOWN", Cond1) & grepl("_DOWN", Cond2)) %>% 
-  pivot_wider(names_from = "Cond2", 
-              values_from = "Percentage_Shared_Cond1",
-              values_fn = mean) %>% 
-  column_to_rownames(var="Cond1") %>% 
-  as.matrix() %>% 
-  round(0)
-
-dim(matrix)
-
-ann_heatmap = matrix %>% 
-  colnames() %>% 
-  data.frame() %>% 
-  filter(. != "vaccine_reg_time") %>% 
-  rename(vaccine_reg_time = '.') %>% 
-  merge(ann_data, by = "vaccine_reg_time", all.x = T) %>% 
-  mutate(vaccine_reg_time = sub("_UP$", "", vaccine_reg_time)) %>% 
-  arrange(vaccine_reg_time) %>% 
-  distinct() %>% 
-  column_to_rownames(var= "vaccine_reg_time") %>% 
-  mutate_all(as.factor) %>% 
-  mutate(
-    time = if_else(time == "ANY", "0", time),
-    time = as.numeric(time),
-    day_total = round(if_else(date == "H", time / 24, time), 0),
-    week = if_else(date == "M", time * 4, time),
-    week = day_total/7,
-    week = round(week, 0),
-    month = round(week/4),
-    day_month = case_when(
-      day_total >= 30 & day_total <= 60 ~ day_total / 2,
-      day_total > 60 & day_total <= 90 ~ day_total / 3,
-      TRUE ~ day_total),
-    day_month = round(day_month, 0),
-    month = as.factor(month)) %>% 
-  distinct() %>% 
-  select(-vaccine, -time, -day_total, -date_time, -date) %>% 
-  relocate(week, .before = day_month) %>% 
-  filter(microbe_type != "NA")
-
-matrix_rowsordered = matrix %>% 
-  as.data.frame() %>% 
-  rownames_to_column(var= "vaccine_reg_time") %>% 
-  merge(ann_data, by = "vaccine_reg_time", all.x = F, all.y = F) %>% 
-  arrange(vaccine_reg_time) %>% 
-  select(!microbe_type:time) %>% 
-  distinct() %>% 
-  column_to_rownames("vaccine_reg_time") %>% 
-  mutate_if(is.character, as.numeric) %>% 
-  as.matrix()
-
-matrix_rows_cols_ordered = matrix_rowsordered %>% 
-  t() %>% 
-  as.data.frame() %>% 
-  rownames_to_column(var= "vaccine_reg_time") %>% 
-  merge(ann_data, by = "vaccine_reg_time", all.x = F) %>% 
-  select(!microbe_type:time) %>% 
-  rename_all(~sub("_DOWN$", "", .)) %>% # Retirar up or down
-  mutate(vaccine_reg_time = sub("_DOWN$", "", vaccine_reg_time)) %>% # Retirar up or down
-  arrange(vaccine_reg_time) %>% 
-  distinct() %>% 
-  column_to_rownames("vaccine_reg_time") %>% 
-  as.matrix()
-
-dim(matrix_rows_cols_ordered)
-dim(ann_heatmap)
-
-#Criar heatmap annotation
-col_ha = HeatmapAnnotation(df = ann_heatmap, 
-                       col = ann_vaxsig_colors, 
-                       annotation_name_side = "left")
-row_ha = rowAnnotation(df = ann_heatmap, col = ann_vaxsig_colors)
-
-
-#TOTAL GENES (with values)
-mat = matrix_rows_cols_ordered 
-
-fileimageheatmap_ungrouped= paste0(filename, sep ="_", "VALUES_Complexheatmap.png")
-
-png(file = fileimageheatmap_ungrouped, width=30, height=30,units="cm",res=900)
-
-heatmap_plot_all = Heatmap(mat,
-                        top_annotation = col_ha,
-                        left_annotation = row_ha,
-                        na_col = "black",
-                        show_row_names = TRUE,
-                        show_heatmap_legend = TRUE,
-                        cell_fun = function(j, i, x, y, width, height, fill) {
-                        grid.text(sprintf("%.1f", mat[i, j]), x, y, gp = gpar(fontsize = 6))}, #valor das células
-                        heatmap_legend_param = list(direction = "horizontal"),
-                        name = "Total genes", #Legend
-                        col = col_fun, #color
-                        column_title = fileimageheatmap_ungrouped,
-                        column_title_gp = gpar(fontsize = 8, fontface = "bold"),
-                        column_names_rot = 90,
-                        column_names_gp = gpar(fontsize = 8),
-                        rect_gp = gpar(col = "gray90", lwd = 1),
-                        cluster_rows = TRUE,
-                        row_names_gp = gpar(fontsize = 10),
-                        #row_split = 4, #Split row clusters
-                        row_gap = unit(2, "mm"),
-                        cluster_columns = TRUE,
-                        #column_split = 4, #Split group clusters
-                        column_gap = unit(8, "mm"),
-                        show_column_dend = FALSE,
-                        show_row_dend = FALSE,
-                        row_dend_side = "left",
-                        column_dend_side = "top",
-                        clustering_distance_rows = "euclidean",
-                        border = TRUE,
-                        column_dend_reorder = TRUE,
-                        width = unit(10, "cm"), 
-                        height = unit(10, "cm")
-)
-
-draw(heatmap_plot_all, annotation_legend_side = "left", heatmap_legend_side = "left")
-
-dev.off()
-
-
-#TOTAL GENES (no values)
-mat = matrix_rows_cols_ordered 
-
-fileimageheatmap_ungrouped= paste0(filename, sep ="_", "NO_VALUES_Complexheatmap.png")
-
-png(file = fileimageheatmap_ungrouped, width=30, height=30,units="cm",res=900)
-
-heatmap_plot_all = Heatmap(mat,
-                        top_annotation = col_ha,
-                        left_annotation = row_ha,
-                        na_col = "black",
-                        show_row_names = TRUE,
-                        show_heatmap_legend = TRUE,
-                        heatmap_legend_param = list(direction = "horizontal"),
-                        name = "Total genes", #Legend
-                        col = col_fun, #color
-                        column_title = fileimageheatmap_ungrouped,
-                        column_title_gp = gpar(fontsize = 8, fontface = "bold"),
-                        column_names_rot = 90,
-                        column_names_gp = gpar(fontsize = 8),
-                        rect_gp = gpar(col = "gray90", lwd = 1),
-                        cluster_rows = TRUE,
-                        row_names_gp = gpar(fontsize = 10),
-                        #row_split = 2, #Split row clusters
-                        row_gap = unit(2, "mm"),
-                        cluster_columns = TRUE,
-                        #column_split = 2, #Split group clusters
-                        column_gap = unit(8, "mm"),
-                        show_column_dend = FALSE,
-                        show_row_dend = FALSE,
-                        row_dend_side = "left",
-                        column_dend_side = "top",
-                        clustering_distance_rows = "euclidean",
-                        border = TRUE,
-                        column_dend_reorder = TRUE,
-                        width = unit(10, "cm"), 
-                        height = unit(10, "cm")
-)
-
-draw(heatmap_plot_all, annotation_legend_side = "left", heatmap_legend_side = "left")
-
-dev.off()
-```
-
-#### IDENTITY COND 1
-
-```{r}
-VAXSigDB_sharedgenes = shared_genes_df_mirror
-filename = "VAXSigDB_sharedgenes_DOWN_DOWN_Antibodies_COND2"
-
-ann_data = data %>% 
-  clean_names() %>% 
-  select(vaccine_reg_time, microbe_type, 
-         pathogen = target_pathogen_disease, 
-         platform, 
-         vaccine, 
-         age_category, 
-         date_time:time, 
-         study_type,
-         study_subtype) %>% 
-  distinct() %>% 
-  filter(age_category == "ADULT",
-         study_subtype == "ANTIBODY") %>% 
-  select(!c(age_category, study_type, study_subtype))
-
-matrix =  VAXSigDB_sharedgenes %>% 
-  select(Cond1, Cond2, Percentage_Shared_Cond2) %>% 
-  filter(grepl("_DOWN", Cond1) & grepl("_DOWN", Cond2)) %>% 
-  pivot_wider(names_from = "Cond1", 
-              values_from = "Percentage_Shared_Cond2",
-              values_fn = mean) %>% 
-  column_to_rownames(var="Cond2") %>% 
-  as.matrix() %>% 
-  round(0)
-
-dim(matrix)
-
-ann_heatmap = matrix %>% 
-  colnames() %>% 
-  data.frame() %>% 
-  filter(. != "vaccine_reg_time") %>% 
-  rename(vaccine_reg_time = '.') %>% 
-  merge(ann_data, by = "vaccine_reg_time", all.x = T) %>% 
-  mutate(vaccine_reg_time = sub("_DOWN$", "", vaccine_reg_time)) %>% 
-  arrange(vaccine_reg_time) %>% 
-  distinct() %>% 
-  column_to_rownames(var= "vaccine_reg_time") %>% 
-  mutate_all(as.factor) %>% 
-  mutate(
-    time = if_else(time == "ANY", "0", time),
-    time = as.numeric(time),
-    day_total = round(if_else(date == "H", time / 24, time), 0),
-    week = if_else(date == "M", time * 4, time),
-    week = day_total/7,
-    week = round(week, 0),
-    month = round(week/4),
-    day_month = case_when(
-      day_total >= 30 & day_total <= 60 ~ day_total / 2,
-      day_total > 60 & day_total <= 90 ~ day_total / 3,
-      TRUE ~ day_total),
-    day_month = round(day_month, 0),
-    month = as.factor(month)) %>% 
-  distinct() %>% 
-  select(-vaccine, -time, -day_total, -date_time, -date) %>% 
-  relocate(week, .before = day_month) %>% 
-  filter(microbe_type != "NA")
-
-matrix_rowsordered = matrix %>% 
-  as.data.frame() %>% 
-  rownames_to_column(var= "vaccine_reg_time") %>% 
-  merge(ann_data, by = "vaccine_reg_time", all.x = F, all.y = F) %>% 
-  arrange(vaccine_reg_time) %>% 
-  select(!microbe_type:time) %>% 
-  distinct() %>% 
-  column_to_rownames("vaccine_reg_time") %>% 
-  mutate_if(is.character, as.numeric) %>% 
-  as.matrix()
-
-matrix_rows_cols_ordered = matrix_rowsordered %>% 
-  t() %>% 
-  as.data.frame() %>% 
-  rownames_to_column(var= "vaccine_reg_time") %>% 
-  merge(ann_data, by = "vaccine_reg_time", all.x = F) %>% 
-  select(!microbe_type:time) %>% 
-  rename_all(~sub("_DOWN$", "", .)) %>% # Retirar up or down
-  mutate(vaccine_reg_time = sub("_DOWN$", "", vaccine_reg_time)) %>% # Retirar up or down
-  arrange(vaccine_reg_time) %>% 
-  distinct() %>% 
-  column_to_rownames("vaccine_reg_time") %>% 
-  as.matrix()
-
-dim(matrix_rows_cols_ordered)
-dim(ann_heatmap)
-
-#Criar heatmap annotation
-col_ha = HeatmapAnnotation(df = ann_heatmap, 
-                       col = ann_vaxsig_colors, 
-                       annotation_name_side = "left")
-row_ha = rowAnnotation(df = ann_heatmap, col = ann_vaxsig_colors)
-
-
-#TOTAL GENES (with values)
-mat = matrix_rows_cols_ordered 
-
-fileimageheatmap_ungrouped= paste0(filename, sep ="_", "VALUES_Complexheatmap.png")
-
-png(file = fileimageheatmap_ungrouped, width=30, height=30,units="cm",res=900)
-
-heatmap_plot_all = Heatmap(mat,
-                        top_annotation = col_ha,
-                        left_annotation = row_ha,
-                        na_col = "black",
-                        show_row_names = TRUE,
-                        show_heatmap_legend = TRUE,
-                        cell_fun = function(j, i, x, y, width, height, fill) {
-                        grid.text(sprintf("%.1f", mat[i, j]), x, y, gp = gpar(fontsize = 6))}, #valor das células
-                        heatmap_legend_param = list(direction = "horizontal"),
-                        name = "Total genes", #Legend
-                        col = col_fun, #color
-                        column_title = fileimageheatmap_ungrouped,
-                        column_title_gp = gpar(fontsize = 8, fontface = "bold"),
-                        column_names_rot = 90,
-                        column_names_gp = gpar(fontsize = 8),
-                        rect_gp = gpar(col = "gray90", lwd = 1),
-                        cluster_rows = TRUE,
-                        row_names_gp = gpar(fontsize = 10),
-                        #row_split = 4, #Split row clusters
-                        row_gap = unit(2, "mm"),
-                        cluster_columns = TRUE,
-                        #column_split = 4, #Split group clusters
-                        column_gap = unit(8, "mm"),
-                        show_column_dend = FALSE,
-                        show_row_dend = FALSE,
-                        row_dend_side = "left",
-                        column_dend_side = "top",
-                        clustering_distance_rows = "euclidean",
-                        border = TRUE,
-                        column_dend_reorder = TRUE,
-                        width = unit(10, "cm"), 
-                        height = unit(10, "cm")
-)
-
-draw(heatmap_plot_all, annotation_legend_side = "left", heatmap_legend_side = "left")
-
-dev.off()
-
-
-#TOTAL GENES (no values)
-mat = matrix_rows_cols_ordered 
-
-fileimageheatmap_ungrouped= paste0(filename, sep ="_", "NO_VALUES_Complexheatmap.png")
-
-png(file = fileimageheatmap_ungrouped, width=30, height=30,units="cm",res=900)
-
-heatmap_plot_all = Heatmap(mat,
-                        top_annotation = col_ha,
-                        left_annotation = row_ha,
-                        na_col = "black",
-                        show_row_names = TRUE,
-                        show_heatmap_legend = TRUE,
-                        heatmap_legend_param = list(direction = "horizontal"),
-                        name = "Total genes", #Legend
-                        col = col_fun, #color
-                        column_title = fileimageheatmap_ungrouped,
-                        column_title_gp = gpar(fontsize = 8, fontface = "bold"),
-                        column_names_rot = 90,
-                        column_names_gp = gpar(fontsize = 8),
-                        rect_gp = gpar(col = "gray90", lwd = 1),
-                        cluster_rows = TRUE,
-                        row_names_gp = gpar(fontsize = 10),
-                        #row_split = 2, #Split row clusters
-                        row_gap = unit(2, "mm"),
-                        cluster_columns = TRUE,
-                        #column_split = 2, #Split group clusters
-                        column_gap = unit(8, "mm"),
-                        show_column_dend = FALSE,
-                        show_row_dend = FALSE,
-                        row_dend_side = "left",
-                        column_dend_side = "top",
-                        clustering_distance_rows = "euclidean",
-                        border = TRUE,
-                        column_dend_reorder = TRUE,
-                        width = unit(10, "cm"), 
-                        height = unit(10, "cm")
-)
-
-draw(heatmap_plot_all, annotation_legend_side = "left", heatmap_legend_side = "left")
-
-dev.off()
-```
-
-## ORA VAXGO com ImmuneIMMUNE GO
+## ORA VAXGO, only immune genes
 
 *Qual a relação entre os genes de cada dataset?*
 
@@ -1695,52 +950,6 @@ ann_cols_heatmap = ann_cols_heatmap %>%
 #Verificar dimensões do dataset
 dim(matrix_data)
 dim(ann_cols_heatmap)
-```
-
-```{r}
-################## Colors
-
-#VAX SIG DB
-ann_vaxsig_colors = list(
-  platform = c('IN'= "#e5e5e5", 
-               'VV' = "#72efdd",
-               'RNA' = "#56cfe1",
-               "VLP" = "#D7B0EE",
-               "LA" =  "#5e60ce",
-               "CONJ" = "#015BA0", 
-               'SU' = "#b5179e"),
-  target_pathogen_disease = c('MENINGOCOCCUS'	= "#16E0BD",
-                             'PNEUMOCOCCUS'	= "#44C199",
-                             'TUBERCULOSIS'	= "#99e2b4",
-                             'F TULARENSIS'	= "#90e0ef",
-                             'LEISHMANIA'	= "#118ab2",
-                             'MALARIA' = "#3f37c9",
-                             'EBOV'	= "#d00000",
-                             'HBV'	= "#e85d04",
-                             'HBV, HAV'	= "#f48c06",
-                             'HIV'	= "#a4133c",
-                             'HPV'	= "#f27059",
-                             'INFLUENZA'	= "#ffa69e",
-                             'MEASLES'	= "#c65b7c",
-                             'MMR'	= "#f9b5ac",
-                             'SMALLPOX'	= "#ff8c42",
-                             'VEEV'	= "#e01e37",
-                             'VZV'	= "#ff9b85",
-                             'YF'	= "#f38375"),
-  microbe_type = c("VIRUS" = "#d00000",
-                   'BACTERIUM' = "#16E0BD",
-                   'PARASITE' = "#118ab2"),
-  week = c("0" = "#ECF8FA",
-           "1" = "#caf0f8",
-           "2" = "#6CD5EA",
-           "3" = "#0087BF",
-           "4" = "#015BA0", 
-           ">4" = "#03045e"),
-  month = c("1" = "#caf0f8",
-            "0" = "#6CD5EA",
-           "2" = "#015BA0")
-  )
-
 ```
 
 ```{r}
@@ -1915,9 +1124,9 @@ dev.off()
 
 ```
 
-# COVID-19 vaccines comparison
+# COVID-19 and other vaccines
 
-### VENN DIAGRAM
+## VENN DIAGRAM
 
 ```{r}
 # Input files ------
@@ -1966,6 +1175,44 @@ degs_all_updown_covid_other_nonimmune = degs_all_updown_covid_other %>%
 write.csv(degs_all_updown_covid_other, file = "degs_all_updown_covid_vax_other.csv")
 write.csv(degs_all_updown_covid_other_immune, file = "degs_all_updown_covid_vax_other_immune.csv")
 write.csv(degs_all_updown_covid_other_nonimmune, file = "degs_all_updown_covid_vax_other_nonimmune.csv")
+
+
+
+
+degs_covid = all_degs_p_05_vac_infected_19_12_23 %>% 
+  select(condition, genes, direction) %>% 
+  filter(direction != "NEUTRAL") %>% 
+  mutate(regulation_numeric = if_else(direction == "UP", "1", "-1"),
+         regulation_numeric = as.numeric(regulation_numeric))
+
+
+degs_vax = VAXSigDB_degs_all %>% 
+  filter(STUDY_SUBTYPE == "VAC ONLY") %>% 
+  mutate(condition_vaccine = paste0(VACCINE, " (", `DATE-TIME`, ")")) %>% 
+  select(condition_vaccine, SYSTEMATIC_NAME, VACCINE, everything()) %>% 
+  separate_rows(GENE_SYMBOLS, sep = ",")
+degs_vax %>% write.csv(file = "VAXSigDB_Genes.csv", row.names = F)
+
+
+degs_vaxsig = degs_vax %>% 
+  filter(STUDY_SUBTYPE == "VAC ONLY") %>% 
+  select(condition = condition_vaccine, genes = GENE_SYMBOLS, regulation = REGULATION) %>% 
+  mutate(regulation_numeric = if_else(regulation == "UP", 1, -1))
+
+
+degs_covid_vax = degs_covid %>% 
+  bind_rows(degs_vaxsig) %>% 
+  select(-regulation) %>% 
+  inner_join(ImmuneGO_Annotated_Genes %>%
+               filter(process != c("TCR REPERTOIRE", "BCR REPERTOIRE")) %>% 
+               select(genes) %>%
+               distinct(), 
+             by = "genes")
+
+
+degs_covid_vax %>% 
+  saveRDS(file = here("VaxGO gene sets", "degs_covid_vaxsig_up_down_immune.rds"))
+
 ```
 
 ```{r}
@@ -2052,7 +1299,7 @@ write.csv(shared_genes_df_mirror, file = paste0(filename, "_shared.csv"))
 
 ```
 
-Other comparisons
+### Other comparisons
 
 ```{r}
 ############# VACCINE
@@ -2146,7 +1393,7 @@ corr_cell_negative = shared_genes_ann_corr %>%
 
 ```
 
-Heatmap
+### Heatmap
 
 ```{r}
 table = degs_all_updown_covid_other_immune_shared
@@ -2154,8 +1401,6 @@ filename = "ImmuneGO_Genes"
 
 # table = degs_all_updown_covid_other_nonimmune_shared
 # filename = "NonImmune_Genes" 
-
-
 
 # INPUT ------
 data = table %>% 
@@ -2236,7 +1481,6 @@ dim(ann_cols_heatmap)
 
 ```
 
-Plot
 ```{r}
 
 #Heatmap annotation
@@ -2311,65 +1555,6 @@ draw(heatmap_plot,
      annotation_legend_side = "right", 
      heatmap_legend_side = "right")
 dev.off()
-
-```
-
-### Clustering all vs all
-
-```{r}
-
-# INPUT ------
-matrix = shared_genes_df_mirror %>% 
-  filter(qvalue <0.10) %>% 
-  inner_join(ann_vaccines_covid_other %>% 
-               select(Cond1 = condition, everything()), by = "Cond1") %>% 
-  inner_join(ann_vaccines_covid_other %>% 
-               select(Cond2 = condition, everything()), by = "Cond2") %>% 
-  clean_names() %>% 
-  rename(vac_ref = cond1, vac_condition = cond2) %>%
-  filter(qvalue <= 0.10) %>% 
-  select(vac_condition, vac_ref, shared) %>% 
-  pivot_wider(names_from = vac_condition, values_from = shared, values_fn = mean) %>% 
-  replace(is.na(.), 0) %>%
-  column_to_rownames(var="vac_ref") %>%
-  as.matrix() %>%
-  round(0)
-
-
-#Hierarchical clustering | https://rpubs.com/TX-YXL/662586
-library(dendextend)
-library(ggdendro)
-
-
-cluster = matrix %>% 
-  dist() %>% 
-  hclust(method = 'complete') %>% 
-  as.dendrogram() -> dend
-
-my_colors <- ann_vaccines_covid_other %>% 
- mutate(color = case_when(
-    type == "VLP" ~ "#D7B0EE",
-    type == "LA" ~ "#ffb703",
-    type == "CONJ" ~ "#015BA0",
-    type == "IN" ~ "#76c893",
-    type == "VV" ~ "#5e60ce",
-    type == "RNA" ~ "#56cfe1",
-    type == "SU" ~ "#b5e48c",
-    type == "I" ~ "#f72585",
-    TRUE ~ NA_character_))
-
-my_colors %>% select(condition, color) %>% 
-  write_tsv("covid_others_colors.tsv")
-
-png(paste0(filename, "_covid_other_allvsall_shared_dendrogram.png"), width = 800, height = 1000)
-par(mar=c(5,5,1,12))
-dend %>%
-  set("labels_col", value = c("black"), k=10) %>%
-  set("branches_k_color", value = c("black"), k = 10) %>%
-  plot(horiz=TRUE, axes=TRUE)
-dev.off()
-
-
 
 ```
 
@@ -2522,8 +1707,6 @@ matrix_data = matrix %>%
 dim(matrix_data)
 dim(ann_cols)
 ```
-
-
 
 ```{r}
 ################# Plotar
@@ -3150,7 +2333,6 @@ dev.off()
 
 ```
 
-
 ### Inflammation
 
 ```{r}
@@ -3231,9 +2413,8 @@ dev.off()
 
 ```
 
-
-
 #### Not immune
+
 ```{r}
 ################# NOT Immune 
 #Heatmap annotation
@@ -3309,21 +2490,8 @@ heatmap_plot
 dev.off()
 ```
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 # Random forest genes
+
 ## 50 most shared genes
 
 ```{r}
