@@ -990,39 +990,40 @@ fviz_nbclust(pca_scores,
 pcas = "PC1-PC2"
 
 set.seed(666) # Set seed for randomization
-cluster_model <- kmeans(pca_res$x[, 1:2], centers = 3)  #Set the number of clusters
+cluster_model <- kmeans(pca_res$x[, 1:2], centers = 2)  #Set the number of clusters
 
 ann_vaccines_pca_matrix$cluster <- as.factor(cluster_model$cluster)
 ```
 
-```{r PC1-PC2 scatter plot}
+```{r}
 # Condition with density plot ------
 pca_plot_knn_cluster = autoplot(pca_res, 
         data = ann_vaccines_pca_matrix, 
+        size = 2,
         shape = 'type',
-        color = "day",
-        fill = "day")  +
+        color = "day")  +
   stat_ellipse(aes(fill = cluster), 
                geom = "path", 
                alpha = 0.1, 
                linetype = 1,
-               width = 1,
                size = 1,
                type = "t") +
   labs(title=paste0(filename, "_bycondition")) + 
   xlab("PC1 (58.8%)") +
   ylab("PC2 (10.5%)") +
-  scale_color_gradientn(colors = c("blue", "red"), limits = c(0, 20), na.value = "red") +
-  # scale_shape_manual(values = c("VLP" = 1,
-  #          "LA" =  2,
-  #          "CONJ" = 3, 
-  #          'IN'= 4, #1st Gen  vaccines
-  #          'VV' = 5, #3rd Gen vaccines
-  #          'RNA' = 6,
-  #          'SU' = 7,
-  #          'I'= 8)) +
+  scale_color_stepsn(colors = c("#DC0000FF", "#F39B7FFF", "#4DBBD5FF"),
+                     limits = c(0, 14), 
+                     na.value = "#4DBBD5FF") +
+  scale_shape_manual(values = c("VLP" = 1,
+           "LA" =  5,
+           "CONJ" = 3,
+           'IN'= 4, #1st Gen  vaccines
+           'VV' = 2, #3rd Gen vaccines
+           'RNA' = 6,
+           'SU' = 7,
+           'I'= 8)) +
   theme_minimal() +
-  theme(panel.grid.minor = element_blank(),
+  theme(panel.grid = element_blank(),
         text = element_text(color = "black")) 
 
 pca_plot_knn_cluster 

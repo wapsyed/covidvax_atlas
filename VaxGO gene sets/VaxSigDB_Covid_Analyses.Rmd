@@ -1191,7 +1191,7 @@ degs_vax = VAXSigDB_degs_all %>%
   mutate(condition_vaccine = paste0(VACCINE, " (", `DATE-TIME`, ")")) %>% 
   select(condition_vaccine, SYSTEMATIC_NAME, VACCINE, everything()) %>% 
   separate_rows(GENE_SYMBOLS, sep = ",")
-degs_vax %>% write.csv(file = "VAXSigDB_Genes.csv", row.names = F)
+degs_vax %>% saveRDS(file = "VAXSigDB_Genes.rds")
 
 
 degs_vaxsig = degs_vax %>% 
