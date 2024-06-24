@@ -110,8 +110,6 @@ write.csv(VAX_GeneSets_annotated, file = here("VaxGO gene sets", "VAX_Genesets_A
 #Display
 head(VAX_GeneSets_annotated)
 
-
-
 VAXSigDB_Annotated = VAXSigDB_Annotated %>% 
   mutate(VACCINE_CONDITION = paste0(VACCINE, " (", `DATE-TIME`, ")")) %>% 
   select(SYSTEMATIC_NAME, VACCINE_CONDITION, VACCINE, everything())
