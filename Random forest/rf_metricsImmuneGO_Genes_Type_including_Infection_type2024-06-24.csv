@@ -1,0 +1,4 @@
+".metric",".estimator",".estimate",".config"
+"accuracy","multiclass",0.892215568862275,"Preprocessor1_Model1"
+"roc_auc","hand_till",0.991771437782076,"Preprocessor1_Model1"
+"brier_class","multiclass",0.0920850035154154,"Preprocessor1_Model1"
