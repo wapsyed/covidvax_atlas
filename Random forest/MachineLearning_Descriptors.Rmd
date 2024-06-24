@@ -15,8 +15,10 @@ output: html_document
 # install.packages("reticulate")
 # install.packages("themis")
 # install.packages("ranger")
-install.packages("workflowsets")
-
+# install.packages("workflowsets")
+# install.packages("glmnet")
+# install.packages("kknn")
+# install.packages("nnet")
 
 library(tidymodels)
 tidymodels_prefer()
@@ -37,6 +39,9 @@ library(vip)
 library(here)
 library(circlize)
 library(workflowsets)
+library("glmnet")
+library("kknn")
+library(nnet)
 ```
 ## Import files
 ```{r}
@@ -162,7 +167,7 @@ metrics_tuneres = tune_res %>%
 
 metrics_tuneres
 
-ggsave(metrics_tuneres, file = paste0(outcomevar, "_tidymodels_tune_res.png"), width = 10, height = 6)
+ggsave(metrics_tuneres, file = paste0(filename, outcomevar, "_tidymodels_tune_res.png"), width = 10, height = 6)
 ```
 
 
@@ -188,7 +193,7 @@ regular_res %>%
 
 regular_res %>%
   collect_metrics() %>% 
-  write.csv(file = paste("metrics_finalmodel_", outcomevar, today(), ".csv"), row.names = F)
+  write.csv(file = paste("metrics_finalmodel_", filename, outcomevar, today(), ".csv"), row.names = F)
 
 roc_auc = regular_res %>%
   collect_metrics() %>%
@@ -198,7 +203,7 @@ roc_auc = regular_res %>%
   geom_line(alpha = 0.5, size = 1.5) +
   geom_point() +
   labs(y = "AUC") 
-ggsave(roc_auc, file = paste("roc_auc_", outcomevar, today(), ".png"), width = 10, height = 6)
+ggsave(roc_auc, file = paste("roc_auc_", filename, outcomevar, today(), ".png"), width = 10, height = 6)
 
 # Select best model -----
 best_auc <- select_best(regular_res, metric = "roc_auc")
@@ -223,7 +228,7 @@ final %>% ggsave(file = paste0("vipgenes_tidymodels_", outcomevar, today(), ".pn
 
 genes_rf = final$data
 genes_rf
-genes_rf %>% write.csv(file = paste0("vipgenes_tidymodels_", outcomevar, today(), ".csv"), row.names = F)
+genes_rf %>% write.csv(file = paste0("vipgenes_tidymodels_", filename, outcomevar, today(), ".csv"), row.names = F)
 
 importance_plot = ggplot(genes_rf) +
   aes(x = reorder(Variable, Importance),
@@ -249,7 +254,7 @@ importance_plot = ggplot(genes_rf) +
         legend.title = element_text(size = 12, face = "bold")) +
     coord_flip()
 
-ggsave(importance_plot, file = paste0("vipgenes_tidymodels_", outcomevar, today(), ".png"), width = 8, height = 5)
+ggsave(importance_plot, file = paste0("vipgenes_tidymodels_", filename, outcomevar, today(), ".png"), width = 8, height = 5)
 
 importance_plot
 
@@ -270,7 +275,7 @@ final_res %>%
 
 final_res %>%
   collect_metrics() %>% 
-write.csv(file = paste0("rf_metrics", outcomevar, today(), ".csv"), row.names = F)
+write.csv(file = paste0("rf_metrics", filename, outcomevar, today(), ".csv"), row.names = F)
 
 final_res_preds = final_res %>%
   collect_predictions() %>%
@@ -293,7 +298,7 @@ final_res_acc_values = final_res_preds %>%
   mutate(perc = round(value/sum(value) * 100, 0))
 
 final_res_acc_values %>% 
-  write.csv(file = paste0("accuracy", outcomevar, today(), ".csv"), row.names = F)
+  write.csv(file = paste0("accuracy", filename, outcomevar, today(), ".csv"), row.names = F)
 
 ```
 
@@ -788,7 +793,7 @@ metrics_tuneres = tune_res %>%
 
 metrics_tuneres
 
-ggsave(metrics_tuneres, file = paste0(outcomevar, "_tidymodels_tune_res.png"), width = 10, height = 6)
+ggsave(metrics_tuneres, file = paste0(filename, outcomevar, "_tidymodels_tune_res.png"), width = 10, height = 6)
 ```
 
 
@@ -814,7 +819,7 @@ regular_res %>%
 
 regular_res %>%
   collect_metrics() %>% 
-  write.csv(file = paste("metrics_finalmodel_", outcomevar, today(), ".csv"), row.names = F)
+  write.csv(file = paste("metrics_finalmodel_", filename, outcomevar, today(), ".csv"), row.names = F)
 
 roc_auc = regular_res %>%
   collect_metrics() %>%
@@ -824,7 +829,7 @@ roc_auc = regular_res %>%
   geom_line(alpha = 0.5, size = 1.5) +
   geom_point() +
   labs(y = "AUC") 
-ggsave(roc_auc, file = paste("roc_auc_", outcomevar, today(), ".png"), width = 10, height = 6)
+ggsave(roc_auc, file = paste("roc_auc_", filename, outcomevar, today(), ".png"), width = 10, height = 6)
 
 # Select best model -----
 best_auc <- select_best(regular_res, metric = "roc_auc")
@@ -875,7 +880,7 @@ importance_plot = ggplot(genes_rf) +
         legend.title = element_text(size = 12, face = "bold")) +
     coord_flip()
 
-ggsave(importance_plot, file = paste0("vipgenes_tidymodels_", outcomevar, today(), ".png"), width = 8, height = 5)
+ggsave(importance_plot, file = paste0("vipgenes_tidymodels_", filename, outcomevar, today(), ".png"), width = 8, height = 5)
 
 importance_plot
 
@@ -896,7 +901,7 @@ final_res %>%
 
 final_res %>%
   collect_metrics() %>% 
-write.csv(file = paste0("rf_metrics", outcomevar, today(), ".csv"), row.names = F)
+write.csv(file = paste0("rf_metrics", filename, outcomevar, today(), ".csv"), row.names = F)
 
 final_res_preds = final_res %>%
   collect_predictions() %>%
@@ -919,7 +924,7 @@ final_res_acc_values = final_res_preds %>%
   mutate(perc = round(value/sum(value) * 100, 0))
 
 final_res_acc_values %>% 
-  write.csv(file = paste0("accuracy", outcomevar, today(), ".csv"), row.names = F)
+  write.csv(file = paste0("accuracy",filename,  outcomevar, today(), ".csv"), row.names = F)
 
 ```
 
@@ -1291,5 +1296,139 @@ heatmap_plot = Heatmap(mat,
 heatmap_plot = draw(heatmap_plot)
 
 dev.off()
+
+```
+
+
+# COVID-19 and others: up and down
+```{r}
+# Input data ----
+
+filename = "COVID_Others_ImmuneGO_Genes_Type_including_Infection_"
+df = degs_covid_vax %>% 
+  select(condition, genes, regulation_numeric) %>% 
+  distinct() %>% 
+  pivot_wider(names_from = genes,
+              values_from = regulation_numeric,
+              values_fn = mean) %>% 
+  inner_join(data_annotation , by = "condition")
+
+## Vaccination types
+outcomevar = "type"
+
+ann_vaccines_samples_filtered = df %>% 
+  mutate(outcomevar = type) %>% 
+  select(-type, - target_pathogen_disease) %>% 
+  select(outcomevar, condition, day, everything())
+
+#How many samples by level?
+count_levels = ann_vaccines_samples_filtered %>% 
+  count(outcomevar)
+
+count_levels
+
+#How many levels?
+levels = nrow(count_levels)
+```
+
+
+```{r}
+# Prepare data ------
+
+df_input <- ann_vaccines_samples_filtered %>% 
+  distinct() %>% 
+  column_to_rownames("condition") %>%
+  mutate_if(is.character, factor) %>% 
+  mutate(day = as.factor(day),
+         day = fct_relevel(day, -day)) %>% 
+  replace(is.na(.), 0)
+
+glimpse(df_input)
+
+# Split data
+set.seed(123)  
+split <- initial_split(df_input, prop = 0.7, strata = outcomevar)
+trees_train <- training(split)
+trees_test <- testing(split)
+
+# Create recipe
+base_rec <- recipe(outcomevar ~ ., data = trees_train) %>%
+  step_dummy(all_nominal(), -all_outcomes()) %>% 
+  step_upsample(outcomevar)
+
+base_rec <- prep(base_rec)
+juiced <- juice(base_rec)
+juiced %>% 
+  glimpse()
+
+#Other recipes
+filter_rec <- 
+   base_rec %>% 
+   step_corr(all_numeric_predictors(), threshold = tune())
+pca_rec <- 
+   base_rec %>% 
+   step_pca(all_numeric_predictors(), num_comp = tune()) %>% 
+   step_normalize(all_numeric_predictors())
+
+```
+
+Workflowsets
+```{r}
+base_rec <- recipe(outcomevar ~ ., data = trees_train) %>%
+  step_dummy(all_nominal(), -all_outcomes()) %>%
+  step_upsample(outcomevar)
+
+# Definir os modelos
+glm_model <- logistic_reg() %>%
+  set_engine("glm")
+
+rf_model <- rand_forest(trees = tune(), 
+                        min_n = tune(), 
+                        mtry = tune()) %>%
+  set_engine("ranger") %>%
+  set_mode("classification")
+
+tree_model <- decision_tree() %>%
+  set_engine("rpart") %>%
+  set_mode("classification")
+
+knn_model <- nearest_neighbor(neighbors = tune()) %>%
+  set_engine("kknn") %>%
+  set_mode("classification")
+
+nn_model <- mlp(hidden_units = tune(), penalty = tune()) %>%
+  set_engine("nnet") %>%
+  set_mode("classification")
+
+# Criar os workflows
+glm_wf <- workflow() %>%
+  add_model(glm_model) %>%
+  add_recipe(base_rec)
+
+rf_wf <- workflow() %>%
+  add_model(rf_model) %>%
+  add_recipe(base_rec)
+
+tree_wf <- workflow() %>%
+  add_model(tree_model) %>%
+  add_recipe(base_rec)
+
+knn_wf <- workflow() %>%
+  add_model(knn_model) %>%
+  add_recipe(base_rec)
+
+nn_wf <- workflow() %>%
+  add_model(nn_model) %>%
+  add_recipe(base_rec)
+
+# Criar o conjunto de workflows
+wf_set <- workflow_set(
+  preproc = list(base_rec),
+  models = list(glm = glm_model, 
+                rf = rf_model, 
+                tree = tree_model, 
+                knn = knn_model, 
+                nn = nn_model)
+)
 
 ```
