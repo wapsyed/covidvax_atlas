@@ -44,6 +44,7 @@ library(glmnet)
 library(kknn)
 library(nnet)
 library(tictoc)
+library(ggthemes)
 
 ```
 
@@ -583,19 +584,49 @@ dev.off()
 
 ```{r fig.height=10, fig.width=10}
 
-ann_vaccines_samples_4_12_23 = ann_vaccines_samples_4_12_23 %>% 
-  mutate(week = round(day/7),0)
-
-
-vip_genes_boxplot_week = df %>% 
+table = df %>% 
   rownames_to_column("genes") %>% 
   pivot_longer(cols = -genes,
                names_to = "sample",
                values_to = "counts") %>% 
-  inner_join(genes_rf %>% slice_max(n = 5, importance), by = "genes") %>% 
+  filter(genes %in% c("GATA3", "ZNF3", "KMT2A", "ASXL1", "SP100", "GZMM","ITGAM", "ACTG1", "LGALS3", "STAT5B")) %>% 
   inner_join(ann_vaccines_samples_4_12_23, by = "sample") %>% 
   mutate(week_fac = as_factor(week),
-         week_fac = fct_reorder(week_fac, week)) %>% 
+         week_fac = fct_reorder(week_fac, week),
+         type = fct_relevel(type, "H",  "I","RNA", "VV", "IN", "SU"))
+
+
+#Base value -----
+median_h = table %>% 
+  select(genes, sample, counts, disease_vac) %>% 
+  filter(disease_vac == "H") %>% 
+  distinct() %>% 
+  group_by(genes, disease_vac) %>% 
+  summarize(median = median(counts), .groups = 'drop')
+
+median_i = table %>% 
+  select(genes, sample, counts, disease_vac) %>% 
+  filter(disease_vac == "H") %>% 
+  distinct() %>% 
+  group_by(genes, disease_vac) %>% 
+  summarize(median = median(counts), .groups = 'drop') %>% 
+  mutate(disease_vac = "I")
+
+median_v = table %>% 
+  select(genes, sample, counts, disease_vac) %>% 
+  filter(disease_vac == "H") %>% 
+  distinct() %>% 
+  group_by(genes, disease_vac) %>% 
+  summarize(median = median(counts), .groups = 'drop') %>% 
+  mutate(disease_vac = "V")
+
+median = bind_rows(median_i, median_v)
+  
+  
+  
+#Plots -----
+
+vip_genes_boxplot_week = table %>% 
   ggplot() +
   aes(x = week_fac, y = counts, fill = type,label = condition) +
   geom_boxplot() +
@@ -605,33 +636,57 @@ vip_genes_boxplot_week = df %>%
   theme_light() +
   facet_wrap(vars(genes), scales = "free", ncol = 1)
 
-vip_genes_boxplot_week
 
-
-df %>% esquisser()
-
-vip_genes_boxplot_type = df %>% 
-  rownames_to_column("genes") %>% 
-  pivot_longer(cols = -genes,
-               names_to = "sample",
-               values_to = "counts") %>% 
-  inner_join(genes_rf %>% slice_max(n = 5, importance), by = "genes") %>% 
-  inner_join(ann_vaccines_samples_4_12_23, by = "sample") %>% 
-  mutate(week_fac = as_factor(week),
-         week_fac = fct_reorder(week_fac, week)) %>% 
+vip_genes_boxplot_type = table %>% 
+  filter(disease_vac != "H") %>% 
   ggplot() +
-  aes(x = type, 
-      y = counts, 
-      fill = week, 
-      label = condition) +
+  aes(x = type, y = counts, fill = week_fac) +
   geom_boxplot() +
-  scale_y_log10()+
-  scale_fill_continuous() +
-  scale_color_aaas() +
-  theme_few() +
-  facet_wrap(vars(genes), scales = "free", ncol = 1)
+  geom_hline(data = median, aes(yintercept = median), linetype = "dashed", alpha = 0.5) +
+  scale_fill_viridis_d(option = "cividis", direction = -1) +
+  scale_y_continuous(trans = "log10") +
+  labs(
+    x = "Type",
+    y = "Normalized counts",
+    title = "Gene expression of the 5 most important genes",
+    fill = "Week"
+  ) +
+  theme_linedraw() +
+  theme(axis.text.y = element_text(hjust = 0.1),
+        legend.position = "top") +
+  facet_grid(~genes~disease_vac, scales = "free")
 
-vip_genes_boxplot_type
+vip_genes_boxplot_type 
+
+vip_genes_boxplot_type %>% 
+  ggsave(file = here("Figures", paste0("vip_genes_boxplot_type", filename, outcomevar, today(), ".png")), 
+                                  width = 10, height = 15)
+
+
+
+vip_genes_boxplot_type_sex = table %>% 
+  mutate(type_sex = paste0(type, "_", sex),
+         type_sex = fct_relevel(type_sex, "IN_M/F", "SU_M/F")) %>% 
+  filter(disease_vac != "H") %>% 
+  ggplot() +
+  aes(x = type_sex, y = counts, fill = week_fac) +
+  geom_boxplot() +
+  geom_hline(data = median, aes(yintercept = median), linetype = "dashed", alpha = 0.5) +
+  scale_fill_viridis_d(option = "cividis", direction = -1) +
+  scale_y_continuous(trans = "log10") +
+  labs(
+    x = "Type",
+    y = "Normalized counts",
+    title = "Gene expression of the 5 most important genes",
+    fill = "Week"
+  ) +
+  theme_linedraw() +
+  theme(axis.text.y = element_text(hjust = 0.1),
+        axis.text.x = element_text(angle = 45, vjust = 1, hjust = 1)) +
+  facet_grid(~genes~disease_vac, scales = "free")
+
+vip_genes_boxplot_type_sex 
+
 
 ```
 
