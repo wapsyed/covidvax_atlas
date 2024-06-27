@@ -625,7 +625,7 @@ median = bind_rows(median_i, median_v)
   
   
 #Plots -----
-
+#Week
 vip_genes_boxplot_week = table %>% 
   ggplot() +
   aes(x = week_fac, y = counts, fill = type,label = condition) +
@@ -636,7 +636,7 @@ vip_genes_boxplot_week = table %>%
   theme_light() +
   facet_wrap(vars(genes), scales = "free", ncol = 1)
 
-
+#Type
 vip_genes_boxplot_type = table %>% 
   filter(disease_vac != "H") %>% 
   ggplot() +
@@ -662,12 +662,12 @@ vip_genes_boxplot_type %>%
   ggsave(file = here("Figures", paste0("vip_genes_boxplot_type", filename, outcomevar, today(), ".png")), 
                                   width = 10, height = 15)
 
-
-
+#Sex
 vip_genes_boxplot_type_sex = table %>% 
   mutate(type_sex = paste0(type, "_", sex),
          type_sex = fct_relevel(type_sex, "IN_M/F", "SU_M/F")) %>% 
-  filter(disease_vac != "H") %>% 
+  filter(disease_vac != "H",
+         !type %in% c("IN", "SU")) %>% 
   ggplot() +
   aes(x = type_sex, y = counts, fill = week_fac) +
   geom_boxplot() +
