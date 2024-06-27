@@ -82,7 +82,7 @@ PC1_2 = PC_1_2_cos2
 
 ### Train and test
 
-```{r}
+```{r fig.height=10, fig.width=10}
 # Prepare data ------
 
 df_input <- df %>%
@@ -138,8 +138,10 @@ trees_folds <- vfold_cv(trees_train)
 
 
 #Define performance metrics
-mer_metrics <- metric_set(recall,
-                          accuracy,
+mer_metrics <- metric_set(yardstick::recall,
+                          yardstick::specificity,
+                          yardstick::accuracy,
+                          yardstick::precision,
                           yardstick::roc_auc,
                           yardstick::pr_auc)
 
@@ -155,10 +157,11 @@ tune_res <- tune_grid(
 )
 
 # Assess data ----
-# accuracy
-metrics_tuneres = tune_res %>%
+
+# recall
+metrics_tuneres_recall = tune_res %>%
   collect_metrics() %>%
-  filter(.metric == "accuracy") %>%
+  filter(.metric == "recall") %>%
   select(mean, min_n, mtry) %>%
   pivot_longer(min_n:mtry,
     values_to = "value",
@@ -169,21 +172,44 @@ metrics_tuneres = tune_res %>%
   geom_point(show.legend = FALSE) +
   geom_text_repel(aes(label = value))+
   facet_wrap(~parameter, scales = "free_x") +
-  labs(x = NULL, y = "accuracy")
+  labs(x = NULL, y = "recall")
+
+metrics_tuneres_recall
+
+#Accuracy
+metrics_tuneres = tune_res %>%
+  collect_metrics() %>%
+  select(mean, min_n, mtry, .metric) %>%
+  pivot_longer(min_n:mtry,
+    values_to = "value",
+    names_to = "parameter") %>%
+  ggplot()+
+  aes(x = value, y = mean, colour = .metric, label = value) +
+  geom_line() +
+  geom_label() +
+  scale_color_npg()+
+  theme_minimal() +
+  facet_grid(vars(.metric), vars(parameter), scales = "free")
 
 metrics_tuneres
 
-ggsave(metrics_tuneres, file = paste0(filename, outcomevar, "_tidymodels_tune_res.png"), width = 10, height = 6)
+metrics_tuneres %>% ggsave(file = here("Figures",
+                                       paste0(filename, 
+                                              outcomevar, today(),
+                                              "_tuneres_metrics.png")),
+                                        width = 10,
+                                        height = 10)
 
-
+#Min_n = 6,8
+#mtry = 6,14
 ```
 
 
 ```{r}
 # Tune hyperparameters ----
 rf_grid <- grid_regular(
-  mtry(range = c(44, 45)),
-  min_n(range = c(16, 17)),
+  mtry(range = c(6, 14)),
+  min_n(range = c(6, 8)),
   levels = levels
 )
 
@@ -203,20 +229,29 @@ regular_res %>%
   collect_metrics() %>% 
   write.csv(file = paste("metrics_finalmodel_", filename, outcomevar, today(), ".csv"), row.names = F)
 
-#ROC AUC
-roc_auc = regular_res %>%
+#Metrics
+regular_res_metrics = regular_res %>%
   collect_metrics() %>%
-  filter(.metric == "roc_auc") %>%
-  mutate(min_n = factor(min_n)) %>%
-  ggplot(aes(mtry, mean, color = min_n)) +
-  geom_line(alpha = 0.5, size = 1.5) +
-  geom_point() +
-  labs(y = "AUC")
+  select(mean, min_n, mtry, .metric) %>%
+  pivot_longer(min_n:mtry,
+    values_to = "value",
+    names_to = "parameter") %>%
+  ggplot()+
+  aes(x = value, y = mean, colour = .metric, label = value) +
+  geom_line() +
+  geom_label(size = 3) +
+  scale_color_npg()+
+  theme_minimal() +
+  facet_grid(vars(.metric), vars(parameter), scales = "free")
 
-ggsave(roc_auc, file = paste("roc_auc_", filename, outcomevar, today(), ".png"), width = 10, height = 6)
+regular_res_metrics
+
+ggsave(regular_res_metrics, file = here("Figures", 
+                                        paste(filename, outcomevar, "metrics", today(), ".png")), 
+       width = 10, height = 10)
 
 # Select best model -----
-best_auc <- select_best(regular_res, metric = "roc_auc")
+best_auc <- select_best(regular_res, metric = "pr_auc")
 final_rf <- finalize_model(
   tune_spec,
   best_auc
@@ -230,16 +265,15 @@ final = final_rf %>%
   fit(outcomevar ~ .,
     data = juice(tree_prep)
   ) %>% 
-  vip()
-
+  vip(num_features = 10)
 final
-
-final %>% ggsave(file = paste0("vipgenes_tidymodels_", outcomevar, today(), ".png"))
+final %>% ggsave(file = paste0("vipgenes_tidymodels_", filename, outcomevar, today(), ".png"))
 
 genes_rf = final$data
-genes_rf
+genes_rf = genes_rf %>% select(genes = Variable, importance = Importance)
 genes_rf %>% write.csv(file = paste0("vipgenes_tidymodels_", filename, outcomevar, today(), ".csv"), row.names = F)
 
+#Importance plot
 importance_plot = ggplot(genes_rf) +
   aes(x = reorder(Variable, Importance),
     y = Importance,
@@ -250,7 +284,7 @@ importance_plot = ggplot(genes_rf) +
   theme_minimal() +
   xlab("Genes") + 
   ylab("Importance") +
-  ylim(0.03, 0.06) +
+  ylim(0, 0.05) +
   geom_text(aes(label = round(Importance, 4), y = Importance),
             hjust = -0.5, 
             size = 4,
@@ -264,8 +298,14 @@ importance_plot = ggplot(genes_rf) +
         legend.text = element_text(size=12),
         legend.title = element_text(size = 12, face = "bold")) +
     coord_flip()
+importance_plot
 
-ggsave(importance_plot, file = paste0("vipgenes_tidymodels_", filename, outcomevar, today(), ".png"), width = 8, height = 5)
+
+ggsave(importance_plot,
+        file = here("Figures",
+                    paste0("vipgenes_tidymodels_", filename, outcomevar, today(), ".png")),
+        width = 8,
+        height = 5)
 
 importance_plot
 
@@ -281,13 +321,6 @@ final_wf <- workflow() %>%
 final_res <- final_wf %>%
   last_fit(split)
 
-final_res %>%
-  collect_metrics()
-
-final_res %>%
-  collect_metrics() %>% 
-write.csv(file = paste0("rf_metrics", filename, outcomevar, today(), ".csv"), row.names = F)
-
 final_res_preds = final_res %>%
   collect_predictions() %>%
   mutate(correct = case_when(
@@ -297,48 +330,43 @@ final_res_preds = final_res %>%
   bind_cols(trees_test)
 
 #Confusion matrix
-conf_mat(final_res_preds, truth = fgr,
+res_conf_mat = conf_mat(final_res_preds, truth = outcomevar...12,
          estimate = .pred_class)
 
 #Accuracy
-accuracy(final_res_preds, truth = fgr,
+res_acc = accuracy(final_res_preds, truth = outcomevar...12,
          estimate = .pred_class)
 
 #Sensitivity
-sens(fgr_results, truth = fgr,
+res_sens = sens(final_res_preds, truth = outcomevar...12,
          estimate = .pred_class)
 
 #Specificity
-spec(fgr_results, truth = fgr,
+res_spec = spec(final_res_preds, truth = outcomevar...12,
          estimate = .pred_class)
 
 #Precision
-precision(fgr_results, truth = fgr,
+res_prec = precision(final_res_preds, truth = outcomevar...12,
          estimate = .pred_class)
 
 #Recall
-recall(fgr_results, truth = fgr,
+res_recall = recall(final_res_preds, truth = outcomevar...12,
          estimate = .pred_class)
 
-#ROC AUC
-roc_plot = final_res_preds %>%
-  roc_curve(truth = fgr, .pred_1) %>%
-  autoplot()
+final_res_metrics = bind_rows(res_acc,
+                         res_recall,
+                         res_prec,
+                         res_spec,
+                         res_sens)
 
 
-final_res_acc_values = final_res_preds %>% 
-  rename(outcomevar = starts_with("outcomevar")) %>% 
-  group_by(correct, outcomevar1) %>% 
-  tabyl(correct, outcomevar1) %>% 
-  as.data.frame() %>% 
-  group_by(correct) %>% 
-  pivot_longer(-correct, values_to = "value", names_to = "outcomevar") %>% 
-  group_by(outcomevar) %>% 
-  arrange(outcomevar) %>% 
-  mutate(perc = round(value/sum(value) * 100, 0))
+final_res_metrics_conf = list(res_conf_mat, 
+                         final_res_metrics)
 
-final_res_acc_values %>% 
-  write.csv(file = paste0("accuracy", filename, outcomevar, today(), ".csv"), row.names = F)
+final_res_metrics_conf
+
+final_res_metrics_conf %>% 
+  saveRDS(file = paste0("final_res_metrics", filename, outcomevar, today(), ".rds"))
 
 ```
 
@@ -551,16 +579,61 @@ dev.off()
 
 ```
 
-#Boxplot: VIP gene expression by condition
+## Boxplot: VIP gene expression by condition
 
-```{r}
+```{r fig.height=10, fig.width=10}
+
+ann_vaccines_samples_4_12_23 = ann_vaccines_samples_4_12_23 %>% 
+  mutate(week = round(day/7),0)
+
+
+vip_genes_boxplot_week = df %>% 
+  rownames_to_column("genes") %>% 
+  pivot_longer(cols = -genes,
+               names_to = "sample",
+               values_to = "counts") %>% 
+  inner_join(genes_rf %>% slice_max(n = 5, importance), by = "genes") %>% 
+  inner_join(ann_vaccines_samples_4_12_23, by = "sample") %>% 
+  mutate(week_fac = as_factor(week),
+         week_fac = fct_reorder(week_fac, week)) %>% 
+  ggplot() +
+  aes(x = week_fac, y = counts, fill = type,label = condition) +
+  geom_boxplot() +
+  scale_y_log10()+
+  scale_fill_brewer(palette = "Set2", direction = 1) +
+  scale_color_brewer(palette = "Set2", direction = 1) +
+  theme_light() +
+  facet_wrap(vars(genes), scales = "free", ncol = 1)
+
+vip_genes_boxplot_week
+
+
+df %>% esquisser()
+
+vip_genes_boxplot_type = df %>% 
+  rownames_to_column("genes") %>% 
+  pivot_longer(cols = -genes,
+               names_to = "sample",
+               values_to = "counts") %>% 
+  inner_join(genes_rf %>% slice_max(n = 5, importance), by = "genes") %>% 
+  inner_join(ann_vaccines_samples_4_12_23, by = "sample") %>% 
+  mutate(week_fac = as_factor(week),
+         week_fac = fct_reorder(week_fac, week)) %>% 
+  ggplot() +
+  aes(x = type, 
+      y = counts, 
+      fill = week, 
+      label = condition) +
+  geom_boxplot() +
+  scale_y_log10()+
+  scale_fill_continuous() +
+  scale_color_aaas() +
+  theme_few() +
+  facet_wrap(vars(genes), scales = "free", ncol = 1)
+
+vip_genes_boxplot_type
 
 ```
-
-
-
-
-
 
 
 # COVID-19 and Infection - Time and dose adjusted

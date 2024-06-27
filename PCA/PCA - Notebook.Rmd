@@ -3,9 +3,10 @@ title: "PCA"
 output: html_notebook
 ---
 
-# PCA
+# Principal Components Analyisi
 
-Tutoriais [Data Camp - PCA Analysis in R](https://www.datacamp.com/tutorial/pca-analysis-r){.uri}
+Tutorials
+[Data Camp - PCA Analysis in R](https://www.datacamp.com/tutorial/pca-analysis-r){.uri}
 
 [FactoExtra](https://rpkgs.datanovia.com/factoextra/index.html){.uri} [STHDA: Principal Component Methods in R - Practical guide](http://www.sthda.com/english/articles/31-principal-component-methods-in-r-practical-guide/114-mca-multiple-correspondence-analysis-in-r-essentials/){.uri}
 
@@ -28,13 +29,14 @@ library(ComplexHeatmap)
 library(circlize)
 library(ggExtra)
 library("FactoMineR")
+library(here)
 ```
 
 # Process data
 
 **Colors**
 
-```{r Colors}
+```{r}
 condition_col = c(
                                 "BBIBP (V3, D07)" = "#00A087FF",
                                 "BBIBP (V3, D14)" = "#00A087FF",
@@ -89,13 +91,16 @@ condition_col = c(
 
 ```{r Required files}
 # Genes in long table format
-all_degs_p_05_vac_infected_19_12_23
+all_degs_p_05_vac_infected_19_12_23 = read_csv(here("DGE analysis", "all_degs_p_05_vac_infected_19_12_23.csv"))
 
 # Gene set annotation.Used only to merge and filter genes.
-ImmuneGO_Annotated_Genes
+ImmuneGO_Annotated_Genes = readRDS(here("VaxGO gene sets", "ImmuneGO_Annotated_Genes_2024-03-26.rds"))
 
 # Sample or condition annotation
-data_annotation = ann_vaccines_19_1_24 %>% 
+ann_vaccines_19_1_24 <-
+  read_csv(here("Annotations and metadata", "ann_vaccines_19-1-24.csv"))
+
+data_annotation = ann_vaccines_19_1_24 %>%
   mutate(day = as.factor(day),
          dose = as.factor(dose)) 
 ```
@@ -105,7 +110,7 @@ data_annotation = ann_vaccines_19_1_24 %>%
 ```{r}
 # Gene set data.
 ImmuneGO_Annotated_Genes_all = ImmuneGO_Annotated_Genes
-ImmuneGO_Annotated_Genes = ImmuneGO_Annotated_Genes_all %>% 
+ImmuneGO_Annotated_Genes = ImmuneGO_Annotated_Genes_all %>%
   filter(!process %in% c("TCR REPERTOIRE", "BCR REPERTOIRE"))
 
 ImmuneGO_Genes = all_degs_p_05_vac_infected_19_12_23 %>%
@@ -115,14 +120,6 @@ ImmuneGO_Genes = all_degs_p_05_vac_infected_19_12_23 %>%
                select(genes),
                by = "genes") %>% 
   distinct()
-
-# nonImmuneGO_Genes = all_degs_p_05_vac_infected_19_12_23 %>% 
-#   select(-"...1", -"...12") %>% 
-#   anti_join(ImmuneGO_Annotated_Genes_all %>% 
-#                select(genes) %>% 
-#                distinct(),
-#                by = "genes") %>% 
-#   distinct()
 ```
 
 **Input**
@@ -190,7 +187,7 @@ scree_plot = fviz_eig(data.pca,
   theme_classic()
 
 #Save
-ggsave(scree_plot, file = paste0(filename, "_screeplot.png"), width = 10, height = 3) 
+ggsave(scree_plot, file = here(paste0(filename, "_screeplot.png"), "Figures"), width = 10, height = 3) 
 print(scree_plot)
 
 ```
@@ -213,7 +210,7 @@ theme(panel.grid = element_blank(),  # Remover linhas de grade
         axis.ticks = element_blank()) 
 
 #Save
-ggsave(circle_contrib, file = paste0(filename, "_circle_contrib_wide.png"), width = 10, height = 5)
+ggsave(circle_contrib, file = here(paste0(filename, "_circle_contrib_wide.png"), "Figures"), width = 10, height = 5)
 ```
 
 ```{r KNN classification}
@@ -269,66 +266,28 @@ pca_plot_knn_cluster = autoplot(pca_res,
                   size = 3) 
 
 
-ggsave(pca_plot_knn_cluster, file = paste0(filename, pcas, "_KNN_Clustered_labels.png"), width = 10, height = 5)
+ggsave(pca_plot_knn_cluster, 
+       file = here(paste0(filename, pcas, "_KNN_Clustered_labels.png"), "Figures"), width = 10, height = 5)
 
-pca_plot_knn_cluster_marginal = ggMarginal(pca_plot_knn_cluster, type = "histogram", groupFill = T, groupColour = T, xparams = list(binwidth = 0.1, size = 0.1), yparams = list(binwidth = 0.1, size = 0.1))
+pca_plot_knn_cluster_marginal = ggMarginal(
+  pca_plot_knn_cluster,
+  type = "histogram",
+  groupFill = T,
+  groupColour = T,
+  xparams = list(binwidth = 0.1, size = 0.1),
+  yparams = list(binwidth = 0.1, size = 0.1)
+)
 
-ggsave(pca_plot_knn_cluster_marginal, file = paste0(filename, pcas, "_KNN_Clustered_labels_Marginal.png"), width = 8, height = 5)
+ggsave(
+  pca_plot_knn_cluster_marginal,
+  file = here(paste0(filename, pcas, "_KNN_Clustered_labels_Marginal.png"), "Figures"),
+  width = 8,
+  height = 5
+)
 
-
-```
-
-```{r PC2-PC3 scatter plot}
-# PC2-PC3 ------
-#Determinar o número de clusters para KNN
-pca_scores <- data.frame(pca_res$x[, 1:3])
-pcas = "PC1-PC3"
-fviz_nbclust(pca_scores,  
-                     FUNcluster = kmeans,
-                     method = "wss")
-
-set.seed(666)                             # Set seed for randomization
-cluster_model <- kmeans(pca_res$x[, 1:3], centers = 3)  # Ajuste o número de clusters conforme necessário
-ann_vaccines_pca_matrix$cluster <- as.factor(cluster_model$cluster)
-
-# Condition, with density plot ------
-
-pca_plot_knn_cluster = autoplot(pca_res, 
-        data = ann_vaccines_pca_matrix, 
-        colour = 'cluster')  +
-  stat_ellipse(aes(color = cluster, fill = cluster), 
-               geom = "polygon", 
-               alpha = 0.1, 
-               linetype = 1,
-               size = 0.3,
-               type = "t") +
-  labs(title=paste0(filename, "_bycondition")) + 
-  # xlab("PC1 (66.8%)") + 
-  # ylab("PC2 (15.7%)") +
-  scale_color_manual(values = c("1" = "#5e60ce", 
-                                "2" = "#f72585", 
-                                "3" = "#56cfe1", 
-                                "4" = "#b5e48c", 
-                                "5" = "#ff8c42", 
-                                condition_col)) +  # Ellipse line colors
-  scale_fill_manual(values = c("1" = "#5e60ce", 
-                                "2" = "#f72585", 
-                                "3" = "#56cfe1", 
-                                "4" = "#b5e48c", 
-                                "5" = "#ff8c42")) +  # Cluster fill colors
-  theme_minimal() +
-  guides(col="none") +
-  theme(panel.grid = element_blank()) +
-  geom_text_repel(aes(label = condition,
-                      segment.colour="gray70"),
-                  box.padding = 0.3,
-                  size = 2) 
-
-pca_plot_knn_cluster_marginal = ggMarginal(pca_plot_knn_cluster, type = "histogram", groupFill = T, groupColour = T, xparams = list(binwidth = 0.1, size = 0.1), yparams = list(binwidth = 0.1, size = 0.1))
-
-ggsave(pca_plot_knn_cluster_marginal, file = paste0(filename, pcas, "_KNN_Clustered_labels_Density.png"), width = 8, height = 5)
 
 ```
+
 
 # Heatmap
 
