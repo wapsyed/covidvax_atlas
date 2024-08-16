@@ -1,0 +1,722 @@
+---
+title: "Single Sample GSEA (ssGSEA)"
+output: html_notebook
+---
+
+
+## ssGSEA
+```{r}
+library(corto)
+
+############## Arquivos necessários
+
+CellMarker_ImmuneCells #Annotation gene set 1
+ImmuneGO_Annotated_Genes = ImmuneGO_Annotated_Genes_8_1_24 %>% #Annotation gene set 2
+  filter(go_term == "Manual")
+ann_vaccines_samples = ann_vaccines_samples_4_12_23 #Anotação das vacinas
+
+gse199750_counts_ready_2 = gse199750_counts_ready %>% as.data.frame() %>% rownames_to_column("genes") %>% pivot_longer(!genes, names_to = "sample", values_to = "counts")
+
+gse189039_counts_ready_2 = gse189039_counts_ready %>% as.data.frame() %>% rownames_to_column("genes") %>% pivot_longer(!genes, names_to = "sample", values_to = "counts")
+gse201530_counts_ready_2 = gse201530_counts_ready %>% as.data.frame() %>% rownames_to_column("genes") %>% pivot_longer(!genes, names_to = "sample", values_to = "counts")
+gse201533_counts_ready_2 = gse201533_counts_ready %>% as.data.frame() %>% rownames_to_column("genes") %>% pivot_longer(!genes, names_to = "sample", values_to = "counts")
+gse206023_counts_ready_2 = gse206023_counts_ready %>% as.data.frame() %>% rownames_to_column("genes") %>% pivot_longer(!genes, names_to = "sample", values_to = "counts")
+
+all_counts_matrices = bind_rows(gse199750_counts_ready_2,
+                                gse189039_counts_ready_2,
+                                gse201530_counts_ready_2,
+                                gse201533_counts_ready_2,
+                                gse206023_counts_ready_2)
+
+
+all_counts_matrices_wide = all_counts_matrices %>% 
+  pivot_wider(names_from = "sample", values_from = "counts") %>% 
+  column_to_rownames("genes")
+
+write.csv(all_counts_matrices_wide, file = "all_counts_matrices_wide.csv")
+
+```
+
+
+```{r}
+############## Inputs
+
+ssgsea_gene = gse206023_counts_ready 
+metadata = ann_vaccines_samples 
+filename = "gse206023"
+go_dataset = "ImmuneGO"
+go_enrich = ImmuneGO_Annotated_Genes #Trocar nomes das colunas correspondentes por process e genes
+
+#Extrair sample names. O ssGSEA perde o nome no resultado.
+sample_names = ssgsea_gene %>% 
+  as.data.frame() %>% 
+  colnames() %>% 
+  as.data.frame() %>% 
+  rename(sample_names = '.')
+
+#Tabela com genes de interesse (geral) convertida em listas 
+
+genelist = go_enrich %>%
+  select(process, genes) %>% 
+  filter(!process %in% c("TCR REPERTOIRE", "BCR REPERTOIRE"))
+genelist = split(genelist$genes, genelist$process) 
+
+############## Análise 
+
+# Run ssGSEA
+
+nesmat = ssgsea(ssgsea_gene, genelist)
+
+#Padronizar resultado
+nesmat.result = nesmat %>% 
+  as.data.frame() %>% 
+  t() %>% 
+  as.data.frame() %>% 
+  rownames_to_column("sample") %>% 
+  relocate(sample, .before = everything()) %>% 
+  cbind(sample_names) %>% 
+  select(-sample) %>% 
+  column_to_rownames("sample_names") %>% 
+  t() %>% 
+  as.data.frame() %>% 
+  rownames_to_column("process") %>% 
+  relocate(process, .before=everything()) %>% 
+  pivot_longer(cols = -process, names_to = "sample", values_to = "nes") %>%
+  mutate(pvalue = z2p(nes), #Converter NES em pvalue
+         qvalue = p.adjust(pvalue, method = "BH"), #ajustar para qvalue 
+         logq = - log10(qvalue)) %>%  #Calcular -log(q)
+  merge(metadata, by= "sample", all.x=T) %>% #Unir com metadata
+  merge(go_enrich, by = "process", all.x=T) %>% 
+  select(!genes) %>% 
+  distinct() 
+#Salvar
+write.csv(nesmat.result, file = paste0(filename, sep = "_", go_dataset, "_ssgsea_result.csv"))
+
+View(nesmat.result)
+```
+
+*Unir resultados, caso tenha feito separado*
+
+```{r}
+
+############### Unir resultados
+# GSE199750_ImmuneGO_ssgsea_result = nesmat.result %>%
+#   clean_names() %>% 
+#   distinct()
+
+# GSE189039_ImmuneGO_ssgsea_result = nesmat.result %>%
+#   clean_names() %>% 
+#   distinct()
+
+# GSE201530_ImmuneGO_ssgsea_result = nesmat.result %>%
+#   clean_names() %>% 
+#   distinct()
+
+# GSE201533_ImmuneGO_ssgsea_result = nesmat.result %>% 
+#   clean_names() %>% 
+#   distinct()
+
+# GSE206023_ImmuneGO_ssgsea_result = nesmat.result %>% 
+#   clean_names() %>% 
+#   distinct() 
+
+
+ssgsea_results_unified = bind_rows(GSE199750_CellMarker_ssgsea_result,
+          GSE201533_CellMarker_ssgsea_result,
+          GSE206023_CellMarker_ssgsea_result)
+
+ssgsea_results_unified = ssgsea_results_unified %>% 
+  select(cell_name:immune_system) %>% 
+  merge(ann_vaccines, by.x = "condition", by.y = "Condition")
+
+#Salvar
+write.csv(ssgsea_results_unified, file = paste0(go_dataset, "_ssgsea_results_unified.csv"))
+
+
+CellMarker_ssgsea_results_unified_26_12_23 = CellMarker_ssgsea_results_unified %>% 
+  filter(!study == "GSE206023") %>% 
+  bind_rows(nesmat.result) %>% 
+  select(condition:logq) %>% 
+  merge(ann_vaccines_samples, by = "sample", all.x = F, all.y = F)
+
+write.csv(CellMarker_ssgsea_results_unified_26_12_23, file = "CellMarker_ssgsea_results_unified_26_12_23.csv")
+
+View(CellMarker_ssgsea_results_unified_26_12_23)
+
+```
+
+
+### Visualização
+
+```{r}
+
+# INPUT
+nesmat.result = nesmat.result
+
+#Filtrar
+
+#Lista de processos
+
+ssgsea_interesting = nesmat.result %>% 
+  filter(qvalue <= 0.10) %>% 
+  distinct()
+
+
+esquisser(ssgsea_interesting)
+
+#Boxplot (NES)
+NES_plot = ggplot(ssgsea_interesting) +
+  aes(x = condition, y = nes, fill = vaccine) +
+  geom_boxplot() +
+  scale_fill_hue(direction = 1) +
+  theme_minimal() +
+  facet_grid(vars(process), vars(vaccine), scales = "free_x") +
+ labs(title = paste0(filename, "_ImmuneGO ssGSEA"), 
+      fill = "vaccine") +
+ theme_bw() +
+ theme(plot.title = element_text(size = 20L, face = "bold", hjust = 0.5),
+       axis.text.x = element_text(angle = 45, vjust = 1, hjust=1, size = 7)) 
+
+#Salvar
+ggsave(NES_plot, file= paste0(filename, "_ssGSEA_NES_qvalue010.png"), width = 10, height = 20)
+```
+
+
+```{r}
+ssgsea_interesting.unified = ssgsea_results_unified %>% 
+  filter(!condition %in% c("BNT-MO (V1, D0)", "BNT-MO (V2, D0)")) %>% 
+  mutate(day = as.factor(day),
+         dose = as.factor(dose))
+
+ssgsea_interesting.general.unified = ssgsea_interesting.unified %>% 
+  filter(process %in% c("ADAPTIVE IMMUNE SYSTEM", 
+                        "CELLULAR ADAPTIVE IMMUNE SYSTEM", 
+                        "INNATE IMMUNE SYSTEM", 
+                        "INFLAMMATION"),
+         pvalue <= 0.10)
+
+ssgsea_interesting.specific.unified = ssgsea_interesting.unified %>% 
+  filter(!process %in% c("ADAPTIVE IMMUNE SYSTEM", 
+                         "CELLULAR ADAPTIVE IMMUNE SYSTEM", 
+                         "INNATE IMMUNE SYSTEM", 
+                         "INFLAMMATION"),
+         pvalue <= 0.10)
+
+
+data = ssgsea_results_unified
+filename.unified = "ssgsea_results_unified"
+```
+
+
+```{r}
+#All conditions divided by dose, time on x-axis
+
+# Filtrar os dados antes de passar para ggplot
+filtered_data <- data %>%
+  group_by(cell_name, Vaccine, condition) %>%
+  summarise(n = n()) %>%
+  filter(n < 5) %>%
+  pull(condition)
+
+
+NES_plot_unified_dayx <- ggplot(data) +
+  aes(x = day, y = nes, fill = Vaccine) +
+  geom_boxplot(outlier.alpha = 1) +
+  geom_point(data = subset(data, day %in% filtered_data),
+             aes(x = day, y = nes, color = Vaccine),
+             position = position_jitter(width = 0.2), alpha = 1) +
+  scale_fill_manual(values = vaxcolors) +
+  scale_color_manual(values = c(BBIBP = "#ffd000", 
+                                ZF2001 = "#b5179e",
+                                BNT = "#56cfe1",
+                                ChAd = "#80ffdb" ,
+                                "ChAd-BNT" = "#72efdd")) +
+  labs(
+    title = "ssGSEA - All studies",
+    subtitle = "General ImmuneGO, by dose",
+    caption = "Vaccine",
+    fill = "Vaccines"
+  ) + 
+  theme_minimal() +
+  facet_grid(vars(Type), vars(dose), scales = "free_x") +
+  theme(plot.title = element_text(size = 20L, face = "bold", hjust = 0.5),
+        strip.text.y = element_text(angle = 0, vjust = 1, hjust = 1, size = 5),
+        strip.text.x = element_text(size = 10))
+
+#Salvar
+ggsave(NES_plot_unified_dayx, file = paste0(filename.unified, "_ssGSEA_NES_qvalue010_2.png"), width = 10, height = 10)
+
+print(NES_plot_unified_dayx)
+
+```
+
+
+
+```{r}
+#All conditions divided by vaccine, time on x-axis
+
+# Criar o gráfico
+NES_plot_unified_dayx_vax <- ggplot(data) +
+  aes(x = condition, y = nes, fill = dose) +
+  geom_boxplot(outlier.alpha = 0.5) +
+  geom_point(data = subset(data, condition %in% filtered_data),
+             aes(x = condition, y = nes, color = "black"),
+             position = position_jitter(width = 0.2), alpha = 1) +
+  scale_fill_manual(values = dose_colors) +
+  scale_color_manual(values = dose_colors) +
+  labs(
+    title = "ssGSEA - All studies",
+    subtitle = "General ImmuneGO, by dose",
+    caption = "Vaccine",
+    fill = "Vaccines"
+  ) +
+  theme_minimal() +
+  facet_grid(vars(process), vars(vaccine), scales = "free") +
+  theme(
+    plot.title = element_text(size = 20L, face = "bold", hjust = 0.5),
+    axis.text.x = element_text(angle = 45, vjust = 1, hjust = 1, size = 7),
+    strip.text.y = element_text(angle = 0, vjust = 1, hjust = 1, size = 7)  # Rotação do texto da facet row
+  )
+
+#Salvar
+ggsave(NES_plot_unified_dayx_vax, file = paste0(filename.unified, "_ssGSEA_NES_qvalue010_3.png"), width = 20, height = 20)
+
+print(NES_plot_unified_dayx_vax)
+```
+
+
+
+
+
+###  Analise estatística
+
+```{r}
+install.packages("ggstatsplot")
+library(ggstatsplot)
+
+ssgsea_interesting = ssgsea_interesting %>% 
+  filter(process == "INNATE IMMUNE SYSTEM") %>% 
+  distinct()
+
+process = "INNATE IMMUNE SYSTEM"
+
+
+ggbetweenstats(
+  data  = ssgsea_interesting,
+  x     = condition,
+  y     = nes,
+  title =  paste0("ImmuneGO ssGSEA ", filename, process)
+)
+
+#Agrupado
+grouped_ggbetweenstats(
+  data             = ssgsea_interesting,
+  x                = condition,
+  y                = nes,
+  grouping.var     = process,
+  ggsignif.args    = list(textsize = 4, tip_length = 0.01),
+  p.adjust.method  = "bonferroni",
+  palette          = "default_jama",
+  package          = "ggsci",
+  plotgrid.args    = list(nrow = 1),
+  annotation.args  = list(title = paste0("ImmuneGO ssGSEA ", filename))
+)
+
+```
+
+
+### ANOVA
+
+```{r}
+esquisser(test)
+
+library(ggsignif)
+library(rstatix)
+
+df = test
+df$Condition <- as.factor(df$Condition)
+
+stat.test <- df %>%
+  t_test(Condition ~ NES) %>%
+  add_significance()
+
+
+test %>%
+  filter(Process %in% "INNATE IMMUNE RESPONSE") %>%
+  ggboxplot(x = "Process", y = "NES",
+          color = "Condition", palette = "jco") +
+  facet_wrap(vars(Vaccine)) +
+  stat_compare_means(method = "anova", label.y = 4) +      # Add global p-value
+  stat_compare_means(label = "p.signif", method = "t.test",
+                     ref.group = ".all.")    # Comparação múltipla usando Tukey HSD
+
+
+# Box plots with p-values
+bxp <- ggboxplot(df, x = "Process", y = "NES", fill = "#00AFBB")
+stat.test <- stat.test %>% add_xy_position(x = "supp")
+bxp + 
+  stat_pvalue_manual(stat.test, label = "p") +
+  scale_y_continuous(expand = expansion(mult = c(0.05, 0.1)))
+
+```
+
+### PCA
+
+<https://www.datacamp.com/tutorial/pca-analysis-r> 
+<https://rpkgs.datanovia.com/factoextra/index.html> <http://www.sthda.com/english/articles/31-principal-component-methods-in-r-practical-guide/114-mca-multiple-correspondence-analysis-in-r-essentials/>
+<https://statisticsglobe.com/pca-before-k-means-clustering-r>>
+
+Bibliotecas
+```{r}
+library(factoextra)
+library(caret)
+library(stats)
+library(ggfortify)
+library(ggcorrplot)
+```
+
+#### By GO term
+
+```{r}
+ssgsea_results_unified = ImmuneGO_ssgsea_results_unified_26_12_23
+
+data_ImmuneGO = ssgsea_results_unified %>% 
+  filter(!process %in% c("TCR REPERTOIRE", "BCR REPERTOIRE"),
+         vaccine != "NA")
+filename = "ssgsea_results_unified"
+
+pca_ann = data_ImmuneGO %>% 
+  select(sample, condition, vaccine, gse_id:sex)
+
+#Converter de long para wide
+matrix_genes = data_ImmuneGO %>% 
+  select(sample, process, nes)
+
+matrix_genes <- dcast(matrix_genes, `sample` ~ `process`, 
+                     value.var = "nes", 
+                     fun.aggregate = mean)
+
+matrix_genes <- replace(matrix_genes, matrix_genes == "NaN", 0) 
+
+#Converter coluna 1 em rownames e excluir
+matrix_data_pca = matrix_genes %>% 
+  as.data.frame()
+
+matrix_data_pca_ready = matrix_data_pca %>%  
+  column_to_rownames("sample")
+
+ann_vaccines_pca_matrix = matrix_data_pca %>% 
+  merge(pca_ann, by.y = "sample", by.x = "sample", all.x = T, all.y = F) %>% 
+  distinct()
+
+ann_vaccines_pca_matrix_ready = ann_vaccines_pca_matrix %>% 
+  select(sample, condition, vaccine, day, dose) %>% 
+  mutate(dose = as.factor(dose),
+         day = as.factor(day))
+
+# Verifique quais colunas têm variância muito baixa
+nearZeroVarCols <- nearZeroVar(matrix_data_pca_ready, saveMetrics = TRUE)
+matrix_data_pca_ready <- matrix_data_pca_ready[, !nearZeroVarCols$nzv]
+pca_res <- prcomp(matrix_data_pca_ready, scale. = TRUE)
+
+# Crie o gráfico de PCA
+
+###### Condition
+pca_plot_condition = autoplot(pca_res, 
+                    data = ann_vaccines_pca_matrix_ready, 
+                    colour = 'condition', 
+                    label = 0) + 
+  labs(title=paste0(filename, "_bycondition")) + #scale fill manual
+  scale_fill_continuous(type = "viridis") +
+  theme_minimal()
+
+
+###### Vaccine
+pca_plot_vac = autoplot(pca_res, 
+                    data = ann_vaccines_pca_matrix_ready, 
+                    colour = 'vaccine', 
+                    label = 0) + 
+  labs(title=paste0(filename, "_byvaccine")) + #scale fill manual
+  scale_color_manual(
+    values = c(
+  "BBIBP" = "#ffd000",
+  "BNT" = "#56cfe1",
+  "ChAd" = "#80ffdb",
+  "ChAd-BNT" = "#0077b6",
+  "ZF2001" = "#b5179e")) +
+  theme_minimal()
+
+###### Day
+pca_plot_day = autoplot(pca_res, 
+                    data = ann_vaccines_pca_matrix_ready, 
+                    colour = 'day', 
+                    label = 0) + 
+  labs(title=paste0(filename, "_day")) + #scale fill manual
+   scale_color_manual(
+     values = c(
+       "0" = "grey90",
+    "1" = "#caf0f8",
+    "3" = "#90e0ef",
+    "6" = "#00b4d8",
+    "7" = "#0077b6",
+    "14" = "#023e8a",
+    "28" = "#03045e")) +
+  theme_minimal()
+
+###### Dose
+
+pca_plot_dose = autoplot(pca_res, 
+                    data = ann_vaccines_pca_matrix_ready, 
+                    colour = 'dose', 
+                    label = 0) + 
+  labs(title=paste0(filename, "_dose")) +
+  scale_color_manual(
+    values = c("0" = "#caf0f8", 
+               "1" = "#56cfe1", 
+               "2" = "#5978d4",
+               "3" = "#b5179e"))+
+  theme_minimal()
+
+# Exiba o gráfico
+print(pca_plot_condition)
+print(pca_plot_day)
+print(pca_plot_dose)
+print(pca_plot_vac)
+
+ggsave(pca_plot_condition, filename = paste0(filename, "CONDITION_PCA_Immune_GO_GSEA_not-ann.png"), width = 10, height = 8)
+ggsave(pca_plot_vac, filename = paste0(filename, "_VACCINE_PCA_Immune_GO_GSEA_not-ann.png"), width = 10, height = 8)
+ggsave(pca_plot_day, filename = paste0(filename, "_DAY_PCA_Immune_GO_GSEA_not-ann.png"), width = 10, height = 8)
+ggsave(pca_plot_dose, filename = paste0(filename, "_DOSE_PCA_Immune_GO_GSEA_not-ann.png"), width = 10, height = 8)
+
+```
+
+
+```{r}
+############### KNN classification
+
+#Determinar o número de clusters para KNN
+pca_scores <- data.frame(pca_res$x[, 1:2])
+fviz_nbclust(pca_scores,  
+                     FUNcluster = kmeans,
+                     method = "wss")
+
+set.seed(123)                             # Set seed for randomization
+kmeans_clust <- kmeans(pca_scores,        # Perform k-means clustering
+                        centers = 2) # Definir numero de clusters
+
+#Visualizar clusters
+ggp2 <- fviz_pca_ind(pca_res,
+                   habillage = kmeans_clust$cluster,
+                   repel = TRUE,
+                   addEllipses = TRUE,
+                   ellipse.type = "t",
+                   label = "none",
+                   labelsize = 0) +
+  guides(color = guide_legend(override.aes = list(label = ""))) +
+  ggtitle(paste0(filename,  "_KNN_Clustered.png")) +
+  scale_color_brewer(palette="Set1")
+
+print(ggp2)
+
+ggsave(ggp2, file = paste0(filename, "_KNN_Clustered.png"), width = 5, height = 4)
+
+
+# Clusterizar por grupo
+
+#Vaccine
+pca_group_vac <- fviz_pca_ind(pca_res,
+                   habillage = ann_vaccines_pca_matrix_ready$vaccine,
+                   repel = TRUE,
+                   addEllipses = TRUE,
+                   ellipse.type = "t",
+                   label = "none",
+                   labelsize = 0) +
+  guides(color = guide_legend(override.aes = list(label = ""))) +
+  ggtitle(paste0(filename,  "_Vac_KNN_Clustered.png")) +
+  scale_color_brewer(palette="Set1")
+
+#Dose
+pca_group_dose <- fviz_pca_ind(pca_res,
+                   habillage = ann_vaccines_pca_matrix_ready$dose,
+                   repel = TRUE,
+                   addEllipses = TRUE,
+                   ellipse.type = "t",
+                   label = "none",
+                   labelsize = 0) +
+  guides(color = guide_legend(override.aes = list(label = ""))) +
+  ggtitle(paste0(filename,  "_Dose_KNN_Clustered.png")) +
+  scale_color_brewer(palette="Set1")
+
+#Day
+pca_group_day <- fviz_pca_ind(pca_res,
+                   habillage = ann_vaccines_pca_matrix_ready$day,
+                   repel = TRUE,
+                   addEllipses = TRUE,
+                   ellipse.type = "t",
+                   label = "none",
+                   labelsize = 0) +
+  guides(color = guide_legend(override.aes = list(label = ""))) +
+  ggtitle(paste0(filename,  "_Day_KNN_Clustered.png")) +
+  scale_color_brewer(palette="Set1")
+
+
+#visualizar
+pca_group_vac
+pca_group_dose
+pca_group_day
+
+#Salvar
+ggsave(pca_group_day, file = paste0(filename, "_Day_Clustered.png"), width = 5, height = 4)
+ggsave(pca_group_dose, file = paste0(filename, "_Dose_Clustered.png"), width = 5, height = 4)
+ggsave(pca_group_vac, file = paste0(filename, "_Vac_Clustered.png"), width = 5, height = 4)
+```
+
+
+```{r}
+#Biplot
+biplot = fviz_pca_biplot(pca_res,              # Visualize clusters in biplot
+                      col.var = "black",
+                      alpha.var = 0.5,
+                      habillage = kmeans_clust$cluster,
+                      repel = TRUE,
+                      addEllipses = TRUE,
+                      ellipse.type = "convex",
+                      labelsize = 3,
+                      label = "var",
+                      palette = "Set1")
+biplot
+
+ggsave(biplot, file = paste0(filename, "_BIPLOT_KNN_Clustered.png"), width = 10, height = 8)
+```
+
+
+```{r}
+########Correlation plot
+corr_matrix = cor(matrix_data_pca_ready) 
+
+#Plot
+corrplot = ggcorrplot(corr_matrix, hc.order = TRUE) + 
+  theme(axis.text.x = element_text(angle = 90, size = 5), 
+        axis.text.y = element_text(size = 5))
+
+corrplot
+```
+
+
+```{r}
+#Salvar
+ggsave(corrplot, file = paste0(filename, "_corrplot.png"), 
+       width = 4, #Grande 20, pequeno 10
+       height= 4) #Grande 20, pequeno 10
+print(corrplot)
+data.pca <- princomp(corr_matrix) #PCA
+summary(data.pca) #Retornar PCs
+
+
+#########Scree plot
+data.pca = princomp(corr_matrix) #PCA
+summary(data.pca) #Retornar PCs
+
+#########Scree plot
+scree_plot = fviz_eig(data.pca, 
+                      addlabels = TRUE,
+                      ylim = c(0, 70)) +
+  geom_col(color = "#00AFBB", fill = "#00AFBB") +
+  theme_classic()
+
+#Salvar
+ggsave(scree_plot, file = paste0(filename, "_GSEA_screeplot.png"), width = 10, height = 3) 
+print(scree_plot)
+
+
+#Scree plot
+loadings = data.frame(data.pca$loadings[, 1:3])
+loadings$Genes = rownames(loadings)
+loadings_1 = arrange(loadings, desc(Comp.1))
+loadings_2 = arrange(loadings, desc(Comp.2))
+loadings_3 = arrange(loadings, desc(Comp.3))
+
+#Plot
+loadings_1_plot = ggplot(loadings_1, aes(x = reorder(Genes, -Comp.1), y=Comp.1, fill = Comp.1)) + 
+  ggtitle(paste0("Comp1-Comp2 Genes", filename)) + 
+  ylab("Comp1") +
+  xlab("Gene sets") +
+  geom_bar(stat = "identity") + 
+  theme_light() +
+  theme(axis.text.x = element_text(vjust = 1, hjust = 1, angle = 45, size = 8), 
+        axis.text.y = element_text(size = 5),
+        plot.title = element_text(size = 15L, hjust = 0.5)) + 
+  scale_fill_continuous(type = "viridis") #cores
+
+print(loadings_1_plot)
+
+
+loadings_2_plot = ggplot(loadings_2, aes(x = reorder(Genes, -Comp.2), y=Comp.2, fill = Comp.2)) + 
+  ggtitle(paste0("Comp2-Comp3 Genes_", filename)) + 
+  ylab("Comp2") +
+  xlab("Gene sets") +
+  geom_bar(stat = "identity") + 
+  theme_light() +
+  theme(axis.text.x = element_text(vjust = 1, hjust = 1, angle = 45, size = 8), 
+        axis.text.y = element_text(size = 5),
+        plot.title = element_text(size = 15L, hjust = 0.5)) + 
+  scale_fill_continuous(type = "viridis") #cores
+
+print(loadings_2_plot)
+
+
+#Salvar
+ggsave(loadings_1_plot, 
+       file = paste0(filename, "_GSEA_genescomp1-2.png"), 
+       width = 10, height = 5)
+
+#Salvar
+ggsave(loadings_2_plot, 
+       file = paste0(filename, "_GSEA_genescomp2-3.png"), 
+       width = 10, height = 5)
+
+
+# Graph of the variables
+fviz_pca_var_genes = fviz_pca_var(data.pca, 
+                                  col.ind = "cos2",
+                                  gradient.cols = c("#00AFBB", "#E7B800", "#FC4E07"))
+fviz_pca_var_genes
+
+ggsave(fviz_pca_var_genes, file = paste0(filename, "_fviz_pca_var_GSEA.png"), width = 10)
+
+cos2.1 = fviz_cos2(data.pca, choice = "var", axes = 1:2)
+cos2.2 = fviz_cos2(data.pca, choice = "var", axes = 2:3)
+
+ggsave(cos2.1, file = paste0(filename, "_cos2_GSEA_1.png"), width = 10)
+ggsave(cos2.2, file = paste0(filename, "_cos2_GSEA_2.png"), width = 10)
+
+```
+
+
+# PVCA
+
+```{r}
+BiocManager::install("pvca")
+BiocManager::install("golubEsets")
+
+library(pvca)
+library(golubEsets)
+
+data(Golub_Merge)
+pct_threshold <- 0.6
+batch.factors <- c("ALL.AML", "BM.PB", "Source")
+
+
+
+pvcaObj <- pvcaBatchAssess(Golub_Merge, batch.factors, pct_threshold) 
+bp <- barplot(pvcaObj$dat,  xlab = "Effects",
+       ylab = "Weighted average proportion variance", ylim= c(0,1.1),
+       col = c("blue"), las=2, main="PVCA estimation bar chart")
+
+axis(1, at = bp, labels = pvcaObj$label, xlab = "Effects", cex.axis = 0.5, las=2)
+values = pvcaObj$dat
+new_values = round(values , 3)
+text(bp,pvcaObj$dat,labels = new_values, pos=3, cex = 0.8) 
+```
+
+
