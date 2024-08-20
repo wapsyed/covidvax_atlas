@@ -46,9 +46,6 @@ library(kknn)
 library(nnet)
 library(tictoc)
 library(ggthemes)
-
-
-
 library(readr)
 library(qvalue)
 library(explore)
@@ -89,7 +86,7 @@ library(chorddiag)
 
 # Standardize figures 
 
-```{r Colors}
+```{r}
 
 ### VAX SIG DB ----
 ann_vaxsig_colors = list(
@@ -596,14 +593,16 @@ write.csv(counts_GSE189039, file = "gse189039_counts.csv")
 
 ```
 
-## Unite expression data - Batch effects and normalization
+## Batch effects and normalization (RESOLVER)
 
 ```{r}
 ###### Batch effects ----
-
 # BiocManager::install("ExpressionNormalizationWorkflow")
-
 library(ExpressionNormalizationWorkflow)
+conflicted::conflicts_prefer(ExpressionNormalizationWorkflow)
+
+ann_vaccines_samples = read_csv(here("Annotations and metadata", "ann_vaccines_samples.csv"))
+all_matrices_counts = readRDS(here("DGE analysis", "all_matrices_counts.rds"))
 
 #Covariants
 cvrts = ann_vaccines_samples %>% 
@@ -635,10 +634,34 @@ exprs = all_matrices_counts %>%
   replace(., . == Inf, 0) %>% 
   replace(is.na(.), 0)
 
+##### DESEQ2 Normalization
+library(DESeq2)
+
+cvrts = cvrts %>% 
+  mutate(condition = as.factor(condition),
+         age = as.factor(age),
+         sex = as.factor(sex),
+         vaccine = as.factor(vaccine),
+         day = as.factor(day),
+         gse_id = as.factor(gse_id))
+  
+dds <- DESeqDataSetFromMatrix(countData = exprs, 
+                              colData = cvrts, 
+                              design = ~ condition)
+
+dds <- estimateSizeFactors(dds)
+
+normalized_counts <- counts(dds, normalized=TRUE) %>% 
+  as.data.frame()
+
+saveRDS(normalized_counts, file = "all_matrices_normalized_counts.rds")
+
 
 # Input
-inpData <- expSetobj(exprs, cvrts)
-pct_thrsh <- 0.75 
+inpData = expSetobj(exprs, cvrts)
+pct_thrsh = 0.75 
+
+#PVCA
 pvca = pvcAnaly(inpData, pct_thrsh, cvrts_eff_var)
 
 pvca_df = pvca$dat %>% 
@@ -653,54 +676,35 @@ pvca_df = pvca$dat %>%
          batch = fct_reorder(batch, wavgpv)) %>% 
   arrange(batch, wavgpv)
 
-# Visualize
+pvca_df %>% saveRDS(here("DGE analysis", "pvca_results.rds"))
+```
 
+
+```{r}
+
+exprs %>% as.data.frame() %>% view()
+# Visualize
 pvca_df_plot = ggplot(pvca_df) +
   aes(x = batch, y = wavgpv) +
-  geom_col(fill = "#112246") +
-  theme_minimal()
+  geom_col(fill = "black") +
+  theme_few()
 
-ggsave(pvca_df_plot, file = "pvca.png")
+ggsave(pvca_df_plot, file = here("Figures", "covid_vax_pvca.png"))
 
-##### DESEQ2 Normalization
-library(DESeq2)
-
-exprs = all_matrices_counts %>% 
-  column_to_rownames("genes") %>% 
-  t() %>% 
-  as.data.frame() %>% 
-  round(., 0) %>% 
-  rownames_to_column("sample") %>% 
-  arrange(sample) %>% 
-  inner_join(cvrts %>% 
-               rownames_to_column("sample"),
-               select(sample) %>% 
-               distinct(), 
-             by = "sample") %>% 
-  column_to_rownames("sample") %>% 
-  t() %>% 
-  as.data.frame() %>% 
-  exprs %>% 
-  drop_na() %>% 
-  mutate_if(is.character, as.integer) %>% 
-  drop_na() 
-
-cvrts = cvrts %>% 
-  mutate(condition = as.factor(condition),
-         age = as.factor(age),
-         sex = as.factor(sex),
-         vaccine = as.factor(vaccine),
-         day = as.factor(day),
-         gse_id = as.factor(gse_id))
-  
-dds <- DESeqDataSetFromMatrix(countData = a, colData = cvrts, design = ~ condition)
-dds <- estimateSizeFactors(dds)
-normalized_counts <- counts(dds, normalized=TRUE) %>% 
-  as.data.frame()
-
-saveRDS(normalized_counts, file = "all_matrices_normalized_counts.rds")
-
+pvca_df_plot
 ```
+PCA
+```{r}
+# Visualize
+
+pca_res <- prcomp(pvca_df, scale. = TRUE)
+pvca_df_plot = autoplot(pca_res, data = iris, colour = 'Species')
+
+ggsave(pvca_df_plot, file = here("Figures", "covid_vax_pvca.png"))
+
+pvca_df_plot
+```
+
 
 # 2. Data analysis
 
