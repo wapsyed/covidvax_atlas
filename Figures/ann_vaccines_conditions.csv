@@ -1,0 +1,59 @@
+condition,samples,vaccine,day,dose,infection,type,regimen,disease_vac,severity,gse_id,variant,prior_infection,previous_vaccination,week
+"BBIBP (V3, D0)",6,BBIBP,0,3,0,IN,HO,V,H,GSE206023,None,No,Yes,0
+"BBIBP (V3, D07)",6,BBIBP,7,3,0,IN,HO,V,H,GSE206023,None,No,Yes,1
+"BBIBP (V3, D14)",6,BBIBP,14,3,0,IN,HO,V,H,GSE206023,None,No,Yes,2
+"BBIBP (V3, D28)",6,BBIBP,28,3,0,IN,HO,V,H,GSE206023,None,No,Yes,4
+"BNT (V1, D0)",75,BNT,0,1,0,RNA,HO,V,H,GSE199750,None,No,No,0
+"BNT (V1, D0)",75,BNT,0,1,0,RNA,HO,V,H,GSE189039,None,No,No,0
+"BNT (V1, D0)",75,BNT,7,1,0,RNA,HO,V,H,GSE189039,None,No,No,1
+"BNT (V1, D0)",75,BNT,10,1,0,RNA,HO,V,H,GSE189039,None,No,No,2
+"BNT (V1, D0)",75,BNT,11,1,0,RNA,HO,V,H,GSE189039,None,No,No,2
+"BNT (V1, D6)",64,BNT,6,1,0,RNA,HO,V,H,GSE199750,None,No,No,1
+"BNT (V2, D1)",46,BNT,1,2,0,RNA,HO,V,H,GSE199750,None,No,Yes,1
+"BNT (V3, D1)",25,BNT,1,3,0,RNA,HO,V,H,GSE199750,None,No,Yes,1
+BNT-I (D1),5,BNT,1,1,1,I,V-I,I,MI,GSE201530,Omicron,No,Yes,1
+"BNT-I (D10, mild)",1,BNT,10,1,1,RNA,V-I,I,MI,GSE189039,Beta,No,Yes,2
+"BNT-I (D10, severe)",3,BNT,10,1,1,RNA,V-I,I,S,GSE189039,Beta,No,Yes,2
+BNT-I (D2),12,BNT,2,1,1,I,V-I,I,MI,GSE201530,Omicron,No,Yes,1
+"BNT-I (D26, mild)",1,BNT,26,1,1,RNA,V-I,I,MI,GSE189039,Beta,No,Yes,4
+"BNT-I (D26, severe)",2,BNT,26,1,1,RNA,V-I,I,S,GSE189039,Beta,No,Yes,4
+BNT-I (D3),6,BNT,3,1,1,I,V-I,I,MI,GSE201530,Omicron,No,Yes,1
+BNT-I (D4),2,BNT,4,1,1,I,V-I,I,MI,GSE201530,Omicron,No,Yes,1
+"BNT-I (D51, severe)",1,BNT,51,1,1,RNA,V-I-V,I,S,GSE189039,Beta,No,Yes,8
+"BNT-I-BNT (D51, mild)",1,BNT,51,2,1,RNA,V-I-V,I,MI,GSE189039,Beta,No,Yes,8
+"BNT-I-BNT (D51, severe)",1,BNT,51,2,1,RNA,V-I-V,I,S,GSE189039,Beta,No,Yes,8
+"BNT-MO (V1, D0)",2,BNT,0,1,0,RNA,HE,V,H,GSE199750,None,No,No,0
+"BNT-MO (V1, D6)",2,BNT,6,1,0,RNA,HE,V,H,GSE199750,None,No,No,1
+"BNT-MO (V3, D1)",10,MO,1,3,0,RNA,HE,V,H,GSE199750,None,No,Yes,1
+"ChAd (V1, D0)",53,ChAd,0,1,0,VV,HO,V,H,GSE199750,None,No,No,0
+"ChAd (V1, D0)",53,ChAd,0,1,0,VV,HO,V,H,GSE201533,None,No,No,0
+"ChAd (V1, D3)",36,ChAd,3,1,0,VV,HO,V,H,GSE201533,None,No,No,1
+"ChAd (V1, D6)",15,ChAd,6,1,0,VV,HO,V,H,GSE199750,None,No,No,1
+"ChAd (V1, D7)",37,ChAd,7,1,0,VV,HO,V,H,GSE201533,None,No,No,1
+"ChAd (V2, D1)",8,ChAd,1,2,0,VV,HO,V,H,GSE199750,None,No,Yes,1
+"ChAd (V2, D3)",4,ChAd,3,2,0,VV,HO,V,H,GSE201533,None,No,Yes,1
+"ChAd (V2, D7)",1,ChAd,7,2,0,VV,HO,V,H,GSE201533,None,No,Yes,1
+"ChAd-BNT (V2, D0)",16,BNT,0,2,0,RNA,HE,V,H,GSE201533,None,No,Yes,0
+"ChAd-BNT (V2, D3)",17,BNT,3,2,0,RNA,HE,V,H,GSE201533,None,No,Yes,1
+"ChAd-BNT (V2, D7)",11,BNT,7,2,0,RNA,HE,V,H,GSE201533,None,No,Yes,1
+"ChAd-BNT (V3, D1)",5,BNT,1,3,0,RNA,HE,V,H,GSE199750,None,No,Yes,1
+H (D0),8,H,0,0,0,H,H,Healthy,H,GSE201530,None,No,No,0
+H (D0),8,H,0,0,0,H,H,H,H,GSE201530,None,No,No,0
+I (D1),1,I,1,0,1,I,I,I,MI,GSE201530,Omicron,No,No,1
+"I (D10, moderate)",3,I,10,0,1,I,I,I,MO,GSE189039,Beta,No,No,2
+"I (D10, severe)",2,I,10,0,1,I,I,I,S,GSE189039,Beta,No,No,2
+"I (D26, moderate)",3,I,26,0,1,I,I,I,MO,GSE189039,Beta,No,No,4
+"I (D26, severe)",2,I,26,0,1,I,I,I,S,GSE189039,Beta,No,No,4
+"I (D51, moderate)",2,I,51,0,1,I,I,I,MO,GSE189039,Beta,No,No,8
+"I (D51, severe)",2,I,51,0,1,I,I,I,S,GSE189039,Beta,No,No,8
+I-BNT-I (D2),1,BNT,2,1,2,I,I-V-I,I,MI,GSE201530,Omicron,Yes,Yes,1
+I-BNT-I (D5),1,BNT,5,1,2,I,I-V-I,I,MI,GSE201530,Omicron,Yes,Yes,1
+I-I (D0),1,I,1,0,2,I,I-I,I,MI,GSE201530,Omicron,Yes,No,1
+I-I (D1),1,I,1,0,2,I,I-I,I,MI,GSE201530,Omicron,Yes,No,1
+I-I (D2),1,I,2,0,2,I,I-I,I,MI,GSE201530,Omicron,Yes,No,1
+I-I (D3),1,I,3,0,2,I,I-I,I,MI,GSE201530,Omicron,Yes,No,1
+I-I (D5),2,I,5,0,2,I,I-I,I,MI,GSE201530,Omicron,Yes,No,1
+"ZF2001 (V3, D0)",6,ZF2001,0,3,0,SU,HE,V,H,GSE206023,None,No,Yes,0
+"ZF2001 (V3, D07)",6,ZF2001,7,3,0,SU,HE,V,H,GSE206023,None,No,Yes,1
+"ZF2001 (V3, D14)",6,ZF2001,14,3,0,SU,HE,V,H,GSE206023,None,No,Yes,2
+"ZF2001 (V3, D28)",6,ZF2001,28,3,0,SU,HE,V,H,GSE206023,None,No,Yes,4
