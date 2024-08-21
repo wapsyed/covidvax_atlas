@@ -1,0 +1,1641 @@
+---
+title: "R Notebook"
+output:
+  html_notebook: default
+  pdf_document: default
+---
+
+# GSE199750: COVIRS study
+
+Antes de analisar os dados do estudo, leia-o. O primeiro estudo analisado (COVIRS) aqui é descrito em artigo e em um site: <https://bitbucket.org/lynnlab/covirs/src/master/>. Código de análise multiomics: <https://bitbucket.org/lynnlab/covirs/src/master/COVIRS_analysis%2016%2008%202022.R>. Este estudo já contém um arquivo .rds com as contagens de genes integrado ("raw_RNASeq_counts") para baixar. No entanto, abaixo, faremos direto baixando os arquivos do GEO.
+
+## Sample information
+
+1)  Adults living in South Australia, 2021, absence of SARS-CoV-2 community transmission (strict quarantine).
+
+2)  Sex = 70% female, 30% Male
+
+3)  Age = 39 +- 11 years
+
+####Sample size N total = 102 participants 1 + 2 doses = 86 (2x BNT162b2) + 16 (2X ChAdOx1) 3 doses = 38 (BNT162b2) + 14 (mRNA-1273)
+
+### **Timepoints**
+
+COVIRS participants were profilled longitudinally. Blood samples were collected at the following timepoints:
+
+-   V0 - Pre-vaccination
+
+-   V1 - 5-7 days post dose 1 (Either BNT162b2 or ChAdOx1-S)
+
+-   V2A - 1-2 days post dose 2 (Either BNT162b2 or ChAdOx1-S)
+
+-   V2B - 28 days post dose 2 (Either BNT162b2 or ChAdOx1-S)
+
+-   V3A - 1-2 days post dose 3 (Either BNT162b2 or mRNA-1273)
+
+-   V3B - 28 days post dose 3 (Either BNT162b2 or mRNA-1273)
+
+-   Gene expression measured by RNASeq at V0, V1, V2A, V3A (Total RNA from peripheral blood). \>12B reads (2x150bp) across 260 samples. (See GEO GSE199750 for raw data). 1
+
+
+# Preparação dos dados
+
+## Baixar pacotes
+
+```{r eval=FALSE, include=FALSE}
+install.packages("forcats") # útil para agrupar e manipular dados categóricos em análises de RNA-seq.
+install.packages("stringr") # útil para trabalhar com strings no R, o que pode ser útil para manipular e filtrar nomes de genes, por exemplo.
+install.packages("ggplot2") # criação de visualizações de dados
+install.packages("ggbeeswarm")
+install.packages("ggrepel") #é um pacote que fornece uma alternativa ao pacote ggplot2 para ajudar a evitar sobreposição de textos em gráficos.
+install.packages("readr") #importação de arquivos de dados no R, como arquivos CSV, TSV e outros formatos
+install.packages("tidyr") #limpar e organizar dados no R
+install.packages("Seurat") #pré-processamento de dados, como filtragem, normalização e detecção de células duplas, bem como análises de expressão diferencial, clusterização, visualização de dimensões reduzidas e identificação de marcadores de células
+install.packages("dplyr") # manipulação de dados em R, útil para filtrar, selecionar, ordenar, agrupar e resumir dados
+install.packages("org.Hs.eg.db")
+install.packages("RColorBrewer") #paletas
+install.packages("plotly") #Gráficos interativos
+install.packages("msigdbr")
+install.packages("ape")
+install.packages("sva")
+install.packages("readxl")
+install.packages("gplots")
+install.packages("tibble")
+install.packages("metaRNASeq")
+install.packages("gprofiler2")
+
+
+#Instale os pacotes do BioConductor.
+
+if (!require("BiocManager", quietly = TRUE))
+    install.packages("BiocManager") #
+
+BiocManager::install("GEOquery") # baixar e processar dados do Gene Expression Omnibus (GEO)
+
+BiocManager::install("limma") #análise de dados de microarray e RNA-seq, incluindo análise de expressão diferencial e enriquecimento de vias metabólicas.
+
+BiocManager::install("pheatmap") # criação de mapas de calor no R, que podem ser usados para visualização de padrões de expressão gênica em dados de RNA-seq.
+
+BiocManager::install("org.Hs.eg.db") #é um pacote do Bioconductor que contém anotações do genoma humano, incluindo informações sobre a localização dos genes e seus nomes oficiais. Pode ser útil para a anotação dos resultados de análises de RNA-seq.
+
+BiocManager::install("deseq2")
+
+BiocManager::install("biomaRt") #Anotações de genes
+
+BiocManager::install("celldex") # anotações de genes por tipo celular
+
+BiocManager::install("Glimma") #Visualização interativa de resultados de análise de expressão diferencial.
+
+BiocManager::install("edgeR") # Para análise diferencial de expressão
+
+BiocManager::install("NMF") #análise de fatorização de matrizes não negativas (NMF) em dados de expressão genética.
+
+BiocManager::install("BiasedUrn") #Algoritmos para inferência de enriquecimento de conjuntos de genes utilizando métodos de urna viciada.
+
+BiocManager::install("GSVA") # Análise de enriquecimento de vias genéticas usando a variação da atividade de genes ao longo de um conjunto de amostras.
+
+BiocManager::install("sva") #Métodos para ajustar fatores de confusão em análises de expressão genética
+
+BiocManager::install("clusterProfiler") #Fornece ferramentas para análise de enriquecimento funcional e perfilagem de conjuntos de genes
+
+BiocManager::install("pheatmap") #Criação de heatmaps personalizados para visualização de dados de expressão genética.
+
+BiocManager::install("org.Hs.eg.db") #Anotações de genes
+
+BiocManager::install("msigdbr", update = FALSE)
+
+BiocManager::install("EnhancedVolcano")
+
+BiocManager::install("AnnotationDbi")
+
+```
+
+## Bibliotecas
+
+```{r eval=FALSE, include=FALSE}
+library(readr)
+library(Seurat)
+library(stringr)
+library(GEOquery)
+library(Matrix)
+library(ggplot2)
+library(dplyr)
+library(RColorBrewer)
+library(celldex)
+library(biomaRt)
+library(org.Hs.eg.db)
+library(plotly)
+library(DESeq2)
+library(edgeR)
+library(limma)
+library(Glimma)
+library(DESeq2)   
+library(msigdbr)
+library(ape)
+library(GSVA)
+library(sva)
+library(readxl)
+library(clusterProfiler)
+library(pheatmap)
+library(gplots)
+library(EnhancedVolcano)
+library(metaRNASeq)
+library(ggbeeswarm)
+library(gprofiler2)
+
+
+```
+
+
+## Baixar e processar arquivos
+
+```{r eval=FALSE, include=FALSE}
+#Baixar dados sobre o estudo. 
+
+gse199750 <- getGEO("GSE199750", GSEMatrix = TRUE) #Use GSEMatrix = TRUE para obter metadados de cada amostra
+gse199750 <- gse199750[[1]] #Analisar o primeiro objeto da lista. Este é o dataset de uma plataforma, mas é possivel em um único estudo terem mais plataformas.
+
+#Analisar informações sobre amostras
+gse199750_sampleinfo <- pData(gse199750) #Informações sobre amostras
+colnames(gse199750_sampleinfo) #Veja quais colunas são interessantes: geo_accession, source_name_ch1, "age:ch1"                  "first/second vaccine:ch1",  "run:ch1", "sample number:ch1"        "Sex:ch1"                 , "subject_id:ch1"           "third vaccine:ch1"        "timepoint:ch1", "tissue:ch1", "vaccine:ch1"         
+
+gse199750_sampleinfo <- select(gse199750_sampleinfo,"geo_accession", "sample number:ch1", "subject_id:ch1", "age:ch1", "Sex:ch1",  "vaccine:ch1", "first/second vaccine:ch1", "third vaccine:ch1", "timepoint:ch1", "tissue:ch1", "run:ch1")  #selecionar colunas de interesse e ordenar.
+
+colnames(gse199750_sampleinfo) <- c("GEO","SampleN", "SubjectID", "Age", "Sex", "Vaccine", "FirstSecondVaccine", "ThirdVaccine", "Timepoint", "Tissue", "Run") #Renomear
+
+#Na tabela, é possível perceber que há duas colunas parecidas. A primeira, "Vaccine", pode estar preenchida, mas a segunda "FirstSecondVaccine" não, e vice versa. Logo, uma deve ser igual a outra. Assim, unifique as colunas.
+gse199750_sampleinfo$FirstSecondDose <- ifelse(is.na(gse199750_sampleinfo$FirstSecondVaccine), gse199750_sampleinfo$Vaccine, gse199750_sampleinfo$FirstSecondVaccine)
+
+
+#Excluir colunas 
+
+#Modo 1
+gse199750_sampleinfo <- gse199750_sampleinfo[, !(colnames(gse199750_sampleinfo) %in% c("Vaccine", "FirstSecondVaccine"))]
+
+#Modo 2
+gse199750_sampleinfo <- select(gse199750_sampleinfo, -"Vaccine", -"FirstSecondVaccine") 
+
+#Reordenar colunas
+col_order <- c("GEO", "SampleN", "SubjectID", "Age", "Sex", "Timepoint", "FirstSecondDose", "ThirdVaccine", "Tissue", "Run") # Reordenar as colunas
+gse199750_sampleinfo <- gse199750_sampleinfo[, col_order]  # Reordenar as colunas conforme o col_order
+
+#Salvar arquivo
+write.csv(gse199750_sampleinfo, file="metadata_gse199750.csv")
+saveRDS(gse199750_sampleinfo, file="metadata_gse199750.rds")
+```
+
+```{r eval=FALSE, include=FALSE}
+#Ler arquivos e transformar em tabela.
+
+##Definir qual será analisado primeiro. Escolhi o GSE199750 por conter a maior quantidade de amostras (260). Abra a lista do estudo e analise as informações sobre o estudo. Ao descompactar, surgem diversos arquivos .featureCounts.txt.gz, que devem ser descompactados. Para descompactar a lista toda, use um loop.
+
+diretorio_GSE199750 <- "G:/Meu Drive/USP/Doutorado/Experimentos/Imunoinformatica/RNAseq/Bulk/GSE199750"
+arquivos_gz_GSE199750 <- list.files(path = diretorio_GSE199750, pattern = "*.gz$", full.names = TRUE)
+for(arquivo_gz in arquivos_gz_GSE199750) {gunzip(arquivo_gz)}
+
+##Ler arquivos e criar tabela
+arquivos_txt_GSE199750 <- list.files(path = diretorio_GSE199750, pattern = "*.txt$", full.names = TRUE)
+lista_dados_GSE199750 <- list()
+
+#Se estiver usando o RStudio, vá para o working directory no painel à direita, defina como working directory de novo, copie o código abaixo e cole no console.
+for(i in seq_along(arquivos_txt_GSE199750)) {
+  # Leia o arquivo e armazene os dados na lista
+  lista_dados_GSE199750[[i]] <- read.table(arquivos_txt_GSE199750[i], header = TRUE, sep = "\t")
+}
+
+#Analise as informações de cada ítem da lista
+View(lista_dados_GSE199750)
+
+```
+
+## Anotação de genes
+
+```{r eval=FALSE, include=FALSE}
+#Foram geradas 58 dataframes, cada um com 60671 e 7 colunas descrevendo cada gene. No entanto, cada gene está nomeado com seu EnsembleID. Então, converta em simbolos usando o pacote "org.Hs.eg.db" ou o biomaRt. Anote as principais informações sobre cada gene, como biotipo e id Entrez.
+
+library("biomaRt")
+
+# Selecione o banco de dados Ensembl
+mart <- useMart("ensembl")
+
+# Selecione o conjunto de dados para humanos
+mart <- useDataset("hsapiens_gene_ensembl", mart)
+
+
+# Loop através de cada dataframe na lista
+for(i in seq_along(lista_dados_GSE199750)) {
+  # Obtenha os Ensembl IDs do dataframe
+  ensembl_ids <- lista_dados_GSE199750[[i]]$Geneid
+  
+  # Obtenha as informações do gene do banco de dados Ensembl
+  gene_info <- getBM(attributes = c("gene_biotype", "entrezgene_id", "hgnc_symbol"), 
+                   filters = "ensembl_gene_id", 
+                   values = ensembl_ids, 
+                   mart = mart)
+  
+  # Mescle as informações do gene com o dataframe
+  lista_dados_GSE199750[[i]] <- merge(lista_dados_GSE199750[[i]], gene_info, by.x = "Geneid", by.y = "ensembl_gene_id")
+}
+
+
+```
+
+### Lista de sample counts para um único dataframe
+
+As linhas correspondem aos genes e as colunas, a cada amostra/dataframe.
+
+```{r eval=FALSE, include=FALSE}
+# Obtenha o número total de linhas nos dataframes
+total_linhas <- max(sapply(lista_dados_GSE199750, nrow))
+
+# Crie um dataframe vazio com nomes de colunas corretos
+counts_gse199750 <- data.frame(matrix(NA, nrow = total_linhas, ncol = length(lista_dados_GSE199750)))
+
+colnames(counts_gse199750) <- paste0("GSM", seq_along(lista_dados_GSE199750) + 5983812) #Trocar o nome das colunas (ex. "X21.01684.hisat2.bam") pelos códigos GSM correspondentes, que no caso começam com GSM5983813. Isso facilitará a integração dos dados.
+
+# Percorra a lista de dataframes e preencha as colunas correspondentes
+for (i in seq_along(lista_dados_GSE199750)) {
+  df <- lista_dados_GSE199750[[i]]
+  coluna_sétima <- df[, 7]
+  counts_gse199750[, i] <- coluna_sétima[1:total_linhas]
+}
+
+# Verifique o dataframe resultante
+print(counts_gse199750)
+
+#colnames(counts_gse199750) <- paste0("Sample_", seq_along(lista_dados_GSE199750)) # Defina os nomes das colunas no dataframe resultante, caso queira mudar.
+
+# Adicione uma coluna a mais, criando um merge com outro dataset
+colunas_descritivas <- lista_dados_GSE199750[[1]][c("Geneid", "hgnc_symbol", "gene_biotype")]
+
+counts_gse199750 <- cbind(counts_gse199750, colunas_descritivas) #Adicione as colunas dos genes ao dataframe com as counts
+
+counts_gse199750 <- counts_gse199750[, c((ncol(counts_gse199750) - 2):ncol(counts_gse199750), 1:(ncol(counts_gse199750) - 3))] # Reordenar
+
+counts_gse199750[is.na(counts_gse199750)] <- 0 # Substituir valores NA por 0 em todo o dataframe
+
+#Crie uma lista com os dois dataframes de contagem e de infos sobre cada amostra
+
+counts_sample_info <- list(counts_gse199750, gse199750_sampleinfo)
+
+```
+
+### Salvar dataframes
+
+Salve os dataframes de counts e de metadados em arquivos .rds.
+
+Isto é interessante caso você queira retomar as análises sem precisar processar todos os dados novamente. Isso é importante para economizar espaço.
+
+```{r eval=FALSE, include=FALSE}
+
+#Talvez, seja necessário copiar e colar este código no Console, porque não gera o arquivo sozinho.
+saveRDS(counts_sample_info, file = "metadata_and_counts_gse199750.rds")
+write.csv(counts_sample_info, file="metadata_gse199750.csv")
+saveRDS(counts_gse199750, file = "counts_gse199750.rds")
+write.csv(counts_gse199750, file = "counts_gse199750.csv")
+
+write.csv(metadata_and_counts_gse199750[2], file="metadata_gse199750.csv")
+write.csv(counts_gse199750, file="counts_gse199750.csv")
+
+
+```
+
+## Análise de dados
+
+### Análise de expressão genica diferencial
+
+Aqui, eu fiz a análise com a tabela de counts baixado do site do estudo oficial e rodei o código do site abaixo.
+
+<https://combine-australia.github.io/RNAseq-R/06-rnaseq-day1.html>
+
+```{r eval=FALSE, include=FALSE}
+
+############## Caso use os arquivos gerados pelos códigos acima ##############
+#Para este protocolo, exclua as colunas de hgnc_symbol e gene_biotype
+counts_gse199750 <- select(counts_gse199750, -"hgnc_symbol", -"gene_biotype") 
+colnames(counts_gse199750) <- counts_gse199750[-1,]
+
+############## Preparação dos arquivos fornecidos ##############
+#Aqui, como os 260 arquivos do dataset não foram baixados por conta da conexão, usaremos os arquivos fornecidos pelo próprio repositório do estudo. O arquivo é do tipo .rds e não é facilmente manipulável.
+
+write.csv(raw_RNASeq_counts, file="raw_RNASeq_counts.csv")
+write.csv(Sample_meta_data_RNASeq, file="Sample_meta_data_RNASeq.csv")
+```
+
+### Anotação de genes
+
+```{r eval=FALSE, include=FALSE}
+#############Anotação de genes##############
+
+library("biomaRt")
+
+# Selecione o banco de dados Ensembl
+mart <- useMart("ensembl")
+
+# Selecione o conjunto de dados para humanos
+mart <- useDataset("hsapiens_gene_ensembl", mart)
+
+#Obtenha os Ensembl IDs
+ensembl_ids <- raw_RNASeq_counts[[1]]
+
+colnames(raw_RNASeq_counts)[1] <- "ensembl_ids"
+
+
+# Obtenha as informações do gene do banco de dados Ensembl
+gene_info <- getBM(attributes = c("entrezgene_id", "hgnc_symbol"), 
+                   filters = "ensembl_gene_id",
+                   values = ensembl_ids, 
+                   mart = mart)
+
+# Fundir as informações com raw_RNASeq_counts
+raw_RNASeq_counts_ann <- merge(raw_RNASeq_counts, gene_info, by.x = "ensembl_ids", all.x = TRUE)
+
+# Preencher as células vazias na coluna 'hgnc_symbol' com os valores correspondentes da coluna 'Geneid'
+raw_RNASeq_counts_ann$hgnc_symbol <- ifelse(is.na(raw_RNASeq_counts_ann$hgnc_symbol), raw_RNASeq_counts_ann$Geneid, raw_RNASeq_counts_ann$hgnc_symbol)
+
+# Remover linhas duplicadas (mantendo apenas a primeira ocorrência)
+raw_RNASeq_counts_ann <- subset(raw_RNASeq_counts_ann, !duplicated(hgnc_symbol))
+
+#Organizar colunas
+
+## Remover colunas desnecessárias
+raw_RNASeq_counts_ann <- subset(raw_RNASeq_counts_ann, select = -Geneid)
+
+## Mover a coluna "hgnc_symbol" para a primeira posição. 
+hgnc_symbol_index <- which(names(raw_RNASeq_counts_ann) == "hgnc_symbol") # Obtenha o índice da coluna "hgnc_symbol"
+raw_RNASeq_counts_ann <- raw_RNASeq_counts_ann %>% 
+  select(hgnc_symbol, everything()) # Mover a coluna "hgnc_symbol" para a primeira posição
+
+#Salvar .csv
+write.csv(raw_RNASeq_counts_ann, file="raw_RNASeq_counts_annGenes.csv")
+
+```
+
+### Padronizando tabela de counts
+
+```{r eval=FALSE, include=FALSE}
+#Converta o arquivo de counts em dataframe e transforme a primeira coluna em rownames. Isso retirará a coluna como variável e resultará em números iguais de obs (metadata) e variables (counts)
+
+raw_RNASeq_counts_annGenes <- as.data.frame(raw_RNASeq_counts_annGenes)
+raw_RNASeq_counts_annGenes <- raw_RNASeq_counts_annGenes[, -1] # Remova a primeira coluna de índices
+rownames(raw_RNASeq_counts_annGenes) <- raw_RNASeq_counts_annGenes$hgnc_symbol # Defina a primeira coluna como os rownames
+raw_RNASeq_counts_annGenes <- raw_RNASeq_counts_annGenes[, -1] # Remova a coluna de symbols, pois está definida agora como rownames
+
+#Ordenar tabela 
+
+gse199750_counts_ready = t(gse199750_counts_ready)
+# Obter a ordem dos índices das linhas em ordem crescente dos rownames
+ordem_indices <- order(rownames(gse199750_counts_ready))
+
+# Reorganizar as linhas do data frame com base na ordem dos índices
+gse199750_counts_ready <- gse199750_counts_ready[ordem_indices, ]
+
+#Retranspor tabela
+gse199750_counts_ready = t(gse199750_counts_ready)
+
+# Salvar arquivo com rownames
+saveRDS(gse199750_counts_ready, file="gse199750_counts_ready.rds")
+
+
+#########Caso a tabela apresente valores NA na coluna de hgnc_symbol, execute este comando ############
+# Verificar se há valores NA na coluna que será usada como rownames
+any_na <- any(is.na(raw_RNASeq_counts_annGenes$hgnc_symbol))
+print(any_na)  # Será TRUE se houver valores NA
+
+# Verificar se há duplicatas na coluna que será usada como rownames
+any_duplicates <- any(duplicated(raw_RNASeq_counts_annGenes$hgnc_symbol))
+print(any_duplicates)  # Será TRUE se houver duplicatas
+
+
+# Verificar quais linhas possuem NA na coluna "hgnc_symbol"
+rows_with_na <- which(is.na(raw_RNASeq_counts_annGenes$hgnc_symbol))
+
+# Exibir as linhas que possuem NA
+print(rows_with_na) #Neste caso, somente a linha 1599 apresentou NA.
+
+# Selecionar apenas as linhas completas (sem NA) na coluna "hgnc_symbol"
+raw_RNASeq_counts_annGenes <- raw_RNASeq_counts_annGenes[complete.cases(raw_RNASeq_counts_annGenes$hgnc_symbol), ]
+
+# Verificar se ainda há valores NA na coluna "hgnc_symbol" (deve retornar FALSE)
+any_na <- any(is.na(raw_RNASeq_counts_annGenes$hgnc_symbol))
+print(any_na)
+
+```
+
+### Metadata - Adaptando do estudo
+
+A tabela de counts fornecida pelo estudo é nomeada com o Subject ID + Timepoint e não com o codigo GSM. Por isso, teremos de tratar a tabela de metadados. Além disso, ela não possui a coluna de idade. É possível manipular estes dados no excel.
+
+#### Manipulando Subject IDs para Timepoint
+
+```{r eval=FALSE, include=FALSE}
+######### No R #########
+# Crie a nova coluna "Subject_Timepoint" usando a função paste()
+gse199750_metadata$Subject_Timepoint <- paste(gse199750_metadata$SubjectID, gse199750_metadata$Timepoint, sep = "_")
+
+# Reorganize as colunas do dataframe com select()
+gse199750_metadata <- gse199750_metadata %>%
+  select(Subject_Timepoint, everything())
+
+# Defina a primeira coluna como os rownames
+rownames(gse199750_metadata) <- gse199750_metadata$Subject_Timepoint
+
+gse199750_metadata <- gse199750_metadata[, -1] # Remova a coluna de symbols, pois está definida agora como rownames
+
+# Salvar arquivo com rownames
+saveRDS(gse199750_metadata, file="gse199750_metadata.rds")
+
+######### No Excel #########
+#Depois de manipular as tabelas no Excel, salve como .csv, importe no R, transforme em dataframe e defina os nomes das amostras como rownames.
+gse199750_metadata = as.data.frame(gse199750_metadata)
+rownames(gse199750_metadata) = gse199750_metadata$Samples
+
+
+```
+
+#### Manipulando idades
+
+```{r eval=FALSE, include=FALSE}
+#### A coluna Age contém números e não é possível ser analisada pelo DESeq2. Para isso, será necessário discriminar as idades. 
+
+# Definir os intervalos para as faixas etárias
+Age_ranges <- c(0, 18, 30, 45, 60, 70, 80, Inf)
+
+# Definir os rótulos para as faixas etárias
+Age <- c("<18", "18-29", "30-44", "45-59", "60-69", "70-79", "80>")
+
+# Adicionar uma nova coluna com as faixas etárias ao data frame
+gse199750_metadata$Age_ranges <- cut(gse199750_metadata$Age, breaks = Age_ranges, labels = Age, right = FALSE)
+
+#Salvar
+write_csv(gse199750_metadata, file="gse199750_metadata_Ages.csv")
+saveRDS(gse199750_metadata, file="gse199750_metadata_Ages.rds")
+
+```
+
+### DESEQ2
+
+Recomendo fazer com as tabelas de counts e metadados fornecidas pelo [estudo](https://bitbucket.org/lynnlab/covirs/src/master/). Somente trate a tabela de counts com anotações dos genes e adicione a coluna de Age dos metadados obtidos diretamente do GEO, pois por algum motivo não é fornecida pelo repositório do estudo.
+
+#### Preparando dados
+
+##### Tabela de counts
+
+```{r eval=FALSE, include=FALSE}
+#####Dividir tabela de counts em vacinas diferentes. 
+#Transpor tabela e transformar em dataframe para facilitar manipulaçao no dplyr
+gse199750_counts_merged_transposed = t(gse199750_counts_merged)
+#Transformar em dataframe
+gse199750_counts_merged_transposed = as.data.frame(gse199750_counts_merged_transposed)
+
+# Filtrar amostras com as duas primeiras imunizações com a BNT162b2
+gse199750_counts_merged_BNT <- filter(gse199750_counts_merged_transposed, first.second.vaccine == "BNT162b2")
+write.csv(gse199750_counts_merged_BNT, file = "gse199750_counts_metadata_BNT.csv")
+
+# Filtrar amostras com as duas primeiras imunizações com a ChAdOx1
+gse199750_counts_merged_AZ <- filter(gse199750_counts_merged_transposed, first.second.vaccine == "ChAdOx1")
+write.csv(gse199750_counts_merged_AZ, file = "gse199750_counts_metadata_AZ.csv")
+
+#Retranspor tabela de counts para formato do DESEQ2
+gse199750_counts_merged_AZ = t(gse199750_counts_merged_AZ)
+gse199750_counts_merged_BNT = t(gse199750_counts_merged_BNT)
+
+#Excluir colunas de metadados
+gse199750_counts_merged_AZ = gse199750_counts_merged_AZ[-c(1:7),]
+gse199750_counts_merged_BNT = gse199750_counts_merged_BNT[-c(1:7),]
+
+#Salvar tabelas
+write.csv(gse199750_counts_merged_AZ, file = "gse199750_counts_AZ.csv") #Salvar em CSV
+write.csv(gse199750_counts_merged_BNT, file = "gse199750_counts_PF.csv") #Salvar em CSV
+
+saveRDS(gse199750_counts_merged_BNT, file="gse199750_counts_PF.rds") #Salvar em RDS
+saveRDS(gse199750_counts_merged_AZ, file="gse199750_counts_AZ.rds") #Salvar em RDS
+```
+
+#### DESEQ2
+
+```{r}
+###DESEQ2 - PF versus AZ, PF em diferentes tempos, AZ em diferentes tempos
+
+####Definindo design
+
+###### Padronize as variáveis 
+countData <- gse199750_counts_ready
+colData <- gse199750_Sample_meta_data_RNASeq
+colData = colData[order(row.names(colData)), ] #Ordenar coluna de rownames para se igualar à CountData.
+
+###### Defina os fatores ###### 
+colData$Timepointf <- factor(colData$Timepoint)
+colData$Sexf <- factor(colData$Sex)
+colData$FirstSecondDosef <- factor(colData$first.second.vaccine)
+colData$ThirdDosef <- factor(colData$third.vaccine)
+colData$Group_I_II = factor(paste0(colData$FirstSecondDosef, colData$Timepointf))
+colData$AllVaccines = factor(paste0(colData$Timepointf, sep="_", colData$FirstSecondDosef, sep="_3A_", colData$ThirdDosef))
+
+
+###### Crie o objeto DESeqDataSet ######
+# O design deve incluir todos os fatores que podem influenciar significativamente os dados. Coloque por último o fator de interesse principal - no caso, o fator de primeira ou segunda doses (Group_I_II), pois nesta primeira etapa não serão analisados os efeitos de uma terceira dose de vacina heteróloga. Para analisar a terceira dose, use o grupo AllVaccines e compare com a segunda dose. 
+
+dds <- DESeqDataSetFromMatrix(countData = countData, 
+                              colData = colData, 
+                              design = ~ Group_I_II)
+
+
+###### Pré-filtragem ######
+#Mantenha os genes com pelo menos 10 leituras no total.
+keep <- rowSums(counts(dds)) >= 10
+dds <- dds[keep,]
+
+```
+
+#### Executando DESEQ2
+
+```{r}
+###### Executar DESeq ######
+#Executar DESeq com método Likelihood-ratio test. Nele, todos os grupos são comparados e influenciados entre si. Ao definir o design reduzido, selecione os fatores menos importantes.
+dds <- DESeq(dds)
+
+#All Vaccines
+write_rds(dds,file="gse199750_dds_DESeq2_AllVaccines.rds")
+
+#First and second doses
+write_rds(dds,file="gse199750_dds_DESeq2_Group_I-II.rds")
+
+###### Obter comparações realizadas ######
+resultsNames(dds)
+```
+
+
+```{r}
+###### Obtendo os DEGs totais ######
+###### Rodar este código somente com todas as vacinas (AllVaccines)
+res <- results(dds)
+res <- subset(res, padj < 0.05) #Filtrar genes com padj < 5%
+res <- subset(res, log2FoldChange > 1.0 | log2FoldChange < -1.0) #Filtrar genes com L2FC > 1 e < -1
+res <- res[order(res$padj),]
+
+#Obtendo DEGs UP and DOWN
+res_up <- subset(res, log2FoldChange > 1.0 )
+res_down <- subset(res, log2FoldChange < -1.0 )
+
+# Criar uma tabela de DEGs
+res_degs_table <- data.frame(Gene = rownames(res),
+                          log2FoldChange = res$log2FoldChange,
+                          pvalue = res$pvalue,
+                          padj = res$padj)
+#Salvar tabela
+write.csv(res_degs_table, file = "GSE199750_T0-T1_DEGs-All_Group123.csv", row.names = TRUE)
+saveRDS(res_degs_table, file = "GSE199750_T0-T1_DEGs-All_Group123.rds")
+
+```
+
+#### Comparando tempos
+
+Nesta comparação, são encontradas DEGs de cada vacina individual nos diferentes tempos. Para comparar uma vacina com a outra em diferentes tempos, é necessário usar contrast = e name =
+
+#### BNT162b2
+
+##### Tempos 0 e 1
+
+```{r}
+######### PFIZER ######### 
+
+######### Tempos 1 versus 0 ######### 
+
+# Obter comparação
+res_1_0_bnt <- results(dds, contrast= c("Group_I_II", "BNT162b2V1", "BNT162b2V0")) # Acessar comparação
+res_1_0_bnt <- subset(res_1_0_bnt, padj < 0.05) #excluir genes com padj > 5%
+res_1_0_bnt <- subset(res_1_0_bnt, log2FoldChange > 1.0 | log2FoldChange < -1.0)
+res_1_0_bnt <- res_1_0_bnt[order(res_1_0_bnt$padj),]  #ordenar por padj
+
+#Obtendo DEGs UP and DOWN
+res_up <- subset(res, log2FoldChange > 1.0 )
+res_down <- subset(res, log2FoldChange < -1.0 )
+
+# Criar uma tabela de DEGs
+res_1_0_bnt_degs_table <- data.frame(Gene = rownames(res_1_0_bnt),
+                          log2FoldChange = res_1_0_bnt$log2FoldChange,
+                          pvalue = res_1_0_bnt$pvalue,
+                          padj = res_1_0_bnt$padj)
+#Salvar tabela
+write.csv(res_1_0_bnt_degs_table, file = "GSE199750_T0-T1_DEGs-PF.csv", row.names = TRUE)
+saveRDS(res_1_0_bnt_degs_table, file = "GSE199750_T0-T1_DEGs-PF.rds")
+
+```
+
+##### Tempos 0 e 2
+
+```{r}
+######### Tempos 2 versus 0 ######### 
+
+# Obter comparação
+res_2_0_bnt <- results(dds, contrast= c("Group_I_II","BNT162b2V2A","BNT162b2V0")) # Acessar comparação usando contrast. O valor referencia é sempre o segundo termo definido.
+res_2_0_bnt <- subset(res_2_0_bnt, padj < 0.05) #excluir genes com padj > 5%
+res_2_0_bnt <- subset(res_2_0_bnt, log2FoldChange > 1.0 | log2FoldChange < -1.0)
+res_2_0_bnt <- res_2_0_bnt[order(res_2_0_bnt$padj),]  #ordenar por padj
+
+#Obtendo DEGs UP and DOWN
+res_up <- subset(res, log2FoldChange > 1.0 )
+res_down <- subset(res, log2FoldChange < -1.0 )
+
+# Criar uma tabela de DEGs
+res_2_0_bnt_degs_table <- data.frame(Gene = rownames(res_2_0_bnt),
+                          log2FoldChange = res_2_0_bnt$log2FoldChange,
+                          pvalue = res_2_0_bnt$pvalue,
+                          padj = res_2_0_bnt$padj)
+#Salvar tabela
+write.csv(res_2_0_bnt_degs_table, file = "GSE199750_T0-T2_DEGs-PF.csv", row.names = TRUE)
+saveRDS(res_2_0_bnt_degs_table, file = "GSE199750_T0-T2_DEGs-PF.rds")
+```
+
+##### Tempos 3 e 0 - PF-PF-PF
+
+Aqui, calculei as DEGs de V3A BNT-BNT-BNT e BNT-BNT-mRNA1273 com V0 de BNT-BNT-BNT 
+```{r}
+######### PFIZER ######### 
+# Obter comparação
+resultsNames(dds)
+res_3_0_bnt_bnt <- results(dds, contrast= c("AllVaccines", "V3A_BNT162b2_3A_BNT162b2", "V0_BNT162b2_3A_BNT162b2"))
+res_3_0_bnt_bnt <- subset(res_3_0_bnt_bnt, padj < 0.05) #excluir genes com padj > 5%
+res_3_0_bnt_bnt <- subset(res_3_0_bnt_bnt, log2FoldChange > 1.0 | log2FoldChange < -1.0)
+res_3_0_bnt_bnt <- res_3_0_bnt_bnt[order(res_3_0_bnt_bnt$padj),]  #ordenar por padj
+
+#Obtendo DEGs UP and DOWN
+res_3_0_bnt_bnt_up <- subset(res_3_0_bnt_bnt, log2FoldChange > 1.0 )
+res_3_0_bnt_bnt_down <- subset(res_3_0_bnt_bnt, log2FoldChange < -1.0 )
+
+# Criar uma tabela de DEGs
+res_3_0_bnt_bnt_degs_table <- data.frame(res_3_0_bnt_bnt)
+#Salvar tabela
+write.csv(res_3_0_bnt_bnt_degs_table, file = "GSE199750_T3-T0_DEGs_2PF-1PF.csv", row.names = TRUE)
+
+```
+
+##### Tempos 3 e 0 - PF-PF-MO
+
+Aqui, calculei as DEGs de V3A BNT-BNT-BNT e BNT-BNT-mRNA1273 com V0 de BNT-BNT-BNT 
+```{r}
+######### PFIZER ######### 
+res_3_0_bnt_mo <- results(dds, contrast= c("AllVaccines", "V3A_BNT162b2_3A_mRNA-1273", "V0_BNT162b2_3A_BNT162b2"))
+res_3_0_bnt_mo <- subset(res_3_0_bnt_mo, padj < 0.05) #excluir genes com padj > 5%
+res_3_0_bnt_mo <- subset(res_3_0_bnt_mo, log2FoldChange > 1.0 | log2FoldChange < -1.0)
+res_3_0_bnt_mo <- res_3_0_bnt_mo[order(res_3_0_bnt_mo$padj),]  #ordenar por padj
+
+#Obtendo DEGs UP and DOWN
+res_3_0_bnt_mo_up <- subset(res_3_0_bnt_mo, log2FoldChange > 1.0 )
+res_3_0_bnt_mo_down <- subset(res_3_0_bnt_mo, log2FoldChange < -1.0 )
+
+# Criar uma tabela de DEGs
+res_3_0_bnt_mo_degs_table <- data.frame(res_3_0_bnt_mo)
+#Salvar tabela
+write.csv(res_3_0_bnt_mo_degs_table, file = "GSE199750_T3-T0_DEGs_2PF-1MO.csv", row.names = TRUE)
+```
+
+##### Tempos 3 e 2 - PF-PF-PF
+
+```{r}
+######### PFIZER ######### 
+res_3_2_bnt_bnt <- results(dds, contrast= c("AllVaccines", "V3A_BNT162b2_3A_BNT162b2", "V2A_BNT162b2_3A_BNT162b2"))
+res_3_2_bnt_bnt <- subset(res_3_2_bnt_bnt, padj < 0.05) #excluir genes com padj > 5%
+res_3_2_bnt_bnt <- subset(res_3_2_bnt_bnt, log2FoldChange > 1.0 | log2FoldChange < -1.0)
+res_3_2_bnt_bnt <- res_3_2_bnt_bnt[order(res_3_2_bnt_bnt$padj),]  #ordenar por padj
+
+#Obtendo DEGs UP and DOWN
+res_3_2_bnt_bnt_up <- subset(res_3_2_bnt_bnt, log2FoldChange > 1.0 )
+res_3_2_bnt_bnt_down <- subset(res_3_2_bnt_bnt, log2FoldChange < -1.0 )
+
+# Criar uma tabela de DEGs
+res_3_2_bnt_bnt_degs_table <- data.frame(res_3_2_bnt_bnt)
+#Salvar tabela
+write.csv(res_3_2_bnt_bnt_degs_table, file = "GSE199750_T3-T2_DEGs_2PF-1PF.csv", row.names = TRUE)
+```
+
+##### Tempos 3 e 2 - PF-PF-MO
+
+Aqui, calculei as DEGs de V3A BNT-BNT-BNT e BNT-BNT-mRNA1273 com V0 de BNT-BNT-BNT 
+```{r}
+######### PFIZER ######### 
+res_3_2_bnt_mo <- results(dds, contrast= c("AllVaccines", "V3A_BNT162b2_3A_mRNA-1273", "V2A_BNT162b2_3A_BNT162b2"))
+res_3_2_bnt_mo <- subset(res_3_2_bnt_mo, padj < 0.05) #excluir genes com padj > 5%
+res_3_2_bnt_mo <- subset(res_3_2_bnt_mo, log2FoldChange > 1.0 | log2FoldChange < -1.0)
+res_3_2_bnt_mo <- res_3_2_bnt_mo[order(res_3_2_bnt_mo$padj),]  #ordenar por padj
+
+#Obtendo DEGs UP and DOWN
+res_3_2_bnt_mo_up <- subset(res_3_2_bnt_mo, log2FoldChange > 1.0 )
+res_3_2_bnt_mo_down <- subset(res_3_2_bnt_mo, log2FoldChange < -1.0 )
+
+# Criar uma tabela de DEGs
+res_3_2_bnt_mo_degs_table <- data.frame(res_3_2_bnt_mo)
+#Salvar tabela
+write.csv(res_3_2_bnt_mo_degs_table, file = "GSE199750_T3-T2_DEGs_2PF-1MO.csv", row.names = TRUE)
+```
+
+
+
+#### ASTRAZENECA
+
+##### Tempos 0 e 1
+
+```{r}
+#### ASTRAZENECA
+
+##### Tempos 0 e 1
+
+resultsNames(dds)
+######### ASTRAZENECA ######### 
+# Obter comparação
+res_1_0_chad <- results(dds, contrast= c("Group_I_II","ChAdOx1V1","ChAdOx1V0"))
+res_1_0_chad <- subset(res_1_0_chad, padj < 0.05)
+res_1_0_chad <- subset(res_1_0_chad, log2FoldChange > 1.0 | log2FoldChange < -1.0)
+res_1_0_chad <- res_1_0_chad[order(res_1_0_chad$padj),]  #ordenar por padj
+
+#Obtendo DEGs UP and DOWN
+res_up <- subset(res, log2FoldChange > 1.0 )
+res_down <- subset(res, log2FoldChange < -1.0 )
+
+# Criar uma tabela de DEGs
+res_1_0_chad_degs_table <- data.frame(Gene = rownames(res_1_0_chad),
+                          log2FoldChange = res_1_0_chad$log2FoldChange,
+                          pvalue = res_1_0_chad$pvalue,
+                          padj = res_1_0_chad$padj)
+#Salvar tabela
+write.csv(res_1_0_chad_degs_table, file = "GSE199750_T0-T1_DEGs-AZ.csv", row.names = TRUE)
+write.csv(res_1_0_chad_degs_table, file = "GSE199750_T0-T1_DEGs-AZ.rds")
+
+```
+
+##### Tempos 0 e 2
+
+```{r}
+######### Tempos 2 versus 0 ######### 
+# Obter comparação
+res_2_0_chad <- results(dds, contrast= c("Group_I_II","ChAdOx1V2A","ChAdOx1V0"))
+res_2_0_chad <- subset(res_2_0_chad, padj < 0.05) #excluir genes com padj > 5%
+res_2_0_chad <- subset(res_2_0_chad, log2FoldChange > 1.0 | log2FoldChange < -1.0)
+res_2_0_chad <- res_2_0_chad[order(res_2_0_chad$padj),]  #ordenar por padj
+summary(res_2_0_chad) #Up e Down
+
+# Criar uma tabela de DEGs
+res_2_0_chad_degs_table <- data.frame(Gene = rownames(res_2_0_chad),
+                          log2FoldChange = res_2_0_chad$log2FoldChange,
+                          pvalue = res_2_0_chad$pvalue,
+                          padj = res_2_0_chad$padj)
+#Salvar tabela
+write.csv(res_2_0_chad_degs_table, file = "GSE199750_T0-T2_DEGs-AZ.csv", row.names = FALSE)
+saveRDS(res_2_0_chad_degs_table, file = "GSE199750_T0-T2_DEGs-AZ.rds")
+
+```
+
+##### Tempos 1 e 2
+
+```{r}
+######### Tempos 2 versus 1 ######### 
+# Obter comparação
+res_2_1_chad <- results(dds, contrast= c("Group_I_II","ChAdOx1V2A","ChAdOx1V1")) # Acessar comparação usando contrast. O valor referencia é sempre o segundo termo definido.
+res_2_1_chad <- subset(res_2_1_chad, padj < 0.05) #excluir genes com padj > 5%
+res_2_1_chad <- subset(res_2_1_chad, log2FoldChange > 1.0 | log2FoldChange < -1.0)
+res_2_1_chad <- res_2_1_chad[order(res_2_1_chad$padj),]  #ordenar por padj
+summary(res_2_1_chad) #Up e Down
+
+# Criar uma tabela de DEGs
+res_2_1_chad_degs_table <- data.frame(Gene = rownames(res_2_1_chad),
+                          log2FoldChange = res_2_1_chad$log2FoldChange,
+                          pvalue = res_2_1_chad$pvalue,
+                          padj = res_2_1_chad$padj)
+#Salvar tabela
+write.csv(res_2_1_chad_degs_table, file = "GSE199750_T1-T2_DEGs-AZ.csv", row.names = FALSE)
+
+```
+
+
+
+##### Tempos 0 e 3
+
+Aqui, calculei as DEGs de V3A ChAd-ChAd-BNT com V0 de Chad-ChAd (excluindo ChAd-ChAd-BNT, pois é um N = 5).
+
+```{r}
+######### ASTRAZENECA ######### 
+# Obter comparação
+resultsNames(dds)
+res_3_0_chad_bnt <- results(dds, contrast= c("AllVaccines", "V3A_ChAdOx1_3A_BNT162b2", "V0_ChAdOx1_3A_Missing"))
+res_3_0_chad_bnt <- subset(res_3_0_chad_bnt, padj < 0.05) #excluir genes com padj > 5%
+res_3_0_chad_bnt <- subset(res_3_0_chad_bnt, log2FoldChange > 1.0 | log2FoldChange < -1.0)
+res_3_0_chad_bnt <- res_3_0_chad_bnt[order(res_3_0_chad_bnt$padj),]  #ordenar por padj
+
+#Obtendo DEGs UP and DOWN
+res_3_0_chad_bnt_up <- subset(res_3_0_chad_bnt, log2FoldChange > 1.0 )
+res_3_0_chad_bnt_down <- subset(res_3_0_chad_bnt, log2FoldChange < -1.0 )
+
+# Criar uma tabela de DEGs
+res_3_0_chad_bnt_degs_table <- data.frame(res_3_0_chad_bnt)
+#Salvar tabela
+write.csv(res_3_0_chad_bnt_degs_table, file = "GSE199750_T3-T0_DEGs_2AZ-1PF.csv", row.names = TRUE)
+```
+
+
+##### Tempos 2 e 3
+
+```{r}
+######### ASTRAZENECA ######### 
+# Obter comparação
+resultsNames(dds)
+res_3_2_chad_bnt <- results(dds, contrast= c("AllVaccines", "V3A_ChAdOx1_3A_BNT162b2", "V2A_ChAdOx1_3A_Missing"))
+res_3_2_chad_bnt <- subset(res_3_2_chad_bnt, padj < 0.05) #excluir genes com padj (=False discovery rate) > 5%
+res_3_2_chad_bnt <- subset(res_3_2_chad_bnt, log2FoldChange > 1.0 | log2FoldChange < -1.0)
+res_3_2_chad_bnt <- res_3_2_chad_bnt[order(res_3_2_chad_bnt$padj),]  #ordenar por padj
+
+#Obtendo DEGs UP and DOWN
+res_3_2_chad_bnt_up <- subset(res_3_2_chad_bnt, log2FoldChange > 1.0 )
+res_3_2_chad_bnt_down <- subset(res_3_2_chad_bnt, log2FoldChange < -1.0 )
+
+# Criar uma tabela de DEGs
+res_3_2_chad_bnt_degs_table <- data.frame(res_3_2_chad_bnt)
+#Salvar tabela
+write.csv(res_3_2_chad_bnt_degs_table, file = "GSE199750_T3-T2_DEGs_2AZ-1PF.csv", row.names = TRUE)
+```
+
+
+## Visualização
+
+### Comparando DEGs - STAT1 e CXCL10
+
+```{r}
+
+####### STAT1 ######
+
+####### V0, V1, V2A ####### 
+STAT1_I_II = plotCounts(dds, gene = "STAT1",
+                  intgroup = c("Timepointf", "FirstSecondDosef"), returnData = T)
+
+# Valores de Timepointf que você quer incluir
+Timepoints_filtered = c("V0", "V1", "V2A")
+
+# Filtrar os dados para incluir somente os valores desejados em Timepointf
+STAT1_I_II <- STAT1_I_II[STAT1_I_II$Timepointf %in% Timepoints_filtered, ]
+
+boxplot1 = ggplot(STAT1_I_II, aes(x = Timepointf, y = count, fill = FirstSecondDosef)) + geom_boxplot() + ylim(3000, 40000) + scale_y_log10() + labs(title = "STAT1", x = "Timepointf", y = "Contagem")
+
+####### V3A ####### 
+
+STAT1_II_III = plotCounts(dds, gene = "STAT1", intgroup = c("Timepointf", "AllVaccines"), returnData = T)
+STAT1_II_III <- STAT1_II_III[STAT1_II_III$Timepointf == "V3A", ]
+
+boxplot2 = ggplot(STAT1_II_III, aes(x = Timepointf, y = count, fill = AllVaccines)) + geom_boxplot() + scale_y_log10() + ylim(3000, 40000) + labs(title = "STAT1", x = "Timepointf", y = "Contagem")
+
+
+####### CXCL10 ######
+####### V0, V1, V2A ####### 
+CXCL10_I_II = plotCounts(dds, gene = "CXCL10",
+                  intgroup = c("Timepointf", "FirstSecondDosef"), returnData = T)
+
+# Valores de Timepointf que você quer incluir
+Timepoints_filtered = c("V0", "V1", "V2A")
+
+# Filtrar os dados para incluir somente os valores desejados em Timepointf
+CXCL10_I_II <- CXCL10_I_II[CXCL10_I_II$Timepointf %in% Timepoints_filtered, ]
+
+boxplot3 = ggplot(CXCL10_I_II, aes(x = Timepointf, y = count, fill = FirstSecondDosef)) + geom_boxplot() + ylim(0, 1000) + scale_y_log10()  + labs(title = "CXCL10", x = "Timepointf", y = "Contagem")
+
+
+####### V3A ####### 
+CXCL10_II_III = plotCounts(dds, gene = "CXCL10", 
+                           intgroup = c("Timepointf", "AllVaccines"), 
+                           returnData = T)
+
+CXCL10_II_III <- CXCL10_II_III[CXCL10_II_III$Timepointf == "V3A", ]
+
+boxplot4 = ggplot(CXCL10_II_III, 
+               aes(x = Timepointf, y = count, fill = AllVaccines)) + geom_boxplot() + ylim(0, 1000)  + scale_y_log10() + labs(title = "CXCL10", x = "Timepointf", y = "Contagem")
+
+
+# Plot 1 + 2
+library(cowplot)
+grid_plot <- plot_grid(boxplot1, boxplot2, boxplot3, boxplot4, ncol = 2)  # Define ncol = 2 para colocar lado a lado
+
+# Visualize o grid
+grid_plot
+
+# Salvando o gráfico como PNG
+ggsave("GSE199750-STAT1-CXCL10.png", plot = grid_plot, width = 5000, height = 3000, units = "px")
+```
+
+### Volcanoplot
+
+Os volcanoplots das duas vacinas são os mesmos, mas espelhados. Isso significa que definir o nivel de referencia no fator de vacinas é importante para determinar as DEGs up e down. \#### ASTRAZENECA
+
+#### Astrazeneca
+
+```{r}
+
+#All
+volcano_res <- EnhancedVolcano(res, 
+                                    lab = rownames(res),
+                                    x = 'log2FoldChange',
+                                    y = 'pvalue',
+                                    title='Differential expression of genes - All timepoints - ChAdOx1')
+# Save the plot as a PNG file
+png("gse199750_volcanoplot_DEGs_allfactores_AZ.png", width = 800, height = 600)
+print(volcano_res_chad)
+dev.off()
+
+#T1-T0
+volcano_res_chad_1_0 <- EnhancedVolcano(res_1_0_chad, 
+                                    lab = rownames(res_1_0_chad),
+                                    x = 'log2FoldChange',
+                                    y = 'pvalue',
+                                    title='Differential expression of genes - D1 vs. D0 - ChAdOx1')
+# Save the plot as a PNG file
+png("gse199750_volcanoplot_DEGs_D0-D1_AZ.png", width = 800, height = 600)
+print(volcano_res_chad_1_0)
+dev.off()
+
+#T2-T0
+volcano_res_chad_2_0 <- EnhancedVolcano(res_time0_time2_chad, 
+                                    lab = rownames(res_time0_time2_chad),
+                                    x = 'log2FoldChange',
+                                    y = 'pvalue',
+                                    title='Differential expression of genes - D2 vs. D0 - ChAdOx1')
+# Save the plot as a PNG file
+png("gse199750_volcanoplot_DEGs_D0-D2_AZ.png", width = 800, height = 600)
+print(volcano_res_chad_2_0)
+dev.off()
+
+#Plotar mais de um gráfico
+plot_grid(volcano_res_chad, volcano_res_chad_1_0, volcano_res_chad_2_0, ncol = 3) 
+
+```
+
+#### Pfizer
+
+```{r}
+volcano_res_1_0_bnt = EnhancedVolcano(res_1_0_bnt,
+    lab = rownames(res_1_0_bnt),
+    x = 'log2FoldChange',
+    y = 'pvalue',
+    title='Differential expression of genes - D0, D1')
+
+# Save the plot as a PNG file
+png("gse199750_volcanoplot_DEGs_v0-v1.png", width = 800, height = 600)
+print(plot)
+dev.off()
+
+EnhancedVolcano(res_2_0_bnt,
+    lab = rownames(res_2_0_bnt),
+    x = 'log2FoldChange',
+    y = 'pvalue',
+    title='Differential expression of genes - D0, D2')
+
+# Save the plot as a PNG file
+png("gse199750_volcanoplot_DEGs_v0-v2.png", width = 800, height = 600)
+print(plot)
+dev.off()
+
+
+
+
+```
+
+### Heatmap
+
+```{r}
+install.packages("genefilter")
+install.packages("pheatmap")
+BiocManager::install("ComplexHeatmap")
+library(ComplexHeatmap)
+library(genefilter)
+library(pheatmap)
+
+#Obter DEGs do estudo
+heat_test = data.frame(res)
+heat_test$genes = rownames(res)
+
+#Obter counts dos DEGs
+heat_count = countData
+heat_count$genes = rownames(countData) 
+
+#Unir tabelas
+###A tabela agora possui os valores de counts e outras estatísticas do objeto deseq2 pareadas pelos DEGs.
+merged_heat = merge(heat_test, heat_count, by = 'genes')
+merged_heat = merged_heat[order(merged_heat$padj),] #ordenar
+```
+
+```{r}
+
+#Cores
+tp_cols = c("V0" = "grey80", "V1" = "cyan","V2A"="slateblue1","V3A"="violetred1")
+v_cols = c("ChAdOx1" = "springgreen", "BNT162b2" = "steelblue1","mRNA-1273" = "red2")
+
+# Transformar as counts dos DEGs em matriz e normalizar 
+data2plot = as.matrix(merged_heat[,8:267])
+zzz <- t(scale(t(data2plot))) #Scale to Z scores by Row. 
+zzz <- pmin(pmax(zzz, -3), 3)
+
+#Transformar em dataframe
+test = data.frame(zzz)
+test$genes = merged_heat$genes
+test = test |> tidyr::gather("samples", "expression", -genes)
+tail(test)
+
+zzz_filtered = subset(test, expression > 2 & samples == 'COVIRS_41_V0')
+dim(zzz_filtered)
+head(zzz_filtered)
+#clusterizar com euclidean distance
+#exportar tabela
+# filtra com GOs
+
+
+ha = HeatmapAnnotation(df = colData[,c("Timepoint","FirstSecondDosef")],
+                       col = list(Timepoint = tp_cols,
+                                  FirstSecondDosef = v_cols))
+
+
+Heatmap(zzz,show_row_names = FALSE,
+        show_column_names = FALSE,cluster_rows=TRUE,cluster_columns = TRUE,
+        top_annotation = ha,col=c("darkgreen","azure2","darkorchid4"),column_split=colData$Timepoint,
+        column_title="Heatmap")
+
+```
+
+## Análise de enriquecimento
+
+### Gene ontology
+
+BP = Biological process MF = Molecular function CC = Cell compartment <https://uclouvain-cbio.github.io/WSBIM2122/sec-gsea.html> <https://rpubs.com/jrgonzalezISGlobal/enrichment>
+
+Over representation analysis considera a quantidade de genes por categoria. Gene set enrichment analysis, no entanto, considera esses genes e seus respectivos valores de L2FC para ordenar por up or down regulated. 
+
+```{r}
+
+######### ORA
+bp_degs_ora <- enrichGO(gene = gene_list_ora,
+                OrgDb        = org.Hs.eg.db,
+                ont          = "BP",
+                keyType = "SYMBOL",
+                pAdjustMethod = "BH",
+                pvalueCutoff  = 0.05,
+                qvalueCutoff  = 0.05)
+
+#Salvar
+bp_degs_ora_table <- data.frame(bp_degs_ora)
+write.csv(bp_degs_ora_table, file = "GSE199750_BNT_1x0_EnrGO_DEGs.csv", row.names = TRUE)
+
+#Plotar
+bp_degs_ora_dotplot <- dotplot(bp_degs_ora, showCategory=15) + ggtitle("GSE199750_BNT_1x0_EnrGO-BP_DEGs")
+bp_degs_ora_dotplot
+
+#Salvar
+ggsave(bp_degs_ora_dotplot, width = 30, height = 30, units="cm", file="GSE199750_BNT_1x0_EnrGO-BP_DEGs.png") 
+```
+
+### Over representation analysis (ORA) e GSEA
+#### Preparação dos dados
+```{r Insert your DEGs file}
+######### INPUT AQUI ######### 
+degs = res_2_0_bnt #inserir os resultados da comparação (substituir o valor res)
+
+#Definir nome para arquivos gerados
+file <- "res_2_0_bnt"
+```
+
+```{r ORA and GSEA input standardation}
+######### DEGs para ORA ######### 
+gene_list_ora <- rownames(degs)
+
+######### DEGs para GSEA ######### 
+# Converter em dataframe
+degs_df = as.data.frame(degs) 
+# Defina a segunda coluna como l2fc para a análise de GSEA 
+degs_gene_list_lf2c <- degs_df$log2FoldChange
+names(degs_gene_list_lf2c) <- rownames(degs_df) # name the vector
+degs_gene_list_lf2c<-na.omit(degs_gene_list_lf2c) # omit any NA values 
+# sort the list in decreasing order. Importante para rodar GSEA
+degs_gene_list_lf2c = sort(degs_gene_list_lf2c, decreasing = TRUE)
+head(degs_gene_list_lf2c)
+
+```
+
+##### Clusterprofiler
+
+```{r}
+
+organism = "org.Hs.eg.db"
+require(DOSE)
+library(clusterProfiler)
+GO:0002376
+#Biological Process
+gse_bp <- gseGO(geneList=degs_gene_list_lf2c, 
+             ont ="BP", 
+             keyType = "SYMBOL", 
+             nPerm = 10000, 
+             minGSSize = 3, 
+             maxGSSize = 800, 
+             pvalueCutoff = 0.05, 
+             verbose = TRUE, 
+             OrgDb = organism, 
+             pAdjustMethod = "none")
+head(gse_bp)
+
+
+dotplot(gse, showCategory=10, split=".sign") + facet_grid(.~.sign)
+
+ridgeplot(gse) + labs(x = "enrichment distribution")
+
+emapplot(gse, showCategory = 20)
+cnetplot(gse, categorySize="pvalue", foldChange=gene_list, showCategory = 3)
+
+#Converter em tabela
+df_gse = as.data.frame(gse)
+
+write.csv(df_gse, file=paste(file,"GSEA_BP.csv",sep="_"))
+View(df_gse)
+
+
+#Molecular function
+gse_mf <- gseGO(geneList=degs_gene_list_lf2c, 
+             ont ="MF", 
+             keyType = "SYMBOL", 
+             nPerm = 10000, 
+             minGSSize = 3, 
+             maxGSSize = 800, 
+             pvalueCutoff = 0.05, 
+             verbose = TRUE, 
+             OrgDb = organism, 
+             pAdjustMethod = "none")
+
+head(gse_mf)
+
+dotplot(gse, showCategory=10, split=".sign") + facet_grid(.~.sign)
+
+ridgeplot(gse) + labs(x = "enrichment distribution")
+
+emapplot(gse, showCategory = 20)
+cnetplot(gse, categorySize="pvalue", foldChange=gene_list, showCategory = 3)
+
+#Converter em tabela
+df_gse = as.data.frame(gse)
+
+write.csv(df_gse, file=paste(file,"GSEA_BP.csv",sep="_"))
+View(df_gse)
+
+```
+
+
+###### Immune system gene ontologies
+
+```{r}
+#Baixar dataset: https://www.ebi.ac.uk/QuickGO/annotations (.tsv)
+
+#Importar
+Immune_GO = read.table("~/Desktop/RNAseq temporary files/Gene set enrichment/QuickGO-annotations-Immune_process.tsv", header = TRUE, sep = "\t")
+
+#Padronizar
+Immune_GO = Immune_GO %>% select(GO.NAME,  SYMBOL, GO.TERM, GENE_PRODUCT_NAME, GENE_PRODUCT_TYPE, GO.EVIDENCE.CODE, REFERENCE)
+
+#Renomear
+Immune_GO_T2G = Immune_GO %>% select(GO.NAME, SYMBOL) %>% arrange(GO.NAME) %>% rename(Process = GO.NAME, GENE = SYMBOL)
+
+#Salvar
+saveRDS(Immune_GO, file = "Immune_GO.rds")
+write.csv(Immune_GO, file = "Immune_GO.csv")
+```
+
+###### ORA e GSEA
+
+```{r}
+#GSEA
+immune_GO_gsea <- GSEA(degs_gene_list_lf2c, TERM2GENE = Immune_GO_T2G, minGSSize = 2)
+immune_GO_gsea_table = immune_GO_gsea %>% as.data.frame() %>% arrange(qvalue) 
+dotplot(immune_GO_gsea, showCategory = 20)
+
+#Salvar tabela
+fileImmuneGO_GSEA <- paste(file, "_ImmuneGO_GSEA.csv", sep = "") 
+write.csv(immune_GO_gsea_table, file=fileImmuneGO_GSEA)
+```
+
+###### Visualização
+
+###### Ridgeplot
+```{r}
+#Definir nome para imagens
+fileImmuneGO_GSEA_ridgeplot <- paste(file, "_ImmuneGO_GSEA_Ridgeplot.png", sep = "") 
+
+#Plotar
+immuneGO_gsea_ridgeplot = ridgeplot(immune_GO_gsea) + labs(title = fileImmuneGO_GSEA_ridgeplot) + theme(plot.margin = margin(l = 10), axis.text.y = element_text(size = 10))
+
+#Visualizar
+immuneGO_gsea_ridgeplot 
+
+#Salvar imagem
+ggsave(immuneGO_gsea_ridgeplot, width = 40, height = 40, units="cm", file=fileImmuneGO_GSEA_ridgeplot)
+```
+
+###### Dotplot
+
+```{r}
+#Definir nome para imagens
+fileImmuneGO_GSEA_dotplot <- paste(file, "_ImmuneGO_GSEA_Dotplot.png", sep = "") 
+
+#Dotplot comum
+ImmuneGO_gsea_dotplot = dotplot(immune_GO_gsea, showCategory=20) + labs(title = fileImmuneGO_GSEA_dotplot) + theme(plot.margin = margin(l = 10), axis.text.y = element_text(size = 10))
+
+#Visualizar
+ImmuneGO_gsea_dotplot
+
+#Salvar imagem
+ggsave(ImmuneGO_gsea_dotplot, width = 20, height = 20, units="cm", file=fileImmuneGO_GSEA_dotplot)
+
+```
+
+###### Barplot
+```{r}
+#Definir nome para imagens
+fileImmuneGO_GSEA_barplot <- paste(file, "_ImmuneGO_GSEA_Barplot.png", sep = "") 
+
+#Barplot comum
+ImmuneGO_gsea_barplot = barplot(immune_GO_gsea, showCategory=20) + labs(title = fileImmuneGO_GSEA_dotplot) + theme(plot.margin = margin(l = 10), axis.text.y = element_text(size = 10))
+
+
+ggplot(data=immune_GO_gsea_table, aes(x=enrichmentScore, y=Description)) +
+  geom_bar(stat="identity", width=0.5)
+#Visualizar
+ImmuneGO_gsea_barplot
+
+#Salvar imagem
+ggsave(ImmuneGO_gsea_barplot, width = 20, height = 20, units="cm", file=fileImmuneGO_GSEA_barplot)
+
+
+
+goplot(immune_GO_gsea)
+
+```
+
+
+
+
+##### CellMarker
+
+
+```{r Baixar tabela de marcadores celulares}
+#Baixar tabela de marcadores celulares
+url <- "http://bio-bigdata.hrbmu.edu.cn/CellMarker/CellMarker_download_files/file/Cell_marker_Human.xlsx"
+f <- tempfile(fileext = ".xlsx")
+download.file(url, f)
+cell_marker_data <- readxl::read_excel(f, 1)
+
+#Filtrar marcadores e células por tecido. No caso, Blood (Blood vessel, por algum motivo, não funciona no GSEA-ORA)
+unique(cell_marker_data$tissue_class)
+
+cells <- cell_marker_data %>%
+    dplyr::filter(tissue_class == "Blood") %>%
+    dplyr::select(cell_name, marker)
+```
+
+###### Verificar e sub-agrupar células
+
+```{r Verificar e sub-agrupar células}
+#Subclassificação
+
+# Acessar todos os tipos de células no dataset de Blood
+cellmarker_celltypes <- unique(cells$cell_name)
+
+# Filtrar apenas os tipos que contêm "B cell" e plasmacell
+Bcells_no = cellmarker_celltypes[grep("B cell", cellmarker_celltypes)] #44 outputs
+Plasmacells_no = cellmarker_celltypes[grep("plasma", cellmarker_celltypes)] #5 outputs
+
+# Filtrar apenas os tipos que contêm "T cell" e seus subtipos "CD4" e "CD8"
+Tcells_no = cellmarker_celltypes[grep("T cell", cellmarker_celltypes)] #93 outputs
+TCD4_no = cellmarker_celltypes[grep("CD4", cellmarker_celltypes)] #35 outputs
+TCD8_no = cellmarker_celltypes[grep("CD8", cellmarker_celltypes)] #34 outputs
+Treg_no = cellmarker_celltypes[grep("Treg", cellmarker_celltypes)] #7 outputs
+Thelper_no = cellmarker_celltypes[grep("helper", cellmarker_celltypes)] #17 outputs
+
+# Filtrar outros tipos celulares da resposta imune
+Neutrophils_no = cellmarker_celltypes[grep("neutrophil", cellmarker_celltypes)] #7 outputs
+Monocyte_no = cellmarker_celltypes[grep("monocyte", cellmarker_celltypes)] #14 outputs
+DCells_no = cellmarker_celltypes[grep("dendritic", cellmarker_celltypes)] #25 outputs
+Macrophages_no = cellmarker_celltypes[grep("macrophage", cellmarker_celltypes)] #7 outputs
+NKcells_no = cellmarker_celltypes[grep("killer", cellmarker_celltypes)] # 11 outputs
+Neutrophils_no = cellmarker_celltypes[grep("mastcell", cellmarker_celltypes)] #7 outputs
+
+# Criar variáveis para cada célula para enriquecimento
+
+# Filtrar apenas as células da resposta imune adaptativa
+Bcells <- filter(cells, str_detect(cell_name, regex("B cell|plasma cell|plasmablast", ignore_case = TRUE)))
+TCD4 <- filter(cells, str_detect(cell_name, regex("CD4", ignore_case = TRUE)))
+TCD8 <- filter(cells, str_detect(cell_name, regex("CD8", ignore_case = TRUE)))
+Treg <- filter(cells, str_detect(cell_name, regex("Treg", ignore_case = TRUE)))
+Thelper <- filter(cells, str_detect(cell_name, regex("helper", ignore_case = TRUE)))
+
+
+# Filtrar células da resposta imune inata
+Neutrophils <- filter(cells, str_detect(cell_name, regex("neutrophil", ignore_case = TRUE)))
+Monocyte <- filter(cells, str_detect(cell_name, regex("monocyte", ignore_case = TRUE)))
+DCells <- filter(cells, str_detect(cell_name, regex("dendritic", ignore_case = TRUE)))
+Macrophages <- filter(cells, str_detect(cell_name, regex("macrophage", ignore_case = TRUE)))
+Mastcells <- filter(cells, str_detect(cell_name, regex("mast cell", ignore_case = TRUE)))
+NKcells <- filter(cells, str_detect(cell_name, regex("killer", ignore_case = TRUE)))
+Platelets <- filter(cells, str_detect(cell_name, regex("Platelet", ignore_case = TRUE)))
+Eosinophil <- filter(cells, str_detect(cell_name, regex("Eosinophil", ignore_case = TRUE)))
+Basophil <- filter(cells, str_detect(cell_name, regex("Basophil", ignore_case = TRUE)))
+Granulocyte <- filter(cells, str_detect(cell_name, regex("Granulocyte", ignore_case = TRUE)))
+
+
+#Agrupar todos os resultados em Immune cells
+Immune_adap = rbind(Bcells, TCD4, TCD8, Treg, Thelper)
+Immune_innate = rbind(Neutrophils, Monocyte, DCells, Macrophages, Mastcells, NKcells, Platelets, Eosinophil, Basophil, Granulocyte)
+Immune_cells = rbind(Immune_adap, Immune_innate)
+```
+
+###### ORA e GSEA
+
+```{r}
+#Over Representation Analysis
+
+#All immune system cells
+cell_types_ora_immune <- enricher(gene_list_ora, TERM2GENE = Immune_cells)
+cell_types_ora_immune_table = as.data.frame(cell_types_ora_immune) 
+cell_types_ora_immune_table
+
+#Only adaptive immune system cells
+cell_types_ora_immune_adap <- enricher(gene_list_ora, TERM2GENE = Immune_adap)
+cell_types_ora_immune_adap_table = as.data.frame(cell_types_ora_immune_adap) 
+cell_types_ora_immune_adap_table
+
+#Only innate immune system cells
+cell_types_ora_immune_innate <- enricher(gene_list_ora, TERM2GENE = Immune_innate)
+cell_types_ora_immune_innate_table = as.data.frame(cell_types_ora_immune_innate) 
+cell_types_ora_immune_innate_table
+
+
+dotplot(cell_types_ora)
+
+# Criar o nome do arquivo
+fileCellMarker_ORA <- paste(file, "_CellMarker_ORA.csv", sep = "") 
+write.csv(cell_types_ora_table, file=fileCellMarker_ORA)
+
+#GSEA
+
+#All immune system cells
+cell_types_gsea_immune <- GSEA(degs_gene_list_lf2c, TERM2GENE = Immune_cells)
+cell_types_gsea_immune_table = as.data.frame(cell_types_gsea_immune) 
+cell_types_gsea_immune_table
+fileImmuneCells_GSEA <- paste(file, "_Immunecells_GSEA.csv", sep = "") 
+write.csv(cell_types_gsea_immune_table, file=fileImmuneCells_GSEA)
+
+#Only adaptive immune system cells
+cell_types_gsea_immune_adap <- GSEA(degs_gene_list_lf2c, TERM2GENE = Immune_adap)
+cell_types_gsea_immune_adap_table = as.data.frame(cell_types_gsea_immune_adap) 
+cell_types_gsea_immune_adap_table #Visualizar
+fileAdaptive_GSEA <- paste(file, "_Adaptive_GSEA.csv", sep = "")
+write.csv(cell_types_gsea_immune_adap_table, file=fileAdaptive_GSEA)
+
+#Only innate immune system cells
+cell_types_gsea_immune_innate <- GSEA(degs_gene_list_lf2c, TERM2GENE = Immune_innate)
+cell_types_gsea_immune_innate_table = as.data.frame(cell_types_gsea_immune_innate) 
+cell_types_gsea_immune_innate_table
+fileinnate_GSEA <- paste(file, "_Innate_GSEA.csv", sep = "") 
+write.csv(cell_types_gsea_immune_innate_table, file=fileinnate_GSEA)
+```
+
+###### Visualização
+
+###### Ridgeplot
+```{r}
+#Definir nome para imagens
+fileCellMarker_GSEA_ridgeplot <- paste(file, "_Immunecells_GSEA_Ridgeplot.png", sep = "") 
+
+#Plotar
+cell_types_gsea_immune_ridgeplot = ridgeplot(cell_types_gsea_immune) + labs(title = fileCellMarker_GSEA_ridgeplot, x = "Log2FC") + theme(plot.margin = margin(l = 10), axis.text.y = element_text(size = 10))
+
+#Visualizar
+cell_types_gsea_ridgeplot 
+
+#Salvar imagem
+ggsave(cell_types_gsea_ridgeplot, width = 40, height = 40, units="cm", file=fileCellMarker_GSEA_ridgeplot)
+```
+
+###### Dotplot
+
+```{r}
+#Definir nome para imagens
+fileCellMarker_GSEA_dotplot <- paste(file, "_Immunecells_GSEA_dotplot.png", sep = "") 
+
+#Dotplot
+cell_types_gsea_dotplot = dotplot(cell_types_gsea, showCategory=20) + labs(title = "Immune_cells_gsea", x = "Log2FC") + theme(plot.margin = margin(l = 10), axis.text.y = element_text(size = 10))
+
+#Visualizar
+cell_types_gsea_dotplot
+#Salvar imagem
+ggsave(cell_types_gsea_dotplot, width = 20, height = 20, units="cm", file=fileCellMarker_GSEA_dotplot)
+
+```
+
+
+
+
+#### MSigDB
+
+##### Obtendo coleções
+```{r}
+#Obter genes de um conjunto específico diretamente do MSigDB. 
+msigdbr_collections() #Listar conjuntos
+
+#Hallmark
+hallmark <- msigdbr(species = "Homo sapiens", category = "H") %>% 
+  dplyr::select(gs_name, gene_symbol)
+
+#Conjuntos de GO
+GO_BP <- msigdbr(species = "Homo sapiens", category = "C5", subcategory = "GO:BP") %>% 
+  dplyr::select(gs_name, gene_symbol)
+
+GO_MF <- msigdbr(species = "Homo sapiens", category = "C5", subcategory = "GO:MF") %>% 
+  dplyr::select(gs_name, gene_symbol)
+
+#Conjunto de marcadores de células 
+cell_types <- msigdbr(species = "Homo sapiens", category = "C8") %>% 
+  dplyr::select(gs_name, gene_symbol)
+
+#Conjunto de marcadores da resposta imune
+immune_sig = msigdbr(species = "Homo sapiens", category = "C7", subcategory = "IMMUNESIGDB") %>% 
+  dplyr::select(gs_name, gene_symbol)
+head(immune_sig)
+
+#Conjunto de marcadores de vacinas
+vax_sig = msigdbr(species = "Homo sapiens", category = "C7", subcategory = "VAX") %>% dplyr::select(gs_name, gene_symbol)
+head(vax_sig)
+```
+
+##### ORA e GSEA
+
+```{r}
+####### Over representation analysis ####### 
+ora_degs_h <- enricher(gene_list_ora, TERM2GENE=hallmark)
+ora_degs_bp <- enricher(gene_list_ora, TERM2GENE=GO_BP)
+ora_degs_mf <- enricher(gene_list_ora, TERM2GENE=GO_MF)
+ora_degs_celltype <- enricher(gene_list_ora, TERM2GENE=cell_types)
+ora_degs_immune <- enricher(gene_list_ora, TERM2GENE=immune_sig)
+ora_degs_vax <- enricher(gene_list_ora, TERM2GENE=vax_sig)
+
+####### Gene Set Enrichment analysis #######
+gsea_degs_h <- GSEA(gene_list_gsea, TERM2GENE = hallmark)
+gsea_degs_bp <- GSEA(gene_list_gsea, TERM2GENE = GO_BP)
+gsea_degs_mf <- GSEA(gene_list_gsea, TERM2GENE = GO_MF)
+gsea_degs_celltype <- GSEA(gene_list_gsea, TERM2GENE = cell_types)
+gsea_degs_immune_sig <- GSEA(gene_list_gsea, TERM2GENE = immune_sig)
+gsea_degs_vax <- GSEA(gene_list_gsea, TERM2GENE = vax_sig)
+```
+
+####Visualização
+
+
+##### MSigDB Hallmark
+```{r Hallmarks}
+
+###### GSEA
+#Dotplot
+gsea_degs_h %>% dotplot() + labs(title = "gsea_degs_h") + theme(plot.margin = margin(l = 50), axis.text.y = element_text(size = 5), axis.text.x = element_text(size = 5))
+```
+
+##### MSigDB GO:BP
+
+```{r}
+#Gene ontology
+
+#dotplot
+gsea_degs_bp %>% dotplot() + labs(title = "gsea_degs_bp") + theme(plot.margin = margin(l = 50), axis.text.y = element_text(size = 5), axis.text.x = element_text(size = 5))
+
+#barplot
+gsea_degs_bp %>% barplot() + labs(title = "gsea_degs_bp") + theme(plot.margin = margin(l = 50), axis.text.y = element_text(size = 5), axis.text.x = element_text(size = 5))
+
+dotplot(gsea_degs_bp, showCategory=20, split=".sign") + facet_grid(.~.sign) + labs(title = "gsea_degs_bp", x = "Log2FC") + theme(plot.margin = margin(l = 10), axis.text.y = element_text(size = 7))
+
+```
+
+##### MSigDB Immune markers
+
+```{r}
+######## ORA ######## 
+#barplot
+ora_degs_immune %>% barplot() + labs(title = "ora_degs_immune") + theme(plot.margin = margin(l = 50), axis.text.y = element_text(size = 5), axis.text.x = element_text(size = 5))
+
+#dotplot
+ora_degs_immune %>% dotplot() + labs(title = "ora_degs_immune") + theme(plot.margin = margin(l = 50), axis.text.y = element_text(size = 5), axis.text.x = element_text(size = 5)) 
+
+######## GSEA ######## 
+ridgeplot(gsea_degs_immune_sig) + labs(title = "gsea_degs_immune_sig", x = "Log2FC") + theme(plot.margin = margin(l = 100), axis.text.y = element_text(size = 7))
+
+dotplot(gsea_degs_immune_sig, showCategory=20, split=".sign") + facet_grid(.~.sign) + labs(title = "gsea_degs_immune_sig", x = "Log2FC") + theme(plot.margin = margin(l = 100), axis.text.y = element_text(size = 7))
+```
+###### VAX
+```{r}
+######## ORA ######## 
+#barplot
+ora_degs_vax %>% barplot() + labs(title = "ora_degs_immune") + theme(plot.margin = margin(l = 50), axis.text.y = element_text(size = 5), axis.text.x = element_text(size = 5))
+
+#dotplot
+ora_degs_vax %>% dotplot() + labs(title = "ora_degs_immune") + theme(plot.margin = margin(l = 50), axis.text.y = element_text(size = 5), axis.text.x = element_text(size = 5)) 
+
+######## GSEA ######## 
+ridgeplot(gsea_degs_vax) + labs(title = "gsea_degs_immune_sig", x = "Log2FC") + theme(plot.margin = margin(l = 100), axis.text.y = element_text(size = 7))
+
+dotplot(gsea_degs_vax, showCategory=10)
+
+dotplot(gsea_degs_vax, showCategory=20, split=".sign") + facet_grid(.~.sign) + labs(title = "gsea_degs_immune_sig", x = "Log2FC") + theme(plot.margin = margin(l = 100), axis.text.y = element_text(size = 3))
+```
+#####Salvar resultados
+```{r}
+#Converter em tabelas
+
+######## ORA
+ora_degs_h = as.data.frame(ora_degs_h)
+ora_degs_cell = as.data.frame(ora_degs_celltype)
+ora_degs_immune = as.data.frame(ora_degs_immune)
+ora_degs_vax = as.data.frame(ora_degs_vax)
+
+######## GSEA
+gsea_degs_h = as.data.frame(gsea_degs_h)
+gsea_degs_celltype = as.data.frame(gsea_degs_celltype)
+gsea_degs_immune = as.data.frame(gsea_degs_immune_sig)
+gsea_degs_vax = as.data.frame(gsea_degs_vax)
+View(gsea_degs_vax)
+
+#Salvar tabelas
+
+write.csv(ora_degs_h, file = paste(file, "ora_degs_h.csv", sep="_"))
+write.csv(ora_degs_cell, file = paste(file, "ora_degs_cell.csv", sep="_"))
+write.csv(ora_degs_immune, file = paste(file, "ora_degs_immune.csv", sep="_"))
+write.csv(ora_degs_vax, file = paste(file, "ora_degs_vax.csv", sep="_"))
+write.csv(gsea_degs_h, file = paste(file, "gsea_degs_h.csv", sep="_"))
+write.csv(gsea_degs_celltype, file = paste(file, "gsea_degs_celltype.csv", sep="_"))
+write.csv(gsea_degs_immune, file = paste(file, "gsea_degs_immune.csv", sep="_"))
+write.csv(gsea_degs_vax, file = paste(file, "gsea_degs_vax.csv", sep="_"))
+
+```
+
+
+```{r}
+# Mapear gene symbols para Entrez IDs
+mapped_gene_ids <- bitr(gene_list_ora,
+                         fromType = "SYMBOL",
+                         toType = "ENTREZID",
+                         OrgDb = org.Hs.eg.db)
+
+
+# ORA
+ego <- enrichGO(gene          = mapped_gene_ids$ENTREZID,
+                OrgDb         = org.Hs.eg.db,
+                universe=names(mapped_gene_ids$ENTREZID),
+                ont           = "BP",
+                pAdjustMethod = "BH",
+                pvalueCutoff  = 0.01,
+                qvalueCutoff  = 0.05,
+        readable      = TRUE)
+head(ego)
+
+
+#GSEA
+
+## feature 3: decreasing orde
+geneList = sort(geneList, decreasing = TRUE)
+
+ego3 <- gseGO(geneList     = degs_gene_list_lf2c,
+              OrgDb        = org.Hs.eg.db,
+              ont          = "BP",
+              minGSSize    = 100,
+              maxGSSize    = 500,
+              pvalueCutoff = 0.05,
+              verbose      = FALSE)
+
+
+
+```
+
+### Principal component analysis
+
+```{r}
+# Criar um PCA com o p-valor de cada gene 
+pca_data <- prcomp(t(assay(dds)))  # Perform PCA on the transposed count or normalized data
+
+# Create a dataframe with PCA components and Timepointf and FirstSecondDosef
+pca_df <- data.frame(PC1 = pca_data$x[, 1], PC2 = pca_data$x[, 2],
+                     Timepointf = colData(dds)$Timepointf,
+                     AllVaccines = colData(dds)$AllVaccines)
+
+# Plot the PCA using ggplot2
+ggplot(pca_df, aes(x = PC1, y = PC2, color = AllVaccines, shape = Timepointf)) +
+  geom_point(size = 3) +
+  labs(title = "Principal component analysis - Vaccine-Timepoint", x = "PC1", y = "PC2") +
+  theme_minimal()
+
+#DESeq2 native analysis
+vsd <- vst(dds, blind=FALSE)
+pcaData = plotPCA(vsd,intgroup=c("Timepointf", "FirstSecondDosef"), returnData = TRUE)
+percentVar <- round(100 * attr(pcaData, "percentVar"))
+pca_plot = ggplot(pcaData, aes(PC1, PC2, color=FirstSecondDosef, shape=Timepointf)) +
+  geom_point(size=2) +
+  xlab(paste0("PC1: ",percentVar[1],"% variance")) +
+  ylab(paste0("PC2: ",percentVar[2],"% variance")) + 
+  coord_fixed() + ggtitle("Principal component analysis - Vaccines and Timepoint")
+
+ggsave(pca_plot, file = "Principal component analysis - Vaccines and Timepoint.png")
+```
