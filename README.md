@@ -24,7 +24,7 @@ The rapid development of COVID-19 vaccines has played a crucial role in mitigati
 
 **Keywords:** transcriptomics, vaccines, COVID-19, SARS-CoV-2.
 
-**Read the recent version here:** (https://www.medrxiv.org/content/10.1101/2024.05.22.24307755v3)
+**Read the recent version here:** https://www.medrxiv.org/content/10.1101/2024.05.22.24307755v3
 
 **Resources:** 
 - COVID-19 Vaccination Atlas Explorer: https://wapsyed.shinyapps.io/Interactive_CovidOnly_Heatmap/
