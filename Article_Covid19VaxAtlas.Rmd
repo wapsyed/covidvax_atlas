@@ -1,5 +1,5 @@
 ---
-title: "Covid-19 Vaccination Atlas"
+title: "Covid-19 Vaccination Atlas: A systems vaccinology analysis"
 author: "Wasim Aluísio Prates-Syed"
 date: "2024-06-20"
 output: 
@@ -856,9 +856,35 @@ GSE206023_pseudoalign_stats <- read_excel("raw_data/GSE206023_pseudoalignment_ST
     sheet = "General Statistics")
 ```
 
-# Principal Variance Components Analysis
+## 2.2. Combine raw counts
 
-## Counts normalization
+```{r}
+# Counts
+gse189039 = gse189039_counts_ready %>% 
+  rownames_to_column("genes") 
+gse201530 = gse201530_counts_ready %>% 
+  rownames_to_column("genes") 
+gse201533 = gse201533_counts_ready %>% 
+  rownames_to_column("genes") 
+gse199750 = gse199750_counts_ready %>% 
+  as.data.frame() %>% 
+  rownames_to_column("genes") 
+gse206023 = gse206023_counts_ready %>% 
+  select(genes, everything(), -"...1")
+
+all_matrices_counts = gse189039 %>% 
+  full_join(gse201530, by = "genes") %>% 
+  full_join(gse201533, by = "genes") %>% 
+  full_join(gse199750, by = "genes") %>% 
+  full_join(gse206023, by = "genes")
+
+write_csv(all_matrices_counts, file = "all_matrices_counts.csv")
+
+```
+
+## 2.3. Principal Variance Components Analysis
+
+### 2.3.1. Counts normalization
 
 ```{r}
 ##### DESEQ2 Normalization
@@ -921,7 +947,7 @@ saveRDS(normalized_counts, file = here("DGE analysis", "all_matrices_normalized_
 normalized_counts
 ```
 
-## PVCA of normalized raw counts
+### 2.3.2. PVCA of normalized raw counts
 
 ```{r cache = TRUE}
 #### PVCA of normalized raw counts -----
@@ -1084,9 +1110,11 @@ normalizedcounts_pca_plot %>% ggplotly()
 
 ## 3.1. Metadata
 
-Merge metadata
+### 3.1.1. Annotate metadata
 
-```{r eval=FALSE, include=TRUE}
+Conditions
+
+```{r eval=FALSE, echo = TRUE}
 #Metadata ------
 gse189039_metadata_2 = GSE189039_metadata_1_ %>% 
   separate(sample, into = c("participant_id"), sep = "_", remove = F) %>% 
@@ -1125,7 +1153,7 @@ gse201533_metadata_2 = GSE201533_metadata %>%
   rownames_to_column("sample")
 ```
 
-Annotate samples
+Samples
 
 ```{r eval=FALSE, include=TRUE}
 ann_vaccines_samples_2.1 = ann_vaccines_samples_2 %>% 
@@ -1189,7 +1217,7 @@ ann_vaccines_2 = ann_vaccines %>%
 write.csv(ann_vaccines_3, file = "ann_vaccines_19-1-24.csv")
 ```
 
-Samples by condition
+### 3.1.2. Samples by condition
 
 ```{r fig.height=10, fig.width=20}
 
@@ -1247,7 +1275,7 @@ ggsave(samples_by_condition_plot, file = here("Figures", "demographics_samples-b
 samples_by_condition_plot
 ```
 
-### 3.1.2. Age by GSE
+### 3.1.3. Age by GSE
 
 ```{r fig.height=8, fig.width=10}
 #### AGE BY GSE -------------
@@ -1281,7 +1309,7 @@ ggsave(age_stats, file = here("Figures", "Demographics_age.png") , width = 10, h
 age_stats
 ```
 
-### 3.1.3. Participants by condition
+### 3.1.4. Participants by condition
 
 ```{r}
 #### Participants by condition ------
@@ -1336,14 +1364,16 @@ ggsave(p, file = "demographics_participants-by-condition.png", width = 12, heigh
 
 # 3. Differential Gene Expression Analysis
 
-## GSE201530
+## 3.1. GSE201530
 
-Metadata: A tabela de counts fornecida pelo estudo é nomeada com o
+Metadata
+
+A tabela de counts fornecida pelo estudo é nomeada com o
 Subject ID + Timepoint e não com o codigo GSM. Por isso, teremos de
 tratar a tabela de metadados. Além disso, ela não possui a coluna de
 idade. É possível manipular estes dados no excel.
 
-```{r eval=FALSE, include=FALSE}
+```{r eval=FALSE, echo=TRUE}
 #Standardize counts tables
 ############### GSE201530
 # Reorder table
@@ -1364,11 +1394,7 @@ saveRDS(gse201530_counts_ready, file = "gse201530_counts_ready.rds")
 ```
 
 ```{r}
-###DESEQ2 - PF versus AZ, PF em diferentes tempos, AZ em diferentes tempos
 
-####Definindo design
-
-###### Padronize as variáveis 
 countData <- gse201530_counts_ready
 colData <- GSE201530_metadata %>%
   mutate(
@@ -1381,44 +1407,35 @@ colData <- GSE201530_metadata %>%
   select(subject_id, everything())
 
 
-###### Crie o objeto DESeqDataSet ######
-# O design deve incluir todos os fatores que podem influenciar significativamente os dados. Coloque por último o fator de interesse principal - no caso, o fator de primeira ou segunda doses, pois nesta primeira etapa não serão analisados os efeitos de uma terceira dose de vacina heteróloga.
+###### DESeqDataSet
 
 dds <- DESeqDataSetFromMatrix(countData = countData, 
                               colData = colData, 
                               design = ~ disease_time)
 
-###### Pré-filtragem ######
-#Mantenha os genes com pelo menos 10 leituras no total.
-
 keep <- rowSums(counts(dds)) >= 10
 dds <- dds[keep,]
 
-###### Executar DESeq ######
+###### Execute DESeq
 
-#Executar DESeq com método Wald
+#Wald
 dds <- DESeq(dds)
-
-#Salvar
 write_rds(dds,file="gse201530_dds_DESeq2_Wald_disease_vac_time.rds")
 
-###### Obter comparações realizadas ######
 resultsNames(dds)
-
 dds = gse201530_dds_DESeq2_Wald_disease_vac_timepoint_day
 
-###### Obtendo os DEGs totais ######
+###### overall DEGs
 res <- results(dds) %>% 
   as.data.frame() %>% 
   filter(pvalue < 0.05)
 
-#Salvar tabela
+#Save
 write.csv(res, file = "gse201530_dds_DESeq2_Wald_disease_vac_AND_timepoint_day_ALLDEGS.rds", row.names = TRUE)
 
 ```
 
 Contrasts
-
 ```{r}
 #H-BNT-I
 # contrast = c("disease_time", "H.BNT.I_D1", "H_D0")
@@ -1441,7 +1458,7 @@ Contrasts
 # contrast = c("disease_time", "I.I_D5", "H_D0")
 ```
 
-**H_BNT_I**
+H_BNT_I
 
 ```{r}
 ######### H_BNT_I
@@ -1500,7 +1517,7 @@ write.csv(gse201530_H_BNT_I, "gse201530_H_BNT_I.csv")
 
 ```
 
-**I_BNT_I**
+I_BNT_I
 
 ```{r}
 ######### I_BNT_I
@@ -1545,7 +1562,7 @@ write.csv(gse201530_I_BNT_I, "gse201530_I_BNT_I.csv")
 
 ```
 
-*H-I*
+H-I
 
 ```{r}
 ######### H-I
@@ -1590,7 +1607,7 @@ write.csv(gse201530_H_I, "gse201530_H_I.csv")
 
 ```
 
-*H-I-I*
+H-I-I
 
 ```{r}
 
@@ -1613,7 +1630,7 @@ write.csv(gse201530_H_I_I_D2, file = "gse201530_H_I_I_D2_DEGs-PF.csv")
 
 ```
 
-*I-I*
+I-I
 
 ```{r}
 
@@ -1674,10 +1691,9 @@ gse201530_I_I = bind_rows(gse201530_I_I_D1,
 
 ```
 
-**Unir raw datasets**
+Merge results
 
 ```{r}
-########## GSE201530
 
 gse201530_DEGs = bind_rows(gse201530_I_I,
                            gse201530_H_I_I_D2,
@@ -1685,28 +1701,14 @@ gse201530_DEGs = bind_rows(gse201530_I_I,
                            gse201530_I_BNT_I,
                            gse201530_H_BNT_I) %>% 
   mutate(study = "GSE201530")
-write.csv(gse201530_DEGs, file = "gse201530_DEGs_27-11-23.csv")
 
-GSE201530_metadata_conditions = gse201530_DEGs %>% 
-  select(condition:vaccine, study) %>% 
-  distinct()
-
-
-#Annotations
-ann_vaccines_lower = ann_vaccines %>% 
-  clean_names()
-
-ann_vaccines_27_11_23 = bind_rows(ann_vaccines_lower, 
-                                  GSE201530_metadata_conditions)
-
-write.csv(ann_vaccines_27_11_23, file = 'ann_vaccines_27_11_23.csv')
-
+write.csv(gse201530_DEGs, file = here("DGE analysis", "gse201530_DEGs_27-11-23.csv"))
 
 ```
 
-## GSE189039
+## 3.2. GSE189039
 
-```{r eval=FALSE, include=FALSE}
+```{r eval=FALSE, echo=TRUE}
 ############### GSE189039
 # Reorder table
 gse189039_counts_ready <- counts_GSE189039 %>%
@@ -1724,11 +1726,8 @@ gse189039_counts_ready <- counts_GSE189039 %>%
 
 saveRDS(gse189039_counts_ready, file = "gse189039_counts_ready.rds")
 
-```
 
-```{r}
-
-###### Padronize as variáveis 
+#DESeq2
 countData <- gse189039_counts_ready
 colData <- GSE189039_metadata %>%
   mutate(disease_vac = ifelse(disease_vac == "I", "H-I",
@@ -1762,8 +1761,6 @@ res <- results(dds) %>%
 write.csv(res, file = "gse189039_dds_DESeq2_Wald_disease_vac_severity_time_ALLDEGS.rds")
 
 ```
-
-### Infection
 
 ```{r}
 ## H-I
@@ -1899,8 +1896,6 @@ gse189039_H_I = bind_rows(gse189039_H_I_moderate_D10,
 write.csv(gse189039_H_I, "gse189039_H_I_DEGS.csv")
 
 ```
-
-### Vaccination
 
 ```{r}
 ## H-BNT-I
@@ -2102,7 +2097,7 @@ write.csv(gse_201530_189039, file = "gse_201530_189039_DEGs_27-11-23.csv")
 write.csv(all_degs_p_05_vac_infected, file = 'all_degs_p_05_vac_infected_27-11-23.csv')
 ```
 
-## GSE206023
+## 3.3. GSE206023
 
 ```{r}
 ##Defina as variáveis
@@ -2146,7 +2141,7 @@ write_rds(res,file="gse206023_res_DESeq2_time_vaccine.rds")
 
 ```
 
-## GSE201533 (ORGANIZAR)
+## 3.4. GSE201533
 
 ```{r}
 ############ Matrix counts ############
@@ -2172,22 +2167,7 @@ gse201533_metadata <- gse201533_metadata[, -1]
 saveRDS(gse201533_metadata, file="gse201533_metadata_ready.rds")
 ```
 
-Caso a tabela apresente valores NA na coluna de hgnc_symbol, execute
-este comando
-
-```{r}
-#########Caso a tabela apresente valores NA na coluna de hgnc_symbol, execute este comando
-any_na <- any(is.na(gse201533_counts$geneid))
-print(any_na) 
-any_duplicates <- any(duplicated(gse201533_counts$geneid))
-print(any_duplicates)
-rows_with_na <- which(is.na(gse201533_counts$geneid))
-print(rows_with_na)
-raw_RNASeq_counts_annGenes <- raw_RNASeq_counts_annGenes[complete.cases(raw_RNASeq_counts_annGenes$hgnc_symbol), ]
-any_na <- any(is.na(raw_RNASeq_counts_annGenes$hgnc_symbol))
-print(any_na)
-```
-
+DESeq2
 ```{r}
 countData <- gse201533_counts_ready
 colData <- gse201533_metadata_ready 
@@ -2222,7 +2202,7 @@ write_rds(res,file="gse201533_res_DESeq2_vaccine.rds")
 
 ```
 
-## GSE199750
+## 3.5. GSE199750
 
 ```{r}
 # Required files
@@ -2261,7 +2241,7 @@ write_rds(dds,file="gse199750_dds_DESeq2_AllVaccines.rds")
 resultsNames(dds)
 ```
 
-#### BNT
+BNT
 
 ```{r}
 ######### PFIZER ######### 
@@ -2318,8 +2298,7 @@ write.csv(res_3_0_bnt_mo_degs_table, file = "GSE199750_T3-T0_DEGs_2PF-1MO.csv", 
 
 ```
 
-#### ChAd
-
+ChAd
 ```{r}
 resultsNames(dds)
 # ChAd V1
@@ -2360,31 +2339,6 @@ res_3_0_chad_bnt_degs_table <- data.frame(res_3_0_chad_bnt)
 write.csv(res_3_0_chad_bnt_degs_table, file = "GSE199750_T3-T0_DEGs_2AZ-1PF.csv", row.names = TRUE)
 ```
 
-## Combine raw counts
-
-```{r}
-# Counts
-gse189039 = gse189039_counts_ready %>% 
-  rownames_to_column("genes") 
-gse201530 = gse201530_counts_ready %>% 
-  rownames_to_column("genes") 
-gse201533 = gse201533_counts_ready %>% 
-  rownames_to_column("genes") 
-gse199750 = gse199750_counts_ready %>% 
-  as.data.frame() %>% 
-  rownames_to_column("genes") 
-gse206023 = gse206023_counts_ready %>% 
-  select(genes, everything(), -"...1")
-
-all_matrices_counts = gse189039 %>% 
-  full_join(gse201530, by = "genes") %>% 
-  full_join(gse201533, by = "genes") %>% 
-  full_join(gse199750, by = "genes") %>% 
-  full_join(gse206023, by = "genes")
-
-write_tsv(all_matrices_counts, file = "all_matrices_counts.tsv")
-
-```
 
 # 4. DEGs analysis
 
@@ -4059,97 +4013,7 @@ circos.clear()
 dev.off()
 ```
 
-## 4.3. Dotplot
-
-```{r}
-#### Identidade e -log(q)
-# install.packages("ggdendro")
-library(ggdendro)
-library(cowplot)
-library(ggtree)
-library(patchwork) 
-
-#Filtrar valores com -log(p) >= 1
-sharedDEGs_UP_DOWN_fisher_filtered <- sharedDEGs_UP_DOWN_fisher %>%
-  mutate(`Significance -log(p)` = cut(`-log(p)`, 
-                        breaks = c(-Inf, 1, 1.3, 2, Inf), 
-                        labels = c("<1", "1-1.3", "1.3-2", ">2"))) %>%
-  filter(Percentage_Shared_Cond1 >= 1, Percentage_Shared_Cond2 >= 1, `Significance -log(p)` != "<1")
-
-#Salvar
-write.csv(sharedDEGs_UP_DOWN_fisher_filtered, file = "sharedDEGs_UP_DOWN_fisher_filtered.csv")
-
-#Visualizar
-plot = ggplot(sharedDEGs_UP_DOWN_fisher, aes(x = Cond1, y = Cond2, color = Percentage_Shared_Cond1, size = Percentage_Shared_Cond1)) + 
-  geom_point() +
-  scale_size_continuous(range = c(2, 8)) +
-  geom_text(aes(label = sprintf("%.f", Percentage_Shared_Cond1)), vjust = 0.5, hjust = 0.5, size = 2, color = "black")  +
-  cowplot::theme_cowplot() + 
-  theme(axis.line = element_blank(),
-        axis.text.x = element_text(angle = 45, vjust = 1, hjust = 1, size = 10),
-        axis.text.y = element_text(size = 10)) +
-  scale_color_gradient(low = "white", high = "#ef233c", limits = c(0, 60)) +
-  ggtitle("%Identity between vaccines, Up and Down-Regulated, pvalue < 0.05" ) +
-  ylab('Cond2') +
-  theme(axis.ticks = element_blank()) +
-  guides(color = FALSE, size = FALSE)
-
-#Salvar
-ggsave(plot, file = here("Figures","sharedDEGs_UP_DOWN_fisher.png"))
-
-#Display
-plot
-```
-
-```{r}
-
-##### Unir countdata de todos os datasets
-
-gse189039_counts_ready_long = gse189039_counts_ready %>% 
-  rownames_to_column("genes") %>% 
-  pivot_longer(-genes, 
-               names_to = "condition", 
-               values_to = "counts") %>% 
-  mutate(study = "GSE189039")
-
-gse201530_counts_ready_long = gse201530_counts_ready %>% 
-    as.data.frame() %>% 
-    rownames_to_column("genes") %>% 
-  pivot_longer(-genes, 
-               names_to = "condition", 
-               values_to = "counts") %>% 
-    mutate(study = "GSE201530")
-
-gse201533_counts_ready_long = gse201533_counts_ready %>% 
-    as.data.frame() %>% 
-    rownames_to_column("genes") %>% 
-  pivot_longer(-genes, 
-               names_to = "condition", 
-               values_to = "counts")  %>% 
-    mutate(study = "GSE201533")
-
-gse199750_counts_ready_long = gse199750_counts_ready %>% 
-  as.data.frame() %>% 
-  rownames_to_column("genes") %>% 
-  pivot_longer(-genes, 
-               names_to = "condition", 
-               values_to = "counts") %>% 
-    mutate(study = "GSE199750")
-
-gse_counts_all_long = bind_rows(gse189039_counts_ready_long, 
-                           gse201530_counts_ready_long,
-                           gse201533_counts_ready_long,
-                           gse199750_counts_ready_long)
-
-gse_counts_all_matrix = gse_counts_all_long %>% 
-  select(-study) %>% 
-  pivot_wider(names_from = "condition", values_from = "counts")
-
-
-write_csv(gse_counts_all_long, file = here("DGE analysis", "gse_counts_all_long.csv"))
-```
-
-## 4.4. Immune and non-immune DEGs
+## 4.3. Immune and non-immune DEGs
 
 ```{r}
 immunego = ImmuneGO_Annotated_GO_8_2_24 %>% 
@@ -5020,8 +4884,6 @@ shared_genes_vaccines_only_plot = shared_genes_vaccines %>%
         legend.text = element_text(size=10),
         legend.title = element_text(size = 10, face = "bold")) 
 
-
-
 # Infection only -------
 
 shared_genes_infection_only_plot = shared_genes_infection %>% 
@@ -5060,15 +4922,6 @@ patch
 ```
 
 # 5. Gene set enrichment analysis
-
-O ORA e GSEA podem ser pouco sensíveis quando o pvalue/padj \< 5%. Na
-documentação, recomendam usar o cutoff de padj (FDR) de 25% para incluir
-gene sets que estejam 75% corretos - isto é, em 4 observações, 3 estão
-corretas -, o que aumenta o número de resultados interessantes. Para
-verificar se são realmente significantes, visualize no heatmap com
-labels de \*significancia. Referencia:
-Link{<https://www.gsea-msigdb.org/gsea/doc/GSEAUserGuideFrame.html>
-<https://yulab-smu.top/biomedical-knowledge-mining-book/universal-api.html>
 
 ### 5.1. Input
 
@@ -5114,7 +4967,7 @@ geneset_name = "Immune_GO_T2G_general"
 
 ```
 
-### 5.2. ORA
+### 5.2. Over representation analysis (ORA)
 
 #### 5.2.1. Multiple
 
@@ -5313,7 +5166,7 @@ dev.off()
 
 ```
 
-### 5.3. GSEA
+### 5.3. Gene set enrichment analysis (GSEA)
 
 #### 5.3.1. Multiple
 
@@ -6954,9 +6807,7 @@ patch_pc2_genes
 ```
 
 
-
-
-## 6.4. PCA: COVID-19 and others, only up and down regulated genes
+## 6.4. PCA: COVID-19 and others
 
 ```{r}
 
@@ -7819,7 +7670,7 @@ ggsave(cos2.2, file = paste0(filename, "_cos2_GSEA_2.png"), width = 10)
 
 ## 7.1. VaxGO gene sets construction
 
-```{r eval=FALSE, include=FALSE}
+```{r eval=FALSE, echo=TRUE}
 library(readr)
 library(explore)
 library(maditr)
@@ -8485,7 +8336,162 @@ ggsave(ImmuneGO_top10_barplot, file="ImmuneGO_top10_barplot.png", width = 10, he
 head(ImmuneGO_top10_barplot)
 ```
 
-#### Dataset representation
+### 7.1.4. VAX MSigDB
+
+
+```{r}
+#Importar arquivo
+VaxSigDB_genesets = VAX_GeneSets_Annotated_26_10_23
+
+# Divida os dados em blocos de informações para cada vacina
+vaccines_att <- split(VaxSigDB_genesets$Col2, VaxSigDB_genesets$Col1)
+
+# Combine data
+VAX_Genesets <- bind_rows(lapply(vaccines_att, function(x) data.frame(t(x))), .id = "V")
+
+# Name a new index column
+colnames(VAX_Genesets) <- paste0("V", seq_len(ncol(VAX_Genesets)))
+
+# Transpose
+rownames(VAX_Genesets) <- VAX_Genesets$V1
+VAX_Genesets = VAX_Genesets %>% 
+  t() %>%
+  as.data.frame()
+
+#Order columns
+VAX_Genesets = VAX_Genesets %>% 
+  select(STANDARD_NAME, everything()) %>% 
+  filter(STANDARD_NAME != "STANDARD_NAME") 
+rownames(VAX_Genesets) = VAX_Genesets$SYSTEMATIC_NAME
+VAX_Genesets = VAX_Genesets %>% select(STANDARD_NAME, 
+                                       DESCRIPTION_BRIEF,
+                                       DESCRIPTION_FULL,
+                                       PMID,
+                                       AUTHORS,
+                                       SYSTEMATIC_NAME,
+                                       GENE_SYMBOLS,
+                                       everything())
+
+#Anotar novas colunas
+VAX_Genesets <- VAX_Genesets %>%
+  mutate(
+    SAMPLE_SOURCE = ifelse(
+      grepl("pbmc|peripheral blood mononuclear cell|peripheral blood mononuclear cells", DESCRIPTION_FULL, ignore.case = TRUE) |
+      grepl("pbmc|peripheral blood mononuclear cell|peripheral blood mononuclear cells", DESCRIPTION_BRIEF, ignore.case = TRUE),
+      "PBMC",
+      ifelse(
+        grepl("whole blood", DESCRIPTION_FULL, ignore.case = TRUE) |
+        grepl("whole blood", DESCRIPTION_BRIEF, ignore.case = TRUE) |
+        grepl("_BLOOD", STANDARD_NAME, ignore.case = TRUE)  ,
+        "WHOLE BLOOD",
+        "OTHER")),
+    REGULATION = ifelse(
+      grepl("up", DESCRIPTION_BRIEF, ignore.case = TRUE),
+      "UP",
+      ifelse(
+        grepl("down", DESCRIPTION_BRIEF, ignore.case = TRUE),
+        "DOWN",
+        "UNKNOWN")))
+
+#Reordenar colunas
+VAX_Genesets = VAX_Genesets %>% select(SAMPLE_SOURCE, REGULATION, everything())
+
+# Salvar
+write.csv(VAX_Genesets, file = "VAXSigDB_Annotated.csv") #Continuar a anotação no Google Sheets
+
+head(VAX_Genesets)
+```
+
+ Long table with Gene symbols
+
+```{r}
+############## Long table with Gene symbols
+
+VAX_Genesets = VAXSigDB_Annotated
+
+VAX_Genes <- VAX_Genesets %>%
+  mutate(GENE = GENE_SYMBOLS) %>% 
+  separate_rows(GENE, sep = ",") %>% 
+  select(GENE, everything()) %>%
+  group_by(STANDARD_NAME) %>%
+  mutate(SetSize = n()) %>% 
+  relocate(SetSize, .after = GENE_SYMBOLS)
+
+VAX_GeneSets_annotated <- VAX_Genes %>%
+  select(-GENE) %>% 
+  distinct()
+
+#Salvar
+write.csv(VAX_Genes, file = "VAX_Genes_Annotated_RAW.csv")
+write.csv(VAX_GeneSets_annotated, file = "VAX_Genesets_Annotated_RAW.csv")
+
+#Display
+head(VAX_GeneSets_annotated)
+```
+
+Filtering
+
+```{r}
+unique(VAX_GeneSets_annotated$STUDY_TYPE) 
+#"CORRELATION"
+#"VACCINE"
+#"SUBSET"
+#"CHALLENGE"
+
+unique(VAX_GeneSets_annotated$STUDY_SUBTYPE)
+# "ANTIBODY"				
+# "VAC ONLY"				
+# "BOOSTER"				
+# "VAC VS CTRL"				
+# "SIGNATURE"				
+# "ADVERSE EVENT"			
+# "COMPARISON"				
+# "RESPONDER VS NON RESPONDER"				
+# "AGE"				
+# "RESPONDER"				
+# "ADJUVANT"				
+# "NON RESPONDER"				
+# "ANTIMICROBIAL ACTIVITY"				
+# "CELLS"				
+# "CHALLENGE"				
+# "TOP DEGS"				
+# "PROTECTION"				
+# "TRAINING SET"				
+# "EXON ANALYSIS"				
+# "DOSE"				
+# "VAC VS OTHER"
+
+
+# Subset de vacinas para as seguintes análises comparativas
+VAX_GeneSets_Blood_PBMC_VAC = VAX_GeneSets_annotated %>% 
+  filter(SAMPLE_SOURCE %in% c("PBMC", "WHOLE BLOOD"), 
+         STUDY_TYPE %in% c("VACCINE"))
+
+# Subset de vacinas com resultados de comparações entre vacinas, adjuvantes, idade e sexo
+VAX_GeneSets_Blood_PBMC_CORR = VAX_GeneSets_annotated %>% 
+  filter(SAMPLE_SOURCE %in% c("PBMC", "WHOLE BLOOD"), 
+         STUDY_TYPE %in% c("CORRELATION"))
+
+# Subset com resultados de correlações com resposta inata, celular e humoral
+VAX_GeneSets_Blood_PBMC_SUBSETS = VAX_GeneSets_annotated %>% 
+  filter(SAMPLE_SOURCE %in% c("PBMC", "WHOLE BLOOD"), 
+         STUDY_TYPE %in% c("SUBSET"))
+
+
+# Subset de vacinas com genes associados a eventos adversos
+VAX_GeneSets_Blood_PBMC_CHALLENGE = VAX_GeneSets_annotated %>% 
+  filter(SAMPLE_SOURCE %in% c("PBMC", "WHOLE BLOOD"), 
+         STUDY_TYPE %in% c("CHALLENGE"))
+
+VAX_GeneSets_Blood_PBMC_VAC.stats = VAX_GeneSets_Blood_PBMC_VAC %>% 
+  group_by(VACCINE, PLATFORM, REGULATION, `TARGET_PATHOGEN_DISEASE`, MICROBE_TYPE) %>% 
+  summarise(Count = n()) %>% 
+  arrange(desc(Count))
+
+```
+
+## 7.2 Immune genes representation in the datasets
+Are all immune-related genes represented in all datasets?
 
 ```{r}
 #Genes representados e não representados
@@ -8657,163 +8663,7 @@ ggsave(ggImmuneGO_genes_indatasets.stats, file = "ImmuneGO_Genesrepresented_byst
 
 ```
 
-### VAX MSigDB
-
-
-```{r}
-#Importar arquivo
-VaxSigDB_genesets = VAX_GeneSets_Annotated_26_10_23
-
-# Divida os dados em blocos de informações para cada vacina
-vaccines_att <- split(VaxSigDB_genesets$Col2, VaxSigDB_genesets$Col1)
-
-# Combine data
-VAX_Genesets <- bind_rows(lapply(vaccines_att, function(x) data.frame(t(x))), .id = "V")
-
-# Name a new index column
-colnames(VAX_Genesets) <- paste0("V", seq_len(ncol(VAX_Genesets)))
-
-# Transpose
-rownames(VAX_Genesets) <- VAX_Genesets$V1
-VAX_Genesets = VAX_Genesets %>% 
-  t() %>%
-  as.data.frame()
-
-#Order columns
-VAX_Genesets = VAX_Genesets %>% 
-  select(STANDARD_NAME, everything()) %>% 
-  filter(STANDARD_NAME != "STANDARD_NAME") 
-rownames(VAX_Genesets) = VAX_Genesets$SYSTEMATIC_NAME
-VAX_Genesets = VAX_Genesets %>% select(STANDARD_NAME, 
-                                       DESCRIPTION_BRIEF,
-                                       DESCRIPTION_FULL,
-                                       PMID,
-                                       AUTHORS,
-                                       SYSTEMATIC_NAME,
-                                       GENE_SYMBOLS,
-                                       everything())
-
-#Anotar novas colunas
-VAX_Genesets <- VAX_Genesets %>%
-  mutate(
-    SAMPLE_SOURCE = ifelse(
-      grepl("pbmc|peripheral blood mononuclear cell|peripheral blood mononuclear cells", DESCRIPTION_FULL, ignore.case = TRUE) |
-      grepl("pbmc|peripheral blood mononuclear cell|peripheral blood mononuclear cells", DESCRIPTION_BRIEF, ignore.case = TRUE),
-      "PBMC",
-      ifelse(
-        grepl("whole blood", DESCRIPTION_FULL, ignore.case = TRUE) |
-        grepl("whole blood", DESCRIPTION_BRIEF, ignore.case = TRUE) |
-        grepl("_BLOOD", STANDARD_NAME, ignore.case = TRUE)  ,
-        "WHOLE BLOOD",
-        "OTHER")),
-    REGULATION = ifelse(
-      grepl("up", DESCRIPTION_BRIEF, ignore.case = TRUE),
-      "UP",
-      ifelse(
-        grepl("down", DESCRIPTION_BRIEF, ignore.case = TRUE),
-        "DOWN",
-        "UNKNOWN")))
-
-#Reordenar colunas
-VAX_Genesets = VAX_Genesets %>% select(SAMPLE_SOURCE, REGULATION, everything())
-
-# Salvar
-write.csv(VAX_Genesets, file = "VAXSigDB_Annotated.csv") #Continuar a anotação no Google Sheets
-
-head(VAX_Genesets)
-```
-
- Long table with Gene symbols
-
-```{r}
-############## Long table with Gene symbols
-
-VAX_Genesets = VAXSigDB_Annotated
-
-VAX_Genes <- VAX_Genesets %>%
-  mutate(GENE = GENE_SYMBOLS) %>% 
-  separate_rows(GENE, sep = ",") %>% 
-  select(GENE, everything()) %>%
-  group_by(STANDARD_NAME) %>%
-  mutate(SetSize = n()) %>% 
-  relocate(SetSize, .after = GENE_SYMBOLS)
-
-VAX_GeneSets_annotated <- VAX_Genes %>%
-  select(-GENE) %>% 
-  distinct()
-
-#Salvar
-write.csv(VAX_Genes, file = "VAX_Genes_Annotated_RAW.csv")
-write.csv(VAX_GeneSets_annotated, file = "VAX_Genesets_Annotated_RAW.csv")
-
-#Display
-head(VAX_GeneSets_annotated)
-```
-
-Filtering
-
-```{r}
-unique(VAX_GeneSets_annotated$STUDY_TYPE) 
-#"CORRELATION"
-#"VACCINE"
-#"SUBSET"
-#"CHALLENGE"
-
-unique(VAX_GeneSets_annotated$STUDY_SUBTYPE)
-# "ANTIBODY"				
-# "VAC ONLY"				
-# "BOOSTER"				
-# "VAC VS CTRL"				
-# "SIGNATURE"				
-# "ADVERSE EVENT"			
-# "COMPARISON"				
-# "RESPONDER VS NON RESPONDER"				
-# "AGE"				
-# "RESPONDER"				
-# "ADJUVANT"				
-# "NON RESPONDER"				
-# "ANTIMICROBIAL ACTIVITY"				
-# "CELLS"				
-# "CHALLENGE"				
-# "TOP DEGS"				
-# "PROTECTION"				
-# "TRAINING SET"				
-# "EXON ANALYSIS"				
-# "DOSE"				
-# "VAC VS OTHER"
-
-
-# Subset de vacinas para as seguintes análises comparativas
-VAX_GeneSets_Blood_PBMC_VAC = VAX_GeneSets_annotated %>% 
-  filter(SAMPLE_SOURCE %in% c("PBMC", "WHOLE BLOOD"), 
-         STUDY_TYPE %in% c("VACCINE"))
-
-# Subset de vacinas com resultados de comparações entre vacinas, adjuvantes, idade e sexo
-VAX_GeneSets_Blood_PBMC_CORR = VAX_GeneSets_annotated %>% 
-  filter(SAMPLE_SOURCE %in% c("PBMC", "WHOLE BLOOD"), 
-         STUDY_TYPE %in% c("CORRELATION"))
-
-# Subset com resultados de correlações com resposta inata, celular e humoral
-VAX_GeneSets_Blood_PBMC_SUBSETS = VAX_GeneSets_annotated %>% 
-  filter(SAMPLE_SOURCE %in% c("PBMC", "WHOLE BLOOD"), 
-         STUDY_TYPE %in% c("SUBSET"))
-
-
-# Subset de vacinas com genes associados a eventos adversos
-VAX_GeneSets_Blood_PBMC_CHALLENGE = VAX_GeneSets_annotated %>% 
-  filter(SAMPLE_SOURCE %in% c("PBMC", "WHOLE BLOOD"), 
-         STUDY_TYPE %in% c("CHALLENGE"))
-
-VAX_GeneSets_Blood_PBMC_VAC.stats = VAX_GeneSets_Blood_PBMC_VAC %>% 
-  group_by(VACCINE, PLATFORM, REGULATION, `TARGET_PATHOGEN_DISEASE`, MICROBE_TYPE) %>% 
-  summarise(Count = n()) %>% 
-  arrange(desc(Count))
-
-```
-
-# Representação de genes por gene set para cada condição
-
-## Gráfico de linhas
+Line plots
 
 ```{r}
 
@@ -8878,7 +8728,6 @@ write.csv(Immune_allgenes_vaccines_SUM, file="Immune_allgenes_vaccines_SUM.csv")
 
 # COVID-19 and other vaccines
 
-## VENN DIAGRAM
 
 ```{r}
 # Input files ------
@@ -8966,6 +8815,8 @@ degs_covid_vax %>%
   saveRDS(file = here("VaxGO gene sets", "degs_covid_vaxsig_up_down_immune.rds"))
 
 ```
+
+## Gene overlap analysis
 
 ```{r}
 #Input
@@ -9064,97 +8915,18 @@ shared_genes_ann_vac = shared_genes_df_mirror_ann %>%
          sample_source == "PBMC",
          !(vaccine_condition %in% c("BBIBP", "ZF2001"))) 
 
-# vac_only_up = shared_genes_ann_vac %>%
-#   filter(study_subtype == "VAC ONLY",
-#          regulation == 'UP')
-
-vac_only_down = shared_genes_ann_vac %>%
-  filter(study_subtype == "VAC ONLY",
-         regulation == 'DOWN')
-
-#RESPONDER
-
-vac_responder_up = shared_genes_ann_vac %>%
-  filter(study_subtype == "RESPONDER VS NON RESPONDER",
-         regulation == 'UP')
-
-vac_responder_down = shared_genes_ann_vac %>% 
-  filter(study_subtype == "RESPONDER VS NON RESPONDER",
-         regulation == 'DOWN')
-
-# CELLULAR RESPONSE
-
-vac_responder_cell_up = shared_genes_ann_vac %>% 
-  filter(study_subtype == "CELL",
-         regulation == 'UP')
-
-vac_responder_cell_down = shared_genes_ann_vac %>% 
-  filter(study_subtype == "CELL",
-         regulation == 'DOWN')
-
-############# CORRELATION
-shared_genes_ann_corr = shared_genes_df_mirror_ann %>% 
-  select(vac_condition, vaccine_condition, vac_ref, Cond2:sample_source, pmid, gene_symbols:previous_vaccinationarticipants) %>% 
-  filter(study_type == "CORRELATION", 
-         sample_source == "PBMC",
-         !(vaccine_condition %in% c("BBIBP", "ZF2001")))
-
-# ADVERSE EVENT
-corr_AE_up = shared_genes_ann_corr %>%
-  filter(study_subtype == "ADVERSE EVENT",
-         regulation == 'UP')
-
-corr_AE_down = shared_genes_ann_corr %>%
-  filter(study_subtype == "ADVERSE EVENT",
-         regulation == 'DOWN')
-
-# ANTIBODY
-corr_antibody_up = shared_genes_ann_corr %>%
-  filter(study_subtype == "ANTIBODY",
-         regulation == 'UP')
-
-corr_antibody_down = shared_genes_ann_corr %>% 
-  filter(study_subtype == "ANTIBODY",
-         regulation == 'POSITIVE')
-
-corr_antibody_positive = shared_genes_ann_corr %>%
-  filter(study_subtype == "ANTIBODY",
-         regulation == 'NEGATIVE')
-
-corr_antibody_negative = shared_genes_ann_corr %>% 
-  filter(study_subtype == "ANTIBODY",
-         regulation == 'NEGATIVE')
-
-
-# CELL
-corr_cell_up = shared_genes_ann_corr %>%
-  filter(study_subtype == "CELL",
-         regulation == 'UP')
-
-corr_cell_down = shared_genes_ann_corr %>% 
-  filter(study_subtype == "CELL",
-         regulation == 'POSITIVE')
-
-corr_cell_positive = shared_genes_ann_corr %>% 
-  filter(study_subtype == "CELL",
-         regulation == 'UP')
-
-corr_cell_negative = shared_genes_ann_corr %>% 
-  filter(study_subtype == "CELL",
-         regulation == 'NEGATIVE')
+vac_only = shared_genes_ann_vac %>%
+  filter(study_subtype == "VAC ONLY")
 
 ```
 
 ### Heatmap
 
 ```{r}
+# INPUT ------
 table = degs_all_updown_covid_other_immune_shared
 filename = "ImmuneGO_Genes" 
 
-# table = degs_all_updown_covid_other_nonimmune_shared
-# filename = "NonImmune_Genes" 
-
-# INPUT ------
 data = table %>% 
   filter(qvalue <0.25) %>% 
   inner_join(ann_vaccines_covid_other %>% 
@@ -9225,14 +8997,14 @@ matrix_data = matrix %>%
   replace(is.na(.), 0) %>% 
   as.matrix()
 
-
-#Verificar dimensões do dataset
+#Check dimensions
 dim(matrix_data)
 dim(ann_rows_heatmap)
 dim(ann_cols_heatmap)
 
 ```
 
+Plot
 ```{r}
 
 #Heatmap annotation
@@ -9541,9 +9313,7 @@ dev.off()
 
 ```
 
-## GENES COVID vs. VAXGO com ImmuneGO
-
-*Qual a relação entre os genes de cada dataset?*
+## (TERMINAR) GENES COVID vs. VAXGO com ImmuneGO
 
 ```{r}
 # Gene sets for annotation
