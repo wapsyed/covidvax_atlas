@@ -573,28 +573,33 @@ col_process_immune = list(
 
 # 2. Select studies and retrieve data
 
-## 2.1. Download data
+## 2.1. Download and process data
 
-Download general data (counts data and metadata).
-
-GEO supplementary files. Download individual studies. I recommend
-downloading large files from the GEO website. As we couldn't retrieved all GSE199750 counts matrices through R, we downloaded the counts table from the website: <https://combine-australia.github.io/RNAseq-R/06-rnaseq-day1.html>. 
+Download general data (counts data and metadata). GEO supplementary
+files have the counts matrices. Download studies individually. I
+recommend downloading large files from the GEO website.
 
 ```{r eval=FALSE, message=FALSE, warning=FALSE, echo=TRUE, cache = TRUE}
-#Baixar dados de uma lista de estudos
+# Function to read and standardize files
+read_standardize <- function(file) {
+  files <- read.table(file, header = FALSE, sep = "\t")
+  if (ncol(files) >= 2) {
+    colnames(file)[1:2] <- c("genes", tools::file_path_sans_ext(basename(file)))
+    return(files)
+  } else {
+    return(NULL)
+  }
+}
+```
 
-############ Retrieve counts table from supplementary files
-getGEOSuppFiles('GSE189039', makeDirectory = T)
-untar('GSE189039_RAW.tar')
-gunzip("GSE174621_RAW.tar") 
+GSE189039
 
-############ Metadata
-
-###### GSE189039
+```{r eval=FALSE, message=FALSE, warning=FALSE, echo=TRUE, cache = TRUE}
+###### GSE189039 ----
+#Metadata 
 filename = "GSE189039"
-GSE189039 <- getGEO("GSE189039", GSEMatrix = TRUE) #GSEMatrix = TRUE to retrieve samples metadata
+GSE189039 <- getGEO("GSE189039", GSEMatrix = TRUE) 
 GSE189039 <- GSE189039[[1]]
-
 GSE189039_metadata = GSE189039 %>% 
   pData() %>% 
   select( 
@@ -602,12 +607,30 @@ GSE189039_metadata = GSE189039 %>%
     subject_id = "title", age = "age:ch1", 
     sex = "gender:ch1", disease_state = "diseas state:ch1", 
     severity = "severity:ch1") 
-
 write_csv(GSE189039_metadata, file = here("raw_data", "GSE189039_metadata.csv"))
 
+#Counts matrix
+#Retrieve counts table from supplementary files
+getGEOSuppFiles('GSE189039', makeDirectory = T, baseDir = here("raw_data"))
+untar(here("raw_data", 'GSE189039_RAW.tar'))
+files <- list.files(path = here("raw_data", "GSE189039"), pattern = "*.gz$", full.names = TRUE)
+for(files_gz in files) {gunzip(files_gz)}
+files_txt_GSE189039 <- list.files(path = here("raw_data", "GSE189039"), pattern = "*.txt$", full.names = TRUE)
+list_data_GSE189039 <- lapply(files_txt_GSE189039, read_standardize)
+counts_GSE189039 <- list_data_GSE189039 %>%
+  purrr::discard(is.null) %>%
+  reduce(full_join, by = "genes")
+colnames(counts_GSE189039)[-1] <- gsub("^[^_]+_(.*)", "\\1", colnames(counts_GSE189039)[-1])
+write_csv(counts_GSE189039, file = here("raw_data", "gse189039_counts.csv"))
+```
 
-###### GSE201533
-GSE201533 <- getGEO("GSE201533", GSEMatrix = TRUE) 
+GSE201533
+
+```{r eval=FALSE, message=FALSE, warning=FALSE, echo=TRUE, cache = TRUE}
+###### GSE201533 ------
+
+###### Metadata
+GSE201533 <- getGEO("GSE201533", GSEMatrix = TRUE, destdir = here("raw_data", "GSE201533")) 
 
 GSE201533 <- GSE201533[[1]]
 
@@ -629,9 +652,39 @@ GSE201533_metadata = GSE201533_metadata %>%
 
 write_csv(GSE201533_metadata, file = here("raw_data", "GSE201533_metadata.csv"))
 
-###### GSE201530
-getGEOSuppFiles('GSE201530')
-untar('GSE201530_RAW.tar')
+##### Counts matrix
+getGEOSuppFiles('GSE201533', makeDirectory = T, baseDir = here("raw_data"))
+untar(tarfile = here("raw_data", "GSE201533", "GSE201533_RAW.tar"))
+
+list_data_gse201533 <- list.files(path = here("raw_data", 
+                                              "GSE201533", 
+                                              "GSE201533_RAW"), 
+                                  pattern = "*.txt.gz$", 
+                                  full.names = TRUE) %>%
+  map(~ read.table(.x, header = TRUE, sep = "\t"))
+counts_gse201533 <- do.call(cbind, map(list_data_gse201533, ~ .x[, 2]))
+
+# Name columns (samples) and genes
+colnames(counts_gse201533) <- paste0("GSM", seq_along(list_data_gse201533) + 6066177)
+counts_gse201533 <- bind_cols(geneid = list_data_gse201533[[1]][, 1], counts_gse201533)
+counts_gse201533[is.na(counts_gse201533)] <- 0 #Rename column names (ex. "X21.01684.hisat2.bam") to GSM codes, which start with GSM6066178.
+
+counts_gse201533 <- list_data_gse201533 %>%
+  purrr::map_dfc(~ .x[, 2]) %>%
+  set_names(paste0("Sample_", seq_along(list_data_gse201533))) %>%
+  bind_cols(geneid = list_data_gse201533[[1]][, 1], .) %>%
+  relocate(geneid) %>%
+  replace(is.na(.), 0)
+
+saveRDS(counts_gse201533, file = here("raw_data", "gse201533_counts.rds"))
+write.csv(counts_gse201533, file=here("raw_data", "gse201533_counts.csv"))
+```
+
+GSE201530
+
+```{r eval=FALSE, message=FALSE, warning=FALSE, echo=TRUE, cache = TRUE}
+###### GSE201530 ------
+#Metadata
 filename = "GSE201530"
 GSE201530 <- getGEO("GSE201530", GSEMatrix = TRUE) 
 GSE201530 <- GSE201530[[1]]
@@ -646,42 +699,32 @@ GSE201530_metadata = GSE201530 %>%
     timepoint = "days after positive pcr results:ch1",
     group = "group (by covid-19 vaccination, prior infection):ch1",
     variant = "omicron sublineage:ch1") 
-
 write.csv(GSE201530_metadata, file = here("raw_data", "GSE201530_metadata.csv"))
 
+# Counts matrix
+getGEOSuppFiles('GSE201530', baseDir = here("raw_data"))
+untar(here("raw_data", 'GSE201530_RAW.tar'))
+files_txt_GSE201530 <- list.files(path = here("raw_data", "GSE201530"), pattern = "*.txt$", full.names = TRUE)
+list_data_GSE201530 <- lapply(files_txt_GSE201530, read_standardize)
+counts_gse201530 <- list_data_GSE201530 %>%
+  purrr::discard(is.null) %>%
+  reduce(full_join, by = "genes")
+colnames(counts_gse201530)[-1] <- gsub("^[^_]+_(.*)", "\\1", colnames(counts_gse201530)[-1])
+write_csv(counts_gse201530, file = here("raw_data", "gse201530_counts.csv"))
+```
 
-# GSE201533
+GSE199750
 
-gse201533 <- getGEO("GSE201533", GSEMatrix = TRUE)
-gse201533 <- gse201533[[1]]
-gse201533_metadata <- pData(gse201533) 
-colnames(gse201533_metadata)
-gse201533_metadata <- select(
-  gse201533_metadata,
-  "title",
-  "geo_accession",
-  "source_name_ch1",
-  "organism_ch1",
-  "age:ch1",
-  "vaccine:ch1"
-)
-colnames(gse201533_metadata) <-
-  c("Sample name",
-    "GEO",
-    "Sample type",
-    "Organism",
-    "Age",
-    "Vaccine_dose")
+As we couldn't retrieved all GSE199750 counts matrices through R, we
+downloaded the counts table from the Github repository:
+<https://bitbucket.org/lynnlab/covirs>.
 
-write.csv(gse201533_metadata, file="gse201533_metadata.csv")
-
-###### GSE199750
- 
-gse199750 <- getGEO("GSE199750", GSEMatrix = TRUE) 
-
+```{r eval=FALSE, message=FALSE, warning=FALSE, echo=TRUE, cache = TRUE}
+###### GSE199750 ----
+#Metadata
+gse199750 <- getGEO("GSE199750", GSEMatrix = TRUE,  destdir = here("raw_data", "GSE199750")) 
 gse199750 <- gse199750[[1]]
-
-gse199750_sampleinfo <- pData(gse199750) %>% 
+gse199750_metadata <- pData(gse199750) %>% 
   select(
     GEO = "geo_accession", 
     SampleN = "sample number:ch1", 
@@ -698,244 +741,112 @@ gse199750_sampleinfo <- pData(gse199750) %>%
 
 #There are two similar columns. The first, "Vaccine," might be filled in, while the second, "FirstSecondVaccine," may not be, and vice versa. Therefore, one should equal the other. Thus, unify the columns.
 
-gse199750_sampleinfo <- gse199750_sampleinfo %>%
-  mutate(FirstSecondDose = coalesce(FirstSecondVaccine, Vaccine)) %>% 
-  select("GEO", "SampleN", "SubjectID", "Age", "Sex", "Timepoint", "FirstSecondDose", "ThirdVaccine", "Tissue", "Run") 
-
-write.csv(gse199750_sampleinfo, file="metadata_gse199750.csv")
-```
-
-
-#ORGANIZAR
-```{r}
-
-#### GSE201533
-#Ler arquivos e transformar em tabela.
-
-arquivos_gz_gse201533 <- list.files(pattern = "*txt.gz$", full.names = TRUE)
-for(arquivo_gz in arquivos_gz_gse201533) {gunzip(arquivo_gz)}
-arquivos_txt_gse201533 <- list.files(pattern = "*.txt$", full.names = TRUE)
-lista_dados_gse201533 <- list()
-
-#Se estiver usando o RStudio, vá para o working directory no painel à direita, defina como working directory de novo, copie o código abaixo e cole no console.
-for(i in seq_along(arquivos_txt_gse201533)) {
-  lista_dados_gse201533[[i]] <- read.table(arquivos_txt_gse201533[i], header = TRUE, sep = "\t")
-}
-
-total_linhas <- max(sapply(lista_dados_gse201533, nrow))
-counts_gse201533 <- data.frame(matrix(NA, nrow = total_linhas, ncol = length(lista_dados_gse201533)))
-
-colnames(counts_gse201533) <- paste0("GSM", seq_along(lista_dados_gse201533) + 6066177) #Trocar o nome das colunas (ex. "X21.01684.hisat2.bam") pelos códigos GSM correspondentes, que no caso começam com GSM6066178. Isso facilitará a integração dos dados.
-
-for (i in seq_along(lista_dados_gse201533)) {
-  df <- lista_dados_gse201533[[i]]
-  coluna_2 <- df[, 2]
-  counts_gse201533[, i] <- coluna_2[1:total_linhas]
-}
-colnames(counts_gse201533) <- paste0("Sample_", seq_along(lista_dados_gse201533))
-colunas_descritivas <- lista_dados_gse201533[[1]][,1]
-counts_gse201533 <- cbind(counts_gse201533, colunas_descritivas)
-counts_gse201533 <- counts_gse201533[, c(ncol(counts_gse201533), 1:(ncol(counts_gse201533) - 1))]
-counts_gse201533$colunas_descritivas <- counts_gse201533[, 1]
-names(counts_gse201533)[1] <- "geneid"
-counts_gse201533[is.na(counts_gse201533)] <- 0 
-counts_sample_info <- list(counts_gse201533, gse201533_sampleinfo)
-
-saveRDS(counts_gse201533, file = "gse201533_counts.rds")
-write.csv(counts_gse201533, file="gse201533_counts.csv")
-
-```
-
-
-
-
-Read files and convert to tables.
-
-```{r eval=FALSE, include=FALSE}
-#Unzip files
-files <- list.files(path = here("raw_data", "GSE189039"), pattern = "*.gz$", full.names = TRUE)
-for(files_gz in files) {gunzip(files_gz)}
-
-# Read files
-files_txt_GSE201530 <- list.files(path = here("GSE201530"), pattern = "*.txt$", full.names = TRUE)
-files_txt_GSE189039 <- list.files(path = here("GSE189039"), pattern = "*.txt$", full.names = TRUE)
-
-# Function to read and standardize files
-read_standardize <- function(file) {
-  files <- read.table(file, header = FALSE, sep = "\t")
-  if (ncol(files) >= 2) {
-    colnames(file)[1:2] <- c("genes", tools::file_path_sans_ext(basename(file)))
-    return(files)
-  } else {
-    return(NULL)
-  }
-}
-
-list_data_GSE201530 <- lapply(files_txt_GSE201530, read_standardize)
-list_data_GSE189039 <- lapply(files_txt_GSE189039, read_standardize)
-
-# Filter null elements in the list and merge dataframes
-counts_gse201530 <- list_data_GSE201530 %>%
-  purrr::discard(is.null) %>%
-  reduce(full_join, by = "genes")
-
-counts_GSE189039 <- list_data_GSE189039 %>%
-  purrr::discard(is.null) %>%
-  reduce(full_join, by = "genes")
-
-# Rename columns
-colnames(counts_gse201530)[-1] <- gsub("^[^_]+_(.*)", "\\1", colnames(counts_gse201530)[-1])
-colnames(counts_GSE189039)[-1] <- gsub("^[^_]+_(.*)", "\\1", colnames(counts_GSE189039)[-1])
-
-#Save
-write_csv(counts_gse201530, file = here("raw_data", "gse201530_counts.csv"))
-write_csv(counts_GSE189039, file = here("raw_data", "gse189039_counts.csv"))
-```
-
-GSE199750: Gene annotation
-Fifty-eight dataframes were generated, each with 60,671 rows and 7 columns describing each gene. However, each gene is labeled with its EnsembleID. Therefore, convert them into symbols using the 'org.Hs.eg.db' package or biomaRt. Record key information about each gene, such as biotype and Entrez ID.
-
-```{r eval=FALSE, include=FALSE}
-
-library("biomaRt")
-
-mart <- useMart("ensembl")
-mart <- useDataset("hsapiens_gene_ensembl", mart)
-for(i in seq_along(list_data_GSE199750)) {
-
-  ensembl_ids <- list_data_GSE199750[[i]]$Geneid
-  gene_info <- getBM(attributes = c("gene_biotype", "entrezgene_id", "hgnc_symbol"), 
-                   filters = "ensembl_gene_id", 
-                   values = ensembl_ids, 
-                   mart = mart)
-  
-  list_data_GSE199750[[i]] <- merge(list_data_GSE199750[[i]], gene_info, by.x = "Geneid", by.y = "ensembl_gene_id")
-}
-```
-
-GSE199750: Data cleaning
-```{r eval=FALSE, include=FALSE}
-total_rows <- max(sapply(list_data_GSE199750, nrow))
-counts_gse199750 <- data.frame(matrix(NA, 
-                                      nrow = total_rows),
-                                      ncol = length(list_data_GSE199750)))
-#Rename the columns (e.g., "X21.01684.hisat2.bam") with the corresponding GSM codes, which in this case start with GSM5983813. This will facilitate data integration.
-colnames(counts_gse199750) <- paste0("GSM", seq_along(list_data_GSE199750) + 5983812) 
-
-counts_gse199750 <- list_data_GSE199750 %>%
-  map_dfc(~ .x[, 7]) %>%
-  mutate(across(everything(), ~ replace_na(., 0)))
-colunas_descritivas <- list_data_GSE199750[[1]] %>%
-  select(Geneid, hgnc_symbol, gene_biotype)  
-counts_gse199750 <- bind_cols(colunas_descritivas, counts_gse199750) %>%
-  relocate(Geneid, hgnc_symbol, gene_biotype) 
-counts_sample_info <- list(counts_gse199750, gse199750_sampleinfo)
-
-#Save
-write.csv(counts_sample_info, file="metadata_gse199750.csv")
-saveRDS(counts_gse199750, file = "counts_gse199750.rds")
-
-```
-
-The count table provided by the study is named with Subject ID + Timepoint and not with the GSM code. Therefore, we will need to process the metadata table. Additionally, it lacks the age column. These data can be manipulated in Excel.
-
-```{r eval=FALSE, include=FALSE}
-######### No R #########
-# Crie a nova coluna "Subject_Timepoint" usando a função paste()
-gse199750_metadata$Subject_Timepoint <- paste(gse199750_metadata$SubjectID, gse199750_metadata$Timepoint, sep = "_")
-
-# Reorganize as colunas do dataframe com select()
 gse199750_metadata <- gse199750_metadata %>%
-  select(Subject_Timepoint, everything())
+  mutate(
+    FirstSecondDose = coalesce(FirstSecondVaccine, Vaccine),
+    Subject_Timepoint = paste(SubjectID, Timepoint, sep = "_")
+  ) %>%
+  select(
+    Subject_Timepoint, GEO, SampleN, SubjectID, Age, Sex, Timepoint, 
+    FirstSecondDose, ThirdVaccine, Tissue, Run
+  ) %>%
+  mutate(Age_ranges = cut(
+    Age, 
+    breaks = c(0, 18, 30, 45, 60, 70, 80, Inf), 
+    labels = c("<18", "18-29", "30-44", "45-59", "60-69", "70-79", "80>"), 
+    right = FALSE
+  ) %>% 
+  column_to_rownames("Subject_Timepoint")
 
-# Defina a primeira coluna como os rownames
-rownames(gse199750_metadata) <- gse199750_metadata$Subject_Timepoint
+write.csv(gse199750_metadata, file =here("raw_data", "metadata_gse199750.csv"))
+saveRDS(gse199750_metadata, file = here("raw_data", "gse199750_metadata.rds"))
 
-gse199750_metadata <- gse199750_metadata[, -1] # Remova a coluna de symbols, pois está definida agora como rownames
+# Counts matrix
+raw_RNASeq_counts = readRDS(here("raw_data", "raw_RNASeq_counts.RDS"))
 
-# Salvar arquivo com rownames
-saveRDS(gse199750_metadata, file="gse199750_metadata.rds")
-
-######### No Excel #########
-#Depois de manipular as tabelas no Excel, salve como .csv, importe no R, transforme em dataframe e defina os nomes das amostras como rownames.
-gse199750_metadata = as.data.frame(gse199750_metadata)
-rownames(gse199750_metadata) = gse199750_metadata$Samples
-
-### Ages -----
-Age_ranges <- c(0, 18, 30, 45, 60, 70, 80, Inf)
-Age <- c("<18", "18-29", "30-44", "45-59", "60-69", "70-79", "80>")
-gse199750_metadata$Age_ranges <- cut(gse199750_metadata$Age, breaks = Age_ranges, labels = Age, right = FALSE)
-
-#Save
-write_csv(gse199750_metadata, file="gse199750_metadata_Ages.csv")
-saveRDS(gse199750_metadata, file="gse199750_metadata_Ages.rds")
-
-```
-Gene annotation
-
-```{r eval=FALSE, include=FALSE}
+# The counts table provided by the study("https://bitbucket.org/lynnlab/covirs/src/master/raw_RNASeq_counts.RDS") is named with Subject ID + Timepoint and not with the GSM code. Therefore, we will need to process the metadata table. Additionally, it lacks the age column. These data can be manipulated in Excel.
 ############# Gene annotation -----
 library("biomaRt")
+
 mart <- useMart("ensembl")
 mart <- useDataset("hsapiens_gene_ensembl", mart)
 
-ensembl_ids <- raw_RNASeq_counts[[1]]
+gene_info <- getBM(attributes = c("entrezgene_id", "hgnc_symbol", "ensembl_gene_id"), 
+                   mart = mart) %>% 
+  select(ensembl_gene_id, hgnc_symbol) %>% 
+  distinct()
 
-colnames(raw_RNASeq_counts)[1] <- "ensembl_ids"
+raw_RNASeq_counts_ann <- raw_RNASeq_counts %>% 
+  rownames_to_column("ensembl_gene_id") %>% 
+  inner_join(gene_info, by = "ensembl_gene_id") %>% 
+  filter(hgnc_symbol != "") %>% 
+  distinct() %>%
+  select(sort(names(.))) %>% 
+  select(genes = hgnc_symbol, ensembl_gene_id, everything()) %>% 
+  arrange(genes)
 
-gene_info <- getBM(attributes = c("entrezgene_id", "hgnc_symbol"), 
-                   filters = "ensembl_gene_id",
-                   values = ensembl_ids, 
-                   mart = mart)
+#Save
+write_csv(raw_RNASeq_counts_ann, file= here("raw_data", "raw_RNASeq_counts_annGenes.csv"))
+dupes = raw_RNASeq_counts_ann %>% 
+  get_dupes(genes) %>% 
+  group_by(genes) 
+  column_to_rownames(var = "genes")
 
-raw_RNASeq_counts_ann <- merge(raw_RNASeq_counts, gene_info, by.x = "ensembl_ids", all.x = TRUE)
-
-raw_RNASeq_counts_ann$hgnc_symbol <- ifelse(is.na(raw_RNASeq_counts_ann$hgnc_symbol), raw_RNASeq_counts_ann$Geneid, raw_RNASeq_counts_ann$hgnc_symbol)
-raw_RNASeq_counts_ann <- subset(raw_RNASeq_counts_ann, !duplicated(hgnc_symbol))
-
-#Organizar colunas
-raw_RNASeq_counts_ann <- subset(raw_RNASeq_counts_ann, select = -Geneid)
-hgnc_symbol_index <- which(names(raw_RNASeq_counts_ann) == "hgnc_symbol") 
-raw_RNASeq_counts_ann <- raw_RNASeq_counts_ann %>% 
-  select(hgnc_symbol, everything()) 
-
-#Save .csv
-write.csv(raw_RNASeq_counts_ann, file="raw_RNASeq_counts_annGenes.csv")
-
-```
-
-```{r eval=FALSE, include=FALSE}
-#Converta o arquivo de counts em dataframe e transforme a primeira coluna em rownames. Isso retirará a coluna como variável e resultará em números iguais de obs (metadata) e variables (counts)
-
-raw_RNASeq_counts_annGenes <- as.data.frame(raw_RNASeq_counts_annGenes)
-raw_RNASeq_counts_annGenes <- raw_RNASeq_counts_annGenes[, -1] # Remova a primeira coluna de índices
-rownames(raw_RNASeq_counts_annGenes) <- raw_RNASeq_counts_annGenes$hgnc_symbol # Defina a primeira coluna como os rownames
-raw_RNASeq_counts_annGenes <- raw_RNASeq_counts_annGenes[, -1] # Remova a coluna de symbols, pois está definida agora como rownames
-
-#Reorder table 
-gse199750_counts_ready = t(gse199750_counts_ready)
-ordem_indices <- order(rownames(gse199750_counts_ready))
-gse199750_counts_ready <- gse199750_counts_ready[ordem_indices, ]
-gse199750_counts_ready = t(gse199750_counts_ready)
-
+gse199750_counts_ready
 # Save
-saveRDS(gse199750_counts_ready, file="gse199750_counts_ready.rds")
+saveRDS(gse199750_counts_ready, file= here("raw_data", "gse199750_counts_ready.rds"))
 
-
-#########Caso a tabela apresente valores NA na coluna de hgnc_symbol, execute este comando
-any_na <- any(is.na(raw_RNASeq_counts_annGenes$hgnc_symbol))
-print(any_na)  # Será TRUE se houver valores NA
-any_duplicates <- any(duplicated(raw_RNASeq_counts_annGenes$hgnc_symbol))
-print(any_duplicates)  # Será TRUE se houver duplicatas
-raw_RNASeq_counts_annGenes <- raw_RNASeq_counts_annGenes[complete.cases(raw_RNASeq_counts_annGenes$hgnc_symbol), ]
-any_na <- any(is.na(raw_RNASeq_counts_annGenes$hgnc_symbol))
-print(any_na)
 ```
 
+GSE206023
 
+```{r eval=FALSE, message=FALSE, warning=FALSE, echo=TRUE, cache = TRUE}
+######### GSE206023 ------- 
+gse206023 <- getGEO("GSE206023", 
+                    GSEMatrix = TRUE,  
+                    destdir = here("raw_data")) 
 
+gse206023 <- gse206023[[1]]
+gse206023_metadata <- pData(gse206023)
+colnames(gse206023_metadata)
 
-# (TERMINAR) Principal Variance Components Analysis
+gse206023_metadata <- select(gse206023_metadata, "title", "geo_accession", "source_name_ch1", "organism_ch1", "time:ch1", "treatment:ch1"  )
+
+colnames(gse206023_metadata) <-
+  c("Sample name",
+    "GEO",
+    "Sample type",
+    "Organism",
+    "Timepoints",
+    "Vaccine")
+
+write.csv(gse206023_metadata, file= here("raw_data","gse206023_metadata.csv"))
+saveRDS(gse206023_metadata, file=here("raw_data","gse206023_metadata.rds"))
+
+#### Import matrix.
+#Genes were named incorrectly and represent only 2.000 genes of >30.000. Hence, we externally performed a pseudoalignment to retrieve all genes that were not correctly annotated. 
+gse206023_counts <- read.delim(file=here("raw_data", "GSE206023_tpm_of_48_samples.txt"), 
+                               header = TRUE, sep = "\t", dec = ".")
+
+#Pseudoalignment
+gse206023_counts = read_excel(here("raw_data", "GSE206023_counts_Pseudoalignment.xlsx"))
+
+gse206023_counts_ready = gse206023_counts %>% 
+  select(!c(1, 2)) %>% 
+  drop_na(external_gene_name) %>% 
+  column_to_rownames("external_gene_name")
+
+gse206023_counts_ready %>% 
+  saveRDS(file = here("raw_data", "gse206023_counts_ready.rds"))
+gse206023_counts_ready %>% 
+  write_csv(file = here("raw_data", "gse206023_counts_ready.csv"))
+
+#General statistics
+GSE206023_pseudoalign_stats <- read_excel("raw_data/GSE206023_pseudoalignment_ST1.xlsx", 
+    sheet = "General Statistics")
+```
+
+# Principal Variance Components Analysis
 
 ## Counts normalization
 
@@ -1031,6 +942,7 @@ exprs = all_matrices_normalized_counts %>%
   replace(is.na(.), 0)
 ```
 
+Covariants table
 
 ```{r cache = TRUE}
 cvrts = cvrts %>% 
@@ -1042,12 +954,8 @@ cvrts = cvrts %>%
              by = "sample") %>% 
   arrange(sample) %>% 
   column_to_rownames("sample")
-```
 
-
-```{r cache = TRUE}
 # Input
-
 #For vaccination only (no ongoing infection)
 cvrts_eff_var =  c("day", 
                    "age", 
@@ -1078,6 +986,7 @@ inpData <- expSetobj(exprs, cvrts)
 pct_thrsh <- 0.75 
 ```
 
+Run PVCA analysis
 
 ```{r cache = TRUE}
 #PVCA analysis
@@ -1100,7 +1009,8 @@ pvca_df %>% saveRDS(here("DGE analysis", "pvca_results.rds"))
 pvca_df
 ```
 
-Visualize
+Barplot: Covariants contributions
+
 ```{r cache = TRUE}
 # Visualize
 pvca_df_plot = ggplot(pvca_df) +
@@ -1121,7 +1031,7 @@ ggsave(pvca_df_plot, file = here("Figures", "pvca_raw_normalized_immunegenes_all
 pvca_df_plot
 ```
 
-PCA
+Scatterplot of PVCA
 
 ```{r cache = TRUE}
 # Visualize
@@ -1156,6 +1066,7 @@ normalizedcounts_pca_plot %>% ggplotly()
 ## (TERMINAR) Gene expression by gender
 
 PC1 genes
+
 ```{r}
 #### PC1 -------
 PC1 = var$cos2 %>%
@@ -1197,8 +1108,8 @@ PC1_genes_counts = normalized_counts %>%
 write_csv(PC1_genes_counts, file = here("PCA", "PC1_genes_samples_counts.csv"))
 ```
 
-
 Sex
+
 ```{r fig.height=20, fig.width=20}
 #Sex ----
 pc1_5genes  = ggplot(PC1_genes_counts) +
@@ -1218,6 +1129,7 @@ pc1_5genes  = ggplot(PC1_genes_counts) +
 ```
 
 Age
+
 ```{r fig.height=20, fig.width=20}
 #Age ----
 
@@ -1238,6 +1150,7 @@ pc1_5genes_age  = ggplot(PC1_genes_counts) +
 ```
 
 Unite
+
 ```{r fig.height=20, fig.width=20}
 patch_pc1_genes = pc1_5genes_age + pc1_5genes + plot_layout(guides = "collect")
 
@@ -1248,6 +1161,7 @@ patch_pc1_genes
 ```
 
 PC2 genes
+
 ```{r fig.height=20, fig.width=20}
 #### PC2 -------
 PC2 = var$cos2 %>%
@@ -1290,6 +1204,7 @@ write_csv(PC2_genes_counts, file = here("PCA","PC2_genes_samples_counts.csv"))
 ```
 
 Sex
+
 ```{r fig.height=20, fig.width=20}
 #Sex ----
 pc2_5genes  = ggplot(PC2_genes_counts) +
@@ -1309,6 +1224,7 @@ pc2_5genes  = ggplot(PC2_genes_counts) +
 ```
 
 Age
+
 ```{r fig.height=20, fig.width=20}
 #Age ----
 
@@ -1328,7 +1244,8 @@ pc2_5genes_age  = ggplot(PC2_genes_counts) +
   facet_wrap(vars(genes), scales = "free", ncol = 1)
 ```
 
-Unite 
+Unite
+
 ```{r fig.height=20, fig.width=20}
 patch_pc2_genes = pc2_5genes_age + pc2_5genes + plot_layout(guides = "collect")
 
@@ -1342,6 +1259,7 @@ patch_pc2_genes
 ## 3.1. Metadata
 
 Merge metadata
+
 ```{r eval=FALSE, include=TRUE}
 #Metadata ------
 gse189039_metadata_2 = GSE189039_metadata_1_ %>% 
@@ -1382,6 +1300,7 @@ gse201533_metadata_2 = GSE201533_metadata %>%
 ```
 
 Annotate samples
+
 ```{r eval=FALSE, include=TRUE}
 ann_vaccines_samples_2.1 = ann_vaccines_samples_2 %>% 
   filter(is.na(participant_id)) %>% 
@@ -1410,8 +1329,8 @@ ann_vaccines_samples_participants = ann_vaccines_samples_2 %>%
 write.csv(ann_vaccines_samples_participants, file = "ann_vaccines_samples.csv")
 ```
 
-
 Conditions annotations
+
 ```{r eval=FALSE, include=TRUE}
 library(tidyverse)
 
@@ -1444,8 +1363,8 @@ ann_vaccines_2 = ann_vaccines %>%
 write.csv(ann_vaccines_3, file = "ann_vaccines_19-1-24.csv")
 ```
 
-
 Samples by condition
+
 ```{r fig.height=10, fig.width=20}
 
 ann_vaccines = read_csv(here("Annotations and metadata", "ann_vaccines_conditions.csv"))
@@ -1671,7 +1590,9 @@ res <- results(dds) %>%
 write.csv(res, file = "gse201530_dds_DESeq2_Wald_disease_vac_AND_timepoint_day_ALLDEGS.rds", row.names = TRUE)
 
 ```
+
 Contrasts
+
 ```{r}
 #H-BNT-I
 # contrast = c("disease_time", "H.BNT.I_D1", "H_D0")
@@ -2017,6 +1938,7 @@ write.csv(res, file = "gse189039_dds_DESeq2_Wald_disease_vac_severity_time_ALLDE
 ```
 
 ### Infection
+
 ```{r}
 ## H-I
 # MODERATE
@@ -2024,7 +1946,6 @@ write.csv(res, file = "gse189039_dds_DESeq2_Wald_disease_vac_severity_time_ALLDE
 # contrast = c("disease_vac_severity_time", "H.I_moderate_D26", "H_naive_vac_D0")
 # contrast = c("disease_vac_severity_time", "H.I_moderate_D51", "H_naive_vac_D0")
 ```
-
 
 ```{r}
 # SEVERE
@@ -2154,6 +2075,7 @@ write.csv(gse189039_H_I, "gse189039_H_I_DEGS.csv")
 ```
 
 ### Vaccination
+
 ```{r}
 ## H-BNT-I
 # MILD
@@ -2169,6 +2091,7 @@ write.csv(gse189039_H_I, "gse189039_H_I_DEGS.csv")
 # contrast = c("disease_vac_severity_time", "BNT.I.BNT_mild_D51", "H_naive_vac_D0") 
 
 ```
+
 *H_BNT_I*
 
 ```{r}
@@ -2353,97 +2276,7 @@ write.csv(gse_201530_189039, file = "gse_201530_189039_DEGs_27-11-23.csv")
 write.csv(all_degs_p_05_vac_infected, file = 'all_degs_p_05_vac_infected_27-11-23.csv')
 ```
 
-
-## GSE206023 (ORGANIZAR)
-
-```{r}
-#Baixar dados sobre o estudo.  
-
-gse206023 <- getGEO("GSE206023", GSEMatrix = TRUE) #Use GSEMatrix = TRUE para obter metadados de cada amostra
-gse206023 <- gse206023[[1]] #Analisar o primeiro objeto da lista. Este é o dataset de uma plataforma, mas é possivel em um único estudo terem mais plataformas.
-
-#Analisar informações sobre amostras
-gse206023_metadata <- pData(gse206023) #Informações sobre amostras
-colnames(gse206023_metadata) #Veja quais colunas são interessantes: "title", geo_accession", "source_name_ch1", "organism_ch1", "time:ch1", "treatment:ch1".
-
-# É importante que a coluna title seja importada, porque as amostras na matriz de contagem são nomeadas dessa forma e precisam ser iguais para criar o objeto DESeq2.
-
-gse206023_metadata <- select(gse206023_metadata,"title", "geo_accession", "source_name_ch1", "organism_ch1", "time:ch1", "treatment:ch1"  )  #selecionar colunas de interesse e ordenar.
-
-colnames(gse206023_metadata) <- c("Sample name", "GEO", "Sample type", "Organism", "Timepoints", "Vaccine") #Renomear
-
-#Salvar arquivo
-write.csv(gse206023_metadata, file="gse206023_metadata.csv")
-saveRDS(gse206023_metadata, file="gse206023_metadata.rds")
-```
-
-```{r}
-# A matriz fornecida no GEO está em formato .txt tab delim, com decimais definidos por ".". Assim, use o read.delim e salve o arquivo.
-gse206023_counts <- read.delim(file="GSE206023_tpm_of_48_samples.txt", header = TRUE, sep = "\t", dec = ".")
-write.csv(gse206023_counts, file="gse206023_counts.csv")
-saveRDS(gse206023_counts, file = "gse206023_counts.rds")
-```
-
-
-```{r}
-
-#Talvez, seja necessário copiar e colar este código no Console, porque não gera o arquivo sozinho.
-saveRDS(gse206023_counts, file = "counts_gse206023.rds")
-
-```
-
-```{r}
-#Converta o arquivo de counts em dataframe e transforme a primeira coluna em rownames. Isso retirará a coluna como variável e resultará em números iguais de obs (metadata) e variables (counts)
-
-
-############ Matrix counts ############
-
-gse206023_counts <- as.data.frame(gse206023_counts)
-rownames(gse206023_counts) <- gse206023_counts$Name # Defina a primeira coluna como os rownames
-gse206023_counts <- gse206023_counts[, -1] # Remova a primeira coluna de índices
-
-gse206023_counts <- gse206023_counts[, -1] # Remova a coluna de Name, pois está definida agora como rownames
-
-# Salvar arquivo com rownames
-saveRDS(gse206023_counts, file="gse206023_counts_ready.rds")
-
-########## Metadata #############
-
-gse206023_metadata <- as.data.frame(gse206023_metadata)
-rownames(gse206023_metadata) <- gse206023_metadata$`Sample name` # Defina a primeira coluna como os rownames
-
-gse206023_metadata <- gse206023_metadata[, -1] # Remova a coluna de Name, pois está definida agora como rownames
-
-# Salvar arquivo com rownames
-saveRDS(gse206023_metadata, file="gse206023_metadata_ready.rds")
-```
-
-```{r}
-#########Caso a tabela apresente valores NA na coluna de hgnc_symbol, execute este comando ############
-# Verificar se há valores NA na coluna que será usada como rownames
-any_na <- any(is.na(raw_RNASeq_counts_annGenes$hgnc_symbol))
-print(any_na)  # Será TRUE se houver valores NA
-
-# Verificar se há duplicatas na coluna que será usada como rownames
-any_duplicates <- any(duplicated(raw_RNASeq_counts_annGenes$hgnc_symbol))
-print(any_duplicates)  # Será TRUE se houver duplicatas
-
-
-# Verificar quais linhas possuem NA na coluna "hgnc_symbol"
-rows_with_na <- which(is.na(raw_RNASeq_counts_annGenes$hgnc_symbol))
-
-# Exibir as linhas que possuem NA
-print(rows_with_na) #Neste caso, somente a linha 1599 apresentou NA.
-
-# Selecionar apenas as linhas completas (sem NA) na coluna "hgnc_symbol"
-raw_RNASeq_counts_annGenes <- raw_RNASeq_counts_annGenes[complete.cases(raw_RNASeq_counts_annGenes$hgnc_symbol), ]
-
-# Verificar se ainda há valores NA na coluna "hgnc_symbol" (deve retornar FALSE)
-any_na <- any(is.na(raw_RNASeq_counts_annGenes$hgnc_symbol))
-print(any_na)
-
-
-```
+## GSE206023
 
 ```{r}
 ##Defina as variáveis
@@ -2487,7 +2320,7 @@ write_rds(res,file="gse206023_res_DESeq2_time_vaccine.rds")
 
 ```
 
-## GSE201533  (ORGANIZAR)
+## GSE201533 (ORGANIZAR)
 
 ```{r}
 ############ Matrix counts ############
@@ -2513,7 +2346,9 @@ gse201533_metadata <- gse201533_metadata[, -1]
 saveRDS(gse201533_metadata, file="gse201533_metadata_ready.rds")
 ```
 
-Caso a tabela apresente valores NA na coluna de hgnc_symbol, execute este comando
+Caso a tabela apresente valores NA na coluna de hgnc_symbol, execute
+este comando
+
 ```{r}
 #########Caso a tabela apresente valores NA na coluna de hgnc_symbol, execute este comando
 any_na <- any(is.na(gse201533_counts$geneid))
@@ -2561,9 +2396,8 @@ write_rds(res,file="gse201533_res_DESeq2_vaccine.rds")
 
 ```
 
-
-
 ## GSE199750
+
 ```{r}
 # Required files
 countData <- gse199750_counts_ready
@@ -2591,6 +2425,7 @@ dds <- dds[keep,]
 ```
 
 Execute DESeq2
+
 ```{r}
 ###### Execute DESeq2
 dds <- DESeq(dds, test = "Wald")
@@ -2601,6 +2436,7 @@ resultsNames(dds)
 ```
 
 #### BNT
+
 ```{r}
 ######### PFIZER ######### 
 
@@ -2657,6 +2493,7 @@ write.csv(res_3_0_bnt_mo_degs_table, file = "GSE199750_T3-T0_DEGs_2PF-1MO.csv", 
 ```
 
 #### ChAd
+
 ```{r}
 resultsNames(dds)
 # ChAd V1
@@ -14943,6 +14780,7 @@ rank_results(fit_wf, rank_metric = "accuracy", select_best = TRUE)
 # 9. Heatmaps - Genes - ImmuneGO
 
 Import files
+
 ```{r }
 ############## Import files
 
@@ -15035,8 +14873,8 @@ Immune_GO_genes_Ig = Immune_GO_genes_All %>%
 
 ```
 
-
 ### Interactive heatmap version - All immmune genes
+
 ```{r}
 library(InteractiveComplexHeatmap)
 
@@ -15170,7 +15008,6 @@ htShiny(ht_list)
 htShiny(ht_list, save = "Interactive_CovidOnly_Heatmap")
 
 ```
-
 
 ### 9.1. General
 
