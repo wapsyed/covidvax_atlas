@@ -4427,7 +4427,7 @@ up = df %>%
                                   size = 15,
                                   face = "bold"))+
   labs(title = "Up regulated genes",
-       x = "Week",
+       x = "",
        y = "Number of genes (%)",
        size = "Total number of genes",
        shape = "Type")+ 
@@ -4482,7 +4482,7 @@ ggsave(patch, width = 15, height = 10, file = here("Figures", "MainGOs_percgenes
 patch
 ```
 ```{r fig.height=10, fig.width=15}
-patch %>% 
+up %>% 
   ggplotly()
 ```
 
