@@ -860,6 +860,7 @@ GSE206023_pseudoalign_stats <- read_excel("raw_data/GSE206023_pseudoalignment_ST
 
 ```{r}
 # Counts
+####### Wide table
 gse189039 = gse189039_counts_ready %>% 
   rownames_to_column("genes") 
 gse201530 = gse201530_counts_ready %>% 
@@ -869,8 +870,7 @@ gse201533 = gse201533_counts_ready %>%
 gse199750 = gse199750_counts_ready %>% 
   as.data.frame() %>% 
   rownames_to_column("genes") 
-gse206023 = gse206023_counts_ready %>% 
-  select(genes, everything(), -"...1")
+gse206023 = gse206023_counts_ready
 
 all_matrices_counts = gse189039 %>% 
   full_join(gse201530, by = "genes") %>% 
@@ -880,6 +880,27 @@ all_matrices_counts = gse189039 %>%
 
 write_csv(all_matrices_counts, file = "all_matrices_counts.csv")
 
+
+####### Long table of genes
+all_matrices_genes = bind_rows(gse189039 %>% 
+  select(genes) %>% 
+  mutate(gse_id = "GSE189039"),
+gse201530 %>% 
+  select(genes) %>% 
+  mutate(gse_id = "GSE201530"),
+gse201533 %>% 
+  select(genes) %>% 
+  mutate(gse_id = "GSE201533"),
+gse199750 %>% 
+  select(genes) %>% 
+  mutate(gse_id = "GSE199750"),
+gse206023 %>% 
+  rownames_to_column("genes") %>% 
+  select(genes) %>% 
+  mutate(gse_id = "GSE206023")) 
+
+all_matrices_genes %>% 
+  write_csv(file = here("DGE analysis", "all_matrices_genes.csv"))
 ```
 
 ## 2.3. Principal Variance Components Analysis
@@ -1252,18 +1273,21 @@ samples_by_condition_plot = samples_by_condition %>%
                 "I" = "#DC0000FF",
                 "H" = "grey80")) +
   theme_minimal() +
-  theme(legend.position = "inside",
+  theme(legend.position = "top",
         axis.text.x = element_text(size = 15, color = "black", angle = 45, hjust = 1, vjust = 1.1),
         axis.text.y = element_blank(), 
+        legend.text = element_text(size = 15),
+        legend.title = element_text(size = 20),
+        plot.title = element_text(size = 25),
         axis.title.y = element_text(angle = 180, color = "white"),
         panel.grid.major = element_blank(), 
         panel.grid.minor = element_blank(),
         plot.margin = margin(2, 2, 2, 2, "cm")) +
+  guides(fill=guide_legend(nrow=1,byrow=TRUE)) +
   geom_label(aes(label = samples, y = samples),
              fill = "white",
             position = position_dodge(width = 0), 
             vjust = -0.5, 
-            # hjust = 1, 
             size = 4,
             angle = 0) +
   ggtitle("Samples by condition") +
@@ -1277,7 +1301,7 @@ samples_by_condition_plot
 
 ### 3.1.3. Age by GSE
 
-```{r fig.height=8, fig.width=10}
+```{r fig.height=5, fig.width=10}
 #### AGE BY GSE -------------
 age = ann_vaccines_samples_participants %>% 
   select(age, participant_id, gse_id) %>% 
@@ -1287,8 +1311,8 @@ age_stats = ggbetweenstats(
   data = age,
   x = gse_id,
   y = age,
-  type = "np", 
-  p.adjust.method = "BH"
+  p.adjust.method = "BH",
+  type = "np", ggsignif.args = list(textsize = 2, tip_length = 0.0)
 ) +
   ggplot2::scale_color_manual(
     values = c("GSE199750" = "#80ffdb",
@@ -1298,18 +1322,114 @@ age_stats = ggbetweenstats(
                "GSE189039" = "#48bfe3")) + 
   theme_few() +
   ylim(0, 110) +
-  theme(legend.position = "right",
+  theme(legend.position = "none",
+        plot.title = element_text(size = 20),
+        text = element_text(size = 10),
         axis.text.x = element_text(size = 10, color = "black", angle = 0),
         axis.text.y = element_text(size = 10, color = "black", angle = 0)) +
   labs(y = "Age",
-       x = "")
+       x = "",
+       color = "GSE ID",
+       title = "Study by age")
 
-ggsave(age_stats, file = here("Figures", "Demographics_age.png") , width = 10, height = 8)
+ggsave(age_stats, file = here("Figures", "Demographics_age.png") , width = 6, height = 5)
 
 age_stats
 ```
 
-### 3.1.4. Participants by condition
+### 3.1.4. Sex by GSE
+This figure's text was manipulated further in a design software.
+```{r fig.height=8, fig.width=10}
+#### AGE BY GSE -------------
+
+sex_stats = ann_vaccines_samples_participants %>% 
+  select(sex, participant_id, gse_id) %>% 
+  tabyl(gse_id, sex) %>%
+  adorn_percentages() %>% 
+  as.data.frame() %>% 
+  pivot_longer(cols = -gse_id,
+               values_to = "value",
+               names_to = "sex") %>% 
+    filter(value > 0) %>% 
+  filter(sex != "Total") %>% 
+  mutate(value = value * 100,
+         value = round(value, 0),
+         sex = if_else(sex == "M/F", "Male", sex),
+         value = if_else(gse_id == "GSE206023", 50, value)) %>% 
+  add_row(gse_id = "GSE206023",
+          sex = "Female", 
+          value = 50) %>% 
+  group_by(gse_id, sex)
+
+sex_stats_annotated = sex_stats %>% 
+ ggplot() +
+  aes(
+    x = gse_id,
+    y = value,
+    fill = sex,
+    weight = value,
+    label = value
+  ) +
+  geom_col() +
+  geom_text(vjust = -3, size = 5) +
+  scale_fill_hue(direction = 1) +
+  coord_polar(theta = "y") +
+  theme_minimal() +
+  labs(title = "Sex by study",
+       fill = "Sex") +
+  theme(axis.title = element_blank(),
+        axis.text = element_blank(),
+        plot.title = element_text(size = 25, hjust = 0.5),
+        strip.text = element_text(size = 15),
+        legend.text = element_text(size = 15),
+        legend.title = element_text(size = 20),
+        legend.position = "top") +
+  facet_wrap(vars(gse_id), scales = "free") +
+  scale_fill_manual(values = c("Male" = "#4DBBD5FF",
+          "Female" = "#E64B35FF",
+          "M/F" = "#8491B4FF"))
+
+
+sex_stats_nonumb = sex_stats %>% 
+ ggplot() +
+  aes(
+    x = gse_id,
+    y = value,
+    fill = sex,
+    weight = value,
+    label = value
+  ) +
+  geom_col() +
+  scale_fill_hue(direction = 1) +
+  coord_polar(theta = "y") +
+  theme_minimal() +
+  labs(title = "Sex by study",
+       fill = "Sex") +
+  theme(axis.title = element_blank(),
+        axis.text = element_blank(),
+        plot.title = element_text(size = 25, hjust = 0.5),
+        strip.text = element_text(size = 15),
+        legend.text = element_text(size = 15),
+        legend.title = element_text(size = 20),
+        legend.position = "top") +
+  facet_wrap(vars(gse_id), scales = "free") +
+  scale_fill_manual(values = c("Male" = "#4DBBD5FF",
+          "Female" = "#E64B35FF",
+          "M/F" = "#8491B4FF"))
+
+ggsave(sex_stats_annotated, 
+       file = here("Figures", "Demographics_Sex_annotated.png") , 
+       width = 10, height = 10)
+
+ggsave(sex_stats_nonumb, 
+       file = here("Figures", "Demographics_Sex_nonumbers.png") , 
+       width = 10, height = 10)
+
+sex_stats_annotated
+```
+
+
+### 3.1.5. Participants by condition
 
 ```{r}
 #### Participants by condition ------
@@ -1318,8 +1438,8 @@ ann_vaccines_samples %>%
   select(condition, disease_vac) %>% 
   group_by(condition) %>% 
   summarise(samples = n()) %>% 
-  inner_join(ann_vaccines_condition, by = "condition") %>% 
-  write_csv(here("Annotations and metadata", "ann_vaccines_conditions.csv"))
+  inner_join(ann_vaccines_condition, by = "condition") #%>% 
+  # write_csv(here("Annotations and metadata", "ann_vaccines_conditions.csv"))
 
 
 participants = Studies_Participants %>% 
@@ -4287,9 +4407,9 @@ up = df %>%
     y = n_genes_perc,
     label = condition) +
   geom_jitter(aes(colour = disease_vac,
-                 shape = type,
-                 size = n_genes),
-             na.rm = T) +
+                 shape = type),
+             na.rm = T,
+             size = 4) +
     geom_boxplot(aes(fill = disease_vac, color = disease_vac),
                outlier.shape = NA,
                alpha = 0) +
@@ -4312,9 +4432,7 @@ up = df %>%
        size = "Total number of genes",
        shape = "Type")+ 
   scale_fill_npg() + 
-  scale_colour_npg()+
-  scale_size_continuous(range=c(1,3), breaks=c(100,500,1000))
-up
+  scale_colour_npg()
   
 down = df %>% 
   filter(direction == "DOWN") %>% 
@@ -4323,43 +4441,49 @@ down = df %>%
   ggplot() +
   aes(
     x = week_dv,
-    y = n_genes_perc,
-    label = condition) +
+    y = n_genes_perc
+  ) +
   geom_jitter(aes(colour = disease_vac,
-                 shape = type,
-                 size = n_genes),
-             na.rm = T) +
-    geom_boxplot(aes(fill = disease_vac, color = disease_vac),
+                  shape = type),
+              na.rm = TRUE,
+              size = 4) +
+  geom_boxplot(aes(fill = disease_vac, color = disease_vac),
                outlier.shape = NA,
                alpha = 0) +
   theme_minimal() +
-  facet_wrap(~term_ancestor, nrow=1) +
+  facet_wrap(~term_ancestor, nrow = 1) +
   theme(axis.text.x = element_text(size = 15, color = "black", angle = 90, vjust = 0.5),
         axis.text.y = element_text(size = 15, color = "black"),
         axis.title.x = element_text(size = 15, color = "black", vjust = -1),
         axis.title.y = element_text(size = 15, color = "black"),
         strip.text.x = element_text(size = 15, face = "bold"),
-        legend.text = element_text(size=15, color = "black"),
-        legend.title = element_text(size=15, color = "black"),
+        legend.text = element_text(size = 15, color = "black"),
+        legend.title = element_text(size = 15, color = "black"),
         plot.title = element_text(hjust = 0.5,
                                   size = 15,
-                                  face = "bold"))+
+                                  face = "bold")) +
   labs(title = "Down regulated genes",
        x = "Week",
        y = "Number of genes (%)",
        size = "Total number of genes",
-       shape = "Type")+ 
+       shape = "Type") + 
   scale_fill_npg() + 
-  scale_colour_npg()+
-  scale_size_continuous(range=c(1.5,3), breaks=c(100,500,1000))
-
-down
+  scale_colour_npg() 
+  # geom_text_repel(
+  #   data = df %>% filter(n_genes < 10 & n_genes_perc > 50),
+  #   aes(label = condition),
+  #   show.legend = FALSE
+  # )
 
 patch = up/down + plot_layout(guides = "collect")
 
 ggsave(patch, width = 15, height = 10, file = here("Figures", "MainGOs_percgenes_boxplot_up_down.png"))
 
 patch
+```
+```{r fig.height=10, fig.width=15}
+patch %>% 
+  ggplotly()
 ```
 
 ###4.4.2.2. Barplot by term
@@ -4567,6 +4691,115 @@ ggsave(immune_other_plot, file = "immune_other_plot.png", width = 15, height = 7
 immune_other_plot
 
 ```
+
+```{r fig.height=7, fig.width=15}
+degs_immune = main_go_2 %>% 
+  mutate(direction = if_else(direction == "UP", "Upregulated", "Downregulated"),
+         term_ancestor = fct_relevel(term_ancestor, "Immune system", "Cellular", "Metabolism", "Reg. of BP")) %>%
+  filter(term_ancestor %in% c("Immune system")) %>% 
+  rename(n_genes_immune = n_genes) %>% 
+  pivot_longer(names_to = "totals", values_to = "total_number", cols = c(n_genes_immune, n_genes_total)) %>% 
+  select(condition, direction, term_ancestor, n_genes_perc, totals, total_number) %>% 
+  group_by(condition) %>% 
+  mutate(immune_genes = if_else(totals == "n_genes_immune", total_number, NA),
+         total_degs = if_else(totals == "n_genes_total", total_number, NA),
+         totals = fct_rev(factor(totals)),
+         direction = fct_rev(direction)) %>% 
+  fill(total_degs, .direction = "up") %>% 
+  inner_join(ann_vaccines %>% select(condition, disease_vac)) %>% 
+  mutate(disease_vac = if_else(disease_vac == "V", "Vaccination", "Infection"))
+```
+
+
+```{r fig.height=10, fig.width=12}
+#UP
+immune_other_plot_diseaseorvac_I  = degs_immune %>% 
+  filter(disease_vac == "Infection") %>% 
+  ggplot() +
+ aes(x = fct_rev(factor(condition)), y = total_number, fill = totals) +
+ geom_col() +
+ coord_flip() +
+ theme_minimal() +
+  scale_fill_manual(name = "",
+    values = c("n_genes_total" = "gray90",
+              "n_genes_immune" = "#4DBBD5FF"),
+    labels = c('Total', 'Immune')) +
+  theme(legend.position=c(.9, 0.1),
+        panel.grid = element_blank(),
+        legend.title = element_text(size = 10),
+        legend.text = element_text(size= 15),
+        axis.title.x = element_blank(),
+        axis.text.x = element_blank(),
+        axis.text.y = element_text(size = 10, color = "black", angle = 0, hjust = 1),
+        strip.text.x = element_text(size = 15, color = "white", hjust = 0.5),
+        strip.text.y = element_text(size = 15, angle = 0, face = "bold"),
+        strip.background.x = element_rect(
+          fill = "black", 
+          color = "black", 
+          linewidth = 1 )) +
+  geom_text(aes(label = if_else(!is.na(immune_genes),
+                                paste0(immune_genes, " (", n_genes_perc, "% of ", total_degs, ")") ,
+                                NA), 
+                y = total_degs + immune_genes), 
+            hjust = -0.05, 
+            size = 3,
+            angle = 0) +
+  labs(title = "",
+       fill = "Gene type",
+       x = "",
+       y = "Number of genes") +
+  ylim(0, 4000) +
+    facet_grid(~disease_vac~direction, scales = "free_y")
+
+immune_other_plot_diseaseorvac_V  = degs_immune %>% 
+  filter(disease_vac == "Vaccination") %>% 
+  ggplot() +
+ aes(x = fct_rev(factor(condition)), y = total_number, fill = totals) +
+ geom_col() +
+ coord_flip() +
+ theme_minimal() +
+  scale_fill_manual(name = "Type",
+    values = c("n_genes_total" = "gray90",
+              "n_genes_immune" = "#4DBBD5FF"),
+    labels = c('Total', 'Immune')) +
+  theme(legend.position = "none", 
+        panel.grid = element_blank(),
+        legend.title = element_text(size = 10),
+        legend.text = element_text(size=10),
+        axis.title.x = element_text(size = 10, color = "black"),
+        axis.text.x = element_text(size = 10, color = "black", angle = 0, hjust = 1),
+        axis.text.y = element_text(size = 10, color = "black", angle = 0, hjust = 1),
+        strip.text.x = element_blank(),
+        strip.text.y = element_text(size = 15, angle = 0, face = "bold"),
+        strip.background.x = element_blank()) +
+  geom_text(aes(label = if_else(!is.na(immune_genes),
+                                paste0(immune_genes, " (", n_genes_perc, "% of ", total_degs, ")") ,
+                                NA), 
+                y = total_degs + immune_genes), 
+            hjust = -0.05, 
+            size = 3,
+            angle = 0) +
+  labs(title = "",
+       fill = "Gene type",
+       x = "",
+       y = "Number of genes") +
+  ylim(0, 4000) +
+    facet_grid(~disease_vac~direction, scales = "free_y")
+
+patch_immune_degs = immune_other_plot_diseaseorvac_I / immune_other_plot_diseaseorvac_V
+
+ggsave(patch_immune_degs, file = here("Figures", "immune_other_plot_diseaseorvac.png"), width = 15, height = 7)
+ggsave(patch_immune_degs, file = here("Figures", "immune_other_plot_diseaseorvac_2.png"), width = 15, height = 10)
+
+patch_immune_degs
+```
+
+
+```{r fig.height=7, fig.width=15}
+ggsave(immune_other_plot_diseaseorvac, file = "immune_other_plot_diseaseorvac.png", width = 15, height = 7)
+immune_other_plot_diseaseorvac
+```
+
 
 ### 4.4.3 Shared genes
 
@@ -8493,51 +8726,44 @@ VAX_GeneSets_Blood_PBMC_VAC.stats = VAX_GeneSets_Blood_PBMC_VAC %>%
 ## 7.2 Immune genes representation in the datasets
 Are all immune-related genes represented in all datasets?
 
+### After TCR and BCR removal
+
 ```{r}
-#Genes representados e não representados
+genes_raw_combined = all_matrices_genes
+ImmuneGO_Annotated_Genes
 
-ImmuneGO_Annotated_Genes = ImmuneGO_Annotated_Genes_Nested_Interesting %>% 
-  select(genes, process) 
-
-ImmuneGO_Annotated_Genes_2 = ImmuneGO_Annotated_Genes_Nested_Interesting %>% 
-  select(genes) %>% 
-  distinct() %>% 
-  mutate(process = "All") %>% 
-  bind_rows(ImmuneGO_Annotated_Genes_Nested_Interesting)
-
-
-ImmuneGO_Annotated_Genes_Interesting_studies = ImmuneGO_Annotated_Genes_2 %>% 
-  merge(genes_raw_combined, all.x = T, all.y =F) %>% 
-  select(study, process, genes) %>% 
-  group_by(study, process) %>% 
-  mutate(process = case_when(
-  process == "ANTIVIRAL AND INTERFERON" ~ "ANTIVIRAL/IFN",
-  process == "INNATE IMMUNE SYSTEM" ~ "INNATE",
-  process == "HUMORAL ADAPTIVE IMMUNE SYSTEM" ~ "HUMORAL",
-  process == "CELLULAR ADAPTIVE IMMUNE SYSTEM" ~ "CELLULAR",
-  process == "ADAPTIVE IMMUNE SYSTEM" ~ "ADAPTIVE",
-  process == "IMMUNOGLOBULIN MEDIATED IMMUNE RESPONSE" ~ "IMMUNOGLOBULIN-MEDIATED",
-  TRUE ~ process)) %>% 
-  mutate(in_out = 1) %>% 
-  filter(!is.na(study)) %>% 
-  mutate(process = factor(process, levels = c('INNATE', 
-                                               'ADAPTIVE', 
-                                               'CELLULAR', 
-                                               'HUMORAL')),
-         study = factor(study, levels = c('GSE199750', 
+datasets_immune_genes = genes_raw_combined %>% 
+  right_join(ImmuneGO_Annotated_Genes %>% 
+               filter(go_term == "Manual") %>% 
+               select(process, genes)  %>%  
+               filter(process %in% c('INNATE IMMUNE SYSTEM',
+                                     'ADAPTIVE IMMUNE SYSTEM',
+                                     'CELLULAR ADAPTIVE IMMUNE SYSTEM',
+                                     'HUMORAL ADAPTIVE IMMUNE SYSTEM')), by = "genes") %>% 
+  mutate(process = fct_relevel(process, 'INNATE IMMUNE SYSTEM',
+                                     'ADAPTIVE IMMUNE SYSTEM',
+                                     'CELLULAR ADAPTIVE IMMUNE SYSTEM',
+                                     'HUMORAL ADAPTIVE IMMUNE SYSTEM'),
+         gse_id = fct_relevel(gse_id, 'GSE199750', 
                                           'GSE201533',
                                           'GSE201530',
                                           'GSE189039',
-                                          "GSE206023")))
+                                          "GSE206023")) %>% 
+  filter(gse_id != "NA")
+
+```
 
 
+
+```{r fig.height=10, fig.width=20}
 ######## ALL
 
-ImmuneGO_Interesting_Genes_plot.higher <- ImmuneGO_Annotated_Genes_Interesting_studies %>%
-  filter(process %in% c("ADAPTIVE", "INNATE", "HUMORAL", "CELLULAR")) %>%
+ImmuneGO_Interesting_Genes_plot.higher <- datasets_immune_genes %>%
   ggplot() +
-  aes(x = study, y = genes, fill = study) +  # Reordenar os levels de study
+  aes(x = fct_rev(gse_id), y = genes, fill = gse_id) +
   geom_tile() +
+  facet_wrap(vars(process), scales = "free_x",
+             ncol = 1) +
   scale_fill_manual(
     values = c("GSE199750" = "#80ffdb",
                "GSE201533" = "#5e60ce", 
@@ -8545,99 +8771,62 @@ ImmuneGO_Interesting_Genes_plot.higher <- ImmuneGO_Annotated_Genes_Interesting_s
                "GSE206023" = "#4361ee",
                "GSE189039" = "#48bfe3")) +
   coord_flip() +
-  theme_minimal() +
-  facet_wrap(vars(process), scales = "free_x", ncol = 1) +
+  theme_void() +
   labs(
     x = "GSE_ID",
     y = "#Genes",
-    title = "#Genes represented in ImmuneGO, by study") + 
-  theme(axis.text.x = element_text(angle = 90, size = 3, hjust = 1),
-        axis.text.y = element_text(size = 20),
-        strip.text = element_text(size= 20)) +
-    scale_x_discrete(limits = rev(levels(ImmuneGO_Annotated_Genes_Interesting_studies$study)))
+    fill = "GSE ID",
+    title = "") + 
+  theme(axis.text.x = element_text(angle = 90, size = 0),
+        axis.text.y = element_text(size = 0, hjust = 20),
+        plot.title = element_text(size = 20),
+        legend.position = "right",
+        legend.text = element_text(size = 20),
+        legend.title = element_text(size = 20),
+        strip.text = element_text(size= 20))
 
-#Salvar
+#Save
 ggsave(ImmuneGO_Interesting_Genes_plot.higher, 
-       file = "ImmuneGO_Interesting_Genes_Adaptive_Innate_plot_label.png", 
-       width = 20, height = 20)
+       file = here("Figures", "ImmuneGO_Dataset_Representation_label.png"), 
+       width = 20, height = 10)
+
+ImmuneGO_Interesting_Genes_plot.higher
+```
 
 
-#Sem label
-ImmuneGO_Interesting_Genes_plot.nolabel = ImmuneGO_Annotated_Genes_Interesting_studies %>%
-  filter(process %in% c("ADAPTIVE", "INNATE", "HUMORAL", "CELLULAR")) %>% 
-  ggplot() +
-  aes(x = study, y = genes, fill = study) +  # Reordenar os levels de study
-  geom_tile() +
-  scale_fill_manual(
-    values = c("GSE199750" = "#80ffdb",
-               "GSE201533" = "#5e60ce", 
-               "GSE201530" = "#7400b8",
-               "GSE206023" = "#4361ee",
-               "GSE189039" = "#48bfe3"))  +
-  coord_flip() +
-  theme_minimal() +
-  facet_wrap(vars(process), scales = "free_x", ncol = 1)  +
-  labs(
-    x = "GSE_ID",
-    y = "#Genes",
-    title = "#Genes represented in ImmuneGO, by study") + 
-  theme(axis.text.x = element_text(angle = 90, size = 0, hjust = 1),
-        axis.text.y = element_text(size = 20),
-        strip.text = element_text(size= 20)) +
-  scale_x_discrete(limits = rev(levels(ImmuneGO_Annotated_Genes_Interesting_studies$study)))
-
-#Salvar
-ggsave(ImmuneGO_Interesting_Genes_plot.nolabel, 
-       file = "ImmuneGO_Interesting_Genes_Adaptive_Innate_plot_nolabel.png", 
-       width = 20, height = 20)
-
+```{r fig.height=10, fig.width=20}
 ############### Grouped
-
-ImmuneGO_Annotated_Genes_Nested_Interesting_grouped = ImmuneGO_Annotated_Genes_Nested_Interesting %>% 
-  filter(process %in% c("INNATE IMMUNE SYSTEM", 
-                        "ADAPTIVE IMMUNE SYSTEM", 
-                        "CELLULAR ADAPTIVE IMMUNE SYSTEM", 
-                        "HUMORAL ADAPTIVE IMMUNE SYSTEM"))
-
 ImmuneGO_genes_indatasets.merge_grouped = genes_raw_combined %>% 
-  group_by(study, genes) %>% 
-  merge(ImmuneGO_Annotated_Genes_Nested_Interesting_grouped, by.x = "genes", all.x = F, all.y = T) %>%
-  select(genes, study, process) %>% 
-  distinct() %>% 
-  group_by(study, process) %>%  
-  select(-genes) %>% 
-  summarise(n_genes_in = n()) %>% 
-  merge(ImmuneGO_Annotated_Genes_Nested_Interesting_grouped, by = "process", all.y = F) %>% 
-  select(study, process, set_size, n_genes_in) %>%
-  distinct() %>% 
-  filter(study != "NA")  %>% 
-  summarise(study,
-            process,
-            set_size,
-            n_genes_in,
-            prop_in = (n_genes_in/set_size)*100,
-            prop_in = round(prop_in, 1),
-            study,
-            process) %>% 
-  mutate(process = case_when(
-            process == "ANTIVIRAL AND INTERFERON" ~ "ANTIVIRAL/IFN",
-            process == "INNATE IMMUNE SYSTEM" ~ "INNATE",
-            process == "HUMORAL ADAPTIVE IMMUNE SYSTEM" ~ "HUMORAL",
-            process == "CELLULAR ADAPTIVE IMMUNE SYSTEM" ~ "CELLULAR",
-            process == "ADAPTIVE IMMUNE SYSTEM" ~ "ADAPTIVE",
-            process == "IMMUNOGLOBULIN MEDIATED IMMUNE RESPONSE" ~ "IMMUNOGLOBULIN-MEDIATED",
-            TRUE ~ process),
-         process = factor(process, levels = c('INNATE', 
-                                               'ADAPTIVE', 
-                                               'CELLULAR', 
-                                               'HUMORAL')),
-         study = factor(study, levels = unique(study)))
+  inner_join(ImmuneGO_Annotated_Genes %>% 
+               filter(go_term == "Manual") %>% 
+               select(process, genes)  %>%  
+               filter(process %in% c('INNATE IMMUNE SYSTEM',
+                                     'ADAPTIVE IMMUNE SYSTEM',
+                                     'CELLULAR ADAPTIVE IMMUNE SYSTEM',
+                                     'HUMORAL ADAPTIVE IMMUNE SYSTEM')), by = "genes") %>% 
+  group_by(gse_id, process) %>% 
+  summarize(n_in = n()) %>% 
+  inner_join(ImmuneGO_Annotated_Genes %>% select(process, set_size)) %>% 
+  mutate(n_perc_in = n_in/set_size,
+         n_perc_in = n_perc_in *100,
+         n_perc_in = round(n_perc_in,0)) %>% 
+    distinct() %>% 
+    mutate(process = fct_relevel(process, 'INNATE IMMUNE SYSTEM',
+                                     'ADAPTIVE IMMUNE SYSTEM',
+                                     'CELLULAR ADAPTIVE IMMUNE SYSTEM',
+                                     'HUMORAL ADAPTIVE IMMUNE SYSTEM'))
 
-#Plotar
-
-ggImmuneGO_genes_indatasets.stats = ggplot(ImmuneGO_genes_indatasets.merge_grouped) +
-  aes(x = reorder(study, prop_in), fill = study, weight = prop_in) +
-  geom_bar() +
+#Plot
+ggImmuneGO_genes_indatasets.stats =  ImmuneGO_genes_indatasets.merge_grouped %>% 
+  mutate(gse_id = fct_relevel(gse_id,  'GSE199750', 
+                                          'GSE201533',
+                                          'GSE201530',
+                                          'GSE189039',
+                                          'GSE206023') %>% 
+           fct_rev()) %>% 
+  ggplot() +
+  aes(x = gse_id, y = n_perc_in, fill = gse_id) +
+  geom_col() +
   scale_fill_manual(
     values = c("GSE199750" = "#80ffdb",
                "GSE201533" = "#5e60ce", 
@@ -8645,21 +8834,32 @@ ggImmuneGO_genes_indatasets.stats = ggplot(ImmuneGO_genes_indatasets.merge_group
                "GSE206023" = "#4361ee",
                "GSE189039" = "#48bfe3")) +
   coord_flip() +
-  theme_minimal() +
-  geom_text(aes(label = prop_in, y = prop_in), 
+  theme_void() +
+  geom_text(aes(label = n_perc_in, y = n_perc_in), 
             position = position_dodge(width = 0.9), 
-            vjust = -0, 
-            hjust = -0.2, 
-            size = 3) +
+            vjust = 0.5, 
+            hjust = -0.05, 
+            size = 6) +
   labs(
-    x = "GSE_ID",
+    x = "",
     y = "#Genes",
-    title = "#Genes represented in ImmuneGO, by study"
+    title = ""
   ) +
   facet_wrap(vars(process), ncol = 1) +
-  theme(strip.text = element_text(size=8))
-  
-ggsave(ggImmuneGO_genes_indatasets.stats, file = "ImmuneGO_Genesrepresented_bystudy.png", width = 6, height = 10)
+    theme(axis.text.x = element_text(angle = 90, size = 0, hjust = 1),
+        axis.text.y = element_text(size = 20),
+        plot.title = element_text(size = 20),
+        legend.position = "none",
+        strip.text = element_text(size= 20)) +
+  ylim(0, 110)
+
+patch_indatasets = ggImmuneGO_genes_indatasets.stats + ImmuneGO_Interesting_Genes_plot.higher +
+  plot_layout(widths = c(1, 2)) +
+  plot_annotation(title = "Number of genes represented in ImmuneGO, by study", 
+                  theme = theme(plot.title = element_text(size = 30)))
+
+ggsave(patch_indatasets, file = here("Figures", "ImmuneGO_Genesrepresented_bystudy.png"), width = 20, height = 10)
+patch_indatasets
 
 ```
 
