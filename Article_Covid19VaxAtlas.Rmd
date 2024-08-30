@@ -10560,13 +10560,32 @@ pr_curve_res %>%
 ```
 
 ```{r fig.height=10, fig.width=10}
-normalized_counts_long = normalized_counts %>% rownames_to_column("genes") %>% 
+
+all_matrices_counts <- readRDS(here("DGE analysis", "all_matrices_counts.rds"))
+all_matrices_counts_long = all_matrices_counts %>% 
   pivot_longer(cols = -genes,
-               names_to = "sample",
-               values_to = "expression") %>% 
+               names_to = "sample", 
+               values_to = "counts")
+head(all_matrices_counts)
+all_matrices_counts_long_annotated = all_matrices_counts_long %>% 
   inner_join(ann_vaccines_samples,
              by = "sample")
 
+all_matrices_counts_long_annotated %>% saveRDS(here("DGE analysis", "all_matrices_counts_long_annotated.rds"))
+
+control_counts_gse206023 = all_matrices_counts_long_annotated %>% 
+  filter(gse_id == "GSE206023") %>% 
+  select(genes, sample, counts, condition, vaccine, day) %>% 
+  filter(day == 0) %>% 
+  group_by(day, genes) %>% 
+  summarize(control_counts_mean = mean(counts)) %>% 
+  select(genes, control_counts_mean) %>% 
+  inner_join()
+  
+```
+
+
+```{r fig.height=10, fig.width=10}
 pred_genes_counts = final_res_preds %>% 
   select(pred_class = .pred_class,
          pred_I = .pred_I,
