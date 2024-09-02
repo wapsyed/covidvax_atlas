@@ -918,7 +918,125 @@ all_matrices_genes %>%
 ## 2.3. Principal Variance Components Analysis
 
 ### 2.3.1. Counts normalization
+Log2fc by sample
+```{r}
+#### Log2fc by sample
+all_matrices_counts_long = all_matrices_counts %>% 
+  pivot_longer(cols = -genes,
+               names_to = "sample",
+               values_to = "counts")
 
+all_matrices_counts_long_annotated = all_matrices_counts_long %>% 
+  inner_join(ann_vaccines_samples, by = "sample")
+
+all_matrices_counts_long_annotated %>% saveRDS(here("DGE analysis", "all_matrices_counts_long_annotated.rds"))
+
+
+# Log2FC by sample ------
+
+# GSE206023
+counts_control_gse206023 = all_matrices_counts_long_annotated %>% 
+  filter(gse_id == "GSE206023") %>% 
+  filter(!is.na(counts))
+
+counts_gse206023_samples_l2fc = counts_control_gse206023 %>% 
+  filter(day == 0) %>% 
+  select(genes, counts) %>% 
+  group_by(genes) %>% 
+  summarize(control_mean_counts = mean(counts)) %>% 
+  inner_join(counts_control_gse206023, by = "genes") %>% 
+  mutate(diff = counts - control_mean_counts,
+         log2fc = if_else(diff < 0, abs(diff) %>% log2(), 
+                          log2(diff)),
+         log2fc = if_else(log2fc == -Inf, 0, log2fc)) %>% 
+  select(genes, condition, sample, control_mean_counts, counts,diff, log2fc)
+
+counts_gse206023_samples_l2fc
+```
+
+
+```{r}
+# GSE189039
+counts_control_gse189039 = all_matrices_counts_long_annotated %>% 
+  filter(gse_id == "GSE189039") %>% 
+  filter(!is.na(counts))
+
+counts_gse189039_samples_l2fc = counts_control_gse189039 %>% 
+  filter(day == 0) %>% 
+  select(genes, counts) %>% 
+  group_by(genes) %>% 
+  summarize(control_mean_counts = mean(counts)) %>% 
+  inner_join(counts_control_gse189039, by = "genes") %>% 
+  mutate(diff = counts - control_mean_counts,
+         log2fc = if_else(diff < 0, abs(diff) %>% log2(), 
+                          log2(diff)),
+         log2fc = if_else(log2fc == -Inf, 0, log2fc)) %>% 
+  select(genes, condition, sample, control_mean_counts, counts,diff, log2fc)
+
+# GSE201530
+counts_control_gse201530 = all_matrices_counts_long_annotated %>% 
+  filter(gse_id == "GSE201530") %>% 
+  filter(!is.na(counts))
+
+counts_gse201530_samples_l2fc = counts_control_gse201530 %>% 
+  filter(day == 0) %>% 
+  select(genes, counts) %>% 
+  group_by(genes) %>% 
+  summarize(control_mean_counts = mean(counts)) %>% 
+  inner_join(counts_control_gse201530, by = "genes") %>% 
+  mutate(diff = counts - control_mean_counts,
+         log2fc = if_else(diff < 0, abs(diff) %>% log2(), 
+                          log2(diff)),
+         log2fc = if_else(log2fc == -Inf, 0, log2fc)) %>% 
+  select(genes, condition, sample, control_mean_counts, counts,diff, log2fc)
+
+# GSE201533
+counts_control_gse201533 = all_matrices_counts_long_annotated %>% 
+  filter(gse_id == "GSE201533") %>% 
+  filter(!is.na(counts))
+
+counts_gse201533_samples_l2fc = counts_control_gse201533 %>% 
+  filter(day == 0) %>% 
+  select(genes, counts) %>% 
+  group_by(genes) %>% 
+  summarize(control_mean_counts = mean(counts)) %>% 
+  inner_join(counts_control_gse201533, by = "genes") %>% 
+  mutate(diff = counts - control_mean_counts,
+         log2fc = if_else(diff < 0, abs(diff) %>% log2(), 
+                          log2(diff)),
+         log2fc = if_else(log2fc == -Inf, 0, log2fc)) %>% 
+  select(genes, condition, sample, control_mean_counts, counts,diff, log2fc)
+  
+
+# GSE199750
+counts_control_gse199750 = all_matrices_counts_long_annotated %>% 
+  filter(gse_id == "GSE199750") %>% 
+  filter(!is.na(counts))
+
+counts_gse199750_samples_l2fc = counts_control_gse199750 %>% 
+  filter(day == 0) %>% 
+  select(genes, counts) %>% 
+  group_by(genes) %>% 
+  summarize(control_mean_counts = mean(counts)) %>% 
+  inner_join(counts_control_gse199750, by = "genes") %>% 
+  mutate(diff = counts - control_mean_counts,
+         log2fc = if_else(diff < 0, abs(diff) %>% log2(), 
+                          log2(diff)),
+         log2fc = if_else(log2fc == -Inf, 0, log2fc)) %>% 
+  select(genes, condition, sample, control_mean_counts, counts,diff, log2fc)
+
+
+all_samples_l2fc = bind_rows(counts_gse206023_samples_l2fc,
+                         counts_gse199750_samples_l2fc,
+                         counts_gse201533_samples_l2fc,
+                         counts_gse201530_samples_l2fc,
+                         counts_gse189039_samples_l2fc)
+
+all_samples_l2fc %>% 
+  saveRDS(file = here("DGE analysis", "all_samples_l2fc.rds"))
+```
+
+DESeq2 normalization
 ```{r}
 ##### DESEQ2 Normalization
 library(DESeq2)
@@ -1315,7 +1433,7 @@ samples_by_condition_plot
 
 ### 3.1.3. Age by GSE
 
-```{r fig.height=5, fig.width=10}
+```{r fig.height=5, fig.width=6}
 #### AGE BY GSE -------------
 age = ann_vaccines_samples %>% 
   select(age, participant_id, gse_id) %>% 
@@ -1325,15 +1443,16 @@ age_stats = ggbetweenstats(
   data = age,
   x = gse_id,
   y = age,
-  p.adjust.method = "BH",
+  p.adjust.method = "BH", 
+  point.args = list(alpha = 1),
   type = "np", ggsignif.args = list(textsize = 2, tip_length = 0.0)
 ) +
   ggplot2::scale_color_manual(
-    values = c("GSE199750" = "#80ffdb",
+    values = c("GSE199750" = "#80ed99",
                "GSE201533" = "#5e60ce", 
                "GSE201530" = "#7400b8",
                "GSE206023" = "#4361ee",
-               "GSE189039" = "#48bfe3")) + 
+               "GSE189039" = "#48bfe3")) +
   theme_few() +
   ylim(0, 110) +
   theme(legend.position = "none",
@@ -1346,7 +1465,7 @@ age_stats = ggbetweenstats(
        color = "GSE ID",
        title = "Study by age")
 
-ggsave(age_stats, file = here("Figures", "Demographics_age.png") , width = 6, height = 5)
+# ggsave(age_stats, file = here("Figures", "Demographics_age.png") , width = 6, height = 5)
 
 age_stats
 ```
@@ -6477,12 +6596,16 @@ ImmuneGO_Genes = all_degs_p_05_vac_infected_19_12_23 %>%
 ```{r}
 #INPUT
 data_genes = ImmuneGO_Genes 
-filename = "ImmuneGO_Genes"
+filename = "RandomforestGenes_COVID_Infec_Vac"
 ```
 
 ```{r}
 #Convert long to wide table format.
 #Dataframe with sample annotation
+
+data_genes = all_matrices_counts_genesRF
+
+
 ann_vaccines_pca_matrix = data_genes %>% 
   mutate(log2fold_change = as.numeric(log2fold_change)) %>% 
   select(condition, genes, log2fold_change) %>% 
@@ -10167,9 +10290,15 @@ library(ggthemes)
 
 ```{r}
 all_matrices_normalized_counts <- readRDS(here("DGE analysis", "all_matrices_normalized_counts.rds"))
+all_matrices_counts <- readRDS(here("DGE analysis", "all_matrices_counts.rds"))
 ann_vaccines_samples = read_csv(here("Annotations and metadata", "ann_vaccines_samples.csv"))
 PC_1_2_cos2 = read_csv(here("PCA", "PC_1_2_cos2.csv"))
+
+
+dim(all_matrices_normalized_counts)
 ```
+
+
 
 ## 8.2. COVID-19 vaccines vs infection
 
@@ -10188,6 +10317,8 @@ ann_vaccines_samples_filtered = ann_vaccines_samples %>%
 #How many samples by level?
 count_levels = ann_vaccines_samples_filtered %>% 
   dplyr::count(outcomevar)
+
+count_levels
 
 #How many levels?
 levels = nrow(count_levels)
@@ -10218,7 +10349,7 @@ df_input <- df %>%
          everything()) %>%
   column_to_rownames("sample") %>%
   mutate_if(is.character, factor) %>% 
-  mutate(fct_relevel(outcomevar, order_levels))
+  mutate(outcomevar = fct_relevel(outcomevar, order_levels))
 
 # glimpse(df_input)
 
@@ -10281,25 +10412,7 @@ tune_res <- tune_grid(
 ```{r fig.height=10, fig.width=10}
 # Assess data ----
 
-# recall
-metrics_tuneres_recall = tune_res %>%
-  collect_metrics() %>%
-  filter(.metric == "recall") %>%
-  select(mean, min_n, mtry) %>%
-  pivot_longer(min_n:mtry,
-    values_to = "value",
-    names_to = "parameter"
-  ) %>%
-  ggplot(aes(value, mean, color = parameter)) +
-  geom_line() +
-  geom_point(show.legend = FALSE) +
-  geom_text_repel(aes(label = value))+
-  facet_wrap(~parameter, scales = "free_x") +
-  labs(x = NULL, y = "recall")
-
-metrics_tuneres_recall
-
-#Accuracy
+#Metricss
 metrics_tuneres = tune_res %>%
   collect_metrics() %>%
   select(mean, min_n, mtry, .metric) %>%
@@ -10319,7 +10432,7 @@ metrics_tuneres
 
 metrics_tuneres %>% ggsave(file = here("Figures",
                                        paste0(filename, 
-                                              outcomevar, today(),
+                                              outcomevar,
                                               "_tuneres_metrics.png")),
                                         width = 10,
                                         height = 10)
@@ -10389,9 +10502,8 @@ final_rf <- finalize_model(
 final = final_rf %>%
   set_engine("ranger", importance = "permutation") %>%
   fit(outcomevar ~ .,
-    data = juice(tree_prep)
-  ) %>% 
-  vip(num_features = 6)
+    data = juice(tree_prep)) %>% 
+  vip()
 
 genes_rf = final$data
 genes_rf = genes_rf %>% select(genes = Variable, importance = Importance)
@@ -10457,6 +10569,7 @@ final_res_preds = final_res %>%
   )) %>%
   bind_cols(trees_test)
 
+
 #Confusion matrix
 res_conf_mat = conf_mat(final_res_preds, truth = outcomevar...6,
          estimate = .pred_class)
@@ -10490,12 +10603,14 @@ final_res_metrics = bind_rows(res_acc,
 
 
 final_res_metrics_conf = list(res_conf_mat, 
-                         final_res_metrics)
+                         final_res_metrics,
+                         final_res_preds)
 
 final_res_metrics_conf
 
 final_res_metrics_conf %>% 
   saveRDS(file = here("Machine learning", paste0("final_res_metrics", filename, outcomevar, ".rds")))
+
 
 #Plot
 final_model_metrics = final_res_metrics %>% 
@@ -10534,7 +10649,14 @@ ggsave(final_model_metrics,
                     paste0("final_model_metrics_", filename, outcomevar,  ".png")),
         width = 5,
         height = 3)
-final_model_metrics
+
+
+#Which are the incorrect?
+final_res_preds %>% rownames_to_column("sample") %>%  
+  inner_join(ann_vaccines_samples %>% 
+               select(condition, sample), by = "sample") %>% 
+  filter(correct == "Incorrect") %>% 
+  select(sample, condition, everything())
 ```
 #### Precision recall curve
 ```{r}
@@ -10559,6 +10681,218 @@ pr_curve_res %>%
   
 ```
 
+```{r}
+#Matrix counts of VIP genes
+all_matrices_counts_genesRF = all_matrices_counts_long_annotated %>% 
+  inner_join(genes_rf, by = "genes")
+```
+
+
+#### Relative effects
+
+Function
+```{r fig.height=5, fig.width=7}
+REffect <- function(data, dep_vars, indep_var, n_boot = 1000, 
+                    plot = TRUE, plot_colors = c("red", "darkblue"), 
+                    plot_labels = list(y = "Relative effect", x = "Genes"), 
+                    plot_theme = theme_few(), plot_legend_position = "top", 
+                    plot_legend_labels = c("Vaccination", "Infection")) {
+  
+  library(npmv)
+  library(ggplot2)
+  library(reshape2)
+  
+  if(!all(data[[indep_var]] %in% c(0, 1))) {
+    stop("A variável independente precisa conter apenas 0 e 1 (dois grupos).")
+  }
+  
+  n_aab <- nrow(data)
+  list_boot_aab <- list()
+  
+  # Loop de Bootstrap
+  for (i in 0:n_boot) {
+    if (i == 0) {
+      df_sample <- 1:n_aab
+    } else {
+      df_sample <- sample(1:n_aab, n_aab, replace = TRUE)
+    }
+    
+    formula_str <- paste(dep_vars, collapse = " | ")
+    formula <- as.formula(paste(formula_str, "~", indep_var))
+    
+    manova_aab <- nonpartest(formula, data = data[df_sample, ], permtest = FALSE, plots = FALSE,
+                             permreps = 1000, tests = c(1, 0, 0, 0))
+    
+    if (i == 0) obs_aab <- manova_aab
+    
+    list_boot_aab[[i + 1]] <- manova_aab
+    
+    cat("ANOVA/ boot/ aab/ i = ", i, "\n")
+  }
+  
+  obs_manova <- list_boot_aab[[1]]$twogroupreleffects
+  row_manova <- rownames(obs_manova)
+  
+  releffects <- lapply(list_boot_aab[-1], "[[", 2)
+  
+  df_perc_boot <- lapply(seq_len(nrow(obs_manova)), function(i) {
+    q <- sapply(seq_len(ncol(obs_manova)), function(j) {
+      v <- sapply(releffects, function(r) {
+        row <- rownames(r)
+        if(row[1] != row_manova[1]) r <- r[2:1,]
+        r[i, j]
+      })
+      quantile(v, probs = c(0.025, 0.975))
+    })
+    colnames(q) <- colnames(obs_manova)
+    df <- data.frame(Var2 = colnames(q), t(q),
+                     group = ifelse(i == 1, row_manova[1], row_manova[2]))
+    df$Var2 <- factor(df$Var2, levels = sort(unique(df$Var2)), ordered = TRUE)
+    return(df)
+  })
+  
+  names(df_perc_boot) <- row_manova
+  
+  df <- reshape2::melt(
+    cbind(obs_manova, group = row_manova),
+    id.vars = "group"
+  )
+  df$Var1 <- "point_est"
+  df <- df[, c(4, 2, 3, 1)]
+  colnames(df)[2] <- "Var2"
+  
+  df <- dplyr::arrange(df, group, desc(value), Var2)
+  df$Var2 <- as.character(df$Var2)
+  df$Var2 <- factor(df$Var2, levels = unique(df$Var2), ordered = TRUE)
+  
+  for (k in seq_len(2)) {
+    df_perc_boot[[k]]$Var2 <- factor(df_perc_boot[[k]]$Var2, levels = levels(df$Var2), ordered = TRUE)
+  }
+  
+  if (plot) {
+    p <- ggplot(data = df, aes(x = Var2, y = value, group = group, color = group)) +
+      geom_ribbon(inherit.aes = FALSE, data = df_perc_boot[[1]],
+                  aes(x = Var2, ymin = X2.5., ymax = X97.5., group = group), fill = plot_colors[1],
+                  alpha = 0.3) +
+      geom_ribbon(inherit.aes = FALSE, data = df_perc_boot[[2]],
+                  aes(x = Var2, ymin = X2.5., ymax = X97.5., group = group), fill = plot_colors[2],
+                  alpha = 0.3) +
+      geom_line() +
+      geom_point(aes(size = value)) +
+      scale_colour_manual("", values = c("1" = plot_colors[2], "0" = plot_colors[1]),
+                          labels = plot_legend_labels) +
+      plot_theme +
+      theme(
+        legend.text = element_text(size = 12),
+        axis.text.x = element_text(size = 12, angle = 90),
+        axis.text.y = element_text(size = 12),
+        axis.line.y = element_blank(),
+        axis.title = element_text(size = 15),
+        panel.grid.major = element_line(),
+        legend.position = plot_legend_position,
+        legend.box.background = element_rect()
+      ) +
+      labs(y = plot_labels$y, x = plot_labels$x)
+    
+    print(p)
+  }
+  
+  return(list(obs_manova = obs_manova, df_perc_boot = df_perc_boot, plot = p))
+}
+```
+
+Plot
+```{r fig.height=5, fig.width=7, message=FALSE, warning=FALSE}
+head(all_matrices_counts_genesRF)
+
+covid_vac_releff = all_matrices_counts_genesRF %>% 
+  select(genes, sample, counts) %>% 
+  pivot_wider(names_from = "genes",
+              values_from = "counts") %>% 
+  inner_join(all_matrices_counts_genesRF %>% 
+               select(sample, disease_vac), by = "sample") %>% 
+  mutate(disease_vac = if_else(disease_vac == "I", 1, 0))
+
+
+releffect_disease_vac = REffect(covid_vac_releff, dep_vars = colnames(covid_vac_releff %>% 
+                                              select(-disease_vac, -sample)),
+        indep_var = "disease_vac", plot_colors = c("red", "#4DBBD5FF"), 
+        n_boot=1000)
+
+
+plot = releffect_disease_vac$plot +
+  scale_colour_manual(values = c("1" = "#DC0000FF", 
+                                 "0" = "#4DBBD5FF"),
+                      labels = plot_legend_labels) +
+  geom_ribbon(inherit.aes = FALSE, data = releffect_disease_vac$df_perc_boot[[1]],
+                  aes(x = Var2, ymin = X2.5., ymax = X97.5., group = group), fill = "#4DBBD5FF",
+                  alpha = 0.3) +
+      geom_ribbon(inherit.aes = FALSE, data = releffect_disease_vac$df_perc_boot[[2]],
+                  aes(x = Var2, ymin = X2.5., ymax = X97.5., group = group), fill = "#DC0000FF",
+                  alpha = 0.3) +
+  theme(
+        legend.text = element_text(size = 12),
+        axis.text.x = element_text(size = 12, angle = 45, hjust = 1, vjust = 1, color = "black"),
+        axis.text.y = element_text(size = 12, color = "black"),
+        axis.line.y = element_blank(),
+        axis.title = element_text(size = 15),
+        panel.grid.major = element_line(),
+        legend.position = "top",
+        plot.title = element_text(hjust = 0.5, size = 20),
+        plot.subtitle = element_text(hjust = 0.5, size = 15),
+        legend.box.background = element_blank()
+      ) +
+      labs(y = "Relative effect", x = "Genes",
+           title = "Relative effects of VIP genes",
+           subtitle = "Infection vs. Vaccination",
+           color = "") +
+  ylim(0, 1)
+
+plot
+
+```
+
+#### Butterfly plot
+```{r}
+##### Butterfly plot
+
+df_aggregated = all |>
+  group_by(gene, group, cluster) |>
+  summarise(avg_log2FC = mean(avg_log2FC), .groups = 'drop')
+
+df_wide = df_aggregated |>
+  pivot_wider(names_from = group, values_from = avg_log2FC)
+
+df_wide = df_wide |> subset(cluster != 7)
+df_wide = df_wide[!grepl("ENSR", df_wide$gene),]
+df_wide = df_wide |>
+  mutate(gene_type = case_when(spleen >= 0 & peritoneo <= 0 ~ "no",
+                               spleen >= 0 & peritoneo >= 0 ~ "up",
+                               spleen <= 0 & peritoneo <= 0 ~ "down",
+                               TRUE ~ "ns"))   
+
+anno = df_wide[grepl("S100a8|S100a9", df_wide$gene),]
+anno = df_wide |> subset(peritoneo > 0.3 | spleen < -0.3)
+anno = anno[!grepl("ENSR", anno$gene),]
+
+ggplot(df_wide, aes(x = peritoneo, y = spleen, color = gene_type)) +
+  geom_point(aes(size = abs(peritoneo))) +
+  theme_minimal() +
+  scale_color_manual(values = c("no" = "gray",
+                                "ns" = "gray",
+                                "down" = "royalblue",
+                                "up" = "red")) +
+  ylim(-3, 3) +
+  # geom_label_repel(anno, 
+  #                  mapping = aes(x = peritoneo, y = spleen, label = paste(gene,"_",cluster))) +
+  theme_bw(15)
+
+
+
+```
+
+
+## ggheatmap
 ```{r fig.height=10, fig.width=10}
 
 all_matrices_counts <- readRDS(here("DGE analysis", "all_matrices_counts.rds"))
@@ -10583,6 +10917,7 @@ control_counts_gse206023 = all_matrices_counts_long_annotated %>%
   inner_join()
   
 ```
+
 
 
 ```{r fig.height=10, fig.width=10}
@@ -10867,18 +11202,30 @@ dev.off()
 ```
 
 ### 8.2.7. Boxplot: VIP gene expression by condition
+Import tables
+```{r fig.height=10, fig.width=10}
+genes_rf = read_csv("Machine learning/vipgenes_tidymodels_ImmuneGO_Genes_Type_including_Infection_type2024-06-27.csv") 
+ann_vaccines_conditions = read_csv(here("Annotations and metadata", "ann_vaccines_conditions.csv"))
+
+all_matrices_counts_long_annotated <- readRDS("DGE analysis", "all_matrices_counts_long_annotated.rds"))
+
+all_samples_l2fc = read_rds(here("DGE analysis", "all_samples_l2fc.rds"))
+
+
+all_matrices_counts_genesRF = all_matrices_counts_long_annotated %>% 
+  filter(genes %in% genes_rf$Variable) 
+
+all_matrices_counts_genesRF %>% 
+  saveRDS(here("Machine learning", "all_matrices_counts_genesRF.rds"))
+```
+
 
 ```{r fig.height=10, fig.width=10}
-genes_rf = read_csv("Machine learning/vipgenes_tidymodels_ImmuneGO_Genes_Type_including_Infection_type2024-06-27.csv") %>% 
-  slice_head(n=6)
-ann_vaccines_conditions = read_csv(here("Annotations and metadata", "ann_vaccines_conditions.csv"))
-df = normalized_counts
+df = all_samples_l2fc
 table = df %>% 
-  rownames_to_column("genes") %>% 
-  pivot_longer(cols = -genes,
-               names_to = "sample",
-               values_to = "counts") %>% 
-  filter(genes %in% genes_rf$Variable) %>% 
+  select(-condition) %>% 
+  filter(genes == "IL10") %>% 
+  #filter(genes %in% genes_rf$Variable) %>% 
   inner_join(ann_vaccines_samples, by = "sample") %>% 
   mutate(disease_vac = if_else(disease_vac == "Healthy", "H", disease_vac)) %>% 
   mutate(disease_vac = fct_relevel(disease_vac, "H", "I", "V"),
@@ -10886,8 +11233,8 @@ table = df %>%
   arrange(disease_vac,type, condition) %>% 
   inner_join(ann_vaccines_conditions %>% select(condition, samples), by = "condition") %>% 
   mutate(condition = factor(condition, levels = c(unique(condition[order(condition)]))),
-         condition = paste0(condition, " (n=", samples, ")"),
-         genes = fct_relevel(genes, genes_rf$Variable))
+         condition = paste0(condition, " (n=", samples, ")")) 
+  # mutate(genes = fct_relevel(genes, genes_rf$Variable))
 
 table_ready = table %>% 
   mutate(condition = fct_relevel(condition, 
@@ -10946,12 +11293,14 @@ table_ready = table %>%
                                    distinct() %>% 
                                    pull(condition))) %>%
   mutate(type = if_else(type == "H", "I", type),
-         disease_vac = if_else(disease_vac == "H", "I", disease_vac)) 
+         disease_vac = if_else(disease_vac == "H", "I", disease_vac))
+```
 
 
+```{r fig.height=10, fig.width=10}
 #Base value -----
 median_h = table_ready %>% 
-  select(genes, sample, counts, disease_vac) %>% 
+  select(genes, sample, log2fc, disease_vac) %>% 
   filter(disease_vac == "H") %>% 
   distinct() %>% 
   group_by(genes, disease_vac) %>% 
@@ -10981,9 +11330,9 @@ median = bind_rows(median_i, median_v)
 #Plots -----
 
 disease_vac_boxplot_samples_VIP = table_ready %>% 
-  filter(genes == "GZMM") %>% 
+  # filter(genes == "GZMM") %>% 
   ggplot() +
-  aes(x = condition, y = counts, fill = if_else(day == 0, "Day 0", type)) +  
+  aes(x = condition, y = log2fc, fill = if_else(day == 0, "Day 0", type)) +  
   geom_hline(yintercept = 0, linetype = 2) +
   scale_y_log10()+
   geom_jitter(aes(color = if_else(day == 0, "Day 0", type)),
@@ -11003,9 +11352,10 @@ disease_vac_boxplot_samples_VIP = table_ready %>%
         strip.text.y = element_text(angle = 0),
         panel.grid.major = element_line(size = 0.05),
         panel.grid.minor = element_line(size = 0.05)) +
-  labs(y = "Normalized counts (Log10)",
+  labs(y = "Log2 fold-change",
        title = "VIP genes",
-       subtitle = "Random forest classification model for Infection vs. Vaccination ",
+       subtitle = "Random forest classification model for Infection vs. Vaccination \n
+       Log2FC calculated comparing each sample with their control (D0)",
        x="",
        fill = "Type") +
   guides(color = "none") +
@@ -11073,6 +11423,192 @@ vip_genes_boxplot_type_sex
 
 ```
 
+
+#### PCA
+**Input**
+
+```{r}
+#INPUT
+data_genes = all_matrices_counts_genesRF 
+data_annotation = ann_vaccines_samples
+filename = "RandomforestGenes_COVID_Infec_Vac"
+```
+
+```{r}
+#Convert long to wide table format.
+#Dataframe with sample annotation
+
+ann_vaccines_pca_matrix = data_genes %>% 
+  select(sample, genes, counts) %>% 
+  pivot_wider(., names_from = "sample", 
+                     values_from = "counts") %>% 
+  replace(is.na(.), 0) %>%
+  column_to_rownames("genes") %>% 
+  t() %>% 
+  as.data.frame() %>% 
+  rownames_to_column("sample") %>% 
+  inner_join(data_annotation %>% 
+               select(sample, condition, disease_vac, gse_id, vaccine, day, week, dose, infection, type), by = "sample") 
+
+# Convert dataframe to matrix without annotation columns
+ann_vaccines_pca_matrix_ready = ann_vaccines_pca_matrix %>% 
+  column_to_rownames("sample") %>% 
+  select(!condition:type) %>% 
+  as.matrix()
+
+```
+
+## 6.3. PCA
+
+```{r}
+# Delete columns with near 0 variance
+nearZeroVarCols <- nearZeroVar(ann_vaccines_pca_matrix_ready, saveMetrics = TRUE)
+ann_vaccines_pca_matrix_ready <- ann_vaccines_pca_matrix_ready[, !nearZeroVarCols$nzv]
+pca_res <- prcomp(ann_vaccines_pca_matrix_ready, scale. = T)
+
+# Correlation plot ----
+corr_matrix = cor(ann_vaccines_pca_matrix_ready %>% scale()) 
+var <- get_pca_var(pca_res)
+
+# corrplot = ggcorrplot(corr_matrix, hc.order = TRUE) + 
+#   theme(axis.text.x = element_text(angle = 90, size = 5), 
+#         axis.text.y = element_text(size = 5))
+# #Salvar
+# ggsave(corrplot, file = paste0(filename, "_corrplot.png"), 
+#        width = 20, #Grande 20, pequeno 10
+#        height= 20) #Grande 20, pequeno 10
+# print(corrplot)
+
+#PCA ----
+data.pca = prcomp(corr_matrix) #PCA
+summary(corr_matrix) #Retornar PCs
+
+#Scree plot ----
+scree_plot = fviz_eig(data.pca, 
+                      addlabels = TRUE,
+                      ylim = c(0, 70)) +
+  geom_col(color = "#00AFBB", fill = "#00AFBB") +
+  theme_classic()
+
+#Save
+ggsave(scree_plot, file = here("Figures", paste0(filename, "_screeplot.png")), width = 10, height = 3) 
+print(scree_plot)
+
+```
+
+## 6.3.1. Loadings plot
+
+```{r}
+# Loadings plot ----
+options(ggrepel.max.overlaps = Inf)
+
+circle_contrib = fviz_pca_var(pca_res, col.var = "cos2",
+                              gradient.cols = c("black", "#DC0000FF"),
+                              select.var= list(cos2 = 20), 
+                              repel = T, 
+                              labelsize = 4,
+                              col.circle = NA) +
+  xlab("") + 
+  ylab("") +
+  theme_minimal() +
+theme(panel.grid = element_blank(),  # Remover linhas de grade
+        axis.text = element_blank(),   # Remover rótulos de texto dos eixos
+        axis.ticks = element_blank()) 
+
+#Save
+ggsave(circle_contrib, file = here("Figures", paste0(filename, "_circle_contrib_wide.png")), width = 10, height = 5)
+
+circle_contrib
+```
+
+## 6.3.2. KNN
+
+```{r}
+#KNN classification -----
+#Use the screeplot generated % of explained variance for each dimension
+scree_plot #Dim 1 = 68.2%, Dim 2 = 15.9%
+
+
+# PC1-PC2 ------
+#Determine the number of clusters
+pca_scores <- data.frame(pca_res$x[, 1:2])
+fviz_nbclust(pca_scores,  
+                     FUNcluster = kmeans,
+                     method = "wss")
+
+pcas = "PC1-PC2"
+
+set.seed(666) # Set seed for randomization
+cluster_model <- kmeans(pca_res$x[, 1:2], centers = 3)  #Set the number of clusters
+
+ann_vaccines_pca_matrix$cluster <- as.factor(cluster_model$cluster)
+```
+
+## 6.3.3. Plot
+
+```{r fig.height=7, fig.width=10, paged.print=FALSE}
+# Condition with density plot ------
+pca_plot_knn_cluster = autoplot(pca_res, 
+        data = ann_vaccines_pca_matrix,
+        colour = "gse_id")  +
+  stat_ellipse(aes(color = cluster, fill = cluster), 
+               geom = "polygon", 
+               alpha = 0.2, 
+               linetype = 1,
+               size = 0.3,
+               type = "t") +
+  labs(title=paste0(filename, "_bycondition")) + 
+  xlab("PC1 (68.2%)") +
+  ylab("PC2 (15.9%)") +
+    geom_hline(yintercept = 0, size = 0.3, color = "gray50", linetype = 4) +
+  geom_vline(xintercept = 0, size = 0.3, color = "gray50", linetype = 4) +
+  geom_point(aes(fill = type,
+                 color = type),
+             stroke = 0.2) +
+   scale_color_manual(values = c("1" = "#8491B4FF", 
+                                "2" = "#4DBBD5FF", 
+                                "3" = "#DC0000FF",
+                                ann_vaxsig_colors$type), 
+                     guide = "none") +
+  scale_fill_manual(values = c("1" = "#8491B4FF", 
+                               "2" = "#4DBBD5FF", 
+                               "3" = "#DC0000FF",
+                               ann_vaxsig_colors$type),
+                    guide = "none") + 
+  guides(col="none") +
+  theme_few() +
+  theme(panel.grid.minor = element_blank(),
+        text = element_text(color = "black"),
+        panel.border = element_blank(),
+        axis.line = element_line(colour = "black")) +
+  geom_text_repel(aes(label = condition,
+                      segment.colour="gray70"),
+                  box.padding = 0.3,
+                  size = 3) +
+  xlim(-0.4, 0.6)
+pca_plot_knn_cluster
+
+ggsave(pca_plot_knn_cluster, 
+       file = here( "Figures", paste0(filename, pcas, "_KNN_Clustered_labels.png")), width = 10, height = 7)
+pca_plot_knn_cluster
+# pca_plot_knn_cluster_marginal = ggMarginal(
+#   pca_plot_knn_cluster,
+#   type = "histogram",
+#   groupFill = T,
+#   groupColour = T,
+#   xparams = list(binwidth = 0.1, size = 0.1),
+#   yparams = list(binwidth = 0.1, size = 0.1)
+# )
+# 
+# ggsave(
+#   pca_plot_knn_cluster_marginal,
+#   file = here(paste0(filename, pcas, "_KNN_Clustered_labels_Marginal.png"), "Figures"),
+#   width = 8,
+#   height = 5
+# )
+
+
+```
 
 
 ## 8.3. COVID-19 and Infection - Time and dose adjusted

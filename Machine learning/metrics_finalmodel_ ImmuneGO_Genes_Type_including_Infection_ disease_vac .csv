@@ -1,0 +1,7 @@
+mtry,min_n,.metric,.estimator,mean,n,std_err,.config
+6,5,accuracy,binary,0.9849376114081997,10,0.006754371650591638,Preprocessor1_Model1
+6,5,pr_auc,binary,0.9814583333333333,10,0.013503150352582344,Preprocessor1_Model1
+6,5,precision,binary,0.935,10,0.03337497399083464,Preprocessor1_Model1
+6,5,recall,binary,0.9583333333333334,10,0.028463752127665543,Preprocessor1_Model1
+6,5,roc_auc,binary,0.9974425287356322,10,0.001829702502494014,Preprocessor1_Model1
+6,5,specificity,binary,0.9897701149425288,10,0.005209741849443493,Preprocessor1_Model1
