@@ -1102,6 +1102,14 @@ normalized_counts <- dds %>%
 saveRDS(normalized_counts, file = here("DGE analysis", "all_matrices_normalized_counts.rds"))
 
 normalized_counts
+
+#Variant stabilized
+# dds <- DESeqDataSet(airway, design = ~ cell + dex)
+#   dds <- DESeq(dds)
+  # vst <- assay(vst(dds))
+
+
+
 ```
 
 ### 2.3.2. PVCA of normalized raw counts
