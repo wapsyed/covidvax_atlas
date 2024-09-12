@@ -12646,9 +12646,78 @@ df_annotated_2 = df_annotated %>%
 
 ```{r}
 df_annotated_2 %>% 
-  esquisser()
+  filter(day != 0) %>% 
+  filter(genes == "ITGAM") %>% 
+  ggplot() +
+  aes(x = condition, y = log2fc, fill = type) +  
+  geom_hline(yintercept = 0, linetype = 2) +
+  geom_jitter(aes(color = type),
+              alpha = 0.3, size = 0.1) +
+  geom_boxplot(outliers = F) +
+  theme_few() +
+  scale_fill_manual(values = c(ann_vaxsig_colors$type)) +
+    scale_color_manual(values = c(ann_vaxsig_colors$type)) +
+  theme(axis.text.x = element_text(angle = 45,
+                                   hjust = 1,
+                                   vjust = 1),
+        plot.title = element_text(hjust = 0.5, face = "bold"),
+        plot.margin = margin(0, 0, 0, 2, "cm"),
+        panel.grid.major = element_line(size = 0.05),
+        panel.grid.minor = element_line(size = 0.05)) +
+  labs(y = "L2FC",
+       x="",
+       fill = "Type") +
+  guides(color = "none") +
+  facet_wrap(~disease_vac, scales = "free_x")
 ```
 
+Generate boxplots for all genes
+```{r fig.height=6, fig.width=12}
+#Function to create boxplots
+create_boxplots_vipgenes <- function(result_df) {
+  
+  unique_processes <- unique(result_df$genes)
+  
+  purrr::map(unique_processes, function(process_name) {
+    cellmarker_boxplot <- result_df %>% 
+      filter(day != 0) %>% 
+  filter(genes == process_name) %>% 
+  ggplot() +
+  aes(x = condition, y = log2fc, fill = type) +  
+  geom_hline(yintercept = 0, linetype = 2) +
+  geom_jitter(aes(color = type),
+              alpha = 0.3, size = 0.1) +
+  geom_boxplot(outliers = F) +
+  theme_few() +
+  scale_fill_manual(values = c(ann_vaxsig_colors$type)) +
+    scale_color_manual(values = c(ann_vaxsig_colors$type)) +
+  theme(axis.text.x = element_text(angle = 45,
+                                   hjust = 1,
+                                   vjust = 1),
+        plot.title = element_text(hjust = 0.5, face = "bold"),
+        plot.margin = margin(0, 0, 0, 2, "cm"),
+        panel.grid.major = element_line(size = 0.05),
+        panel.grid.minor = element_line(size = 0.05)) +
+  labs(y = "L2FC",
+       x="",
+       title = process_name,
+       subtitle = "VIPgenes - COVID-19 infection vs. Vaccination",
+       fill = "Type") +
+  guides(color = "none") +
+  facet_wrap(~disease_vac, scales = "free_x")
+
+    ggsave(cellmarker_boxplot, 
+           file = here("Figures", paste0("MachineLearning_VIPGenes_COVID_VAC_boxplot_", process_name, ".png")),
+           width = 12, height = 6)
+  })
+}
+
+# Apply to all processes
+create_boxplots_vipgenes(df_annotated_2)
+
+
+df_annotated_2$genes %>% unique()
+```
 
 
 
@@ -12839,6 +12908,1862 @@ heatmap_plot = draw(heatmap_plot,
 dev.off()
 
 ```
+
+## 8.2. COVID-19 vaccines vs infection (Log2fold_change values)
+
+```{r}
+ImmuneGO_Annotated_Genes = readRDS(here("VaxGO gene sets","ImmuneGO_Annotated_Genes_2024-03-26.rds"))
+df_samples_l2fc_vipgenes_covid = all_samples_l2fc 
+ann_vaccines_samples <- read_csv(here("Annotations and metadata", "ann_vaccines_samples.csv"))
+
+
+# Input data ----
+filename = "ImmuneGO_Genes_Type_including_Infection_L2FCvalues_"
+df = df_samples_l2fc_vipgenes_covid
+
+## Vaccination types
+outcomevar = "disease_vac"
+
+ann_vaccines_samples_filtered = ann_vaccines_samples %>% 
+  mutate(outcomevar = disease_vac) %>% 
+  filter(type != "H")
+
+#How many samples by level?
+count_levels = ann_vaccines_samples_filtered %>% 
+  dplyr::count(outcomevar)
+
+count_levels
+
+#How many levels?
+levels = nrow(count_levels)
+order_levels = c("I", #TRUE
+                 "V") #FALSE
+```
+
+### 8.2.1. Train and test
+
+Step_corr:
+- threshold = 0.9 -> From 963 genes to 894
+
+
+```{r fig.height=10, fig.width=10}
+# Prepare data ------
+
+df_input <- df %>%
+  inner_join(ImmuneGO_Annotated_Genes %>% select(genes) %>% distinct(), by = "genes") %>%
+  select(genes, sample, log2fc) %>% 
+  pivot_wider(names_from = genes,
+              values_from = log2fc) %>% 
+  inner_join(ann_vaccines_samples_filtered %>% filter(day != 0) %>% 
+               select(sample, outcomevar = disease_vac), #Outcome
+             by = "sample") %>%
+  select(sample,
+         outcomevar,
+         everything()) %>%
+  column_to_rownames("sample") %>%
+  mutate_if(is.character, factor) %>% 
+  mutate(outcomevar = fct_relevel(outcomevar, order_levels)) %>% 
+  replace(is.na(.), 0)
+
+# glimpse(df_input)
+
+# Split data
+set.seed(123)  
+split <- initial_split(df_input, prop = 0.6, strata = outcomevar)
+trees_train <- training(split)
+trees_test <- testing(split)
+
+# Create recipe
+tree_rec <- recipe(outcomevar ~ ., data = trees_train) %>% #OUTCOME
+  step_dummy(all_nominal(), -all_outcomes()) %>%
+  step_corr(all_numeric_predictors(), threshold = 0.9) %>% 
+  step_upsample(outcomevar) #Upsample unbalanced data
+
+tree_prep <- prep(tree_rec)
+
+juiced <- juice(tree_prep)
+
+# Set random forest hyper parameters
+tune_spec <- rand_forest(
+  mtry = tune(),
+  trees = 2000,
+  min_n = tune()
+) %>%
+  set_mode("classification") %>% 
+  set_engine("ranger")
+
+# Create workflow
+tune_wf <- workflow() %>%
+  add_recipe(tree_rec) %>%
+  add_model(tune_spec)
+
+#Cross validation
+set.seed(234)
+trees_folds <- vfold_cv(trees_train)
+
+#Define performance metrics
+mer_metrics <- metric_set(yardstick::recall,
+                          yardstick::specificity,
+                          yardstick::accuracy,
+                          yardstick::precision,
+                          yardstick::roc_auc,
+                          yardstick::pr_auc)
+
+# Parallel computing 
+doParallel::registerDoParallel()
+
+set.seed(345)
+tune_res <- tune_grid(
+  tune_wf,
+  metrics = mer_metrics,
+  resamples = trees_folds,
+  grid = 20
+)
+```
+
+### 8.2.2. Assess metrics
+
+```{r fig.height=10, fig.width=10}
+# Assess data ----
+
+#Metricss
+metrics_tuneres = tune_res %>%
+  collect_metrics() %>%
+  select(mean, min_n, mtry, .metric) %>%
+  pivot_longer(min_n:mtry,
+    values_to = "value",
+    names_to = "parameter") %>%
+  ggplot()+
+  aes(x = value, y = mean, colour = .metric, label = value) +
+  geom_line() +
+  geom_label() +
+  scale_color_npg()+
+  theme_few() +
+  theme(axis.text.x = element_text(color = "black", size = 12)) +
+  facet_grid(vars(.metric), vars(parameter), scales = "free")
+
+metrics_tuneres
+
+metrics_tuneres %>% ggsave(file = here("Figures",
+                                       paste0(filename, 
+                                              outcomevar,
+                                              "_tuneres_metrics.png")),
+                                        width = 10,
+                                        height = 10)
+
+min_n_selec = 6 #Observations by node)
+mtry_selec = 23 #Features/genes by tree)
+```
+
+### 8.2.3. Hyperparameter tuning
+
+```{r}
+# Tune hyperparameters ----
+rf_grid <- grid_regular(
+  min_n(range = c(6, 6)),
+  mtry(range = c(23, 23)),
+  levels = levels
+)
+
+set.seed(456)
+regular_res <- tune_grid(
+  tune_wf,
+  metrics = mer_metrics,
+  resamples = trees_folds,
+  grid = rf_grid
+)
+
+# Assess performance -----
+regular_res %>%
+  collect_metrics()
+
+regular_res %>%
+  collect_metrics() %>% 
+  write_csv(file = here("Machine learning", paste("metrics_finalmodel_", filename, outcomevar, ".csv")))
+
+#Metrics
+regular_res_metrics = regular_res %>%
+  collect_metrics() %>%
+  select(mean, min_n, mtry, .metric) %>%
+  pivot_longer(min_n:mtry,
+    values_to = "value",
+    names_to = "parameter") %>%
+  ggplot()+
+  aes(x = value, y = mean, colour = .metric, label = value) +
+  geom_line() +
+  geom_label(size = 3) +
+  scale_color_npg()+
+  theme_minimal() +
+  facet_grid(vars(.metric), vars(parameter), scales = "free")
+
+regular_res_metrics
+
+# ggsave(regular_res_metrics, file = here("Figures", 
+#                                         paste(filename, outcomevar, "metrics", today(), ".png")), 
+#        width = 10, height = 10)
+
+# Select best model -----
+best_auc <- select_best(regular_res, metric = "accuracy")
+final_rf <- finalize_model(
+  tune_spec,
+  best_auc
+)
+```
+
+### 8.2.4. Important features
+
+```{r fig.height=3, fig.width=5}
+final = final_rf %>%
+  set_engine("ranger", importance = "permutation") %>%
+  fit(outcomevar ~ .,
+    data = juice(tree_prep)) %>% 
+  vip()
+
+genes_rf = final$data
+genes_rf = genes_rf %>% select(genes = Variable, importance = Importance)
+genes_rf %>% write_csv(file = here("Figures", paste0("vipgenes_tidymodels_", filename, outcomevar, ".csv")))
+
+#Importance plot
+importance_plot = ggplot(genes_rf) +
+  aes(x = reorder(genes, importance),
+    y = importance,
+    fill = importance,
+      weight = importance) +
+  geom_col() +
+  theme_few() +
+  xlab("Genes") + 
+  ylab("importance") +
+  ylim(0, 0.035) +
+  geom_text(aes(label = round(importance, 4), y = importance),
+            hjust = -0.2, 
+            size = 4,
+            angle = 0,
+            color = "black")+
+  scale_fill_gradient(low = "#4DBBD5FF", high = "#DC0000FF") +
+  theme(legend.position = "right",
+        plot.subtitle = element_text(hjust = 0),
+        axis.text.x = element_text(angle = 0, vjust = 0.5, hjust=0.5, size = 12, color = "black"),
+        axis.text.y = element_text(size = 12, angle = 0, color = "black"),
+        panel.grid.minor.y = element_blank(),
+        legend.text = element_text(size=12),
+        legend.title = element_text(size = 12, face = "bold")) +
+    coord_flip() +
+  labs(title = "VIP genes",
+       subtitle = "Random forest classification model for \nVaccination vs. Infection",
+       x = "",
+       y = "Importance",
+       color = "Importance")
+
+ggsave(importance_plot,
+        file = here("Figures",
+                    paste0("vipgenes_tidymodels_", filename, outcomevar,  ".png")),
+        width = 5,
+        height = 3)
+
+importance_plot
+
+```
+
+### 8.2.5. Train final model with tuned hyperparameters
+
+```{r}
+# Train final model with tuned hyperparameters
+final_wf <- workflow() %>%
+  add_recipe(tree_rec) %>%
+  add_model(final_rf)
+
+final_res <- final_wf %>%
+  last_fit(split)
+
+final_res_preds = final_res %>%
+  collect_predictions() %>%
+  mutate(correct = case_when(
+    outcomevar == .pred_class ~ "Correct",
+    TRUE ~ "Incorrect"
+  )) %>%
+  bind_cols(trees_test)
+
+
+#Confusion matrix
+res_conf_mat = conf_mat(final_res_preds, truth = outcomevar...6,
+         estimate = .pred_class)
+
+#Accuracy
+res_acc = accuracy(final_res_preds, truth = outcomevar...6,
+         estimate = .pred_class)
+
+#Specificity
+res_spec = spec(final_res_preds, truth = outcomevar...6,
+         estimate = .pred_class)
+
+#Precision
+res_prec = precision(final_res_preds, truth = outcomevar...6,
+         estimate = .pred_class)
+
+#Recall
+res_recall = recall(final_res_preds, truth = outcomevar...6,
+         estimate = .pred_class)
+#Precision recall AUC
+res_pr_auc = pr_auc(final_res_preds, outcomevar...6, .pred_I)
+
+
+#Unite results
+final_res_metrics = bind_rows(res_acc,
+                         res_recall,
+                         res_prec,
+                         res_pr_auc,
+                         res_spec) %>% 
+  select(-".estimator")
+
+
+final_res_metrics_conf = list(res_conf_mat, 
+                         final_res_metrics,
+                         final_res_preds)
+
+final_res_metrics_conf
+
+final_res_metrics_conf %>% 
+  saveRDS(file = here("Machine learning", paste0("final_res_metrics", filename, outcomevar, ".rds")))
+
+
+#Plot
+final_model_metrics = final_res_metrics %>% 
+  rename(metric = .metric,
+         estimate = .estimate) %>% 
+  mutate(metric = fct_relevel(metric, final_res_metrics$.metric)) %>% 
+  ggplot() +
+  aes(x = estimate,
+    y = fct_rev(metric),
+    fill = estimate,
+    weight = estimate) +
+  geom_col() +
+  theme_few() +
+  geom_text(aes(label = round(estimate, 3), y = metric),
+            hjust = -0.2, 
+            size = 4,
+            angle = 0,
+            color = "black") +
+  xlim(0, 1.2) +
+  scale_fill_gradient(low = "#4DBBD5FF", high = "#DC0000FF") +
+  theme(legend.position = "right",
+        plot.subtitle = element_text(hjust = 0),
+        axis.text.x = element_text(angle = 0, vjust = 0.5, hjust=0.5, size = 12, color = "black"),
+        axis.text.y = element_text(size = 12, angle = 0, color = "black"),
+        panel.grid.minor.y = element_blank(),
+        legend.text = element_text(size=12),
+        legend.title = element_text(size = 12, face = "bold")) +
+  labs(title = "Model assessment",
+       subtitle = "Random forest classification model for \nVaccination vs. Infection",
+       x = "Estimate",
+       y = "",
+       fill = "Estimate")
+
+ggsave(final_model_metrics,
+        file = here("Figures",
+                    paste0("final_model_metrics_", filename, outcomevar,  ".png")),
+        width = 5,
+        height = 3)
+
+
+#Which are the incorrect?
+final_res_preds %>% rownames_to_column("sample") %>%  
+  inner_join(ann_vaccines_samples %>% 
+               select(condition, sample), by = "sample") %>% 
+  filter(correct == "Incorrect") %>% 
+  select(sample, condition, everything())
+```
+#### Precision recall curve
+```{r}
+# Precision recall
+pr_curve_res = pr_curve(final_res_preds, outcomevar...6, .pred_I) %>% 
+  ggplot(aes(x = recall, y = precision)) +
+  geom_path(color = "#DC0000FF",
+            size = 2) +
+  coord_equal() +
+  theme_few() +
+  labs(title = "Precision-Recall curve",
+       subtitle = "Random forest classification \nmodel for Infection vs. Vaccination",
+       x = "Recall",
+       y = "Precision") 
+
+
+pr_curve_res %>% 
+  ggsave(file = here("Figures",
+                    paste0("PR_Curve_tidymodels_", filename, outcomevar,  ".png")),
+         width = 4,
+         height = 3)
+
+pr_curve_res
+
+```
+
+Multi ROC
+```{r fig.height=5, fig.width=5}
+roc_plot = final_res_preds %>% 
+  roc_curve(outcomevar...9, .pred_I) %>%
+  ggplot(aes(1 - specificity, sensitivity)) +
+  geom_abline(lty = 2, color = "gray80", size = 0.5) +
+  geom_path(show.legend = FALSE, alpha = 0.6, size = 1.2) +
+  theme_few() +
+    theme(axis.text = element_text(size = 6, color = "black")) +
+  labs(title ="Receiver-operator curve",
+       subtitle = "Multiclass classification, Randomforest",
+       x = "1-Specificity",
+       y = "Sensitivity") +
+  scale_colour_manual(values = c(ann_vaxsig_colors$type[names(ann_vaxsig_colors$type) != "H"], 
+                                 H = "black"))
+```
+
+Confusion matrix
+```{r fig.height=5, fig.width=5}
+conf_matrix_heat = final_res_preds %>% 
+  conf_mat(outcomevar...9, .pred_class) %>%
+  autoplot(type = "heatmap") +
+  scale_fill_gradient(low = "white", high = "#DC0000FF") +
+  labs(title ="Confusion matrix",
+       subtitle = "Multiclass classification, Randomforest",
+       x = "Truth",
+       y = "Prediction")
+
+patch = conf_matrix_heat / 
+  roc_plot
+
+patch %>% 
+  ggsave(file = here("Figures",
+                    paste0("ROC_ConfusionMatrix_tidymodels_", filename, outcomevar,  ".png")),
+         width = 5,
+         height = 5)
+  
+```
+
+
+
+```{r}
+#Matrix counts of VIP genes
+all_matrices_counts_genesRF = df %>% 
+  inner_join(genes_rf, by = "genes")
+```
+
+
+#### Relative effects
+
+Function
+```{r fig.height=5, fig.width=7}
+REffect <- function(data, dep_vars, indep_var, n_boot = 1000, 
+                    plot = TRUE, plot_colors = c("red", "darkblue"), 
+                    plot_labels = list(y = "Relative effect", x = "Genes"), 
+                    plot_theme = theme_few(), plot_legend_position = "top", 
+                    plot_legend_labels = c("Vaccination", "Infection")) {
+  
+  library(npmv)
+  library(ggplot2)
+  library(reshape2)
+  
+  if(!all(data[[indep_var]] %in% c(0, 1))) {
+    stop("A variável independente precisa conter apenas 0 e 1 (dois grupos).")
+  }
+  
+  n_aab <- nrow(data)
+  list_boot_aab <- list()
+  
+  # Loop de Bootstrap
+  for (i in 0:n_boot) {
+    if (i == 0) {
+      df_sample <- 1:n_aab
+    } else {
+      df_sample <- sample(1:n_aab, n_aab, replace = TRUE)
+    }
+    
+    formula_str <- paste(dep_vars, collapse = " | ")
+    formula <- as.formula(paste(formula_str, "~", indep_var))
+    
+    manova_aab <- nonpartest(formula, data = data[df_sample, ], permtest = FALSE, plots = FALSE,
+                             permreps = 1000, tests = c(1, 0, 0, 0))
+    
+    if (i == 0) obs_aab <- manova_aab
+    
+    list_boot_aab[[i + 1]] <- manova_aab
+    
+    cat("ANOVA/ boot/ aab/ i = ", i, "\n")
+  }
+  
+  obs_manova <- list_boot_aab[[1]]$twogroupreleffects
+  row_manova <- rownames(obs_manova)
+  
+  releffects <- lapply(list_boot_aab[-1], "[[", 2)
+  
+  df_perc_boot <- lapply(seq_len(nrow(obs_manova)), function(i) {
+    q <- sapply(seq_len(ncol(obs_manova)), function(j) {
+      v <- sapply(releffects, function(r) {
+        row <- rownames(r)
+        if(row[1] != row_manova[1]) r <- r[2:1,]
+        r[i, j]
+      })
+      quantile(v, probs = c(0.025, 0.975))
+    })
+    colnames(q) <- colnames(obs_manova)
+    df <- data.frame(Var2 = colnames(q), t(q),
+                     group = ifelse(i == 1, row_manova[1], row_manova[2]))
+    df$Var2 <- factor(df$Var2, levels = sort(unique(df$Var2)), ordered = TRUE)
+    return(df)
+  })
+  
+  names(df_perc_boot) <- row_manova
+  
+  df <- reshape2::melt(
+    cbind(obs_manova, group = row_manova),
+    id.vars = "group"
+  )
+  df$Var1 <- "point_est"
+  df <- df[, c(4, 2, 3, 1)]
+  colnames(df)[2] <- "Var2"
+  
+  df <- dplyr::arrange(df, group, desc(value), Var2)
+  df$Var2 <- as.character(df$Var2)
+  df$Var2 <- factor(df$Var2, levels = unique(df$Var2), ordered = TRUE)
+  
+  for (k in seq_len(2)) {
+    df_perc_boot[[k]]$Var2 <- factor(df_perc_boot[[k]]$Var2, levels = levels(df$Var2), ordered = TRUE)
+  }
+  
+  if (plot) {
+    p <- ggplot(data = df, aes(x = Var2, y = value, group = group, color = group)) +
+      geom_ribbon(inherit.aes = FALSE, data = df_perc_boot[[1]],
+                  aes(x = Var2, ymin = X2.5., ymax = X97.5., group = group), fill = plot_colors[1],
+                  alpha = 0.3) +
+      geom_ribbon(inherit.aes = FALSE, data = df_perc_boot[[2]],
+                  aes(x = Var2, ymin = X2.5., ymax = X97.5., group = group), fill = plot_colors[2],
+                  alpha = 0.3) +
+      geom_line() +
+      geom_point(aes(size = value)) +
+      scale_colour_manual("", values = c("1" = plot_colors[2], "0" = plot_colors[1]),
+                          labels = plot_legend_labels) +
+      plot_theme +
+      theme(
+        legend.text = element_text(size = 12),
+        axis.text.x = element_text(size = 12, angle = 90),
+        axis.text.y = element_text(size = 12),
+        axis.line.y = element_blank(),
+        axis.title = element_text(size = 15),
+        panel.grid.major = element_line(),
+        legend.position = plot_legend_position,
+        legend.box.background = element_rect()
+      ) +
+      labs(y = plot_labels$y, x = plot_labels$x)
+    
+    print(p)
+  }
+  
+  return(list(obs_manova = obs_manova, df_perc_boot = df_perc_boot, plot = p))
+}
+```
+
+Plot
+```{r fig.height=5, fig.width=7, message=FALSE, warning=FALSE}
+head(all_matrices_counts_genesRF)
+
+covid_vac_releff = all_matrices_counts_genesRF %>% 
+  select(genes, sample, log2fc) %>% 
+  pivot_wider(names_from = "genes",
+              values_from = "log2fc") %>% 
+  inner_join(ann_vaccines_samples %>% 
+               select(sample, disease_vac), by = "sample") %>% 
+  mutate(disease_vac = if_else(disease_vac == "I", 1, 0))
+
+
+releffect_disease_vac = REffect(covid_vac_releff, dep_vars = colnames(covid_vac_releff %>% 
+                                              select(-disease_vac, -sample)),
+        indep_var = "disease_vac", plot_colors = c("red", "#4DBBD5FF"), 
+        n_boot=1000)
+
+
+plot = releffect_disease_vac$plot +
+  scale_colour_manual(values = c("1" = "#DC0000FF", 
+                                 "0" = "#4DBBD5FF"),
+                      labels = plot_legend_labels) +
+  geom_ribbon(inherit.aes = FALSE, data = releffect_disease_vac$df_perc_boot[[1]],
+                  aes(x = Var2, ymin = X2.5., ymax = X97.5., group = group), fill = "#4DBBD5FF",
+                  alpha = 0.3) +
+      geom_ribbon(inherit.aes = FALSE, data = releffect_disease_vac$df_perc_boot[[2]],
+                  aes(x = Var2, ymin = X2.5., ymax = X97.5., group = group), fill = "#DC0000FF",
+                  alpha = 0.3) +
+  theme(
+        legend.text = element_text(size = 12),
+        axis.text.x = element_text(size = 12, angle = 45, hjust = 1, vjust = 1, color = "black"),
+        axis.text.y = element_text(size = 12, color = "black"),
+        axis.line.y = element_blank(),
+        axis.title = element_text(size = 15),
+        panel.grid.major = element_line(),
+        legend.position = "top",
+        plot.title = element_text(hjust = 0.5, size = 20),
+        plot.subtitle = element_text(hjust = 0.5, size = 15),
+        legend.box.background = element_blank()
+      ) +
+      labs(y = "Relative effect", x = "Genes",
+           title = "Relative effects of VIP genes",
+           subtitle = "Infection vs. Vaccination",
+           color = "") +
+  ylim(0, 1)
+
+plot
+
+```
+
+#### Butterfly plot
+```{r}
+##### Butterfly plot
+all_degs_p_05_vac_infected = read_csv("DGE analysis/all_degs_p_05_vac_infected_19_12_23.csv")
+df_aggregated = 
+
+df_wide = all_degs_p_05_vac_infected |>
+  inner_join(ImmuneGO_Genes %>% select(genes) %>% distinct(), by = "genes") %>% 
+  group_by(genes, disease_vac) |>
+  summarise(avg_log2FC = mean(log2fold_change), .groups = 'drop') |>
+  pivot_wider(names_from = disease_vac, values_from = avg_log2FC) |>
+  mutate(Regulation = case_when(V >= 0 & I <= 0 ~ "no",
+                               V >= 0 & I >= 0 ~ "up",
+                               V <= 0 & I <= 0 ~ "down",
+                               TRUE ~ "ns"))   
+
+butterfly_plot = ggplot(df_wide, aes(x = V, y = I, color = Regulation)) +
+  geom_point(aes(size = abs(V),
+                 label = genes)) +
+  geom_label_repel(data = df_wide %>% filter(V > 2.5 & I > 0 | 
+                                               V < -1 & I < -2), aes(label = genes)) +
+  theme_minimal() +
+  scale_color_manual(values = c("no" = "gray",
+                                "ns" = "gray",
+                                "down" = "royalblue",
+                                "up" = "red")) +
+  theme_bw() +
+  labs(x = "Vaccination",
+       y = "Infection",
+       size = "Abs(L2FC)",
+       title = "Mean Log2FC")
+butterfly_plot
+ggplotly(butterfly_plot)
+
+```
+
+
+## ggheatmap
+```{r fig.height=10, fig.width=10}
+
+all_matrices_counts <- readRDS(here("DGE analysis", "all_matrices_counts.rds"))
+all_matrices_counts_long = all_matrices_counts %>% 
+  pivot_longer(cols = -genes,
+               names_to = "sample", 
+               values_to = "counts")
+head(all_matrices_counts)
+all_matrices_counts_long_annotated = all_matrices_counts_long %>% 
+  inner_join(ann_vaccines_samples,
+             by = "sample")
+
+all_matrices_counts_long_annotated %>% saveRDS(here("DGE analysis", "all_matrices_counts_long_annotated.rds"))
+
+control_counts_gse206023 = all_matrices_counts_long_annotated %>% 
+  filter(gse_id == "GSE206023") %>% 
+  select(genes, sample, counts, condition, vaccine, day) %>% 
+  filter(day == 0) %>% 
+  group_by(day, genes) %>% 
+  summarize(control_counts_mean = mean(counts)) %>% 
+  select(genes, control_counts_mean) %>% 
+  inner_join()
+  
+```
+
+
+
+```{r fig.height=10, fig.width=10}
+pred_genes_counts = final_res_preds %>% 
+  select(pred_class = .pred_class,
+         pred_I = .pred_I,
+         pred_V = .pred_V,
+         truth = outcomevar...6,
+         correct, 
+         ACE:ZNF683) %>% 
+  pivot_longer(cols = ACE:ZNF683, 
+               names_to = "genes",
+               values_to = "values") %>% 
+  inner_join(genes_rf, by = "genes") %>% 
+  inner_join(normalized_counts_long, by = "genes")
+  
+pred_genes_counts %>% 
+  filter(disease_vac != "H",
+         disease_vac != "Healthy") %>% 
+  ggplot() +
+  aes(y = sample,
+      x = genes,
+      fill = expression) +
+  geom_tile() +
+  facet_wrap(~disease_vac~type,scales = "free_y")
+```
+
+
+### 8.2.6. Heatmap: Gene L2FC per condition
+
+```{r}
+# Required files
+ImmuneGO_Annotated_Genes = readRDS(here("VaxGO gene sets","ImmuneGO_Annotated_Genes_2024-03-26.rds"))
+df = normalized_counts
+ann_vaccines <- read_csv(here("Annotations and metadata", "ann_vaccines_conditions.csv"))
+ann_vaccines_samples <- read_csv(here("Annotations and metadata", "ann_vaccines_samples.csv"))
+
+
+#Inputs
+ImmuneGO_Annotated_Genes_all = ImmuneGO_Annotated_Genes %>% 
+  filter(!process %in% c("TCR REPERTOIRE", "BCR REPERTOIRE"))
+
+ImmuneGO_Genes = all_degs_p_05_vac_infected %>% 
+  inner_join(ImmuneGO_Annotated_Genes %>% 
+               select(genes, process) %>% 
+               distinct() %>% 
+               select(genes),
+               by = "genes") %>% 
+  distinct()
+
+# Matrix
+l2fc_imps = genes_rf %>% 
+  select(genes, importance) %>% 
+  inner_join(ImmuneGO_Genes, by = "genes") %>%
+  select(genes, condition, log2fold_change) %>% 
+  pivot_wider(names_from = condition, values_from = log2fold_change) %>% 
+  column_to_rownames("genes") %>% 
+  as.matrix() %>% 
+  replace(is.na(.), 0)
+
+```
+
+```{r}
+
+#Which VIP genes?
+
+vip_genes = genes_rf
+outcomevar = "_Type_"
+
+rf_genes = vip_genes %>% 
+  clean_names() %>% 
+  select(genes, importance)
+
+ImmuneGO_Genes = all_degs_p_05_vac_infected %>% 
+  inner_join(rf_genes %>% 
+               select(genes) %>% 
+               distinct() %>% 
+               select(genes),
+               by = "genes") %>% 
+  distinct()
+
+####### INPUT
+data_2 = ImmuneGO_Genes
+filename_2 = paste0("RandomForest_ImmuneGO_Genes", outcomevar, today())
+
+######## Matrix
+matrix = data_2 %>% 
+  select(genes, condition, log2fold_change) %>%
+  pivot_wider(names_from = "condition", 
+              values_from = "log2fold_change", 
+              values_fn = mean) %>% 
+  replace(is.na(.), 0) %>%
+  arrange(genes) %>% 
+  column_to_rownames(var="genes") %>% 
+  as.matrix()
+
+######## Annotations
+ann_vaccines_covid_other_2 = data_2 %>% 
+  select(condition) %>% 
+  inner_join(ann_vaccines, by = "condition") %>% 
+  distinct() %>% 
+  select(condition, disease_vac, type, week, day) %>% 
+  arrange(week, day) %>% 
+  mutate(week = fct_relevel(as.factor(week), sort(levels(week))),
+         day = fct_relevel(as.factor(day), sort(levels(day))))
+
+#Columns
+ann_cols_heatmap = matrix %>% 
+  colnames() %>% 
+  data.frame() %>% 
+  filter(. != "genes") %>% 
+  rename(condition = '.') %>% 
+  inner_join(ann_vaccines_covid_other_2, by = "condition") %>% 
+  distinct() %>% 
+  arrange(condition) %>% 
+  column_to_rownames("condition")
+
+matrix_data = matrix %>% 
+  t() %>% 
+  as.data.frame() %>% 
+  rownames_to_column(var= "condition") %>% 
+  inner_join(ann_cols_heatmap %>% rownames_to_column("condition"), by = "condition") %>% 
+  select(!c(disease_vac:day)) %>% 
+  arrange(condition) %>% 
+  column_to_rownames("condition") %>% 
+  t() %>% 
+  as.data.frame() %>% 
+  mutate_if(is.character, as.numeric) %>%
+  as.matrix() 
+
+#Rows Immune ----
+ann_rows_immune = matrix_data %>%
+  as.data.frame() %>%
+  rownames_to_column("genes") %>%
+  left_join(ImmuneGO_Annotated_Genes %>% filter(go_term == "Manual"), by = "genes") %>%
+  select(genes, process) %>%
+  distinct() %>%
+  group_by(genes) %>%
+  arrange(genes, factor(process, levels = c("INNATE IMMUNE SYSTEM", "ADAPTIVE IMMUNE SYSTEM")), .by_group = TRUE) %>%
+  mutate(i_process = row_number()) %>%
+  pivot_wider(., names_from = "i_process", values_from = "process") %>%
+  column_to_rownames("genes") %>%
+  t() %>%
+  as.data.frame() %>%
+  rownames_to_column("index") %>%
+  mutate(index = as.numeric(index)) %>%
+  arrange(desc(index)) %>%
+  column_to_rownames("index") %>%
+  t() %>%
+  as.data.frame() %>%
+  replace(is.na(.), ".") %>% 
+  mutate(`1` = if_else(`1` == ".", "INNATE IMMUNE SYSTEM", `1`)) 
+
+#Verificar dimensões do dataset
+dim(matrix)
+dim(matrix_data)
+dim(ann_cols_heatmap)
+dim(ann_rows_immune)
+```
+
+```{r}
+################# Immune 
+#Heatmap annotation
+ha = HeatmapAnnotation(df = ann_cols_heatmap, 
+                       col = ann_vaxsig_colors,
+                       annotation_name_side = "right")
+
+row_ha = HeatmapAnnotation(df = ann_rows_immune,
+                       col = col_process_immune,
+                       which= "row",
+                       show_annotation_name = F,
+                       show_legend = F,
+                       simple_anno_size = unit(2, "mm"))
+
+# Values colors
+col_fun <- colorRamp2(c(-2, 0, 2), c("#9bc1bc", "white", "#ed6a5a"))
+
+file = filename_2
+mat = matrix_data
+width_image = 30
+height_image = 15
+width = unit(15, "cm")
+height = unit(5, "cm")
+column_names_gp = gpar(fontsize = 10)
+row_names_gp = gpar(fontsize = 10)
+rect_gp = gpar(col = "gray80", lwd = 0.5)
+
+fileimageheatmap_grouped = paste0(file, sep ="_", "Complexheatmap.png")
+
+png(file = fileimageheatmap_grouped, 
+    width = width_image, 
+    height = height_image, 
+    units="cm", 
+    res=900)
+
+heatmap_plot = Heatmap(mat,
+                        top_annotation = ha,
+                        left_annotation = row_ha,
+                        show_row_names = TRUE,
+                        row_names_side = "right",
+                        show_heatmap_legend = TRUE,
+                        heatmap_legend_param = list(direction = "vertical"),
+                        name = "L2FC",
+                        col = col_fun, #color
+                        show_column_names = TRUE,
+                        column_title = fileimageheatmap_grouped,
+                        column_title_gp = gpar(fontsize = 10, fontface = "bold"),
+                        column_names_rot = 45,
+                        column_names_gp = column_names_gp,
+                        rect_gp = rect_gp,
+                        na_col = "white",
+                        cluster_rows = TRUE,
+                        row_names_gp = row_names_gp,
+                        row_dend_width = unit(0, "cm"),
+                        row_split = NULL,
+                        column_split = NULL,
+                        row_gap = unit(2, "mm"),
+                        cluster_columns = TRUE,
+                        column_gap = unit(2, "mm"),
+                        show_column_dend = F,
+                        show_row_dend = F,
+                        row_dend_side = "left",
+                        column_dend_side = "top",
+                        clustering_distance_rows = "euclidean",
+                        border = TRUE,
+                        width = width,
+                        height = height)
+
+heatmap_plot = draw(heatmap_plot, 
+     annotation_legend_side = "left", 
+     heatmap_legend_side = "left")
+
+dev.off()
+
+```
+
+### 8.2.7. Boxplot: VIP gene expression by condition
+Import tables
+```{r fig.height=10, fig.width=10}
+genes_rf = read_csv("Machine learning/vipgenes_tidymodels_ImmuneGO_Genes_Type_including_Infection_type2024-06-27.csv") 
+ann_vaccines_conditions = read_csv(here("Annotations and metadata", "ann_vaccines_conditions.csv"))
+
+all_matrices_counts_long_annotated <- readRDS("DGE analysis", "all_matrices_counts_long_annotated.rds"))
+
+all_samples_l2fc = read_rds(here("DGE analysis", "all_samples_l2fc.rds"))
+
+all_matrices_counts_genesRF = all_matrices_counts_long_annotated %>% 
+  filter(genes %in% genes_rf$Variable) 
+
+all_matrices_counts_genesRF %>% 
+  saveRDS(here("Machine learning", "all_matrices_counts_genesRF.rds"))
+```
+
+
+```{r fig.height=10, fig.width=10}
+df = all_samples_l2fc
+table = df %>% 
+  select(-condition) %>% 
+  filter(genes == "IL10") %>% 
+  #filter(genes %in% genes_rf$Variable) %>% 
+  inner_join(ann_vaccines_samples, by = "sample") %>% 
+  mutate(disease_vac = if_else(disease_vac == "Healthy", "H", disease_vac)) %>% 
+  mutate(disease_vac = fct_relevel(disease_vac, "H", "I", "V"),
+           type = fct_relevel(type, "I", "RNA", "VV", "IN", "SU")) %>% 
+  arrange(disease_vac,type, condition) %>% 
+  inner_join(ann_vaccines_conditions %>% select(condition, samples), by = "condition") %>% 
+  mutate(condition = factor(condition, levels = c(unique(condition[order(condition)]))),
+         condition = paste0(condition, " (n=", samples, ")")) 
+  # mutate(genes = fct_relevel(genes, genes_rf$Variable))
+
+table_ready = table %>% 
+  mutate(condition = fct_relevel(condition, 
+                                 table %>% 
+                                   filter(str_detect(condition, "^H \\(D0\\)")) %>% 
+                                   select(condition) %>% 
+                                   distinct() %>% 
+                                   pull(condition), 
+                                 table %>% 
+                                   filter(str_detect(condition, "^I")) %>% 
+                                   filter(!str_detect(condition, "^I-I")) %>% 
+                                   select(condition) %>% 
+                                   arrange(condition) %>% 
+                                   distinct() %>% 
+                                   pull(condition),
+                                 table %>% 
+                                   filter(disease_vac == "I") %>% 
+                                   filter(str_detect(condition, "^BNT-I")) %>% 
+                                    filter(!str_detect(condition, "^BNT-I \\(D\\d+\\)")) %>% 
+                                    arrange(day, condition) %>%
+                                   select(condition) %>% 
+                                    distinct() %>% 
+                                    pull(condition),
+                                 table %>% 
+                                    filter(str_detect(condition, "^BNT-I \\(D\\d+\\)")) %>% 
+                                    arrange(day, condition) %>%
+                                   select(condition) %>% 
+                                    distinct() %>% 
+                                    pull(condition),
+                                 table %>% 
+                                   filter(disease_vac == "V",
+                                          str_detect(condition, "^BNT \\(V1, D\\d+\\)")) %>% 
+                                   arrange(day, condition) %>% 
+                                   select(condition) %>% 
+                                   distinct() %>% 
+                                   pull(condition),
+                                 table %>% 
+                                   filter(disease_vac == "V",
+                                          !str_detect(condition, "^BNT \\(V1, D\\d+\\)"),
+                                          !str_detect(condition, "BBIBP"),
+                                          !str_detect(condition, "ZF2001")) %>% 
+                                   arrange(condition) %>% 
+                                   select(condition) %>% 
+                                   distinct() %>% 
+                                   pull(condition),
+                                 table %>% 
+                                   filter(str_detect(condition, "BBIBP")) %>% 
+                                   select(condition) %>% 
+                                   arrange(condition) %>% 
+                                   distinct() %>% 
+                                   pull(condition), 
+                                 table %>% 
+                                   filter(str_detect(condition, "ZF2001")) %>% 
+                                   select(condition) %>% 
+                                   arrange(condition) %>% 
+                                   distinct() %>% 
+                                   pull(condition))) %>%
+  mutate(type = if_else(type == "H", "I", type),
+         disease_vac = if_else(disease_vac == "H", "I", disease_vac))
+```
+
+
+```{r fig.height=10, fig.width=10}
+#Base value -----
+median_h = table_ready %>% 
+  select(genes, sample, log2fc, disease_vac) %>% 
+  filter(disease_vac == "H") %>% 
+  distinct() %>% 
+  group_by(genes, disease_vac) %>% 
+  summarize(median = median(counts), .groups = 'drop')
+
+median_i = table_ready %>% 
+  select(genes, sample, counts, disease_vac) %>% 
+  filter(disease_vac == "H") %>% 
+  distinct() %>% 
+  group_by(genes, disease_vac) %>% 
+  summarize(median = median(counts), .groups = 'drop') %>% 
+  mutate(disease_vac = "I")
+
+median_v = table_ready %>% 
+  select(genes, sample, counts, disease_vac) %>% 
+  filter(disease_vac == "H") %>% 
+  distinct() %>% 
+  group_by(genes, disease_vac) %>% 
+  summarize(median = median(counts), .groups = 'drop') %>% 
+  mutate(disease_vac = "V")
+
+median = bind_rows(median_i, median_v)
+```
+
+
+```{r fig.height=5, fig.width=12, message=TRUE, warning=FALSE}
+#Plots -----
+
+disease_vac_boxplot_samples_VIP = table_ready %>% 
+  # filter(genes == "GZMM") %>% 
+  ggplot() +
+  aes(x = condition, y = log2fc, fill = if_else(day == 0, "Day 0", type)) +  
+  geom_hline(yintercept = 0, linetype = 2) +
+  scale_y_log10()+
+  geom_jitter(aes(color = if_else(day == 0, "Day 0", type)),
+              alpha = 0.3, size = 0.1) +
+  geom_boxplot(outliers = F) +
+  theme_few() +
+  scale_fill_manual(values = c("Day 0" = "white", 
+                               ann_vaxsig_colors$type)) +
+  scale_color_manual(values = c("Day 0" = "gray80", 
+                               ann_vaxsig_colors$type)) +
+  theme(axis.text.x = element_text(angle = 45,
+                                   hjust = 1,
+                                   size = 8,
+                                   vjust = 1),
+        plot.title = element_text(hjust = 0, face = "bold"),
+        plot.margin = margin(0, 0, 0, 2, "cm"),
+        strip.text.y = element_text(angle = 0),
+        panel.grid.major = element_line(size = 0.05),
+        panel.grid.minor = element_line(size = 0.05)) +
+  labs(y = "Log2 fold-change",
+       title = "VIP genes",
+       subtitle = "Random forest classification model for Infection vs. Vaccination \n
+       Log2FC calculated comparing each sample with their control (D0)",
+       x="",
+       fill = "Type") +
+  guides(color = "none") +
+  facet_grid(~genes~disease_vac, scales = "free")
+
+disease_vac_boxplot_samples_VIP %>% 
+  ggsave(file = here("Figures" , "ML_infec_vs_vac_boxplot_vipgenes.png"), 
+         width = 10,
+         height = 5)
+```
+
+
+```{r fig.height=10, fig.width=10}
+#Type
+vip_genes_boxplot_type = table %>% 
+  filter(disease_vac != "H") %>% 
+  ggplot() +
+  aes(x = type, y = counts, fill = week_fac) +
+  geom_boxplot() +
+  geom_hline(data = median, aes(yintercept = median), linetype = "dashed", alpha = 0.5) +
+  scale_fill_viridis_d(option = "cividis", direction = -1) +
+  scale_y_continuous(trans = "log10") +
+  labs(
+    x = "Type",
+    y = "Normalized counts",
+    title = "Gene expression of the 5 most important genes",
+    fill = "Week"
+  ) +
+  theme_linedraw() +
+  theme(axis.text.y = element_text(hjust = 0.1),
+        legend.position = "top") +
+  facet_grid(~genes~disease_vac, scales = "free")
+
+vip_genes_boxplot_type 
+
+vip_genes_boxplot_type %>% 
+  ggsave(file = here("Figures", paste0("vip_genes_boxplot_type", filename, outcomevar, today(), ".png")), 
+                                  width = 10, height = 15)
+
+#Sex
+vip_genes_boxplot_type_sex = table %>% 
+  mutate(type_sex = paste0(type, "_", sex),
+         type_sex = fct_relevel(type_sex, "IN_M/F", "SU_M/F")) %>% 
+  filter(disease_vac != "H",
+         !type %in% c("IN", "SU")) %>% 
+  ggplot() +
+  aes(x = type_sex, y = counts, fill = week_fac) +
+  geom_boxplot() +
+  geom_hline(data = median, aes(yintercept = median), linetype = "dashed", alpha = 0.5) +
+  scale_fill_viridis_d(option = "cividis", direction = -1) +
+  scale_y_continuous(trans = "log10") +
+  labs(
+    x = "Type",
+    y = "Normalized counts",
+    title = "Gene expression of the 5 most important genes",
+    fill = "Week"
+  ) +
+  theme_linedraw() +
+  theme(axis.text.y = element_text(hjust = 0.1),
+        axis.text.x = element_text(angle = 45, vjust = 1, hjust = 1)) +
+  facet_grid(~genes~disease_vac, scales = "free")
+
+vip_genes_boxplot_type_sex 
+
+
+```
+
+
+#### PCA
+**Input**
+
+```{r}
+#INPUT
+data_genes = all_matrices_counts_genesRF 
+data_annotation = ann_vaccines_samples
+filename = "RandomforestGenes_COVID_Infec_Vac"
+```
+
+```{r}
+#Convert long to wide table format.
+#Dataframe with sample annotation
+
+ann_vaccines_pca_matrix = data_genes %>% 
+  select(sample, genes, counts) %>% 
+  pivot_wider(., names_from = "sample", 
+                     values_from = "counts") %>% 
+  replace(is.na(.), 0) %>%
+  column_to_rownames("genes") %>% 
+  t() %>% 
+  as.data.frame() %>% 
+  rownames_to_column("sample") %>% 
+  inner_join(data_annotation %>% 
+               select(sample, condition, disease_vac, gse_id, vaccine, day, week, dose, infection, type), by = "sample") 
+
+# Convert dataframe to matrix without annotation columns
+ann_vaccines_pca_matrix_ready = ann_vaccines_pca_matrix %>% 
+  column_to_rownames("sample") %>% 
+  select(!condition:type) %>% 
+  as.matrix()
+
+```
+
+## 6.3. PCA
+
+```{r}
+# Delete columns with near 0 variance
+nearZeroVarCols <- nearZeroVar(ann_vaccines_pca_matrix_ready, saveMetrics = TRUE)
+ann_vaccines_pca_matrix_ready <- ann_vaccines_pca_matrix_ready[, !nearZeroVarCols$nzv]
+pca_res <- prcomp(ann_vaccines_pca_matrix_ready, scale. = T)
+
+# Correlation plot ----
+corr_matrix = cor(ann_vaccines_pca_matrix_ready %>% scale()) 
+var <- get_pca_var(pca_res)
+
+# corrplot = ggcorrplot(corr_matrix, hc.order = TRUE) + 
+#   theme(axis.text.x = element_text(angle = 90, size = 5), 
+#         axis.text.y = element_text(size = 5))
+# #Salvar
+# ggsave(corrplot, file = paste0(filename, "_corrplot.png"), 
+#        width = 20, #Grande 20, pequeno 10
+#        height= 20) #Grande 20, pequeno 10
+# print(corrplot)
+
+#PCA ----
+data.pca = prcomp(corr_matrix) #PCA
+summary(corr_matrix) #Retornar PCs
+
+#Scree plot ----
+scree_plot = fviz_eig(data.pca, 
+                      addlabels = TRUE,
+                      ylim = c(0, 70)) +
+  geom_col(color = "#00AFBB", fill = "#00AFBB") +
+  theme_classic()
+
+#Save
+ggsave(scree_plot, file = here("Figures", paste0(filename, "_screeplot.png")), width = 10, height = 3) 
+print(scree_plot)
+
+```
+
+## 6.3.1. Loadings plot
+
+```{r}
+# Loadings plot ----
+options(ggrepel.max.overlaps = Inf)
+
+circle_contrib = fviz_pca_var(pca_res, col.var = "cos2",
+                              gradient.cols = c("black", "#DC0000FF"),
+                              select.var= list(cos2 = 20), 
+                              repel = T, 
+                              labelsize = 4,
+                              col.circle = NA) +
+  xlab("") + 
+  ylab("") +
+  theme_minimal() +
+theme(panel.grid = element_blank(),  # Remover linhas de grade
+        axis.text = element_blank(),   # Remover rótulos de texto dos eixos
+        axis.ticks = element_blank()) 
+
+#Save
+ggsave(circle_contrib, file = here("Figures", paste0(filename, "_circle_contrib_wide.png")), width = 10, height = 5)
+
+circle_contrib
+```
+
+## 6.3.2. KNN
+
+```{r}
+#KNN classification -----
+#Use the screeplot generated % of explained variance for each dimension
+scree_plot #Dim 1 = 68.2%, Dim 2 = 15.9%
+
+
+# PC1-PC2 ------
+#Determine the number of clusters
+pca_scores <- data.frame(pca_res$x[, 1:2])
+fviz_nbclust(pca_scores,  
+                     FUNcluster = kmeans,
+                     method = "wss")
+
+pcas = "PC1-PC2"
+
+set.seed(666) # Set seed for randomization
+cluster_model <- kmeans(pca_res$x[, 1:2], centers = 3)  #Set the number of clusters
+
+ann_vaccines_pca_matrix$cluster <- as.factor(cluster_model$cluster)
+```
+
+## 6.3.3. Plot
+
+```{r fig.height=7, fig.width=10, paged.print=FALSE}
+# Condition with density plot ------
+pca_plot_knn_cluster = autoplot(pca_res, 
+        data = ann_vaccines_pca_matrix,
+        colour = "gse_id")  +
+  stat_ellipse(aes(color = cluster, fill = cluster), 
+               geom = "polygon", 
+               alpha = 0.2, 
+               linetype = 1,
+               size = 0.3,
+               type = "t") +
+  labs(title=paste0(filename, "_bycondition")) + 
+  xlab("PC1 (68.2%)") +
+  ylab("PC2 (15.9%)") +
+    geom_hline(yintercept = 0, size = 0.3, color = "gray50", linetype = 4) +
+  geom_vline(xintercept = 0, size = 0.3, color = "gray50", linetype = 4) +
+  geom_point(aes(fill = type,
+                 color = type),
+             stroke = 0.2) +
+   scale_color_manual(values = c("1" = "#8491B4FF", 
+                                "2" = "#4DBBD5FF", 
+                                "3" = "#DC0000FF",
+                                ann_vaxsig_colors$type), 
+                     guide = "none") +
+  scale_fill_manual(values = c("1" = "#8491B4FF", 
+                               "2" = "#4DBBD5FF", 
+                               "3" = "#DC0000FF",
+                               ann_vaxsig_colors$type),
+                    guide = "none") + 
+  guides(col="none") +
+  theme_few() +
+  theme(panel.grid.minor = element_blank(),
+        text = element_text(color = "black"),
+        panel.border = element_blank(),
+        axis.line = element_line(colour = "black")) +
+  geom_text_repel(aes(label = condition,
+                      segment.colour="gray70"),
+                  box.padding = 0.3,
+                  size = 3) +
+  xlim(-0.4, 0.6)
+pca_plot_knn_cluster
+
+ggsave(pca_plot_knn_cluster, 
+       file = here( "Figures", paste0(filename, pcas, "_KNN_Clustered_labels.png")), width = 10, height = 7)
+pca_plot_knn_cluster
+# pca_plot_knn_cluster_marginal = ggMarginal(
+#   pca_plot_knn_cluster,
+#   type = "histogram",
+#   groupFill = T,
+#   groupColour = T,
+#   xparams = list(binwidth = 0.1, size = 0.1),
+#   yparams = list(binwidth = 0.1, size = 0.1)
+# )
+# 
+# ggsave(
+#   pca_plot_knn_cluster_marginal,
+#   file = here(paste0(filename, pcas, "_KNN_Clustered_labels_Marginal.png"), "Figures"),
+#   width = 8,
+#   height = 5
+# )
+
+
+```
+
+
+### 8.2.6. Heatmap: Gene L2FC per condition
+
+```{r}
+# Required files
+ImmuneGO_Annotated_Genes = readRDS(here("VaxGO gene sets","ImmuneGO_Annotated_Genes_2024-03-26.rds"))
+all_degs_p_05_vac_infected = read_csv(here("DGE analysis", "all_degs_p_05_vac_infected_19_12_23.csv"))
+ann_vaccines <- read_csv(here("Annotations and metadata", "ann_vaccines_conditions.csv"))
+df = read_csv("Machine Learning/vipgenes_tidymodels_ImmuneGO_Genes_Type_including_Infection_disease_vac.csv")
+#Inputs
+ImmuneGO_Annotated_Genes_all = ImmuneGO_Annotated_Genes %>% 
+  filter(!process %in% c("TCR REPERTOIRE", "BCR REPERTOIRE"))
+
+ImmuneGO_Genes = all_degs_p_05_vac_infected %>% 
+  filter(genes%in% df$genes) %>% 
+  inner_join(ImmuneGO_Annotated_Genes %>% 
+               select(genes, process) %>% 
+               distinct() %>% 
+               select(genes),
+               by = "genes") %>% 
+  distinct() %>% 
+  select(genes, condition, log2fold_change) %>% 
+  pivot_wider(names_from = condition, values_from = log2fold_change)
+
+# Matrix
+l2fc_imps = ImmuneGO_Genes %>% 
+  column_to_rownames("genes") %>% 
+  as.matrix() %>% 
+  replace(is.na(.), 0)
+
+outcomevar = "Infection_Vaccine"
+####### INPUT
+filename_2 = paste0("RandomForest_ImmuneGO_Genes_Conditions_", outcomevar)
+
+######## Matrix
+matrix = ImmuneGO_Genes
+
+######## Annotations
+ann_vaccines_covid_other_2 = ImmuneGO_Genes %>% 
+  column_to_rownames("genes") %>% 
+  colnames() %>% 
+  as.data.frame() %>% 
+  select(condition = ".") %>% 
+  inner_join(ann_vaccines, by = "condition") %>% 
+  distinct() %>% 
+  select(condition, disease_vac, type, week, day) %>% 
+  arrange(week, day) %>% 
+  mutate(week = fct_relevel(as.factor(week), sort(levels(week))),
+         day = fct_relevel(as.factor(day), sort(levels(day)))) 
+
+```
+
+
+```{r}
+#Columns
+ann_cols_heatmap = matrix %>% 
+  colnames() %>% 
+  data.frame() %>% 
+  filter(. != "genes") %>% 
+  rename(condition = '.') %>% 
+  inner_join(ann_vaccines_covid_other_2, by = "condition") %>% 
+  distinct() %>% 
+  arrange(condition) %>% 
+  column_to_rownames("condition")
+
+matrix_data = matrix %>% 
+  column_to_rownames("genes") %>% 
+  t() %>% 
+  as.data.frame() %>% 
+  rownames_to_column(var= "condition") %>% 
+  inner_join(ann_cols_heatmap %>% rownames_to_column("condition"), by = "condition") %>% 
+  select(!c(disease_vac:day)) %>% 
+  arrange(condition) %>% 
+  column_to_rownames("condition") %>% 
+  t() %>% 
+  as.data.frame() %>% 
+  mutate_if(is.character, as.numeric) %>%
+  as.matrix()  %>% 
+  replace(is.na(.), 0)
+
+#Rows Immune ----
+ann_rows_immune = matrix_data %>%
+  as.data.frame() %>%
+  rownames_to_column("genes") %>%
+  left_join(ImmuneGO_Annotated_Genes %>% filter(go_term == "Manual"), by = "genes") %>%
+  select(genes, process) %>%
+  distinct() %>%
+  group_by(genes) %>%
+  arrange(genes, factor(process, levels = c("INNATE IMMUNE SYSTEM", "ADAPTIVE IMMUNE SYSTEM")), .by_group = TRUE) %>%
+  mutate(i_process = row_number()) %>%
+  pivot_wider(., names_from = "i_process", values_from = "process") %>%
+  column_to_rownames("genes") %>%
+  t() %>%
+  as.data.frame() %>%
+  rownames_to_column("index") %>%
+  mutate(index = as.numeric(index)) %>%
+  arrange(desc(index)) %>%
+  column_to_rownames("index") %>%
+  t() %>%
+  as.data.frame() %>%
+  replace(is.na(.), ".") %>% 
+  mutate(`1` = if_else(`1` == ".", "INNATE IMMUNE SYSTEM", `1`)) %>% 
+  rownames_to_column("genes") %>% 
+  mutate(genes = rownames(matrix_data)) %>% 
+  column_to_rownames("genes")
+
+#Verificar dimensões do dataset
+dim(matrix)
+dim(matrix_data)
+dim(ann_cols_heatmap)
+dim(ann_rows_immune)
+```
+
+```{r}
+################# Immune 
+#Heatmap annotation
+ha = HeatmapAnnotation(df = ann_cols_heatmap, 
+                       col = ann_vaxsig_colors,
+                       annotation_name_side = "right")
+
+row_ha = HeatmapAnnotation(df = ann_rows_immune,
+                       col = col_process_immune,
+                       which= "row",
+                       show_annotation_name = F,
+                       show_legend = F,
+                       simple_anno_size = unit(1, "mm"))
+
+# Values colors
+col_fun <- colorRamp2(c(-2, 0, 2), c("#9bc1bc", "white", "#ed6a5a"))
+
+file = filename_2
+mat = matrix_data
+width_image = 30
+height_image = 15
+width = unit(15, "cm")
+height = unit(6, "cm")
+column_names_gp = gpar(fontsize = 10)
+row_names_gp = gpar(fontsize = 10)
+rect_gp = gpar(col = "gray80", lwd = 0.5)
+
+fileimageheatmap_grouped = paste0(file, sep ="_", "Complexheatmap.png")
+
+png(file = here("Figures", fileimageheatmap_grouped), 
+    width = width_image, 
+    height = height_image, 
+    units="cm", 
+    res=900)
+
+heatmap_plot = Heatmap(mat,
+                        top_annotation = ha,
+                        left_annotation = row_ha,
+                        show_row_names = TRUE,
+                        row_names_side = "right",
+                        show_heatmap_legend = TRUE,
+                        heatmap_legend_param = list(direction = "horizontal"),
+                        name = "L2FC",
+                        col = col_fun, #color
+                        show_column_names = TRUE,
+                        column_title = fileimageheatmap_grouped,
+                        column_title_gp = gpar(fontsize = 10, fontface = "bold"),
+                        column_names_rot = 45,
+                        column_names_gp = column_names_gp,
+                        rect_gp = rect_gp,
+                        na_col = "white",
+                        cluster_rows = TRUE,
+                        row_names_gp = row_names_gp,
+                        row_dend_width = unit(0, "cm"),
+                        row_split = NULL,
+                        column_split = NULL,
+                        row_gap = unit(2, "mm"),
+                        cluster_columns = TRUE,
+                        column_gap = unit(2, "mm"),
+                        show_column_dend = F,
+                        show_row_dend = F,
+                        row_dend_side = "left",
+                        column_dend_side = "top",
+                        clustering_distance_rows = "euclidean",
+                        border = TRUE,
+                        width = width,
+                        height = height)
+
+heatmap_plot = draw(heatmap_plot, 
+     annotation_legend_side = "left", 
+     heatmap_legend_side = "bottom")
+
+dev.off()
+
+```
+
+
+
+### 8.2.6. Heatmap: Gene counts per sample
+```{r}
+# Required files
+ImmuneGO_Annotated_Genes = readRDS(here("VaxGO gene sets","ImmuneGO_Annotated_Genes_2024-03-26.rds"))
+
+genes_rf = read_csv("Machine learning/vipgenes_tidymodels_All_coviddisease_vac.csv")
+df_samples_l2fc_vipgenes_covid = all_samples_l2fc %>% 
+  filter(genes %in% genes_rf$genes)
+
+ann_vaccines_samples <- read_csv(here("Annotations and metadata", "ann_vaccines_samples.csv"))
+
+
+df_annotated = df_samples_l2fc_vipgenes_covid %>% 
+  distinct() %>% 
+  inner_join(ann_vaccines_samples %>% select(-condition, -participant_id), by = "sample") %>% 
+  distinct() %>% 
+  filter(condition != "BNT-MO (V1, D0)",
+         condition != "BNT-MO (V1, D6)") %>% 
+  mutate(disease_vac = if_else(disease_vac == "Healthy", "H", disease_vac)) %>% 
+  mutate(disease_vac = fct_relevel(disease_vac, "H", "I", "V"),
+           type = fct_relevel(type, "I", "RNA", "VV", "IN", "SU")) %>% 
+  inner_join(ann_vaccines_conditions %>% select(condition, samples), by = "condition") %>% 
+  mutate(condition = factor(condition, levels = c(unique(condition[order(condition)]))),
+         condition = paste0(condition, " (n=", samples, ")"))
+  
+
+df_annotated_2 = df_annotated %>% 
+  mutate(condition = fct_relevel(condition, 
+                                 df_annotated %>% 
+                                   filter(str_detect(condition, "^H \\(D0\\)")) %>% 
+                                   select(condition) %>% 
+                                   distinct() %>% 
+                                   pull(condition), 
+                                 df_annotated %>% 
+                                   filter(str_detect(condition, "^I")) %>% 
+                                   filter(!str_detect(condition, "^I-I")) %>% 
+                                   select(condition) %>% 
+                                   arrange(condition) %>% 
+                                   distinct() %>% 
+                                   pull(condition),
+                                 df_annotated %>% 
+                                   filter(disease_vac == "I") %>% 
+                                   filter(str_detect(condition, "^BNT-I")) %>% 
+                                    filter(!str_detect(condition, "^BNT-I \\(D\\d+\\)")) %>% 
+                                    arrange(day, condition) %>%
+                                   select(condition) %>% 
+                                    distinct() %>% 
+                                    pull(condition),
+                                 df_annotated %>% 
+                                    filter(str_detect(condition, "^BNT-I \\(D\\d+\\)")) %>% 
+                                    arrange(day, condition) %>%
+                                   select(condition) %>% 
+                                    distinct() %>% 
+                                    pull(condition),
+                                 df_annotated %>% 
+                                   filter(disease_vac == "V",
+                                          str_detect(condition, "^BNT \\(V1, D\\d+\\)")) %>% 
+                                   arrange(day, condition) %>% 
+                                   select(condition) %>% 
+                                   distinct() %>% 
+                                   pull(condition),
+                                 df_annotated %>% 
+                                   filter(disease_vac == "V",
+                                          !str_detect(condition, "^BNT \\(V1, D\\d+\\)"),
+                                          !str_detect(condition, "BBIBP"),
+                                          !str_detect(condition, "ZF2001")) %>% 
+                                   arrange(condition) %>% 
+                                   select(condition) %>% 
+                                   distinct() %>% 
+                                   pull(condition),
+                                 df_annotated %>% 
+                                   filter(str_detect(condition, "BBIBP")) %>% 
+                                   select(condition) %>% 
+                                   arrange(condition) %>% 
+                                   distinct() %>% 
+                                   pull(condition), 
+                                 df_annotated %>% 
+                                   filter(str_detect(condition, "ZF2001")) %>% 
+                                   select(condition) %>% 
+                                   arrange(condition) %>% 
+                                   distinct() %>% 
+                                   pull(condition))) %>%
+  mutate(type = if_else(type == "H", "I", type),
+         disease_vac = if_else(disease_vac == "H", "I", disease_vac)) 
+
+
+```
+
+```{r}
+df_annotated_2 %>% 
+  filter(day != 0) %>% 
+  filter(genes == "ITGAM") %>% 
+  ggplot() +
+  aes(x = condition, y = log2fc, fill = type) +  
+  geom_hline(yintercept = 0, linetype = 2) +
+  geom_jitter(aes(color = type),
+              alpha = 0.3, size = 0.1) +
+  geom_boxplot(outliers = F) +
+  theme_few() +
+  scale_fill_manual(values = c(ann_vaxsig_colors$type)) +
+    scale_color_manual(values = c(ann_vaxsig_colors$type)) +
+  theme(axis.text.x = element_text(angle = 45,
+                                   hjust = 1,
+                                   vjust = 1),
+        plot.title = element_text(hjust = 0.5, face = "bold"),
+        plot.margin = margin(0, 0, 0, 2, "cm"),
+        panel.grid.major = element_line(size = 0.05),
+        panel.grid.minor = element_line(size = 0.05)) +
+  labs(y = "L2FC",
+       x="",
+       fill = "Type") +
+  guides(color = "none") +
+  facet_wrap(~disease_vac, scales = "free_x")
+```
+
+Generate boxplots for all genes
+```{r fig.height=6, fig.width=12}
+#Function to create boxplots
+create_boxplots_vipgenes <- function(result_df) {
+  
+  unique_processes <- unique(result_df$genes)
+  
+  purrr::map(unique_processes, function(process_name) {
+    cellmarker_boxplot <- result_df %>% 
+      filter(day != 0) %>% 
+  filter(genes == process_name) %>% 
+  ggplot() +
+  aes(x = condition, y = log2fc, fill = type) +  
+  geom_hline(yintercept = 0, linetype = 2) +
+  geom_jitter(aes(color = type),
+              alpha = 0.3, size = 0.1) +
+  geom_boxplot(outliers = F) +
+  theme_few() +
+  scale_fill_manual(values = c(ann_vaxsig_colors$type)) +
+    scale_color_manual(values = c(ann_vaxsig_colors$type)) +
+  theme(axis.text.x = element_text(angle = 45,
+                                   hjust = 1,
+                                   vjust = 1),
+        plot.title = element_text(hjust = 0.5, face = "bold"),
+        plot.margin = margin(0, 0, 0, 2, "cm"),
+        panel.grid.major = element_line(size = 0.05),
+        panel.grid.minor = element_line(size = 0.05)) +
+  labs(y = "L2FC",
+       x="",
+       title = process_name,
+       subtitle = "VIPgenes - COVID-19 infection vs. Vaccination",
+       fill = "Type") +
+  guides(color = "none") +
+  facet_wrap(~disease_vac, scales = "free_x")
+
+    ggsave(cellmarker_boxplot, 
+           file = here("Figures", paste0("MachineLearning_VIPGenes_COVID_VAC_boxplot_", process_name, ".png")),
+           width = 12, height = 6)
+  })
+}
+
+# Apply to all processes
+create_boxplots_vipgenes(df_annotated_2)
+
+
+df_annotated_2$genes %>% unique()
+```
+
+
+
+
+
+```{r}
+#Inputs
+ImmuneGO_Annotated_Genes_all = ImmuneGO_Annotated_Genes %>% 
+  filter(!process %in% c("TCR REPERTOIRE", "BCR REPERTOIRE"))
+
+ImmuneGO_Genes = df %>% 
+  inner_join(ImmuneGO_Annotated_Genes %>% 
+               select(genes, process) %>% 
+               distinct() %>% 
+               select(genes),
+               by = "genes") %>% 
+  distinct() %>% 
+  select(genes, sample, log2fc) %>% 
+  pivot_wider(names_from = sample, values_from = log2fc)
+
+
+sample_correct =final_res_preds %>% 
+  rownames_to_column("sample") %>%  
+  inner_join(ann_vaccines_samples %>% 
+               select(condition, sample), by = "sample") %>% 
+  select(sample, correct) 
+
+# Matrix
+l2fc_imps = ImmuneGO_Genes %>% 
+  column_to_rownames("genes") %>% 
+  as.matrix() %>% 
+  replace(is.na(.), 0)
+
+####### INPUT
+data_2 = l2fc_imps
+filename_2 = paste0("RandomForest_ImmuneGO_Genes_Samples_", outcomevar)
+
+######## Matrix
+matrix = ImmuneGO_Genes
+
+######## Annotations
+ann_vaccines_covid_other_2 = ImmuneGO_Genes %>% 
+  column_to_rownames("genes") %>% 
+  colnames() %>% 
+  as.data.frame() %>% 
+  select(sample = ".") %>% 
+  inner_join(ann_vaccines_samples, by = "sample") %>% 
+  distinct() %>% 
+  select(sample, disease_vac, type, week, day) %>% 
+  arrange(week, day) %>% 
+  mutate(week = fct_relevel(as.factor(week), sort(levels(week))),
+         day = fct_relevel(as.factor(day), sort(levels(day)))) %>% 
+  inner_join(sample_correct, by = "sample")
+  
+
+#Columns
+ann_cols_heatmap = matrix %>% 
+  colnames() %>% 
+  data.frame() %>% 
+  filter(. != "genes") %>% 
+  rename(sample = '.') %>% 
+  inner_join(ann_vaccines_covid_other_2, by = "sample") %>% 
+  distinct() %>% 
+  arrange(sample) %>% 
+  column_to_rownames("sample")
+
+matrix_data = matrix %>% 
+  column_to_rownames("genes") %>% 
+  t() %>% 
+  as.data.frame() %>% 
+  rownames_to_column(var= "sample") %>% 
+  inner_join(ann_cols_heatmap %>% rownames_to_column("sample"), by = "sample") %>% 
+  select(!c(disease_vac:day, correct)) %>% 
+  arrange(sample) %>% 
+  column_to_rownames("sample") %>% 
+  t() %>% 
+  as.data.frame() %>% 
+  mutate_if(is.character, as.numeric) %>%
+  as.matrix()  %>% 
+  replace(is.na(.), 0)
+
+#Rows Immune ----
+ann_rows_immune = matrix_data %>%
+  as.data.frame() %>%
+  rownames_to_column("genes") %>%
+  left_join(ImmuneGO_Annotated_Genes %>% filter(go_term == "Manual"), by = "genes") %>%
+  select(genes, process) %>%
+  distinct() %>%
+  group_by(genes) %>%
+  arrange(genes, factor(process, levels = c("INNATE IMMUNE SYSTEM", "ADAPTIVE IMMUNE SYSTEM")), .by_group = TRUE) %>%
+  mutate(i_process = row_number()) %>%
+  pivot_wider(., names_from = "i_process", values_from = "process") %>%
+  column_to_rownames("genes") %>%
+  t() %>%
+  as.data.frame() %>%
+  rownames_to_column("index") %>%
+  mutate(index = as.numeric(index)) %>%
+  arrange(desc(index)) %>%
+  column_to_rownames("index") %>%
+  t() %>%
+  as.data.frame() %>%
+  replace(is.na(.), ".") %>% 
+  mutate(`1` = if_else(`1` == ".", "INNATE IMMUNE SYSTEM", `1`)) %>% 
+  rownames_to_column("genes") %>% 
+  mutate(genes = rownames(matrix_data)) %>% 
+  column_to_rownames("genes")
+
+#Verificar dimensões do dataset
+dim(matrix_data)
+dim(ann_cols_heatmap)
+dim(ann_rows_immune)
+```
+
+```{r}
+################# Immune 
+#Heatmap annotation
+ha = HeatmapAnnotation(df = ann_cols_heatmap, 
+                       col = ann_vaxsig_colors,
+                       annotation_name_side = "right")
+
+row_ha = HeatmapAnnotation(df = ann_rows_immune,
+                       col = col_process_immune,
+                       which= "row",
+                       show_annotation_name = F,
+                       show_legend = F,
+                       simple_anno_size = unit(1, "mm"))
+min(matrix_data)
+
+max(matrix_data)
+# Values colors
+col_fun <- colorRamp2(c(-20, 0, 20), c("#9bc1bc", "white", "#ed6a5a"))
+
+file = filename_2
+mat = matrix_data
+width_image = 60
+height_image = 40
+width = unit(50, "cm")
+height = unit(30, "cm")
+column_names_gp = gpar(fontsize = 8)
+row_names_gp = gpar(fontsize = 10)
+rect_gp = gpar(col = "gray80", lwd = 0.5)
+
+fileimageheatmap_grouped = paste0(file, sep ="_", "Complexheatmap.png")
+
+png(file = here("Figures", fileimageheatmap_grouped), 
+    width = width_image, 
+    height = height_image, 
+    units="cm", 
+    res=900)
+
+heatmap_plot = Heatmap(mat,
+                        top_annotation = ha,
+                        left_annotation = row_ha,
+                        show_row_names = TRUE,
+                        row_names_side = "right",
+                        show_heatmap_legend = TRUE,
+                        heatmap_legend_param = list(direction = "horizontal"),
+                        name = "Log10 (raw counts)",
+                        col = col_fun, #color
+                        show_column_names = TRUE,
+                        column_title = fileimageheatmap_grouped,
+                        column_title_gp = gpar(fontsize = 10, fontface = "bold"),
+                        column_names_rot = 45,
+                        column_names_gp = column_names_gp,
+                        rect_gp = rect_gp,
+                        na_col = "white",
+                        cluster_rows = TRUE,
+                        row_names_gp = row_names_gp,
+                        row_dend_width = unit(0, "cm"),
+                        row_split = NULL,
+                        column_split = NULL,
+                        row_gap = unit(2, "mm"),
+                        cluster_columns = TRUE,
+                        column_gap = unit(2, "mm"),
+                        show_column_dend = F,
+                        show_row_dend = F,
+                        row_dend_side = "left",
+                        column_dend_side = "top",
+                        clustering_distance_rows = "euclidean",
+                        border = TRUE,
+                        width = width,
+                        height = height)
+
+heatmap_plot = draw(heatmap_plot, 
+     annotation_legend_side = "left", 
+     heatmap_legend_side = "bottom")
+
+dev.off()
+
+```
+
+
+
+
+
 
 
 ## 8.2. COVID-19 vaccines types
@@ -21575,7 +23500,8 @@ matrix = ann_vaccines_pca_matrix_ready %>% t()
 #Annotation [rownames(sample), columns (other attributes)] Dataframe
 metadata = data_annotation %>% 
   mutate(condition = fct_relevel(condition, colnames(matrix))) %>% 
-  inner_join(matrix %>% t() %>% as.data.frame() %>% rownames_to_column("condition") %>% select("condition"), by = "condition") %>% 
+  inner_join(matrix %>% t() %>% as.data.frame() %>% rownames_to_column("condition") %>% select("condition"), 
+             by = "condition") %>% 
   column_to_rownames("condition") %>% 
   select(disease_vac, type, vaccine, dose, day, week, regimen, prior_infection, previous_vaccination)
 
