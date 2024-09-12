@@ -7014,10 +7014,13 @@ write_csv(nesmat_result_CellMarker, file = here("Gene set enrichment analysis", 
 
 head(nesmat_result_CellMarker)
 ```
-### Visualization
+### 5.4.3. Visualization
 
 Generate a single boxplot
 ```{r fig.height=6, fig.width=12}
+
+nesmat_result_CellMarker = read_csv(here("Gene set enrichment analysis", "covid_all_CellMarkerImmune_ssgsea_results.csv"))
+
 unique(nesmat_result_CellMarker$process)
 
 process_selected = "Neutrophil"
@@ -7093,6 +7096,10 @@ nesmat_result_CellMarker_2 = nesmat_result_CellMarker_1 %>%
   mutate(type = if_else(type == "H", "I", type),
          disease_vac = if_else(disease_vac == "H", "I", disease_vac)) 
 
+nesmat_result_CellMarker_2 %>% 
+  select(condition) %>% 
+  distinct()
+
 ssgsea_boxplot_by_type 
 
 nesmat_result_CellMarker_2 %>% 
@@ -7125,10 +7132,6 @@ nesmat_result_CellMarker_2 %>%
 
   ssgsea_boxplot_by_type
 ```
-
-
-
-
 
 Generate boxplots for all processes
 ```{r fig.height=6, fig.width=12}
@@ -12550,19 +12553,105 @@ heatmap_plot = draw(heatmap_plot,
 dev.off()
 
 ```
-### 8.2.6. Heatmap: Gene counts per sample
 
+
+
+### 8.2.6. Heatmap: Gene counts per sample
 ```{r}
 # Required files
 ImmuneGO_Annotated_Genes = readRDS(here("VaxGO gene sets","ImmuneGO_Annotated_Genes_2024-03-26.rds"))
-#df = all_matrices_counts_genesRF
-df = all_samples_l2fc %>% 
-  filter(genes %in% genes_rf$Variable)
 
-ann_vaccines_samples <- read_csv(here("Annotations and metadata", "ann_vaccines_samples.csv")) %>% 
+genes_rf = read_csv("Machine learning/vipgenes_tidymodels_All_coviddisease_vac.csv")
+df_samples_l2fc_vipgenes_covid = all_samples_l2fc %>% 
+  filter(genes %in% genes_rf$genes)
+
+ann_vaccines_samples <- read_csv(here("Annotations and metadata", "ann_vaccines_samples.csv"))
+
+
+df_annotated = df_samples_l2fc_vipgenes_covid %>% 
+  distinct() %>% 
+  inner_join(ann_vaccines_samples %>% select(-condition, -participant_id), by = "sample") %>% 
+  distinct() %>% 
+  filter(condition != "BNT-MO (V1, D0)",
+         condition != "BNT-MO (V1, D6)") %>% 
   mutate(disease_vac = if_else(disease_vac == "Healthy", "H", disease_vac)) %>% 
-  filter(disease_vac != "I")
+  mutate(disease_vac = fct_relevel(disease_vac, "H", "I", "V"),
+           type = fct_relevel(type, "I", "RNA", "VV", "IN", "SU")) %>% 
+  inner_join(ann_vaccines_conditions %>% select(condition, samples), by = "condition") %>% 
+  mutate(condition = factor(condition, levels = c(unique(condition[order(condition)]))),
+         condition = paste0(condition, " (n=", samples, ")"))
+  
+
+df_annotated_2 = df_annotated %>% 
+  mutate(condition = fct_relevel(condition, 
+                                 df_annotated %>% 
+                                   filter(str_detect(condition, "^H \\(D0\\)")) %>% 
+                                   select(condition) %>% 
+                                   distinct() %>% 
+                                   pull(condition), 
+                                 df_annotated %>% 
+                                   filter(str_detect(condition, "^I")) %>% 
+                                   filter(!str_detect(condition, "^I-I")) %>% 
+                                   select(condition) %>% 
+                                   arrange(condition) %>% 
+                                   distinct() %>% 
+                                   pull(condition),
+                                 df_annotated %>% 
+                                   filter(disease_vac == "I") %>% 
+                                   filter(str_detect(condition, "^BNT-I")) %>% 
+                                    filter(!str_detect(condition, "^BNT-I \\(D\\d+\\)")) %>% 
+                                    arrange(day, condition) %>%
+                                   select(condition) %>% 
+                                    distinct() %>% 
+                                    pull(condition),
+                                 df_annotated %>% 
+                                    filter(str_detect(condition, "^BNT-I \\(D\\d+\\)")) %>% 
+                                    arrange(day, condition) %>%
+                                   select(condition) %>% 
+                                    distinct() %>% 
+                                    pull(condition),
+                                 df_annotated %>% 
+                                   filter(disease_vac == "V",
+                                          str_detect(condition, "^BNT \\(V1, D\\d+\\)")) %>% 
+                                   arrange(day, condition) %>% 
+                                   select(condition) %>% 
+                                   distinct() %>% 
+                                   pull(condition),
+                                 df_annotated %>% 
+                                   filter(disease_vac == "V",
+                                          !str_detect(condition, "^BNT \\(V1, D\\d+\\)"),
+                                          !str_detect(condition, "BBIBP"),
+                                          !str_detect(condition, "ZF2001")) %>% 
+                                   arrange(condition) %>% 
+                                   select(condition) %>% 
+                                   distinct() %>% 
+                                   pull(condition),
+                                 df_annotated %>% 
+                                   filter(str_detect(condition, "BBIBP")) %>% 
+                                   select(condition) %>% 
+                                   arrange(condition) %>% 
+                                   distinct() %>% 
+                                   pull(condition), 
+                                 df_annotated %>% 
+                                   filter(str_detect(condition, "ZF2001")) %>% 
+                                   select(condition) %>% 
+                                   arrange(condition) %>% 
+                                   distinct() %>% 
+                                   pull(condition))) %>%
+  mutate(type = if_else(type == "H", "I", type),
+         disease_vac = if_else(disease_vac == "H", "I", disease_vac)) 
+
+
 ```
+
+```{r}
+df_annotated_2 %>% 
+  esquisser()
+```
+
+
+
+
 
 
 ```{r}
@@ -21455,7 +21544,7 @@ circos.clear()
 
 
 # ADICIONAR
-### PCA with tidymodels
+## PCA with tidymodels
 ```{r cache = TRUE}
 #### PCA using tidymodels
 #Recipe
@@ -21473,15 +21562,8 @@ tidy(pca_estimates, number = 2, type = "variance")
 pca_data <- bake(pca_estimates, USArrests)
 ```
 
-#### PCA with PCAtools
+## PCA with PCAtools
 ```{r fig.height=8, fig.width=10, cache = TRUE}
-##### PCA using PCAtools
-# BiocManager::install('PCAtools')
-# BiocManager::install("airway")
-library(PCAtools)
-
-#PCA Covid-19 -------
-
 ##### PCA using PCAtools
 # BiocManager::install('PCAtools')
 # BiocManager::install("airway")
