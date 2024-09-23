@@ -2425,33 +2425,45 @@ all_degs
 ### Weight and adjust p values
 
 ```{r}
-all_degs_annotated = all_degs %>% 
+install.packages("weights")
+library(weights)
+all_degs_annotated = all_degs %>%
   inner_join(ann_vaccines_conditions %>% select(condition, n = samples),
-             by = "condition") %>% 
-  mutate(pvalue = if_else(is.na(pvalue), 1, pvalue),
-         weights = sqrt(n))
+             by = "condition") %>%
+  mutate(pvalue = if_else(is.na(pvalue), 1, pvalue)) %>% 
+  select(-padj)
 
-combine_pvalues <- function(group) {
-  if (nrow(group) > 1) {
-    sumz(p = group$pvalue, weights = group$weights)$p
-  } else {
-    group$pvalue
-  }}
+all_degs_weighted =  all_degs_annotated %>% 
+  group_by(genes, condition) %>%  
+  summarise(weighted_avg_fc = sum(log2FoldChange * n) / sum(n),
+            .groups = 'drop') %>% 
+  inner_join(all_degs_annotated, by = join_by("condition", "genes")) 
 
-  
-combined_results <- all_degs_annotated %>%
-  group_by(condition, genes) %>%
-  group_split() %>%
-  map_dfr(~ {
-    tibble(
-      condition = .x$condition[1],
-      genes = .x$genes[1],
-      metap = combine_pvalues(.x)
-    )
-  })
+pval_weighted <- all_degs_weighted %>%
+  group_by(genes, condition) %>%
+  summarise(
+    weighted_p = wtd.mean(pvalue, weights = n),  # Calcula a média ponderada dos p-valores usando o tamanho amostral como peso
+    .groups = "drop"
+  ) %>% 
+  inner_join(all_degs_weighted, by = join_by("genes", "condition"))
+
+all_degs_weighted_adjusted = pval_weighted %>% 
+  mutate(fdr = p.adjust(weighted_p, method = "BH")) %>% 
+  mutate(padj_tf = if_else(padj < 0.05, "sig", "ns"),
+         meta_fdr_tf = if_else(fdr < 0.05, "sig", "ns"))
+
+all_degs_weighted_adjusted %>% 
+  group_by(padj_tf, meta_fdr_tf) %>% 
+  summarise(n_padj_sig = n()) %>% 
 
 
-library(metap)
+ggplot(.) +
+  aes(x = padj_tf, y = n_padj_sig) +
+  geom_col(fill = "#112446") +
+  theme_minimal() +
+  facet_wrap(vars(meta_fdr_tf))
+
+
 
 
 
