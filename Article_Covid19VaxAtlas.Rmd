@@ -2365,104 +2365,96 @@ dds <- DESeq(dds)
 
 ###### Retrieve comparisons
 resultsNames(dds)
-```
 
-BNT
 
-```{r}
-######### PFIZER ######### 
+# Get all comparisons
+generate_all_DESeq2_results <- function(dds) {
+  result_names <- resultsNames(dds)
+  all_results <- data.frame()
+  
+  for (name in result_names) {
+    condition_label <- name
+      result_df <- results(dds, name = name) %>%
+      as.data.frame() %>%
+      arrange(padj) %>%
+      mutate(condition = condition_label) %>%
+      rownames_to_column("genes")
+        
+    all_results <- bind_rows(all_results, result_df)
+  }
+  
+  return(all_results)
+}
 
-# BNT V1
-res_1_0_bnt <- results(dds, contrast= c("Group_I_II", "BNT162b2V1", "BNT162b2V0"))
-res_1_0_bnt <- subset(res_1_0_bnt, padj < 0.05) #excluir genes com padj > 5%
-res_1_0_bnt <- subset(res_1_0_bnt, log2FoldChange > 1.0 | log2FoldChange < -1.0)
-res_1_0_bnt <- res_1_0_bnt[order(res_1_0_bnt$padj),]  #ordenar por padj
-res_up <- subset(res, log2FoldChange > 1.0 )
-res_down <- subset(res, log2FoldChange < -1.0 )
-res_1_0_bnt_degs_table <- data.frame(Gene = rownames(res_1_0_bnt),
-                          log2FoldChange = res_1_0_bnt$log2FoldChange,
-                          pvalue = res_1_0_bnt$pvalue,
-                          padj = res_1_0_bnt$padj)
-write.csv(res_1_0_bnt_degs_table, file = "GSE199750_T0-T1_DEGs-PF.csv", row.names = TRUE)
-saveRDS(res_1_0_bnt_degs_table, file = "GSE199750_T0-T1_DEGs-PF.rds")
 
-# BNT V2
-res_2_0_bnt <- results(dds, contrast= c("Group_I_II","BNT162b2V2A","BNT162b2V0"))
-res_2_0_bnt <- subset(res_2_0_bnt, padj < 0.05) #excluir genes com padj > 5%
-res_2_0_bnt <- subset(res_2_0_bnt, log2FoldChange > 1.0 | log2FoldChange < -1.0)
-res_2_0_bnt <- res_2_0_bnt[order(res_2_0_bnt$padj),]  #ordenar por padj
-res_up <- subset(res, log2FoldChange > 1.0 )
-res_down <- subset(res, log2FoldChange < -1.0 )
-res_2_0_bnt_degs_table <- data.frame(Gene = rownames(res_2_0_bnt),
-                          log2FoldChange = res_2_0_bnt$log2FoldChange,
-                          pvalue = res_2_0_bnt$pvalue,
-                          padj = res_2_0_bnt$padj)
-write.csv(res_2_0_bnt_degs_table, file = "GSE199750_T0-T2_DEGs-PF.csv", row.names = TRUE)
-saveRDS(res_2_0_bnt_degs_table, file = "GSE199750_T0-T2_DEGs-PF.rds")
+gse199750_dds <- generate_all_DESeq2_results(dds)
+  
+gse199750_DEGs =  gse199750_dds %>% 
+  mutate(condition = case_when( condition == "condition_BNT..V1..D6._vs_H..D0." ~ "BNT (V1, D6)", 
+                                condition == "condition_ChAd..V1..D6._vs_H..D0." ~ "ChAd (V1, D6)", 
+                                condition == "condition_BNT..V2..D1._vs_H..D0." ~ "BNT (V2, D1)", 
+                                condition == "condition_ChAd..V2..D1._vs_H..D0." ~ "ChAd (V2, D1)",
+                                condition == "condition_BNT..V3..D1._vs_H..D0." ~ "ChAd (V3, D1)",  
+                                condition == "condition_BNT.MO..V3..D1._vs_H..D0." ~ "BNT-MO (V3, D1)", 
+                                condition == "condition_ChAd.BNT..V3..D1._vs_H..D0." ~ "ChAd-BNT (V3, D1)", 
+                                .default = condition)) %>% 
+  filter(!condition %in% c("Intercept", "condition_BNT.MO..V1..D6._vs_H..D0."))
 
-# BNT V3
-resultsNames(dds)
-res_3_0_bnt_bnt <- results(dds, contrast= c("AllVaccines", "V3A_BNT162b2_3A_BNT162b2", "V0_BNT162b2_3A_BNT162b2"))
-res_3_0_bnt_bnt <- subset(res_3_0_bnt_bnt, padj < 0.05) #excluir genes com padj > 5%
-res_3_0_bnt_bnt <- subset(res_3_0_bnt_bnt, log2FoldChange > 1.0 | log2FoldChange < -1.0)
-res_3_0_bnt_bnt <- res_3_0_bnt_bnt[order(res_3_0_bnt_bnt$padj),]  #ordenar por padj
-res_3_0_bnt_bnt_up <- subset(res_3_0_bnt_bnt, log2FoldChange > 1.0 )
-res_3_0_bnt_bnt_down <- subset(res_3_0_bnt_bnt, log2FoldChange < -1.0 )
-res_3_0_bnt_bnt_degs_table <- data.frame(res_3_0_bnt_bnt)
-#Salvar tabela
-write.csv(res_3_0_bnt_bnt_degs_table, file = "GSE199750_T3-T0_DEGs_2PF-1PF.csv", row.names = TRUE)
-
-# MO V3
-res_3_0_bnt_mo <- results(dds, contrast= c("AllVaccines", "V3A_BNT162b2_3A_mRNA-1273", "V0_BNT162b2_3A_BNT162b2"))
-res_3_0_bnt_mo <- subset(res_3_0_bnt_mo, padj < 0.05) #excluir genes com padj > 5%
-res_3_0_bnt_mo <- subset(res_3_0_bnt_mo, log2FoldChange > 1.0 | log2FoldChange < -1.0)
-res_3_0_bnt_mo <- res_3_0_bnt_mo[order(res_3_0_bnt_mo$padj),]  #ordenar por padj
-res_3_0_bnt_mo_up <- subset(res_3_0_bnt_mo, log2FoldChange > 1.0 )
-res_3_0_bnt_mo_down <- subset(res_3_0_bnt_mo, log2FoldChange < -1.0 )
-res_3_0_bnt_mo_degs_table <- data.frame(res_3_0_bnt_mo)
-write.csv(res_3_0_bnt_mo_degs_table, file = "GSE199750_T3-T0_DEGs_2PF-1MO.csv", row.names = TRUE)
+gse199750_DEGs %>% 
+  write_csv(file = here("DGE analysis", "gse199750_DEGs.csv"))
 
 ```
 
-ChAd
+
+## 3.6. Merge all
+
 ```{r}
-resultsNames(dds)
-# ChAd V1
-res_1_0_chad <- results(dds, contrast= c("Group_I_II","ChAdOx1V1","ChAdOx1V0"))
-res_1_0_chad <- subset(res_1_0_chad, padj < 0.05)
-res_1_0_chad <- subset(res_1_0_chad, log2FoldChange > 1.0 | log2FoldChange < -1.0)
-res_1_0_chad <- res_1_0_chad[order(res_1_0_chad$padj),]  #ordenar por padj
-res_up <- subset(res, log2FoldChange > 1.0 )
-res_down <- subset(res, log2FoldChange < -1.0 )
-res_1_0_chad_degs_table <- data.frame(Gene = rownames(res_1_0_chad),
-                          log2FoldChange = res_1_0_chad$log2FoldChange,
-                          pvalue = res_1_0_chad$pvalue,
-                          padj = res_1_0_chad$padj)
-write.csv(res_1_0_chad_degs_table, file = "GSE199750_T0-T1_DEGs-AZ.csv", row.names = TRUE)
 
-# ChAd V2
-res_2_0_chad <- results(dds, contrast= c("Group_I_II","ChAdOx1V2A","ChAdOx1V0"))
-res_2_0_chad <- subset(res_2_0_chad, padj < 0.05) #excluir genes com padj > 5%
-res_2_0_chad <- subset(res_2_0_chad, log2FoldChange > 1.0 | log2FoldChange < -1.0)
-res_2_0_chad <- res_2_0_chad[order(res_2_0_chad$padj),]  #ordenar por padj
-summary(res_2_0_chad) #Up e Down
-res_2_0_chad_degs_table <- data.frame(Gene = rownames(res_2_0_chad),
-                          log2FoldChange = res_2_0_chad$log2FoldChange,
-                          pvalue = res_2_0_chad$pvalue,
-                          padj = res_2_0_chad$padj)
-write.csv(res_2_0_chad_degs_table, file = "GSE199750_T0-T2_DEGs-AZ.csv", row.names = FALSE)
-saveRDS(res_2_0_chad_degs_table, file = "GSE199750_T0-T2_DEGs-AZ.rds")
+all_degs = bind_rows(gse199750_DEGs,
+          gse189039_DEGS,
+          gse201530_DEGs,
+          gse201533_DEGs,
+          gse206023_DEGs)
 
-#ChAd-BNT V3
+all_degs %>% 
+  saveRDS(file = here("DGE analysis", "all_studies_degs.csv"))
 
-res_3_0_chad_bnt <- results(dds, contrast= c("AllVaccines", "V3A_ChAdOx1_3A_BNT162b2", "V0_ChAdOx1_3A_Missing"))
-res_3_0_chad_bnt <- subset(res_3_0_chad_bnt, padj < 0.05) #excluir genes com padj > 5%
-res_3_0_chad_bnt <- subset(res_3_0_chad_bnt, log2FoldChange > 1.0 | log2FoldChange < -1.0)
-res_3_0_chad_bnt <- res_3_0_chad_bnt[order(res_3_0_chad_bnt$padj),]  #ordenar por padj
-res_3_0_chad_bnt_up <- subset(res_3_0_chad_bnt, log2FoldChange > 1.0 )
-res_3_0_chad_bnt_down <- subset(res_3_0_chad_bnt, log2FoldChange < -1.0 )
-res_3_0_chad_bnt_degs_table <- data.frame(res_3_0_chad_bnt)
-write.csv(res_3_0_chad_bnt_degs_table, file = "GSE199750_T3-T0_DEGs_2AZ-1PF.csv", row.names = TRUE)
+all_degs
+```
+
+### Weight and adjust p values
+
+```{r}
+all_degs_annotated = all_degs %>% 
+  inner_join(ann_vaccines_conditions %>% select(condition, n = samples),
+             by = "condition") %>% 
+  mutate(pvalue = if_else(is.na(pvalue), 1, pvalue),
+         weights = sqrt(n))
+
+combine_pvalues <- function(group) {
+  if (nrow(group) > 1) {
+    sumz(p = group$pvalue, weights = group$weights)$p
+  } else {
+    group$pvalue
+  }}
+
+  
+combined_results <- all_degs_annotated %>%
+  group_by(condition, genes) %>%
+  group_split() %>%
+  map_dfr(~ {
+    tibble(
+      condition = .x$condition[1],
+      genes = .x$genes[1],
+      metap = combine_pvalues(.x)
+    )
+  })
+
+
+library(metap)
+
+
+
 ```
 
 
