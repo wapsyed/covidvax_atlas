@@ -118,8 +118,12 @@ Read the recent version here:
 # install.packages("nnet")
 # install.packages("tictoc")
 # install.packages("ggExtra")
+# install.packages("remotes")
+# remotes::install_github("omnideconv/immunedeconv")
+# BiocManager::install("multtest")
+# install.packages("metap")
 
-
+library(metap)
 library(randomForest)
 library(ranger)
 library(caret)
@@ -178,6 +182,7 @@ library(chorddiag)
 library(tidyverse)
 library(tidymodels)
 library(purrr)
+library(immunedeconv)
 tidymodels_prefer()
 ```
 
@@ -1819,28 +1824,26 @@ gse201530_counts_ready <- counts_gse201530 %>%
   filter(!grepl("_", genes)) %>% 
   column_to_rownames("genes")
 
-saveRDS(gse201530_counts_ready, file = "gse201530_counts_ready.rds")
+saveRDS(gse201530_counts_ready, file = here("DGE analysis", "gse201530_counts_ready.rds"))
 ```
 
 ```{r cache = TRUE}
+gse201530_counts_ready = readRDS(here("DGE analysis", "gse201530_counts_ready.rds"))
+GSE201530_metadata = ann_vaccines_samples %>% 
+  filter(gse_id == "GSE201530")
 
 countData <- gse201530_counts_ready
 colData <- GSE201530_metadata %>%
   mutate(
-    timepoint_day = factor(timepoint_day),
-    age = factor(age),
-    sex = factor(sex),
-    disease_vac = factor(disease_vac),
-    dose = factor(dose),
-    disease_time = paste0(disease_vac, "_D", timepoint_day)) %>% 
-  select(subject_id, everything())
+    condition = as.factor(condition)) %>% 
+  select(sample, everything())
 
 
 ###### DESeqDataSet
 
 dds <- DESeqDataSetFromMatrix(countData = countData, 
                               colData = colData, 
-                              design = ~ disease_time)
+                              design = ~ condition)
 
 keep <- rowSums(counts(dds)) >= 10
 dds <- dds[keep,]
@@ -1848,19 +1851,16 @@ dds <- dds[keep,]
 ###### Execute DESeq
 
 #Wald
-dds <- DESeq(dds)
-write_rds(dds,file="gse201530_dds_DESeq2_Wald_disease_vac_time.rds")
-
+dds <- DESeq(ddS)
 resultsNames(dds)
-dds = gse201530_dds_DESeq2_Wald_disease_vac_timepoint_day
 
 ###### overall DEGs
 res <- results(dds) %>% 
   as.data.frame() %>% 
-  filter(pvalue < 0.05)
+  rownames_to_column("genes")
 
 #Save
-write.csv(res, file = "gse201530_dds_DESeq2_Wald_disease_vac_AND_timepoint_day_ALLDEGS.rds", row.names = TRUE)
+write_csv(res, file = here("DGE analysis", "gse201530_dds_DESeq2_Wald_condition_DEGs.rds"))
 
 ```
 
@@ -1868,7 +1868,7 @@ Contrasts
 ```{r cache = TRUE}
 #H-BNT-I
 # contrast = c("disease_time", "H.BNT.I_D1", "H_D0")
-# contrast = c("disease_time", "H.BNT.I_D2", "H_D0") (NAO DEU)
+# contrast = c("disease_time", "H.BNT.I_D2", "H_D0")
 # contrast = c("disease_time", "H.BNT.I_D3", "H_D0")
 # contrast = c("disease_time", "H.BNT.I_D4", "H_D0")
 
@@ -2157,37 +2157,37 @@ saveRDS(gse189039_counts_ready, file = "gse189039_counts_ready.rds")
 
 
 #DESeq2
+gse189039_counts_ready = readRDS(here("DGE analysis", "gse189039_counts_ready.rds"))
+GSE189039_metadata = ann_vaccines_samples %>% 
+  filter(gse_id == "GSE189039")
+  
 countData <- gse189039_counts_ready
-colData <- GSE189039_metadata %>%
-  mutate(disease_vac = ifelse(disease_vac == "I", "H-I",
-                              ifelse(disease_vac == "BNT-I", "H-BNT-I", disease_vac)),
-         disease_vac_severity_time = paste0(disease_vac, "_", severity, "_D", timepoint_day),
-         disease_vac_severity_time = factor(disease_vac_severity_time)) %>% 
-  select(subject_id, everything())
+colData = GSE189039_metadata %>% 
+  mutate(condition = as.factor(condition))
 
 
 ###### Crie o objeto DESeqDataSet ######
 dds <- DESeqDataSetFromMatrix(countData = countData, 
                               colData = colData, 
-                              design = ~ disease_vac_severity_time)
+                              design = ~ condition)
 
 keep <- rowSums(counts(dds)) >= 10
 dds <- dds[keep,]
 
 ###### Executar DESeq ######
 dds <- DESeq(dds)
-write_rds(dds,file="gse189039_dds_DESeq2_Wald_disease_vac_severity_time.rds")
 
 ###### Obter comparações realizadas ######
 resultsNames(dds)
 
-###### Obtendo os DEGs totais ######
+###### overall DEGs
 res <- results(dds) %>% 
   as.data.frame() %>% 
-  filter(pvalue < 0.05)
+  rownames_to_column("genes")
 
-#Salvar tabela
-write.csv(res, file = "gse189039_dds_DESeq2_Wald_disease_vac_severity_time_ALLDEGS.rds")
+#Save
+write_csv(res, file = here("DGE analysis", "gse189039_dds_DESeq2_Wald_condition_DEGs.rds"))
+
 
 ```
 
@@ -2530,24 +2530,26 @@ write.csv(all_degs_p_05_vac_infected, file = 'all_degs_p_05_vac_infected_27-11-2
 
 ```{r}
 ##Defina as variáveis
-countData <- gse206023_counts_ready
-colData <- gse206023_metadata #coloque metadata_ready caso faça o upload direto
+gse206023_counts_ready <- readRDS(here("raw_data", "gse206023_counts_ready.rds"))
+gse206023_metadata = ann_vaccines_samples %>% 
+  filter(gse_id == "GSE206023")
 
-## Padronize as variáveis. Para que o objeto DESeq seja criado, os valores da matriz de contagem devem ser inteiros. 
 
-# Verifique se os valores em countData são números inteiros
-if (!all(is.integer(countData))) {
-  # Se os valores não forem inteiros, faça a conversão
-  countData <- as.matrix(round(countData))
-}
+countData <- gse206023_counts_ready %>% 
+  select(colnames(gse206023_counts_ready) %>% 
+           as.data.frame() %>% 
+           arrange() %>% 
+           pull(.))
+colData <- gse206023_metadata %>% 
+  mutate(condition = as.factor(condition)) %>% 
+  select(sample, everything())
 
-# Defina os fatores. 
-colData$Timepointf <- factor(colData$Timepoints)
-colData$Vaccinef <- factor(colData$Vaccine)
 
-# Crie o objeto DESeqDataSet. O design deve incluir todos os fatores que podem influenciar significativamente os dados. Coloque por último o fator de interesse principal, que no caso considera a interação entre fatores, já que são comparadas vacinas em diferentes timepoints. 
+# DESeq2
 
-dds <- DESeqDataSetFromMatrix(countData = countData, colData = colData, design = ~Timepointf + Vaccinef + Timepointf:Vaccinef)
+dds <- DESeqDataSetFromMatrix(countData = countData, 
+                              colData = colData, 
+                              design = ~condition)
 
 
 #Pré-filtragem. Mantenha os genes com pelo menos 10 leituras no total.
@@ -6935,7 +6937,7 @@ patch_immune_specific
 
 
 
-## 5.4. ssGSEA
+## 5.4. ssGSEA for Cell deconvolution
 
 ### 5.4.1. Process data
 
@@ -6948,9 +6950,16 @@ patch_immune_specific
 library(corto)
 
 #Import files
-ann_vaccines_samples_example <- read_csv(here("Annotations and metadata", "ann_vaccines_samples.csv"))
+ann_vaccines_samples <- read_csv(here("Annotations and metadata", "ann_vaccines_samples.csv"))
 
-normalized_counts_example <- readRDS(here("DGE analysis", "all_matrices_normalized_counts.rds")) 
+normalized_counts <- readRDS(here("DGE analysis", "all_matrices_normalized_counts.rds")) 
+
+all_samples_l2fc <- readRDS(here("DGE analysis", "all_samples_l2fc.rds")) %>%
+  filter(!condition %in% c(ann_vaccines_samples %>% 
+           filter(day == 0) %>% 
+           pull(condition)))
+
+head(all_samples_l2fc)
 
 ######## CELL MARKER IMMUNE ---------
 
@@ -6965,7 +6974,7 @@ CellMarker_genes = CellMarker_ImmuneCells %>%
 
 ############## Inputs
 
-ssgsea_gene = normalized_counts_example 
+ssgsea_gene = normalized_counts 
 metadata = ann_vaccines_samples 
 filename = "covid_all"
 go_dataset = "CellMarkerImmune"
@@ -7014,6 +7023,351 @@ write_csv(nesmat_result_CellMarker, file = here("Gene set enrichment analysis", 
 
 head(nesmat_result_CellMarker)
 ```
+
+### Cell deconvolution with GSEA for single sample
+```{r}
+CellMarker_ssGSEA <- all_samples_l2fc %>%
+  select(condition = sample, genes, log2fold_change = log2fc) %>% 
+  autoGSEA(TERM2GENE = CellMarker_genes, 
+           geneset_name = "CellMarker PBMC") 
+
+
+CellMarker_ssGSEA_1 = CellMarker_ssGSEA %>% 
+  clean_names() %>% 
+  rename(sample = condition) %>% 
+    inner_join(ann_vaccines_samples, by = "sample") %>% 
+  filter(condition != "BNT-MO (V1, D0)",
+         condition != "BNT-MO (V1, D6)") %>% 
+  mutate(disease_vac = if_else(disease_vac == "Healthy", "H", disease_vac)) %>% 
+  mutate(disease_vac = fct_relevel(disease_vac, "H", "I", "V"),
+           type = fct_relevel(type, "I", "RNA", "VV", "IN", "SU")) %>% 
+  arrange(disease_vac,type, condition) %>% 
+  inner_join(ann_vaccines_conditions %>% select(condition, samples), by = "condition") %>% 
+  mutate(condition = factor(condition, levels = c(unique(condition[order(condition)]))),
+         condition = paste0(condition, " (n=", samples, ")"))
+
+CellMarker_ssGSEA_2 = CellMarker_ssGSEA_1 %>% 
+  mutate(condition = fct_relevel(condition, 
+                                 CellMarker_ssGSEA_1 %>% 
+                                   filter(str_detect(condition, "^H \\(D0\\)")) %>% 
+                                   select(condition) %>% 
+                                   distinct() %>% 
+                                   pull(condition), 
+                                 CellMarker_ssGSEA_1 %>% 
+                                   filter(str_detect(condition, "^I")) %>% 
+                                   filter(!str_detect(condition, "^I-I")) %>% 
+                                   select(condition) %>% 
+                                   arrange(condition) %>% 
+                                   distinct() %>% 
+                                   pull(condition),
+                                 CellMarker_ssGSEA_1 %>% 
+                                   filter(disease_vac == "I") %>% 
+                                   filter(str_detect(condition, "^BNT-I")) %>% 
+                                    filter(!str_detect(condition, "^BNT-I \\(D\\d+\\)")) %>% 
+                                    arrange(day, condition) %>%
+                                   select(condition) %>% 
+                                    distinct() %>% 
+                                    pull(condition),
+                                 CellMarker_ssGSEA_1 %>% 
+                                    filter(str_detect(condition, "^BNT-I \\(D\\d+\\)")) %>% 
+                                    arrange(day, condition) %>%
+                                   select(condition) %>% 
+                                    distinct() %>% 
+                                    pull(condition),
+                                 CellMarker_ssGSEA_1 %>% 
+                                   filter(disease_vac == "V",
+                                          str_detect(condition, "^BNT \\(V1, D\\d+\\)")) %>% 
+                                   arrange(day, condition) %>% 
+                                   select(condition) %>% 
+                                   distinct() %>% 
+                                   pull(condition),
+                                 CellMarker_ssGSEA_1 %>% 
+                                   filter(disease_vac == "V",
+                                          !str_detect(condition, "^BNT \\(V1, D\\d+\\)"),
+                                          !str_detect(condition, "BBIBP"),
+                                          !str_detect(condition, "ZF2001")) %>% 
+                                   arrange(condition) %>% 
+                                   select(condition) %>% 
+                                   distinct() %>% 
+                                   pull(condition),
+                                 CellMarker_ssGSEA_1 %>% 
+                                   filter(str_detect(condition, "BBIBP")) %>% 
+                                   select(condition) %>% 
+                                   arrange(condition) %>% 
+                                   distinct() %>% 
+                                   pull(condition), 
+                                 CellMarker_ssGSEA_1 %>% 
+                                   filter(str_detect(condition, "ZF2001")) %>% 
+                                   select(condition) %>% 
+                                   arrange(condition) %>% 
+                                   distinct() %>% 
+                                   pull(condition))) %>%
+  mutate(type = if_else(type == "H", "I", type),
+         disease_vac = if_else(disease_vac == "H", "I", disease_vac)) 
+
+
+id_selec = "CD8+ T cell"
+
+CellMarker_ssGSEA_2 %>% 
+  filter(id == id_selec) %>%
+  ggplot() +
+  aes(x = condition, y = nes, fill = if_else(day == 0, "Day 0", type)) +  
+  geom_hline(yintercept = 0, linetype = 2) +
+  geom_jitter(aes(color = if_else(day == 0, "Day 0", type)),
+              alpha = 0.3, size = 0.1) +
+  geom_boxplot(outliers = F) +
+  theme_few() +
+  scale_fill_manual(values = c("Day 0" = "white", 
+                               ann_vaxsig_colors$type)) +
+    scale_color_manual(values = c("Day 0" = "gray80", 
+                               ann_vaxsig_colors$type)) +
+  theme(axis.text.x = element_text(angle = 45,
+                                   hjust = 1,
+                                   vjust = 1),
+        plot.title = element_text(hjust = 0.5, face = "bold"),
+        plot.margin = margin(0, 0, 0, 2, "cm"),
+        panel.grid.major = element_line(size = 0.05),
+        panel.grid.minor = element_line(size = 0.05)) +
+  labs(y = "NES",
+       title = id_selec,
+       x="",
+       subtitle = "By week",
+       fill = "Type") +
+  guides(color = "none") +
+  facet_wrap(~disease_vac, scales = "free_x")
+
+
+
+create_boxplots <- function(result_df) {
+  
+  unique_processes <- unique(result_df$id)
+  
+  purrr::map(unique_processes, function(process_name) {
+    cellmarker_boxplot <- result_df %>% 
+      filter(id == process_name) %>% 
+  ggplot() +
+  aes(x = condition, y = nes, fill = if_else(day == 0, "Day 0", type)) +  
+  geom_hline(yintercept = 0, linetype = 2) +
+  geom_jitter(aes(color = if_else(day == 0, "Day 0", type)),
+              alpha = 0.3, size = 0.1) +
+  geom_boxplot(outliers = F) +
+  theme_few() +
+  scale_fill_manual(values = c("Day 0" = "white", 
+                               ann_vaxsig_colors$type)) +
+    scale_color_manual(values = c("Day 0" = "gray80", 
+                               ann_vaxsig_colors$type)) +
+  theme(axis.text.x = element_text(angle = 45,
+                                   hjust = 1,
+                                   vjust = 1),
+        plot.title = element_text(hjust = 0.5, face = "bold"),
+        plot.margin = margin(0, 0, 0, 2, "cm")) +
+  labs(y = "NES",
+       title = process_name,
+       x="",
+       subtitle = "By week",
+       fill = "Type") +
+  guides(color = "none") +
+  facet_wrap(~disease_vac, scales = "free_x")
+
+    ggsave(cellmarker_boxplot, 
+           file = here("Figures", paste0("GSEA_singlesample_CellMarker_boxplot_", process_name, ".png")),
+           width = 12, height = 6)
+  })
+}
+
+# Apply to all processes
+create_boxplots(CellMarker_ssGSEA_2)
+
+```
+
+
+
+
+### Cell deconvolution with immunedeconv
+```{r fig.height=6, fig.width=12}
+all_matrices_counts <- readRDS(here("DGE analysis", "all_matrices_counts.rds"))
+
+all_matrices_counts_matrix = all_matrices_counts %>% 
+  column_to_rownames("genes") %>% 
+  as.matrix()
+
+library(immunedeconv)
+library(tidyverse)
+tidymodels_prefer()
+
+res_quantiseq <- deconvolute(all_matrices_counts_matrix, "quantiseq",tumor = F)
+res_quantiseq %>%
+  gather(sample, fraction, -cell_type) %>%
+  # plot as stacked bar chart
+  ggplot(aes(x = sample, y = fraction, fill = cell_type)) +
+  geom_bar(stat = "identity") +
+  coord_flip() +
+  scale_fill_brewer(palette = "Paired") +
+  scale_x_discrete(limits = rev(levels(res_quantiseq)))
+```
+
+
+```{r fig.height=6, fig.width=12}
+#XCell (ssGSEA) ----
+xcell_results = immunedeconv::deconvolute(all_matrices_counts_matrix, "xcell") 
+
+xcell_results_annotated = xcell_results %>% 
+  pivot_longer(cols = -cell_type,
+               names_to = "sample",
+               values_to = "value") %>% 
+  inner_join(ann_vaccines_samples, by = "sample") %>% 
+   distinct() %>% 
+  filter(condition != "BNT-MO (V1, D0)",
+         condition != "BNT-MO (V1, D6)") %>% 
+  mutate(disease_vac = if_else(disease_vac == "Healthy", "H", disease_vac)) %>% 
+  mutate(disease_vac = fct_relevel(disease_vac, "H", "I", "V"),
+           type = fct_relevel(type, "I", "RNA", "VV", "IN", "SU")) %>% 
+  arrange(disease_vac,type, condition) %>% 
+  inner_join(ann_vaccines_conditions %>% select(condition, samples), by = "condition") %>% 
+  mutate(condition = factor(condition, levels = c(unique(condition[order(condition)]))),
+         condition = paste0(condition, " (n=", samples, ")"))
+
+xcell_results_annotated_2 = xcell_results_annotated %>% 
+  mutate(condition = fct_relevel(condition, 
+                                 xcell_results_annotated %>% 
+                                   filter(str_detect(condition, "^H \\(D0\\)")) %>% 
+                                   select(condition) %>% 
+                                   distinct() %>% 
+                                   pull(condition), 
+                                 xcell_results_annotated %>% 
+                                   filter(str_detect(condition, "^I")) %>% 
+                                   filter(!str_detect(condition, "^I-I")) %>% 
+                                   select(condition) %>% 
+                                   arrange(condition) %>% 
+                                   distinct() %>% 
+                                   pull(condition),
+                                 xcell_results_annotated %>% 
+                                   filter(disease_vac == "I") %>% 
+                                   filter(str_detect(condition, "^BNT-I")) %>% 
+                                    filter(!str_detect(condition, "^BNT-I \\(D\\d+\\)")) %>% 
+                                    arrange(day, condition) %>%
+                                   select(condition) %>% 
+                                    distinct() %>% 
+                                    pull(condition),
+                                 xcell_results_annotated %>% 
+                                    filter(str_detect(condition, "^BNT-I \\(D\\d+\\)")) %>% 
+                                    arrange(day, condition) %>%
+                                   select(condition) %>% 
+                                    distinct() %>% 
+                                    pull(condition),
+                                 xcell_results_annotated %>% 
+                                   filter(disease_vac == "V",
+                                          str_detect(condition, "^BNT \\(V1, D\\d+\\)")) %>% 
+                                   arrange(day, condition) %>% 
+                                   select(condition) %>% 
+                                   distinct() %>% 
+                                   pull(condition),
+                                 xcell_results_annotated %>% 
+                                   filter(disease_vac == "V",
+                                          !str_detect(condition, "^BNT \\(V1, D\\d+\\)"),
+                                          !str_detect(condition, "BBIBP"),
+                                          !str_detect(condition, "ZF2001")) %>% 
+                                   arrange(condition) %>% 
+                                   select(condition) %>% 
+                                   distinct() %>% 
+                                   pull(condition),
+                                 xcell_results_annotated %>% 
+                                   filter(str_detect(condition, "BBIBP")) %>% 
+                                   select(condition) %>% 
+                                   arrange(condition) %>% 
+                                   distinct() %>% 
+                                   pull(condition), 
+                                 xcell_results_annotated %>% 
+                                   filter(str_detect(condition, "ZF2001")) %>% 
+                                   select(condition) %>% 
+                                   arrange(condition) %>% 
+                                   distinct() %>% 
+                                   pull(condition))) %>%
+  mutate(type = if_else(type == "H", "I", type),
+         disease_vac = if_else(disease_vac == "H", "I", disease_vac)) 
+
+
+
+#boxplot
+xcell_results_annotated_2_plot =  xcell_results_annotated_2%>% 
+  separate(condition, into = c("condition", "n"), sep = "\\(n=")
+
+  xcell_results_annotated_2_plot %>% 
+  filter(cell_type == "B cell") %>% 
+  ggplot() +
+  aes(x = condition, y = value, fill = if_else(day == 0, "Day 0", type)) +  
+  geom_hline(yintercept = 0, linetype = 2) +
+  geom_jitter(aes(color = if_else(day == 0, "Day 0", type)),
+              alpha = 0.3, size = 0.1) +
+  geom_boxplot(outliers = F) +
+  theme_few() +
+  scale_fill_manual(values = c("Day 0" = "white", 
+                               ann_vaxsig_colors$type)) +
+    scale_color_manual(values = c("Day 0" = "gray80", 
+                               ann_vaxsig_colors$type)) +
+  theme(axis.text.x = element_text(angle = 45,
+                                   hjust = 1,
+                                   vjust = 1),
+        plot.title = element_text(hjust = 0.5, face = "bold"),
+        plot.margin = margin(0, 0, 0, 2, "cm"),
+        panel.grid.major = element_line(size = 0.05),
+        panel.grid.minor = element_line(size = 0.05)) +
+  labs(y = "NES",
+       title = "B cell",
+       x="",
+       subtitle = "By week",
+       fill = "Type") +
+  guides(color = "none") +
+  facet_wrap(~disease_vac, scales = "free_x")
+
+```
+
+
+```{r}
+#Function to create boxplots
+create_boxplots <- function(result_df) {
+  
+  unique_processes <- unique(result_df$cell_type)
+  
+  purrr::map(unique_processes, function(process_name) {
+    cellmarker_boxplot <- result_df %>% 
+      filter(cell_type == process_name) %>% 
+  ggplot() +
+  aes(x = condition, y = value, fill = if_else(day == 0, "Day 0", type)) +  
+  geom_hline(yintercept = 0, linetype = 2) +
+  geom_jitter(aes(color = if_else(day == 0, "Day 0", type)),
+              alpha = 0.3, size = 0.1) +
+  geom_boxplot(outliers = F) +
+  theme_few() +
+  scale_fill_manual(values = c("Day 0" = "white", 
+                               ann_vaxsig_colors$type)) +
+    scale_color_manual(values = c("Day 0" = "gray80", 
+                               ann_vaxsig_colors$type)) +
+  theme(axis.text.x = element_text(angle = 45,
+                                   hjust = 1,
+                                   vjust = 1),
+        plot.title = element_text(hjust = 0.5, face = "bold"),
+        plot.margin = margin(0, 0, 0, 2, "cm")) +
+  labs(y = "score",
+       title = process_name,
+       x="",
+       subtitle = "By week",
+       fill = "Type") +
+  guides(color = "none") +
+  facet_wrap(~disease_vac, scales = "free_x")
+
+    ggsave(cellmarker_boxplot, 
+           file = here("Figures", paste0("ssgsea_xcell_boxplot_", process_name, ".png")),
+           width = 12, height = 6)
+  })
+}
+
+# Apply to all processes
+create_boxplots(xcell_results_annotated_2_plot)
+```
+
+
+
 ### 5.4.3. Visualization
 
 Generate a single boxplot
