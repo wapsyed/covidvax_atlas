@@ -21051,7 +21051,7 @@ ImmuneGO_genes_selected = OtherGOs_Annotated_Genes
 #                         "COMPLEMENT")) %>%
 #   separate_rows(genes,sep = ",")
 
-
+conflicted::conflicts_prefer(dplyr::count)
 immune_genes_covid = all_covid_vax_atlas  %>% 
   inner_join(ImmuneGO_genes_selected %>% 
                select(genes), by = "genes") %>% 
