@@ -1452,8 +1452,82 @@ ann_vaccines_conditions = ann_vaccines_samples %>%
 ann_vaccines_conditions %>% 
   write_csv(here("Annotations and metadata", "ann_vaccines_conditions.csv"))
 
-
 ```
+
+
+```{r}
+ann_vaccines_conditions_ordered = ann_vaccines_conditions %>% 
+  filter(condition != "BNT-MO (V1, D0)",
+         condition != "BNT-MO (V1, D6)") %>% 
+  mutate(disease_vac = if_else(disease_vac == "Healthy", "H", disease_vac)) %>% 
+  mutate(disease_vac = fct_relevel(disease_vac, "H", "I", "V"),
+           type = fct_relevel(type, "I", "RNA", "VV", "IN", "SU")) %>% 
+  arrange(disease_vac,type, condition) 
+
+ann_vaccines_conditions_ordered = ann_vaccines_conditions_ordered %>% 
+  mutate(condition = fct_relevel(condition, 
+                                 ann_vaccines_conditions_ordered %>% 
+                                   filter(str_detect(condition, "^H \\(D0\\)")) %>% 
+                                   select(condition) %>% 
+                                   distinct() %>% 
+                                   pull(condition), 
+                                 ann_vaccines_conditions_ordered %>% 
+                                   filter(str_detect(condition, "^I")) %>% 
+                                   filter(!str_detect(condition, "^I-I")) %>% 
+                                   select(condition) %>% 
+                                   arrange(condition) %>% 
+                                   distinct() %>% 
+                                   pull(condition),
+                                 ann_vaccines_conditions_ordered %>% 
+                                   filter(disease_vac == "I") %>% 
+                                   filter(str_detect(condition, "^BNT-I")) %>% 
+                                    filter(!str_detect(condition, "^BNT-I \\(D\\d+\\)")) %>% 
+                                    arrange(day, condition) %>%
+                                   select(condition) %>% 
+                                    distinct() %>% 
+                                    pull(condition),
+                                 ann_vaccines_conditions_ordered %>% 
+                                    filter(str_detect(condition, "^BNT-I \\(D\\d+\\)")) %>% 
+                                    arrange(day, condition) %>%
+                                   select(condition) %>% 
+                                    distinct() %>% 
+                                    pull(condition),
+                                 ann_vaccines_conditions_ordered %>% 
+                                   filter(disease_vac == "V",
+                                          str_detect(condition, "^BNT \\(V1, D\\d+\\)")) %>% 
+                                   arrange(day, condition) %>% 
+                                   select(condition) %>% 
+                                   distinct() %>% 
+                                   pull(condition),
+                                 ann_vaccines_conditions_ordered %>% 
+                                   filter(disease_vac == "V",
+                                          !str_detect(condition, "^BNT \\(V1, D\\d+\\)"),
+                                          !str_detect(condition, "BBIBP"),
+                                          !str_detect(condition, "ZF2001")) %>% 
+                                   arrange(condition) %>% 
+                                   select(condition) %>% 
+                                   distinct() %>% 
+                                   pull(condition),
+                                 ann_vaccines_conditions_ordered %>% 
+                                   filter(str_detect(condition, "BBIBP")) %>% 
+                                   select(condition) %>% 
+                                   arrange(condition) %>% 
+                                   distinct() %>% 
+                                   pull(condition), 
+                                 ann_vaccines_conditions_ordered %>% 
+                                   filter(str_detect(condition, "ZF2001")) %>% 
+                                   select(condition) %>% 
+                                   arrange(condition) %>% 
+                                   distinct() %>% 
+                                   pull(condition))) %>%
+  mutate(type = if_else(type == "H", "I", type),
+         disease_vac = if_else(disease_vac == "H", "I", disease_vac)) 
+
+
+ann_vaccines_conditions_ordered %>% 
+  saveRDS(file = here("Annotations and metadata", "ann_vaccines_conditions_ordered.rds"))
+```
+
 
 ### 3.1.2. Samples by condition
 
@@ -4155,13 +4229,12 @@ dev.off()
 ## 4.3. (TERMINAR) Immune and non-immune DEGs
 
 ```{r}
-ImmuneGO_Annotated_GO <- read_csv("VaxGO gene sets/ImmuneGO_Annotated_GO_2024_03_26.csv")
+ImmuneGO_Annotated_GO <- read_csv(here("VaxGO gene sets", "ImmuneGO_Annotated_GO_2024_03_26.csv"))
 
 immunego = ImmuneGO_Annotated_GO %>% 
   mutate(genes = str_split(genes, ",")) %>%
   unnest(genes)
 #### Not immune
-
 all_degs_infected_notimmune = all_degs_p_05_vac_infected %>%
   anti_join(immunego %>%
               select(genes) %>%
@@ -4173,7 +4246,6 @@ all_degs_infected_notimmune = all_degs_p_05_vac_infected %>%
 all_degs_infected_notimmune %>% 
   tabyl(condition, bioprocess)
 
-write_csv(all_degs_infected_notimmune, file = here("DGE analysis", "all_degs_p_05_vac_infected_notimmune.csv"))
 ```
 
 ```{r}
@@ -4188,8 +4260,6 @@ all_degs_vac_infected_immune = all_degs_p_05_vac_infected %>%
 
 all_degs_vac_infected_immune %>% 
   tabyl(condition, bioprocess) 
-
-write_csv(all_degs_vac_infected_immune, file = here("DGE analysis", "all_degs_p_05_vac_infected_immune.csv"))
 ```
 
 ```{r}
@@ -4285,17 +4355,17 @@ go_bp_main_2 = go_bp_main %>%
   group_by(term_ancestor) %>% 
   summarise(set_size = n()) %>% 
   inner_join(go_bp_main) %>% 
-  select(term = term_ancestor, set_size, go_id = go_ancestor, symbol) %>% 
+  select(term_ancestor, set_size, go_ancestor, symbol) %>% 
   distinct() %>% 
   mutate(annotation = "Major process")
 
 go_bp_child = go_bp_main %>% 
-  select(term, go_id, symbol) %>% 
+  select(term_ancestor, go_ancestor, symbol) %>% 
   distinct() %>% 
-  group_by(term) %>% 
+  group_by(term_ancestor) %>% 
   summarise(set_size = n()) %>% 
-  inner_join(go_bp_main, by = "term") %>% 
-  select(term, set_size, go_id, symbol) %>% 
+  inner_join(go_bp_main, by = "term_ancestor") %>% 
+  select(term_ancestor, set_size, go_ancestor, symbol) %>% 
   distinct() %>% 
   mutate(annotation = "Minor process")
 
@@ -4305,9 +4375,9 @@ write_csv(go_bp_all, file = here("VaxGO gene sets", "OtherGOs_Annotated_Genes.cs
 
 # Collapse rows 
 go_bp_all_comma = go_bp_all %>% 
-  group_by(term) %>% 
+  group_by(term_ancestor) %>% 
   summarize(genes = paste0(symbol, collapse = ",")) %>% 
-  inner_join(go_bp_all, by = "term") %>% 
+  inner_join(go_bp_all, by = "term_ancestor") %>% 
   select(-symbol) %>% 
   distinct() %>% 
   arrange(desc(set_size))
@@ -4325,19 +4395,16 @@ degs_GO = all_degs_p_05_vac_infected %>%
   filter(direction != "NEUTRAL") %>% 
   select(condition, genes, direction) %>% 
   left_join(go_bp_all %>% rename(genes = symbol), by = "genes") %>% 
-  mutate(go_id = if_else(is.na(go_id), "Not mapped", go_id),
-         term = if_else(is.na(term), "Not mapped", term),
-         mapped = if_else(term == "Not mapped", "Not mapped", "Mapped"),
-  filter(ontology %in% c("BP", "Not mapped")) %>% 
-  select(-evidence) 
+  mutate(go_ancestor = if_else(is.na(go_ancestor), "Not mapped", go_ancestor),
+         term_ancestor = if_else(is.na(term_ancestor), "Not mapped", term_ancestor),
+         mapped = if_else(term_ancestor == "Not mapped", "Not mapped", "Mapped"))
 
 
 
 # Collapse gene column --------
 degs_GO_comma = degs_GO %>% 
-  select(-term_ancestor, -go_ancestor) %>% 
   distinct() %>% 
-  group_by(condition, term) %>% 
+  group_by(condition, term_ancestor) %>% 
   summarize(genes = paste0(genes, collapse = ",")) %>% 
   inner_join(ann_vaccines, by = "condition")
 
@@ -4373,9 +4440,7 @@ main_go_2 = degs_GO %>%
   summarise(n_genes_total = n()) %>% 
   inner_join(main_go, by = join_by("condition", direction)) %>% 
   ungroup() %>% 
-  select(condition, direction, term_ancestor, n_genes = n, n_genes_total) %>%
-  filter(str_detect(term_ancestor, "cellular process|biological process involved in interspecies interaction between organisms|regulation of biological process|immune system process|No annotation|Not mapped|metabolic process"),
-         !term_ancestor == "positive regulation of biological process") %>% 
+  select(condition, direction, term_ancestor, n_genes = n, n_genes_total) %>% 
   mutate(n_genes_perc = round(n_genes/n_genes_total * 100, 1),
          term_ancestor = case_when(
            term_ancestor == "biological process involved in interspecies interaction between organisms" ~ "Interspecies interaction",
@@ -4387,8 +4452,7 @@ main_go_2 = degs_GO %>%
            term_ancestor == "metabolic process" ~ "Metabolism",
            TRUE ~ term_ancestor),
          term_ancestor = fct_relevel(term_ancestor, "Not mapped", after = Inf),
-         direction = fct_relevel(direction, "UP", "DOWN")) %>% 
-  inner_join(ann_vaccines_19_1_24 %>% select(condition, type, disease_vac), by = "condition")
+         direction = fct_relevel(direction, "UP", "DOWN"))
   
 write_csv(main_go_2, file = here("DGE analysis", "degs_annotated_mainGOs_stats.csv"))
 ```
@@ -4406,9 +4470,8 @@ df_day =  degs_annotated_mainGOs_stats %>%
          term_ancestor, 
          n_genes, 
          n_genes_perc,
-         type = type.x,
          day,
-         disease_vac = disease_vac.x) %>% 
+         disease_vac) %>% 
   filter(!term_ancestor %in% c("Interspecies interaction","Not mapped", "Reg. of BP")) %>% 
   mutate(day_f = as.factor(day),
          day_f = fct_reorder(day_f, day),
@@ -4428,8 +4491,7 @@ all_up_down_day = df_day %>%
     x = day_dv,
     y = n_genes_perc
   ) +
-  geom_jitter(aes(colour = disease_vac,
-                  shape = type),
+  geom_jitter(aes(colour = disease_vac),
               na.rm = TRUE,
               size = 4) +
   geom_boxplot(aes(fill = disease_vac, color = disease_vac),
@@ -4465,7 +4527,11 @@ Explore data with interactive plots
 ###4.4.2.2. Barplot by term
 
 ```{r fig.height=15, fig.width=20, message=FALSE, warning=FALSE}
-main_go_2_plot_up_down = main_go_2 %>% 
+
+ann_vaccines_conditions = ann_vaccines_conditions_ordered
+
+main_go_2_plot_up_down = main_go_2 %>%
+  inner_join(ann_vaccines_conditions, by = "condition") %>% 
   mutate(
     term_ancestor = fct_relevel(
       term_ancestor,
@@ -4524,6 +4590,7 @@ mutate(disease_vac = fct_relevel(disease_vac, "I", "V")) %>%
   facet_grid(vars(direction),  vars(term_ancestor))
 
 main_go_2_plot_up_down_totals = main_go_2 %>% 
+    inner_join(ann_vaccines_conditions, by = "condition") %>% 
     select(condition, n_genes_total, type, direction, disease_vac) %>% 
   distinct() %>% 
   mutate(disease_vac = fct_relevel(disease_vac, "I", "V")) %>% 
