@@ -2,17 +2,19 @@ genes,infection_vaccination,n_conditions,comparison
 ANKHD1,Infection,9,Infection only
 JAG1,Infection,8,Infection only
 CLU,Infection,7,Infection only
+IFI27,Infection,7,Infection only
 LCN2,Infection,7,Infection only
 RORC,Infection,7,Infection only
 SELP,Infection,7,Infection only
 SLC18A2,Infection,7,Infection only
 TREML1,Infection,7,Infection only
+CD177,Infection,6,Infection only
 CR2,Infection,6,Infection only
+CTSK,Infection,6,Infection only
 DEFA4,Infection,6,Infection only
 F12,Infection,6,Infection only
 GPR15,Infection,6,Infection only
 HLA-C,Infection,6,Infection only
-IFI27,Infection,6,Infection only
 JMJD6,Infection,6,Infection only
 NFKBIA,Infection,6,Infection only
 RNASE4,Infection,6,Infection only
@@ -23,48 +25,52 @@ BPI,Infection,5,Infection only
 C1R,Infection,5,Infection only
 CAMP,Infection,5,Infection only
 CCR7,Infection,5,Infection only
-CD177,Infection,5,Infection only
 CRISP3,Infection,5,Infection only
-CTSK,Infection,5,Infection only
 CXCR3,Infection,5,Infection only
+EPB42,Infection,5,Infection only
 LAX1,Infection,5,Infection only
 LGALS3,Infection,5,Infection only
 PPP2CA,Infection,5,Infection only
 RAP1GAP,Infection,5,Infection only
+S100A12,Infection,5,Infection only
 S1PR1,Infection,5,Infection only
-TUBB4B,Infection,5,Infection only
+SPN,Infection,5,Infection only
 BTNL3,Infection,4,Infection only
+CD27,Infection,4,Infection only
 CD3G,Infection,4,Infection only
 CEACAM8,Infection,4,Infection only
 CX3CR1,Infection,4,Infection only
 FASLG,Infection,4,Infection only
 FCGR2B,Infection,4,Infection only
+IL18RAP,Infection,4,Infection only
 MAP3K8,Infection,4,Infection only
-S100A12,Infection,4,Infection only
-SPN,Infection,4,Infection only
+MAPKAPK2,Infection,4,Infection only
+SLC15A4,Infection,4,Infection only
 ST6GAL1,Infection,4,Infection only
-CD27,Infection,3,Infection only
+TARM1,Infection,4,Infection only
+TUBB4B,Infection,4,Infection only
+CD55,Infection,3,Infection only
+CD79A,Infection,3,Infection only
 CD79B,Infection,3,Infection only
 CH25H,Infection,3,Infection only
 CR1,Infection,3,Infection only
 EOMES,Infection,3,Infection only
-EPB42,Infection,3,Infection only
+FCAR,Infection,3,Infection only
+FKBP1B,Infection,3,Infection only
 HP,Infection,3,Infection only
 IFI30,Infection,3,Infection only
 IL10,Infection,3,Infection only
-IL18RAP,Infection,3,Infection only
 IL1R2,Infection,3,Infection only
 ITGAM,Infection,3,Infection only
 LYZ,Infection,3,Infection only
-MAPKAPK2,Infection,3,Infection only
 MILR1,Infection,3,Infection only
 PKHD1L1,Infection,3,Infection only
 PPARG,Infection,3,Infection only
 PTMS,Infection,3,Infection only
+PTX3,Infection,3,Infection only
 PURA,Infection,3,Infection only
-SLC15A4,Infection,3,Infection only
-TARM1,Infection,3,Infection only
 TBKBP1,Infection,3,Infection only
+TNFAIP3,Infection,3,Infection only
 TRIM68,Infection,3,Infection only
 VSTM1,Infection,3,Infection only
 ADD2,Infection,2,Infection only
@@ -79,45 +85,51 @@ CCND3,Infection,2,Infection only
 CD151,Infection,2,Infection only
 CD24,Infection,2,Infection only
 CD40LG,Infection,2,Infection only
-CD55,Infection,2,Infection only
-CD79A,Infection,2,Infection only
+CLEC10A,Infection,2,Infection only
 CTSG,Infection,2,Infection only
-CXCL8,Infection,2,Infection only
-FCAR,Infection,2,Infection only
+DBH,Infection,2,Infection only
 FCGR1A,Infection,2,Infection only
-FKBP1B,Infection,2,Infection only
 FPR3,Infection,2,Infection only
 FUT4,Infection,2,Infection only
 FUT7,Infection,2,Infection only
 GPLD1,Infection,2,Infection only
 HHEX,Infection,2,Infection only
 IFITM2,Infection,2,Infection only
+IGF1R,Infection,2,Infection only
 IL6ST,Infection,2,Infection only
 IL7R,Infection,2,Infection only
+LFNG,Infection,2,Infection only
 LILRA5,Infection,2,Infection only
 LRRC8A,Infection,2,Infection only
 MEN1,Infection,2,Infection only
 MS4A1,Infection,2,Infection only
 MS4A2,Infection,2,Infection only
+NFKBID,Infection,2,Infection only
 OLR1,Infection,2,Infection only
 PARP1,Infection,2,Infection only
 PF4V1,Infection,2,Infection only
 PI3,Infection,2,Infection only
 PTAFR,Infection,2,Infection only
-PTX3,Infection,2,Infection only
 RAB44,Infection,2,Infection only
+RNASE3,Infection,2,Infection only
 RNF135,Infection,2,Infection only
+RNF19B,Infection,2,Infection only
 SUSD4,Infection,2,Infection only
 TCF3,Infection,2,Infection only
 TEC,Infection,2,Infection only
+THBS1,Infection,2,Infection only
 TMEM229B,Infection,2,Infection only
 TOR2A,Infection,2,Infection only
 VAMP2,Infection,2,Infection only
+ZP3,Infection,2,Infection only
 ACTG1,Infection,1,Infection only
 ACTR3,Infection,1,Infection only
 ADGRG3,Infection,1,Infection only
+ADORA2B,Infection,1,Infection only
 ALOX5,Infection,1,Infection only
+APOBEC3A,Infection,1,Infection only
 APOBEC3H,Infection,1,Infection only
+B4GALT1,Infection,1,Infection only
 BCL10,Infection,1,Infection only
 BMX,Infection,1,Infection only
 BRAF,Infection,1,Infection only
@@ -126,7 +138,11 @@ BTNL8,Infection,1,Infection only
 C5AR1,Infection,1,Infection only
 CASP1,Infection,1,Infection only
 CASP6,Infection,1,Infection only
+CCL20,Infection,1,Infection only
 CCL23,Infection,1,Infection only
+CCL3,Infection,1,Infection only
+CCL3L1,Infection,1,Infection only
+CCL4,Infection,1,Infection only
 CCL5,Infection,1,Infection only
 CCNB2,Infection,1,Infection only
 CCR2,Infection,1,Infection only
@@ -135,41 +151,53 @@ CD19,Infection,1,Infection only
 CD22,Infection,1,Infection only
 CD300C,Infection,1,Infection only
 CD300LB,Infection,1,Infection only
+CD300LD,Infection,1,Infection only
 CD44,Infection,1,Infection only
 CD46,Infection,1,Infection only
 CD68,Infection,1,Infection only
 CD86,Infection,1,Infection only
 CEBPB,Infection,1,Infection only
+CFD,Infection,1,Infection only
 CFH,Infection,1,Infection only
-CLEC10A,Infection,1,Infection only
+CIITA,Infection,1,Infection only
+CLEC2A,Infection,1,Infection only
 CLEC6A,Infection,1,Infection only
 CLNK,Infection,1,Infection only
 CORO1A,Infection,1,Infection only
+CPLX2,Infection,1,Infection only
 CRIP1,Infection,1,Infection only
+CSF1,Infection,1,Infection only
 CTSC,Infection,1,Infection only
+CXCL2,Infection,1,Infection only
 CXCL5,Infection,1,Infection only
 CXCL6,Infection,1,Infection only
+CXCL8,Infection,1,Infection only
 CXCR4,Infection,1,Infection only
 CXCR5,Infection,1,Infection only
-DBH,Infection,1,Infection only
+CYP11B1,Infection,1,Infection only
 EDNRB,Infection,1,Infection only
+ERAP2,Infection,1,Infection only
 FCER1A,Infection,1,Infection only
 FCER1G,Infection,1,Infection only
 FCGR3A,Infection,1,Infection only
 FCGRT,Infection,1,Infection only
 FKBP1A,Infection,1,Infection only
+FLT1,Infection,1,Infection only
 FLT3,Infection,1,Infection only
+FOSL1,Infection,1,Infection only
 FPR1,Infection,1,Infection only
 GBP6,Infection,1,Infection only
+GPR65,Infection,1,Infection only
 GPR89B,Infection,1,Infection only
 GRB2,Infection,1,Infection only
+GTPBP1,Infection,1,Infection only
 IDO1,Infection,1,Infection only
 IFI6,Infection,1,Infection only
 IFIT1,Infection,1,Infection only
 IFITM1,Infection,1,Infection only
 IFNAR1,Infection,1,Infection only
 IFNLR1,Infection,1,Infection only
-IGF1R,Infection,1,Infection only
+IL12B,Infection,1,Infection only
 IL15,Infection,1,Infection only
 IL1R1,Infection,1,Infection only
 IL1RL1,Infection,1,Infection only
@@ -183,18 +211,20 @@ ITGB7,Infection,1,Infection only
 ITGB8,Infection,1,Infection only
 JAK3,Infection,1,Infection only
 KIR2DL3,Infection,1,Infection only
+KIR3DL1,Infection,1,Infection only
 KITLG,Infection,1,Infection only
 KLRC1,Infection,1,Infection only
 LCP1,Infection,1,Infection only
 LEPR,Infection,1,Infection only
-LFNG,Infection,1,Infection only
 LGALS1,Infection,1,Infection only
 LGALS9,Infection,1,Infection only
 LILRA2,Infection,1,Infection only
 LILRA3,Infection,1,Infection only
 LILRA6,Infection,1,Infection only
+LILRB1,Infection,1,Infection only
 LILRB2,Infection,1,Infection only
 LRP1,Infection,1,Infection only
+LRRC17,Infection,1,Infection only
 LTB,Infection,1,Infection only
 MAPK3,Infection,1,Infection only
 MCOLN2,Infection,1,Infection only
@@ -202,7 +232,7 @@ MERTK,Infection,1,Infection only
 MSH2,Infection,1,Infection only
 NCF2,Infection,1,Infection only
 NEDD4,Infection,1,Infection only
-NFKBID,Infection,1,Infection only
+NFKB2,Infection,1,Infection only
 NLRP6,Infection,1,Infection only
 NLRP9,Infection,1,Infection only
 NOS2,Infection,1,Infection only
@@ -214,34 +244,37 @@ PLCG2,Infection,1,Infection only
 PLD3,Infection,1,Infection only
 PNP,Infection,1,Infection only
 PPIB,Infection,1,Infection only
+PRKDC,Infection,1,Infection only
 PTPRJ,Infection,1,Infection only
 RAB27A,Infection,1,Infection only
 RAG1,Infection,1,Infection only
 RBPJ,Infection,1,Infection only
 RC3H1,Infection,1,Infection only
 REL,Infection,1,Infection only
+RGS1,Infection,1,Infection only
 RHOA,Infection,1,Infection only
-RNASE3,Infection,1,Infection only
-RNF19B,Infection,1,Infection only
-SCIMP,Infection,1,Infection only
+RNASE2,Infection,1,Infection only
+RPL39,Infection,1,Infection only
+SELL,Infection,1,Infection only
+SLC15A3,Infection,1,Infection only
+SLFN11,Infection,1,Infection only
 SNAP23,Infection,1,Infection only
 SOS2,Infection,1,Infection only
 SPI1,Infection,1,Infection only
 SRC,Infection,1,Infection only
+STAT5B,Infection,1,Infection only
 SYK,Infection,1,Infection only
 TCF7,Infection,1,Infection only
 TESPA1,Infection,1,Infection only
 TFE3,Infection,1,Infection only
-THBS1,Infection,1,Infection only
-TNFAIP3,Infection,1,Infection only
 TNFAIP8L2,Infection,1,Infection only
 TPD52,Infection,1,Infection only
 TREML4,Infection,1,Infection only
 TRIM40,Infection,1,Infection only
+VAV2,Infection,1,Infection only
 VEGFA,Infection,1,Infection only
 VNN1,Infection,1,Infection only
 XCL1,Infection,1,Infection only
-ZP3,Infection,1,Infection only
 CXCL8,Vaccination,9,Vaccination only
 PTX3,Vaccination,6,Vaccination only
 CCL20,Vaccination,5,Vaccination only
@@ -341,7 +374,9 @@ CX3CR1,Vaccination,1,Vaccination only
 CXCL14,Vaccination,1,Vaccination only
 CXCL9,Vaccination,1,Vaccination only
 CXCR4,Vaccination,1,Vaccination only
+DCAF12,Vaccination,1,Vaccination only
 DEFA1,Vaccination,1,Vaccination only
+DEFB108B,Vaccination,1,Vaccination only
 DPEP1,Vaccination,1,Vaccination only
 EDNRB,Vaccination,1,Vaccination only
 EIF2AK2,Vaccination,1,Vaccination only
@@ -367,6 +402,7 @@ IL31RA,Vaccination,1,Vaccination only
 IL33,Vaccination,1,Vaccination only
 LYL1,Vaccination,1,Vaccination only
 MASP1,Vaccination,1,Vaccination only
+MT1G,Vaccination,1,Vaccination only
 MX1,Vaccination,1,Vaccination only
 NEDD4,Vaccination,1,Vaccination only
 NKX2-3,Vaccination,1,Vaccination only
@@ -390,15 +426,23 @@ WNT3A,Vaccination,1,Vaccination only
 XCL1,Vaccination,1,Vaccination only
 ZNF683,Vaccination,1,Vaccination only
 CXCL8,Vaccination,9,Infection and vaccination
-CXCL8,Infection,2,Infection and vaccination
+CXCL8,Infection,1,Infection and vaccination
 PTX3,Vaccination,6,Infection and vaccination
-PTX3,Infection,2,Infection and vaccination
+PTX3,Infection,3,Infection and vaccination
+CCL20,Vaccination,5,Infection and vaccination
+CCL20,Infection,1,Infection and vaccination
+CCL3,Vaccination,5,Infection and vaccination
+CCL3,Infection,1,Infection and vaccination
 NFKBIA,Vaccination,5,Infection and vaccination
 NFKBIA,Infection,6,Infection and vaccination
 PI3,Vaccination,5,Infection and vaccination
 PI3,Infection,2,Infection and vaccination
+CXCL2,Vaccination,4,Infection and vaccination
+CXCL2,Infection,1,Infection and vaccination
+RGS1,Vaccination,4,Infection and vaccination
+RGS1,Infection,1,Infection and vaccination
 TNFAIP3,Vaccination,4,Infection and vaccination
-TNFAIP3,Infection,1,Infection and vaccination
+TNFAIP3,Infection,3,Infection and vaccination
 ADGRG3,Vaccination,3,Infection and vaccination
 ADGRG3,Infection,1,Infection and vaccination
 ADM,Vaccination,3,Infection and vaccination
@@ -410,15 +454,21 @@ FCGR1A,Infection,2,Infection and vaccination
 IDO1,Vaccination,3,Infection and vaccination
 IDO1,Infection,1,Infection and vaccination
 IFI27,Vaccination,3,Infection and vaccination
-IFI27,Infection,6,Infection and vaccination
+IFI27,Infection,7,Infection and vaccination
 IL1R2,Vaccination,3,Infection and vaccination
 IL1R2,Infection,3,Infection and vaccination
 NLRP9,Vaccination,3,Infection and vaccination
 NLRP9,Infection,1,Infection and vaccination
 TRIM58,Vaccination,3,Infection and vaccination
 TRIM58,Infection,6,Infection and vaccination
+APOBEC3A,Vaccination,2,Infection and vaccination
+APOBEC3A,Infection,1,Infection and vaccination
 BCL3,Vaccination,2,Infection and vaccination
 BCL3,Infection,2,Infection and vaccination
+CCL3L1,Vaccination,2,Infection and vaccination
+CCL3L1,Infection,1,Infection and vaccination
+CCL4,Vaccination,2,Infection and vaccination
+CCL4,Infection,1,Infection and vaccination
 CCNB2,Vaccination,2,Infection and vaccination
 CCNB2,Infection,1,Infection and vaccination
 CEBPB,Vaccination,2,Infection and vaccination
@@ -428,7 +478,7 @@ CLU,Infection,7,Infection and vaccination
 CXCL5,Vaccination,2,Infection and vaccination
 CXCL5,Infection,1,Infection and vaccination
 EPB42,Vaccination,2,Infection and vaccination
-EPB42,Infection,3,Infection and vaccination
+EPB42,Infection,5,Infection and vaccination
 IFI6,Vaccination,2,Infection and vaccination
 IFI6,Infection,1,Infection and vaccination
 IFIT1,Vaccination,2,Infection and vaccination
@@ -444,7 +494,7 @@ PF4V1,Infection,2,Infection and vaccination
 RAP1GAP,Vaccination,2,Infection and vaccination
 RAP1GAP,Infection,5,Infection and vaccination
 RNF19B,Vaccination,2,Infection and vaccination
-RNF19B,Infection,1,Infection and vaccination
+RNF19B,Infection,2,Infection and vaccination
 RORC,Vaccination,2,Infection and vaccination
 RORC,Infection,7,Infection and vaccination
 SELP,Vaccination,2,Infection and vaccination
@@ -459,20 +509,30 @@ BTNL3,Vaccination,1,Infection and vaccination
 BTNL3,Infection,4,Infection and vaccination
 BTNL8,Vaccination,1,Infection and vaccination
 BTNL8,Infection,1,Infection and vaccination
+CD300LD,Vaccination,1,Infection and vaccination
+CD300LD,Infection,1,Infection and vaccination
 CEACAM8,Vaccination,1,Infection and vaccination
 CEACAM8,Infection,4,Infection and vaccination
+CFD,Vaccination,1,Infection and vaccination
+CFD,Infection,1,Infection and vaccination
 CLEC6A,Vaccination,1,Infection and vaccination
 CLEC6A,Infection,1,Infection and vaccination
+CSF1,Vaccination,1,Infection and vaccination
+CSF1,Infection,1,Infection and vaccination
 CX3CR1,Vaccination,1,Infection and vaccination
 CX3CR1,Infection,4,Infection and vaccination
 CXCR4,Vaccination,1,Infection and vaccination
 CXCR4,Infection,1,Infection and vaccination
 EDNRB,Vaccination,1,Infection and vaccination
 EDNRB,Infection,1,Infection and vaccination
+FOSL1,Vaccination,1,Infection and vaccination
+FOSL1,Infection,1,Infection and vaccination
 FPR1,Vaccination,1,Infection and vaccination
 FPR1,Infection,1,Infection and vaccination
 FPR3,Vaccination,1,Infection and vaccination
 FPR3,Infection,2,Infection and vaccination
+IL12B,Vaccination,1,Infection and vaccination
+IL12B,Infection,1,Infection and vaccination
 IL31RA,Vaccination,1,Infection and vaccination
 IL31RA,Infection,1,Infection and vaccination
 NEDD4,Vaccination,1,Infection and vaccination
@@ -481,10 +541,12 @@ OLR1,Vaccination,1,Infection and vaccination
 OLR1,Infection,2,Infection and vaccination
 PARP9,Vaccination,1,Infection and vaccination
 PARP9,Infection,1,Infection and vaccination
+RNASE2,Vaccination,1,Infection and vaccination
+RNASE2,Infection,1,Infection and vaccination
 SNCA,Vaccination,1,Infection and vaccination
 SNCA,Infection,6,Infection and vaccination
 TARM1,Vaccination,1,Infection and vaccination
-TARM1,Infection,3,Infection and vaccination
+TARM1,Infection,4,Infection and vaccination
 TREML4,Vaccination,1,Infection and vaccination
 TREML4,Infection,1,Infection and vaccination
 XCL1,Vaccination,1,Infection and vaccination

@@ -1117,7 +1117,7 @@ exprs_deseq = all_matrices_counts %>%
 cvrts = cvrts %>% 
   mutate(condition = as.factor(condition),
          age = as.factor(age),
-         sex = as.factor(sex),
+         sex = as.factor(sex), 
          vaccine = as.factor(vaccine),
          day = as.factor(day),
          gse_id = as.factor(gse_id))
@@ -1149,7 +1149,6 @@ mat <- assay(vsd)
 mat <- limma::removeBatchEffect(mat, vsd$gse_id)
 assay(vsd) <- mat
 counts_batch_corrected <- assay(vsd)
-
 
 
 saveRDS(normalized_counts, file = here("DGE analysis", "all_matrices_normalized_counts.rds"))
@@ -1773,102 +1772,7 @@ demographics_time
 
 
 
-## 10.5. Shared genes (Cytoscape and Flourish)
 
-```{r cache = TRUE}
-# Vaccines and infection -----
-ann_vaccines_covid_other
-
-degs_all_updown_covid_other_immune_shared
-degs_all_updown_covid_other_nonimmune_shared
-
-filename = "degs_all_updown_covid_other_immune_shared"
-
-edges = degs_all_updown_covid_other_immune_shared %>% 
-  select(-"...1") %>% 
-  inner_join(ann_vaccines_covid_other %>% filter(covid_other == "COVID"), by = join_by(Cond1 == condition)) %>% 
-  inner_join(ann_vaccines_covid_other %>% filter(covid_other == "OTHER") %>% select(condition), by = join_by(Cond2 == condition)) %>% 
-  clean_names()
-
-edges_mirror = edges %>% 
-  select(cond1:qvalue) %>% 
-  rename(cond2.1 = cond1, cond1.2 = cond2) %>% 
-  rename(cond2 = cond2.1, cond1 = cond1.2) %>% 
-  select(cond1, cond2, everything()) %>% 
-  inner_join(ann_vaccines_covid_other %>% filter(covid_other == "OTHER"), by = join_by(cond1 == condition))
-
-edges_flourish = bind_rows(edges, edges_mirror)
-
-nodes = ann_vaccines_covid_other 
-edges_nodes = edges
-
-
-my_colors <- ann_vaccines_covid_other %>% 
- mutate(color = case_when(
-    type == "VLP" ~ "#7E6148FF",
-    type == "LA" ~ "#E64B35FF",
-    type == "CONJ" ~ "#F39B7FFF",
-    type == "IN" ~ "#00A087FF",
-    type == "VV" ~ "#3C5488FF",
-    type == "RNA" ~ "#4DBBD5FF",
-    type == "SU" ~ "#8491B4FF",
-    type == "I" ~ "#DC0000FF",
-    TRUE ~ NA_character_),
-    color_covid_other = if_else(covid_other == "COVID", "#56cfe1", "#343a40"))
-
-my_colors %>% select(condition, color, color_covid_other) %>% 
-  write_tsv("covid_others_colors.tsv")
-
-
-write_tsv(edges_nodes, file = paste0(filename, "Network_Covid_Other_sharedgenes_edges_and_nodes.tsv"))
-write_tsv(edges_flourish, file = paste0(filename, "Network_Covid_Other_sharedgenes_edges.tsv"))
-write.csv(edges_flourish, file = paste0(filename, "Network_Covid_Other_sharedgenes_edges.csv"), row.names = F)
-write_tsv(nodes, file = paste0(filename, "Network_Covid_Other_sharedgenes_nodes.tsv"))
-
-# Only Covid vaccination (previous or no previous infection) vs other vaccines-----
-ann_vaccines_covid_other
-
-edges = degs_all_updown_covid_other_immune_shared %>% 
-  select(-"...1") %>% 
-  inner_join(ann_vaccines_covid_other %>% filter(covid_other == "COVID", !regimen %in% c("I", "I-I")), by = join_by(Cond1 == condition)) %>% 
-  inner_join(ann_vaccines_covid_other %>% filter(covid_other == "OTHER") %>% select(condition), by = join_by(Cond2 == condition)) %>% 
-  clean_names()
-
-edges_mirror = edges %>% 
-  select(cond1:qvalue) %>% 
-  rename(cond2.1 = cond1, cond1.2 = cond2) %>% 
-  rename(cond2 = cond2.1, cond1 = cond1.2) %>% 
-  select(cond1, cond2, everything()) %>% 
-  inner_join(ann_vaccines_covid_other %>% filter(covid_other == "OTHER"), by = join_by(cond1 == condition))
-
-edges_flourish = bind_rows(edges, edges_mirror)
-
-nodes = ann_vaccines_covid_other 
-my_colors <- ann_vaccines_covid_other %>% 
- mutate(color = case_when(
-    type == "VLP" ~ "#7E6148FF",
-    type == "LA" ~ "#c8b6ff",
-    type == "CONJ" ~ "#F39B7FFF",
-    type == "IN" ~ "#00A087FF",
-    type == "VV" ~ "#3C5488FF",
-    type == "RNA" ~ "#4DBBD5FF",
-    type == "SU" ~ "#8491B4FF",
-    type == "I" ~ "#DC0000FF",
-    TRUE ~ NA_character_),
-    color_covid_other = if_else(covid_other == "COVID", "#56cfe1", "#343a40"))
-
-my_colors %>% select(condition, color, color_covid_other) %>% 
-  write_tsv("covid_others_colors.tsv")
-
-#Copiar e colar direto no flourish
-my_colors %>% select(condition, color) %>% mutate(combined = paste(condition, color, sep = ": ")) %>% select(combined)
-
-write_tsv(edges_flourish, file = paste0(filename, "Network_Covid_Other_Vaccinesonly_sharedgenes_edges.tsv"))
-write.csv(edges_flourish, file = paste0(filename, "Network_Covid_Other_Vaccinesonly_sharedgenes_edges.csv"), row.names = F)
-write_tsv(nodes, file = paste0(filename, "Network_Covid_Other_sharedgenes_nodes.tsv"))
-
-
-```
 
 
 
@@ -1929,7 +1833,7 @@ dds <- dds[keep,]
 ###### Execute DESeq
 
 #Wald
-dds <- DESeq(dds)
+dds <- DESeq(dds, )
 resultsNames(dds)
 
 ###### overall DEGs
@@ -4226,7 +4130,7 @@ circos.clear()
 dev.off()
 ```
 
-## 4.3. (TERMINAR) Immune and non-immune DEGs
+## 4.3.Immune and non-immune DEGs
 
 ```{r}
 ImmuneGO_Annotated_GO <- read_csv(here("VaxGO gene sets", "ImmuneGO_Annotated_GO_2024_03_26.csv"))
@@ -4544,7 +4448,7 @@ main_go_2_plot_up_down = main_go_2 %>%
   filter(term_ancestor %in% c("Immune system", "Cellular", "Metabolism")) %>% 
 mutate(disease_vac = fct_relevel(disease_vac, "I", "V")) %>% 
   arrange(disease_vac) %>% 
-  mutate(condition = factor(condition, levels = unique(condition[order(disease_vac)]))) %>% 
+  mutate(condition = factor(condition, levels = ann_vaccines_conditions$condition %>% unique())) %>% 
   ggplot() +
  aes(x = fct_rev(factor(condition)), y = n_genes_perc, fill = type) +
  geom_col() +
@@ -4596,8 +4500,7 @@ main_go_2_plot_up_down_totals = main_go_2 %>%
   mutate(disease_vac = fct_relevel(disease_vac, "I", "V")) %>% 
   mutate(stat = "Total genes") %>% 
   arrange(disease_vac) %>% 
-  mutate(condition = factor(condition, levels = unique(condition[order(disease_vac)]))) %>% 
-  ggplot() +
+  mutate(condition = factor(condition, levels = ann_vaccines_conditions$condition %>% unique())) %>%   ggplot() +
  aes(x = fct_rev(factor(condition)), y = n_genes_total, fill = type) +
  geom_col() +
  coord_flip() +
@@ -4638,7 +4541,7 @@ main_go_2_plot_up_down_totals = main_go_2 %>%
   labs(title = "",
        x = "",
        y = "Total number of genes") +
-  ylim(0, 2900) +
+  ylim(0, 2100) +
    facet_grid(vars(direction),  vars(stat))
 
 patch_maingo = main_go_2_plot_up_down_totals + main_go_2_plot_up_down +
@@ -4657,7 +4560,7 @@ ggsave(patch_maingo, file = here("Figures", "main_go_2_plot_values_UP_DOWN_regul
 
 
 
-```{r fig.height=7, fig.width=15}
+```{r fig.height=7, fig.width=10}
 ### Immune in totals ------
 
 #UP
@@ -4674,6 +4577,7 @@ immune_other_plot  = main_go_2 %>%
          totals = fct_rev(factor(totals)),
          direction = fct_rev(direction)) %>% 
   fill(total_degs, .direction = "up") %>% 
+  mutate(condition = factor(condition, levels = ann_vaccines_conditions$condition %>% unique())) %>%
 ggplot() +
  aes(x = fct_rev(factor(condition)), y = total_number, fill = totals) +
  geom_col() +
@@ -4690,24 +4594,21 @@ ggplot() +
         axis.title.x = element_text(size = 10, color = "black"),
         axis.text.x = element_text(size = 10, color = "black", angle = 0, hjust = 1),
         axis.text.y = element_text(size = 10, color = "black", angle = 0, hjust = 1),
-                strip.text.x = element_text(size = 12, color = "white", hjust = 0.5),
-        strip.text.y = element_text(size = 15, angle = 0),
-        strip.background.x = element_rect(
-          fill = "black", 
-          color = "black", 
-          linewidth = 1 )) +
+        strip.text.x = element_text(size = 12, color = "black", hjust = 0.5),
+        strip.text.y = element_text(size = 15, angle = 0)
+        ) +
   geom_text(aes(label = if_else(!is.na(immune_genes), paste0(immune_genes, " (", n_genes_perc, "% of ", total_degs,")") , NA), 
                 y = total_degs + immune_genes), 
             hjust = -0.05, 
             size = 3,
             angle = 0) +
-  labs(title = "",
+  labs(title = "DEGs - Classification by type - Immune vs. Non-immune",
        fill = "Gene type",
        x = "",
        y = "Number of genes") +
-  ylim(0, 4000)
+  ylim(0, 2800)
 
-ggsave(immune_other_plot, file = "immune_other_plot.png", width = 15, height = 7)
+ggsave(immune_other_plot, file = here("Figures", "immune_other_plot.png"), width = 15, height = 7)
 immune_other_plot
 
 ```
@@ -4731,10 +4632,11 @@ degs_immune = main_go_2 %>%
 ```
 
 
-```{r fig.height=10, fig.width=12}
+```{r fig.height=10, fig.width=10}
 #UP
 immune_other_plot_diseaseorvac_I  = degs_immune %>% 
   filter(disease_vac == "Infection") %>% 
+    mutate(condition = factor(condition, levels = ann_vaccines_conditions$condition %>% unique())) %>%
   ggplot() +
  aes(x = fct_rev(factor(condition)), y = total_number, fill = totals) +
  geom_col() +
@@ -4744,7 +4646,7 @@ immune_other_plot_diseaseorvac_I  = degs_immune %>%
     values = c("n_genes_total" = "gray90",
               "n_genes_immune" = "#4DBBD5FF"),
     labels = c('Total', 'Immune')) +
-  theme(legend.position=c(.9, 0.1),
+  theme(legend.position=c(1, 0.1),
         panel.grid = element_blank(),
         legend.title = element_text(size = 10),
         legend.text = element_text(size= 15),
@@ -4806,10 +4708,9 @@ immune_other_plot_diseaseorvac_V  = degs_immune %>%
   ylim(0, 4000) +
     facet_grid(~disease_vac~direction, scales = "free_y")
 
-patch_immune_degs = immune_other_plot_diseaseorvac_I / immune_other_plot_diseaseorvac_V
+patch_immune_degs = immune_other_plot_diseaseorvac_I / immune_other_plot_diseaseorvac_V 
 
-ggsave(patch_immune_degs, file = here("Figures", "immune_other_plot_diseaseorvac.png"), width = 15, height = 7)
-ggsave(patch_immune_degs, file = here("Figures", "immune_other_plot_diseaseorvac_2.png"), width = 15, height = 10)
+ggsave(patch_immune_degs, file = here("Figures", "immune_other_plot_diseaseorvac.png"), width = 10, height = 10)
 
 patch_immune_degs
 ```
@@ -5397,7 +5298,7 @@ dev.off()
 
 ```
 
-### 5.3. (TERMINAR) Gene set enrichment analysis (GSEA)
+### 5.3. Gene set enrichment analysis (GSEA)
 
 #### 5.3.1. Multiple
 
@@ -5410,7 +5311,7 @@ autoGSEA <- function(df, TERM2GENE, geneset_name) {
     as.character()
 
   for (condicao in condicoes) {
-    # Selecionar DEGs para a condição atual
+    
     degs_condicao <- df %>% 
       filter(condition == condicao) %>%
       select(genes, log2fold_change) %>%
@@ -5418,13 +5319,11 @@ autoGSEA <- function(df, TERM2GENE, geneset_name) {
       mutate(rank = rank(log2fold_change, ties.method = "random")) %>%
       arrange(desc(rank))
 
-    # Garantir que log2fold_change seja um vetor
     gene_list_lf2c <- as.vector(degs_condicao$log2fold_change)
     names(gene_list_lf2c) <- degs_condicao$genes
     gene_list_lf2c <- na.omit(gene_list_lf2c)
     gene_list_lf2c <- sort(gene_list_lf2c, decreasing = TRUE)
 
-    ############ IMMUNE GO
     auto_gsea <- tryCatch({
       GSEA(geneList = gene_list_lf2c,
            TERM2GENE = TERM2GENE,
@@ -5437,7 +5336,7 @@ autoGSEA <- function(df, TERM2GENE, geneset_name) {
         mutate(condition = condicao,
                gsea_enrichment = geneset_name)
     }, error = function(e) {
-      return(NULL)  # Retorna NULL caso ocorra o erro
+      return(NULL)
     })
 
     if (!is.null(auto_gsea)) {
@@ -5455,10 +5354,14 @@ autoGSEA <- function(df, TERM2GENE, geneset_name) {
 
 ```{r}
 # Perform GSEA
+
+TERM2GENE = Immune_GO_T2G_general
+geneset_name = "Immune_GO_T2G_general"
+
 all_degs_p_05_vac_infected_GSEA_ALL <- all_degs_p_05_vac_infected %>%
   select(condition, genes, log2fold_change) %>% 
-  autoGSEA(TERM2GENE = TERM2GENE, 
-           geneset_name = geneset_name) 
+  autoGSEA(TERM2GENE = Immune_GO_T2G_general, 
+           geneset_name = "Immune_GO_T2G_general") 
 
 all_degs_p_05_vac_infected_GSEA = all_degs_p_05_vac_infected_GSEA_ALL %>% 
   rownames_to_column("delete") %>% 
@@ -5481,7 +5384,9 @@ https://davemcg.github.io/post/lets-plot-scrna-dotplots/
 library(ggdendro)
 library(cowplot)
 
-df = all_degs_p_05_vac_infected_GSEA %>% 
+all_degs_p_05_vac_infected_Immune_GO_T2G_general_GSEA_ALL <- read_csv("Gene set enrichment analysis/all_degs_p_05_vac_infected_Immune_GO_T2G_general_GSEA_ALL.csv")
+
+df = all_degs_p_05_vac_infected_Immune_GO_T2G_general_GSEA_ALL %>% 
   mutate(logq = -log10(qvalue)) %>% 
   inner_join(ann_vaccines_conditions, by = "condition") %>% 
   mutate(day = as.factor(day),
@@ -5530,6 +5435,19 @@ col_clustered_inf = df %>%
 column_order = 
   c(col_clustered_vac$labels[col_clustered_vac$order], col_clustered_inf$labels[col_clustered_inf$order])
 
+
+labels_disease_vac <- df %>% 
+  filter(id %in% row_clustered$labels) %>% 
+  mutate(condition = factor(condition, levels = column_order)) %>% 
+  ggplot() +
+  aes(x = condition, y = 1, fill = disease_vac) + 
+  geom_tile() + 
+  scale_fill_manual(values = ann_vaxsig_colors$disease_vac) + 
+  theme_void() +
+  labs(y = "Infection/Vaccination") +
+  theme(axis.title.y = element_text(size = 10, hjust = 1),
+        legend.position = "none") 
+
 labels_type <- df %>% 
   filter(id %in% row_clustered$labels) %>% 
   mutate(condition = factor(condition, levels = column_order)) %>% 
@@ -5539,7 +5457,7 @@ labels_type <- df %>%
   scale_fill_manual(values = ann_vaxsig_colors$Platform) + 
   theme_void() +
   labs(y = "Type") +
-  theme(axis.title.y = element_text(size = 10),
+  theme(axis.title.y = element_text(size = 10, hjust = 1),
         legend.position = "none") 
 
 labels_week = df %>% 
@@ -5551,7 +5469,7 @@ labels_week = df %>%
   scale_fill_manual(values = ann_vaxsig_colors$week) + 
   theme_void() +
   labs(y = "Week") +
-  theme(axis.title.y = element_text(size = 10),
+  theme(axis.title.y = element_text(size = 10, hjust = 1),
         legend.position = "none")
 #Plot
 dotplot = df %>% 
@@ -5562,6 +5480,7 @@ dotplot = df %>%
          id = case_when(id == "Humoral Adaptive Immune System" ~ "Humoral Adap.",
                         id == "Cellular Adaptive Immune System" ~ "Cellular Adap.",
                         id == "Complement Immune System" ~ "Complement",
+                        id == "Immunoglobulin Mediated Response" ~ "Ig-mediated",
                         id == "Antiviral And Interferon" ~ "Antiviral/IFN",.default = id)) %>% 
   ggplot(aes(x=condition, y = id, color = nes, size = logq)) +
   geom_point() + 
@@ -5583,10 +5502,12 @@ dotplot = df %>%
   scale_size(range = c(3, 6))
   
 
-patch_immune_main = labels_type /
+patch_immune_main = 
+  labels_disease_vac /
+  labels_type /
   labels_week/
   dotplot +
-  plot_layout(heights = c(0.3, 0.3, 5),
+  plot_layout(heights = c(0.3, 0.3, 0.3, 5),
               guides = 'collect') +
   plot_annotation(title = "GSEA ImmuneGO",
                   subtitle = "Main processes",
@@ -5594,6 +5515,12 @@ patch_immune_main = labels_type /
                                 plot.margin = margin(0.5, 0, 0.5, 1, unit = "cm"),
                                 legend.direction = "horizontal", 
                                 legend.box = "horizontal"))
+
+
+patch_immune_main %>% 
+  ggsave(filename = here("Figures", "GSEA_ImmuneGO_MainGOs_Bubbleplot.png"),
+         width = 10,
+         height = 8)
 patch_immune_main
 
 ```
@@ -6189,15 +6116,16 @@ patch_immune_specific
 
 
 
-## 5.4. ssGSEA for Cell deconvolution
-
-### 5.4.1. Process data
+## 5.4. Cell proportion
 
 <https://www.datacamp.com/tutorial/pca-analysis-r>
 <https://rpkgs.datanovia.com/factoextra/index.html>
 <http://www.sthda.com/english/articles/31-principal-component-methods-in-r-practical-guide/114-mca-multiple-correspondence-analysis-in-r-essentials/>
 <https://statisticsglobe.com/pca-before-k-means-clustering-r>\>
 
+
+
+### 5.4.1. ssGSEA: CellMarker
 ```{r}
 library(corto)
 
@@ -6237,10 +6165,7 @@ sample_names = ssgsea_gene %>%
   colnames() %>% 
   as.data.frame() %>% 
   rename(sample_names = '.')
-```
 
-### 5.4.2. Perform ssGSEA
-```{r}
 #CellMarker immune-------
 genelist_CellMarker_genes = CellMarker_genes %>%dplyr::select(process, genes)
 genelist_CellMarker_genes = split(genelist_CellMarker_genes$genes, genelist_CellMarker_genes$process) 
@@ -6276,166 +6201,10 @@ write_csv(nesmat_result_CellMarker, file = here("Gene set enrichment analysis", 
 head(nesmat_result_CellMarker)
 ```
 
-### Cell deconvolution with GSEA for single sample
-```{r}
-CellMarker_ssGSEA <- all_samples_l2fc %>%
-  select(condition = sample, genes, log2fold_change = log2fc) %>% 
-  autoGSEA(TERM2GENE = CellMarker_genes, 
-           geneset_name = "CellMarker PBMC") 
 
 
-CellMarker_ssGSEA_1 = CellMarker_ssGSEA %>% 
-  clean_names() %>% 
-  rename(sample = condition) %>% 
-    inner_join(ann_vaccines_samples, by = "sample") %>% 
-  filter(condition != "BNT-MO (V1, D0)",
-         condition != "BNT-MO (V1, D6)") %>% 
-  mutate(disease_vac = if_else(disease_vac == "Healthy", "H", disease_vac)) %>% 
-  mutate(disease_vac = fct_relevel(disease_vac, "H", "I", "V"),
-           type = fct_relevel(type, "I", "RNA", "VV", "IN", "SU")) %>% 
-  arrange(disease_vac,type, condition) %>% 
-  inner_join(ann_vaccines_conditions %>% select(condition, samples), by = "condition") %>% 
-  mutate(condition = factor(condition, levels = c(unique(condition[order(condition)]))),
-         condition = paste0(condition, " (n=", samples, ")"))
+### 5.4.2. ssGSEA: immunedeconv/XCell
 
-CellMarker_ssGSEA_2 = CellMarker_ssGSEA_1 %>% 
-  mutate(condition = fct_relevel(condition, 
-                                 CellMarker_ssGSEA_1 %>% 
-                                   filter(str_detect(condition, "^H \\(D0\\)")) %>% 
-                                   select(condition) %>% 
-                                   distinct() %>% 
-                                   pull(condition), 
-                                 CellMarker_ssGSEA_1 %>% 
-                                   filter(str_detect(condition, "^I")) %>% 
-                                   filter(!str_detect(condition, "^I-I")) %>% 
-                                   select(condition) %>% 
-                                   arrange(condition) %>% 
-                                   distinct() %>% 
-                                   pull(condition),
-                                 CellMarker_ssGSEA_1 %>% 
-                                   filter(disease_vac == "I") %>% 
-                                   filter(str_detect(condition, "^BNT-I")) %>% 
-                                    filter(!str_detect(condition, "^BNT-I \\(D\\d+\\)")) %>% 
-                                    arrange(day, condition) %>%
-                                   select(condition) %>% 
-                                    distinct() %>% 
-                                    pull(condition),
-                                 CellMarker_ssGSEA_1 %>% 
-                                    filter(str_detect(condition, "^BNT-I \\(D\\d+\\)")) %>% 
-                                    arrange(day, condition) %>%
-                                   select(condition) %>% 
-                                    distinct() %>% 
-                                    pull(condition),
-                                 CellMarker_ssGSEA_1 %>% 
-                                   filter(disease_vac == "V",
-                                          str_detect(condition, "^BNT \\(V1, D\\d+\\)")) %>% 
-                                   arrange(day, condition) %>% 
-                                   select(condition) %>% 
-                                   distinct() %>% 
-                                   pull(condition),
-                                 CellMarker_ssGSEA_1 %>% 
-                                   filter(disease_vac == "V",
-                                          !str_detect(condition, "^BNT \\(V1, D\\d+\\)"),
-                                          !str_detect(condition, "BBIBP"),
-                                          !str_detect(condition, "ZF2001")) %>% 
-                                   arrange(condition) %>% 
-                                   select(condition) %>% 
-                                   distinct() %>% 
-                                   pull(condition),
-                                 CellMarker_ssGSEA_1 %>% 
-                                   filter(str_detect(condition, "BBIBP")) %>% 
-                                   select(condition) %>% 
-                                   arrange(condition) %>% 
-                                   distinct() %>% 
-                                   pull(condition), 
-                                 CellMarker_ssGSEA_1 %>% 
-                                   filter(str_detect(condition, "ZF2001")) %>% 
-                                   select(condition) %>% 
-                                   arrange(condition) %>% 
-                                   distinct() %>% 
-                                   pull(condition))) %>%
-  mutate(type = if_else(type == "H", "I", type),
-         disease_vac = if_else(disease_vac == "H", "I", disease_vac)) 
-
-
-id_selec = "CD8+ T cell"
-
-CellMarker_ssGSEA_2 %>% 
-  filter(id == id_selec) %>%
-  ggplot() +
-  aes(x = condition, y = nes, fill = if_else(day == 0, "Day 0", type)) +  
-  geom_hline(yintercept = 0, linetype = 2) +
-  geom_jitter(aes(color = if_else(day == 0, "Day 0", type)),
-              alpha = 0.3, size = 0.1) +
-  geom_boxplot(outliers = F) +
-  theme_few() +
-  scale_fill_manual(values = c("Day 0" = "white", 
-                               ann_vaxsig_colors$type)) +
-    scale_color_manual(values = c("Day 0" = "gray80", 
-                               ann_vaxsig_colors$type)) +
-  theme(axis.text.x = element_text(angle = 45,
-                                   hjust = 1,
-                                   vjust = 1),
-        plot.title = element_text(hjust = 0.5, face = "bold"),
-        plot.margin = margin(0, 0, 0, 2, "cm"),
-        panel.grid.major = element_line(size = 0.05),
-        panel.grid.minor = element_line(size = 0.05)) +
-  labs(y = "NES",
-       title = id_selec,
-       x="",
-       subtitle = "By week",
-       fill = "Type") +
-  guides(color = "none") +
-  facet_wrap(~disease_vac, scales = "free_x")
-
-
-
-create_boxplots <- function(result_df) {
-  
-  unique_processes <- unique(result_df$id)
-  
-  purrr::map(unique_processes, function(process_name) {
-    cellmarker_boxplot <- result_df %>% 
-      filter(id == process_name) %>% 
-  ggplot() +
-  aes(x = condition, y = nes, fill = if_else(day == 0, "Day 0", type)) +  
-  geom_hline(yintercept = 0, linetype = 2) +
-  geom_jitter(aes(color = if_else(day == 0, "Day 0", type)),
-              alpha = 0.3, size = 0.1) +
-  geom_boxplot(outliers = F) +
-  theme_few() +
-  scale_fill_manual(values = c("Day 0" = "white", 
-                               ann_vaxsig_colors$type)) +
-    scale_color_manual(values = c("Day 0" = "gray80", 
-                               ann_vaxsig_colors$type)) +
-  theme(axis.text.x = element_text(angle = 45,
-                                   hjust = 1,
-                                   vjust = 1),
-        plot.title = element_text(hjust = 0.5, face = "bold"),
-        plot.margin = margin(0, 0, 0, 2, "cm")) +
-  labs(y = "NES",
-       title = process_name,
-       x="",
-       subtitle = "By week",
-       fill = "Type") +
-  guides(color = "none") +
-  facet_wrap(~disease_vac, scales = "free_x")
-
-    ggsave(cellmarker_boxplot, 
-           file = here("Figures", paste0("GSEA_singlesample_CellMarker_boxplot_", process_name, ".png")),
-           width = 12, height = 6)
-  })
-}
-
-# Apply to all processes
-create_boxplots(CellMarker_ssGSEA_2)
-
-```
-
-
-
-
-### Cell deconvolution with immunedeconv
 ```{r fig.height=6, fig.width=12}
 all_matrices_counts <- readRDS(here("DGE analysis", "all_matrices_counts.rds"))
 
@@ -6463,6 +6232,9 @@ res_quantiseq %>%
 #XCell (ssGSEA) ----
 xcell_results = immunedeconv::deconvolute(all_matrices_counts_matrix, "xcell") 
 
+xcell_results %>% 
+  write_csv(file = here("Cell populations", "all_covid_degs_xcell_results.csv"))
+
 xcell_results_annotated = xcell_results %>% 
   pivot_longer(cols = -cell_type,
                names_to = "sample",
@@ -6475,76 +6247,14 @@ xcell_results_annotated = xcell_results %>%
   mutate(disease_vac = fct_relevel(disease_vac, "H", "I", "V"),
            type = fct_relevel(type, "I", "RNA", "VV", "IN", "SU")) %>% 
   arrange(disease_vac,type, condition) %>% 
-  inner_join(ann_vaccines_conditions %>% select(condition, samples), by = "condition") %>% 
-  mutate(condition = factor(condition, levels = c(unique(condition[order(condition)]))),
-         condition = paste0(condition, " (n=", samples, ")"))
-
-xcell_results_annotated_2 = xcell_results_annotated %>% 
-  mutate(condition = fct_relevel(condition, 
-                                 xcell_results_annotated %>% 
-                                   filter(str_detect(condition, "^H \\(D0\\)")) %>% 
-                                   select(condition) %>% 
-                                   distinct() %>% 
-                                   pull(condition), 
-                                 xcell_results_annotated %>% 
-                                   filter(str_detect(condition, "^I")) %>% 
-                                   filter(!str_detect(condition, "^I-I")) %>% 
-                                   select(condition) %>% 
-                                   arrange(condition) %>% 
-                                   distinct() %>% 
-                                   pull(condition),
-                                 xcell_results_annotated %>% 
-                                   filter(disease_vac == "I") %>% 
-                                   filter(str_detect(condition, "^BNT-I")) %>% 
-                                    filter(!str_detect(condition, "^BNT-I \\(D\\d+\\)")) %>% 
-                                    arrange(day, condition) %>%
-                                   select(condition) %>% 
-                                    distinct() %>% 
-                                    pull(condition),
-                                 xcell_results_annotated %>% 
-                                    filter(str_detect(condition, "^BNT-I \\(D\\d+\\)")) %>% 
-                                    arrange(day, condition) %>%
-                                   select(condition) %>% 
-                                    distinct() %>% 
-                                    pull(condition),
-                                 xcell_results_annotated %>% 
-                                   filter(disease_vac == "V",
-                                          str_detect(condition, "^BNT \\(V1, D\\d+\\)")) %>% 
-                                   arrange(day, condition) %>% 
-                                   select(condition) %>% 
-                                   distinct() %>% 
-                                   pull(condition),
-                                 xcell_results_annotated %>% 
-                                   filter(disease_vac == "V",
-                                          !str_detect(condition, "^BNT \\(V1, D\\d+\\)"),
-                                          !str_detect(condition, "BBIBP"),
-                                          !str_detect(condition, "ZF2001")) %>% 
-                                   arrange(condition) %>% 
-                                   select(condition) %>% 
-                                   distinct() %>% 
-                                   pull(condition),
-                                 xcell_results_annotated %>% 
-                                   filter(str_detect(condition, "BBIBP")) %>% 
-                                   select(condition) %>% 
-                                   arrange(condition) %>% 
-                                   distinct() %>% 
-                                   pull(condition), 
-                                 xcell_results_annotated %>% 
-                                   filter(str_detect(condition, "ZF2001")) %>% 
-                                   select(condition) %>% 
-                                   arrange(condition) %>% 
-                                   distinct() %>% 
-                                   pull(condition))) %>%
-  mutate(type = if_else(type == "H", "I", type),
-         disease_vac = if_else(disease_vac == "H", "I", disease_vac)) 
+  inner_join(ann_vaccines_conditions %>% select(condition, samples), by = "condition")
 
 
 
 #boxplot
-xcell_results_annotated_2_plot =  xcell_results_annotated_2%>% 
-  separate(condition, into = c("condition", "n"), sep = "\\(n=")
-
-  xcell_results_annotated_2_plot %>% 
+xcell_results_annotated_2_plot =  xcell_results_annotated %>% 
+  mutate(condition = fct_relevel(condition, 
+                                 ann_vaccines_conditions_ordered$condition %>% unique())) %>% 
   filter(cell_type == "B cell") %>% 
   ggplot() +
   aes(x = condition, y = value, fill = if_else(day == 0, "Day 0", type)) +  
@@ -23080,7 +22790,102 @@ circos.clear()
 
 
 
+### 10.5.5. Shared genes (Cytoscape and Flourish)
 
+```{r cache = TRUE}
+# Vaccines and infection -----
+ann_vaccines_covid_other
+
+degs_all_updown_covid_other_immune_shared
+degs_all_updown_covid_other_nonimmune_shared
+
+filename = "degs_all_updown_covid_other_immune_shared"
+
+edges = degs_all_updown_covid_other_immune_shared %>% 
+  select(-"...1") %>% 
+  inner_join(ann_vaccines_covid_other %>% filter(covid_other == "COVID"), by = join_by(Cond1 == condition)) %>% 
+  inner_join(ann_vaccines_covid_other %>% filter(covid_other == "OTHER") %>% select(condition), by = join_by(Cond2 == condition)) %>% 
+  clean_names()
+
+edges_mirror = edges %>% 
+  select(cond1:qvalue) %>% 
+  rename(cond2.1 = cond1, cond1.2 = cond2) %>% 
+  rename(cond2 = cond2.1, cond1 = cond1.2) %>% 
+  select(cond1, cond2, everything()) %>% 
+  inner_join(ann_vaccines_covid_other %>% filter(covid_other == "OTHER"), by = join_by(cond1 == condition))
+
+edges_flourish = bind_rows(edges, edges_mirror)
+
+nodes = ann_vaccines_covid_other 
+edges_nodes = edges
+
+
+my_colors <- ann_vaccines_covid_other %>% 
+ mutate(color = case_when(
+    type == "VLP" ~ "#7E6148FF",
+    type == "LA" ~ "#E64B35FF",
+    type == "CONJ" ~ "#F39B7FFF",
+    type == "IN" ~ "#00A087FF",
+    type == "VV" ~ "#3C5488FF",
+    type == "RNA" ~ "#4DBBD5FF",
+    type == "SU" ~ "#8491B4FF",
+    type == "I" ~ "#DC0000FF",
+    TRUE ~ NA_character_),
+    color_covid_other = if_else(covid_other == "COVID", "#56cfe1", "#343a40"))
+
+my_colors %>% select(condition, color, color_covid_other) %>% 
+  write_tsv("covid_others_colors.tsv")
+
+
+write_tsv(edges_nodes, file = paste0(filename, "Network_Covid_Other_sharedgenes_edges_and_nodes.tsv"))
+write_tsv(edges_flourish, file = paste0(filename, "Network_Covid_Other_sharedgenes_edges.tsv"))
+write.csv(edges_flourish, file = paste0(filename, "Network_Covid_Other_sharedgenes_edges.csv"), row.names = F)
+write_tsv(nodes, file = paste0(filename, "Network_Covid_Other_sharedgenes_nodes.tsv"))
+
+# Only Covid vaccination (previous or no previous infection) vs other vaccines-----
+ann_vaccines_covid_other
+
+edges = degs_all_updown_covid_other_immune_shared %>% 
+  select(-"...1") %>% 
+  inner_join(ann_vaccines_covid_other %>% filter(covid_other == "COVID", !regimen %in% c("I", "I-I")), by = join_by(Cond1 == condition)) %>% 
+  inner_join(ann_vaccines_covid_other %>% filter(covid_other == "OTHER") %>% select(condition), by = join_by(Cond2 == condition)) %>% 
+  clean_names()
+
+edges_mirror = edges %>% 
+  select(cond1:qvalue) %>% 
+  rename(cond2.1 = cond1, cond1.2 = cond2) %>% 
+  rename(cond2 = cond2.1, cond1 = cond1.2) %>% 
+  select(cond1, cond2, everything()) %>% 
+  inner_join(ann_vaccines_covid_other %>% filter(covid_other == "OTHER"), by = join_by(cond1 == condition))
+
+edges_flourish = bind_rows(edges, edges_mirror)
+
+nodes = ann_vaccines_covid_other 
+my_colors <- ann_vaccines_covid_other %>% 
+ mutate(color = case_when(
+    type == "VLP" ~ "#7E6148FF",
+    type == "LA" ~ "#c8b6ff",
+    type == "CONJ" ~ "#F39B7FFF",
+    type == "IN" ~ "#00A087FF",
+    type == "VV" ~ "#3C5488FF",
+    type == "RNA" ~ "#4DBBD5FF",
+    type == "SU" ~ "#8491B4FF",
+    type == "I" ~ "#DC0000FF",
+    TRUE ~ NA_character_),
+    color_covid_other = if_else(covid_other == "COVID", "#56cfe1", "#343a40"))
+
+my_colors %>% select(condition, color, color_covid_other) %>% 
+  write_tsv("covid_others_colors.tsv")
+
+#Copiar e colar direto no flourish
+my_colors %>% select(condition, color) %>% mutate(combined = paste(condition, color, sep = ": ")) %>% select(combined)
+
+write_tsv(edges_flourish, file = paste0(filename, "Network_Covid_Other_Vaccinesonly_sharedgenes_edges.tsv"))
+write.csv(edges_flourish, file = paste0(filename, "Network_Covid_Other_Vaccinesonly_sharedgenes_edges.csv"), row.names = F)
+write_tsv(nodes, file = paste0(filename, "Network_Covid_Other_sharedgenes_nodes.tsv"))
+
+
+```
 
 
 
