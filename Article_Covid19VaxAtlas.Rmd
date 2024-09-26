@@ -1153,7 +1153,6 @@ counts_batch_corrected <- assay(vsd)
 
 saveRDS(normalized_counts, file = here("DGE analysis", "all_matrices_normalized_counts.rds"))
 
-
 normalized_counts = read_rds(here("DGE analysis", "all_matrices_normalized_counts.rds"))
 
 ```
@@ -1209,6 +1208,24 @@ cvrts_eff_var = c(
   "type",
   "previous_vaccination",
   "variant",
+  "prior_infection",
+  "severity",
+  "disease_vac",
+  "regimen"
+) 
+
+
+#For vaccination and infection
+cvrts_eff_var = c(
+  "day",
+  "age",
+  "sex",
+  "dose",
+  "type",
+  "previous_vaccination",
+  "variant",
+  # "country_enroll",
+  # "time_enroll",
   "prior_infection",
   "severity",
   "disease_vac",
@@ -2119,11 +2136,11 @@ colData <- gse206023_metadata %>%
 # DESeq2
 dds <- DESeqDataSetFromMatrix(countData = countData, 
                               colData = colData, 
-                              design = ~condition)
+                              design = ~ age + condition)
 
 keep <- rowSums(counts(dds)) >= 10
 dds <- dds[keep,]
-dds <- DESeq(dds)
+dds <- DESeq(dds, test = "LRT", reduced = ~age)
 
 resultsNames(dds)
 
