@@ -1794,21 +1794,26 @@ demographics_days_samples_doses = ann_vaccines_conditions %>%
          day_f = fct_reorder(day_f, day),
          dose_f = as.factor(dose),
          dose_f = fct_reorder(dose_f, dose),
-         condition = if_else(condition == "BNT (V1, D0)" & gse_id == "GSE189039", "H (D0)", condition)) %>%
-  separate(condition, into = c("condition"), sep = " \\(") %>%
+         condition = if_else(condition == "BNT (V1, D0)" & 
+                               gse_id == "GSE189039", "H (D0)", 
+                             condition)) %>%
+  separate(condition, into = c("condition_2"), sep = " \\(", remove = F) %>%
   mutate(dose_f = if_else(day_f == "0", "0", dose_f),
-         condition = if_else(severity != "H", 
-                             paste0(condition, " (", severity, ")"),
-                             condition),
-         condition = fct_relevel(condition, "H"),
-         condition = fct_rev(condition),
-         dose_f = if_else(dose == "0" & infection != "0", "Infection", dose_f)) %>% 
-  group_by(gse_id, dose_f)
+         condition_2 = if_else(severity != "H", 
+                             paste0(condition_2, " (", severity, ")"),
+                             condition_2),
+         condition = fct_relevel(condition, as.character(unique(ann_vaccines_conditions_ordered$condition))),
+         dose_f = if_else(dose == "0" & infection != "0", "Infection", dose_f))
+
+
 
 demographics_plot_days_samples_doses = demographics_days_samples_doses %>% 
+  mutate(condition_2 = fct_relevel(condition_2, as.character(unique(demographics_days_samples_doses$condition_2))),
+         condition_2 = fct_rev(condition_2)) %>% 
+  group_by(gse_id, dose_f) %>% 
   ggplot(.) +
-  aes(x = day_f, ,
-      y = condition, 
+  aes(x = day_f,
+      y = condition_2, 
       fill = dose_f,
       size = samples,
       group = dose_f) +
