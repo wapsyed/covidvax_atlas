@@ -119,10 +119,10 @@ Read the recent version here:
 # install.packages("tictoc")
 # install.packages("ggExtra")
 # install.packages("remotes")
-remotes::install_github("omnideconv/immunedeconv")
-BiocManager::install("multtest")
-install.packages("metap")
-install.packages("weights")
+# remotes::install_github("omnideconv/immunedeconv")
+# BiocManager::install("multtest")
+# install.packages("metap")
+# install.packages("weights")
 
 library(weights)
 library(metap)
@@ -139,7 +139,6 @@ library(ComplexHeatmap)
 library(janitor)
 library(ggsci)
 library(vip)
-library(here)
 library(circlize)
 library(workflowsets)
 library(glmnet)
@@ -150,10 +149,8 @@ library(ggthemes)
 library(readr)
 library(qvalue)
 library(explore)
-library(maditr)
 library(GEOquery)
 library(Matrix)
-library(pheatmap)
 library(RColorBrewer)
 library(celldex)
 library(biomaRt)
@@ -172,12 +169,9 @@ library(esquisse)
 library(corto)
 library(circlize)
 library(ComplexHeatmap)
-library(janitor)
 library(scales)
 library(ggstatsplot)
 library(patchwork)
-library(ggsci)
-library(here)
 library(vegan)
 library(BH)
 library(chorddiag)
@@ -1806,6 +1800,8 @@ demographics_days_samples_doses = ann_vaccines_conditions %>%
          condition = if_else(severity != "H", 
                              paste0(condition, " (", severity, ")"),
                              condition),
+         condition = fct_relevel(condition, "H"),
+         condition = fct_rev(condition),
          dose_f = if_else(dose == "0" & infection != "0", "Infection", dose_f)) %>% 
   group_by(gse_id, dose_f)
 
@@ -1814,15 +1810,18 @@ demographics_plot_days_samples_doses = demographics_days_samples_doses %>%
   aes(x = day_f, ,
       y = condition, 
       fill = dose_f,
+      size = samples,
       group = dose_f) +
   geom_point(position = position_dodge(width = 0.5),
              pch = 21,
-             size = 3, 
+             # size = 3, 
              color = "black") +
   scale_fill_manual(values =  c(ann_vaxsig_colors$dose, "Infection" = "red")) +
+  scale_size_binned(breaks = c(1, 10, 50),
+                    range = c(2, 5)) +
   theme_minimal() +
-  theme(text = element_text(color = "black"),
-        strip.text.y = element_text(angle = 0)) +
+  theme(axis.text = element_text(color = "black"),
+        strip.text.y = element_text(angle = 0, color = "black")) +
   labs(x = "Days",
        y = "",
        title = "Studies design",
@@ -1833,28 +1832,10 @@ demographics_plot_days_samples_doses = demographics_days_samples_doses %>%
 
 demographics_plot_days_samples_doses
 
-demographics_samples_bar = demographics_days_samples_doses %>% 
-  ggplot(.) +
-  aes(x = samples, ,
-      y = condition, 
-      fill = type,
-      group = type) +
-  geom_col(position = "dodge") +
-  scale_fill_manual(values =  ann_vaxsig_colors$type) +
-  theme_minimal() +
-  theme(text = element_text(color = "black"),
-        strip.text.y = element_text(angle = 0)) +
-  labs(x = "Days",
-       y = "",
-       title = "Studies design",
-       shape = "Disease or vaccination",
-       size = "Samples",
-       fill = "Type") +
-  ggforce::facet_col(~gse_id, scales = "free_y", space = "free")
-
-demographics_plot_days_samples_doses + demographics_samples_bar +
-  plot_layout(guides = "collect", 
-              axes = "collect")
+demographics_plot_days_samples_doses %>% 
+  ggsave(filename = here("Figures", "Demographics_studies_design.png"),
+         width = 6,
+         height = 6)
 
 
 ```
