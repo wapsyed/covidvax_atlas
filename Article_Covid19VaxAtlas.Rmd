@@ -1782,7 +1782,7 @@ demographics_time
 
 
 
-### 3.1.7. Plot regimen
+### 3.1.7. Studies designs
 
 ```{r fig.height=5, fig.width=6}
 
@@ -1817,7 +1817,7 @@ demographics_plot_days_samples_doses = demographics_days_samples_doses %>%
       fill = dose_f,
       size = samples,
       group = dose_f) +
-  geom_point(position = position_dodge(width = 0.5),
+  geom_point(position = position_dodge(width = 0.8),
              pch = 21,
              # size = 3, 
              color = "black") +
