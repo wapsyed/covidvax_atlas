@@ -1,56 +1,56 @@
-geo_sample,subject_id,age,sex,disease_vac,timepoint_day,prior_infection,infection,severity,variant,vaccine,study,dose
-GSM6066098,Omicron_1_1st,50,Male,H-BNT-I,0,no,yes,NA,omicron,BNT,GSE201530,2
-GSM6066107,Omicron_10_1st,27,Female,H-BNT-I,0,no,yes,NA,omicron,BNT,GSE201530,2
-GSM6066108,Omicron_11_1st,80,Female,H-BNT-I,0,no,yes,NA,omicron,BNT,GSE201530,2
-GSM6066109,Omicron_12_1st,38,Female,H-BNT-I,3,no,yes,NA,omicron,BNT,GSE201530,2
-GSM6066111,Omicron_14_1st,29,Female,H-BNT-I,2,no,yes,NA,omicron,BNT,GSE201530,2
-GSM6066112,Omicron_15_1st,55,Female,H-BNT-I,3,no,yes,NA,omicron,BNT,GSE201530,2
-GSM6066113,Omicron_16_1st,26,Male,H-BNT-I,2,no,yes,NA,omicron,BNT,GSE201530,2
-GSM6066115,Omicron_18_1st,23,Female,H-BNT-I,2,no,yes,NA,omicron,BNT,GSE201530,2
-GSM6066116,Omicron_19_1st,20,Female,H-BNT-I,2,no,yes,NA,omicron,BNT,GSE201530,2
-GSM6066099,Omicron_2_1st,36,Male,H-BNT-I,0,no,yes,NA,omicron,BNT,GSE201530,2
-GSM6066117,Omicron_20_1st,82,Male,H-BNT-I,1,no,yes,NA,omicron,BNT,GSE201530,2
-GSM6066118,Omicron_24_1st,51,Female,H-BNT-I,2,no,yes,NA,omicron,BNT,GSE201530,0
-GSM6066119,Omicron_25_1st,54,Male,H-BNT-I,2,no,yes,NA,omicron,BNT,GSE201530,0
-GSM6066120,Omicron_26_1st,83,Female,H-BNT-I,0,no,yes,NA,omicron,BNT,GSE201530,0
-GSM6066121,Omicron_27_1st,32,Female,H-BNT-I,2,no,yes,NA,omicron,BNT,GSE201530,0
-GSM6066122,Omicron_28_1st,36,Male,H-BNT-I,3,no,yes,NA,omicron,BNT,GSE201530,0
-GSM6066123,Omicron_29_1st,30,Female,H-BNT-I,4,no,yes,NA,omicron,BNT,GSE201530,0
-GSM6066100,Omicron_3_1st,30,Female,H-BNT-I,0,no,yes,NA,omicron,BNT,GSE201530,2
-GSM6066124,Omicron_30_1st,28,Female,H-BNT-I,1,no,yes,NA,omicron,BNT,GSE201530,0
-GSM6066125,Omicron_31_1st,29,Male,H-BNT-I,1,no,yes,NA,omicron,BNT,GSE201530,0
-GSM6066126,Omicron_33_1st,61,Male,H-BNT-I,2,no,yes,NA,omicron,BNT,GSE201530,0
-GSM6066127,Omicron_34_1st,59,Female,H-BNT-I,0,no,yes,NA,omicron,BNT,GSE201530,0
-GSM6066130,Omicron_38_1st,62,Female,H-BNT-I,4,no,yes,NA,omicron,BNT,GSE201530,0
-GSM6066101,Omicron_4_1st,17,Female,H-BNT-I,0,no,yes,NA,omicron,BNT,GSE201530,2
-GSM6066133,Omicron_48_1st,32,Female,H-BNT-I,1,no,yes,NA,omicron,BNT,GSE201530,0
-GSM6066134,Omicron_49_1st,35,Female,H-BNT-I,0,no,yes,NA,omicron,BNT,GSE201530,0
-GSM6066102,Omicron_5_1st,20,Male,H-BNT-I,0,no,yes,NA,omicron,BNT,GSE201530,2
-GSM6066135,Omicron_50_1st,38,Female,H-BNT-I,2,no,yes,NA,omicron,BNT,GSE201530,0
-GSM6066138,Omicron_53_1st,40,Female,H-BNT-I,2,no,yes,NA,omicron,BNT,GSE201530,0
-GSM6066139,Omicron_55_1st,61,Female,H-BNT-I,2,no,yes,NA,omicron,BNT,GSE201530,0
-GSM6066103,Omicron_6_1st,57,Male,H-BNT-I,0,no,yes,NA,omicron,BNT,GSE201530,2
-GSM6066140,Omicron_65_1st,42,Female,H-BNT-I,1,no,yes,NA,omicron,BNT,GSE201530,2
-GSM6066141,Omicron_66_1st,39,Female,H-BNT-I,0,no,yes,NA,omicron,BNT,GSE201530,0
-GSM6066142,Omicron_67_1st,39,Female,H-BNT-I,3,no,yes,NA,omicron,BNT,GSE201530,0
-GSM6066143,Omicron_68_1st,40,Female,H-BNT-I,3,no,yes,NA,omicron,BNT,GSE201530,0
-GSM6066104,Omicron_7_1st,30,Male,H-BNT-I,0,no,yes,NA,omicron,BNT,GSE201530,2
-GSM6066105,Omicron_8_1st,21,Female,H-BNT-I,2,no,yes,NA,omicron,BNT,GSE201530,2
-GSM6066106,Omicron_9_1st,23,Male,H-BNT-I,3,no,yes,NA,omicron,BNT,GSE201530,2
-GSM6066114,Omicron_17_1st,83,Male,H-I,1,no,yes,NA,omicron,Infection,GSE201530,0
-GSM6066110,Omicron_13_1st,39,Male,H-I-I,2,yes,yes,NA,omicron,Infection,GSE201530,0
-GSM6066137,Omicron_52_1st,24,Female,I-BNT-I,5,yes,yes,NA,omicron,BNT,GSE201530,2
-GSM6066144,Omicron_70_1st,28,Male,I-BNT-I,2,yes,yes,NA,omicron,BNT,GSE201530,0
-GSM6066128,Omicron_35_1st,54,Female,I-I,5,yes,yes,NA,omicron,Infection,GSE201530,0
-GSM6066129,Omicron_37_1st,63,Male,I-I,5,yes,yes,NA,omicron,Infection,GSE201530,0
-GSM6066131,Omicron_42_1st,26,Male,I-I,3,yes,yes,NA,omicron,Infection,GSE201530,0
-GSM6066132,Omicron_43_1st,24,Female,I-I,0,yes,yes,NA,omicron,Infection,GSE201530,0
-GSM6066136,Omicron_51_1st,37,Female,I-I,1,yes,yes,NA,omicron,Infection,GSE201530,0
-GSM6066090,Naive_17_Day0,58,Male,H,0,no,no,NA,none,naive,GSE201530,0
-GSM6066091,Naive_18_Day0,56,Female,H,0,no,no,NA,none,naive,GSE201530,0
-GSM6066092,Naive_24_Day0,37,Female,H,0,no,no,NA,none,naive,GSE201530,0
-GSM6066093,Naive_26_Day0,19,Female,H,0,no,no,NA,none,naive,GSE201530,0
-GSM6066094,Naive_27_Day0,31,Female,H,0,no,no,NA,none,naive,GSE201530,0
-GSM6066095,Naive_28_Day0,36,Male,H,0,no,no,NA,none,naive,GSE201530,0
-GSM6066096,Naive_29_Day0,21,Female,H,0,no,no,NA,none,naive,GSE201530,0
-GSM6066097,Naive_30_Day0,23,Female,H,0,no,no,NA,none,naive,GSE201530,0
+"","sample","subject_id","age","sex","disease_state","day","group","variant","condition"
+"GSM6066090","GSM6066090","Naive_17_Day0","58","Male","Healthy control",0,"Healthy control","None","H (D0)"
+"GSM6066091","GSM6066091","Naive_18_Day0","56","Female","Healthy control",0,"Healthy control","None","H (D0)"
+"GSM6066092","GSM6066092","Naive_24_Day0","37","Female","Healthy control",0,"Healthy control","None","H (D0)"
+"GSM6066093","GSM6066093","Naive_26_Day0","19","Female","Healthy control",0,"Healthy control","None","H (D0)"
+"GSM6066094","GSM6066094","Naive_27_Day0","31","Female","Healthy control",0,"Healthy control","None","H (D0)"
+"GSM6066095","GSM6066095","Naive_28_Day0","36","Male","Healthy control",0,"Healthy control","None","H (D0)"
+"GSM6066096","GSM6066096","Naive_29_Day0","21","Female","Healthy control",0,"Healthy control","None","H (D0)"
+"GSM6066097","GSM6066097","Naive_30_Day0","23","Female","Healthy control",0,"Healthy control","None","H (D0)"
+"GSM6066098","GSM6066098","Omicron_1_1st","50","Male","COVID-19_Omicron",0,"Vaccination, No prior infection","BA.1","BNT-I (D0)"
+"GSM6066099","GSM6066099","Omicron_2_1st","36","Male","COVID-19_Omicron",0,"Vaccination, No prior infection","BA.1","BNT-I (D0)"
+"GSM6066100","GSM6066100","Omicron_3_1st","30","Female","COVID-19_Omicron",0,"Vaccination, No prior infection","BA.1","BNT-I (D0)"
+"GSM6066101","GSM6066101","Omicron_4_1st","17","Female","COVID-19_Omicron",0,"Vaccination, No prior infection","BA.1","BNT-I (D0)"
+"GSM6066102","GSM6066102","Omicron_5_1st","20","Male","COVID-19_Omicron",0,"Vaccination, No prior infection","BA.1","BNT-I (D0)"
+"GSM6066103","GSM6066103","Omicron_6_1st","57","Male","COVID-19_Omicron",0,"Vaccination, No prior infection","BA.1","BNT-I (D0)"
+"GSM6066104","GSM6066104","Omicron_7_1st","30","Male","COVID-19_Omicron",0,"Vaccination, No prior infection","BA.1","BNT-I (D0)"
+"GSM6066105","GSM6066105","Omicron_8_1st","21","Female","COVID-19_Omicron",2,"Vaccination, No prior infection","BA.1","BNT-I (D2)"
+"GSM6066106","GSM6066106","Omicron_9_1st","23","Male","COVID-19_Omicron",3,"Vaccination, No prior infection","BA.1","BNT-I (D3)"
+"GSM6066107","GSM6066107","Omicron_10_1st","27","Female","COVID-19_Omicron",0,"Vaccination, No prior infection","BA.1","BNT-I (D0)"
+"GSM6066108","GSM6066108","Omicron_11_1st","80","Female","COVID-19_Omicron",0,"Vaccination, No prior infection","BA.1","BNT-I (D0)"
+"GSM6066109","GSM6066109","Omicron_12_1st","38","Female","COVID-19_Omicron",3,"Vaccination, No prior infection","BA.1","BNT-I (D3)"
+"GSM6066110","GSM6066110","Omicron_13_1st","39","Male","COVID-19_Omicron",2,"No vaccination, Prior infection","BA.1","I-I (D2)"
+"GSM6066111","GSM6066111","Omicron_14_1st","29","Female","COVID-19_Omicron",2,"Vaccination, No prior infection","BA.1","BNT-I (D2)"
+"GSM6066112","GSM6066112","Omicron_15_1st","55","Female","COVID-19_Omicron",3,"Vaccination, No prior infection","BA.1","BNT-I (D3)"
+"GSM6066113","GSM6066113","Omicron_16_1st","26","Male","COVID-19_Omicron",2,"Vaccination, No prior infection","BA.1","BNT-I (D2)"
+"GSM6066114","GSM6066114","Omicron_17_1st","83","Male","COVID-19_Omicron",1,"No vaccination, No prior infection","BA.1","I (D1)"
+"GSM6066115","GSM6066115","Omicron_18_1st","23","Female","COVID-19_Omicron",2,"Vaccination, No prior infection","BA.1","BNT-I (D2)"
+"GSM6066116","GSM6066116","Omicron_19_1st","20","Female","COVID-19_Omicron",2,"Vaccination, No prior infection","BA.1","BNT-I (D2)"
+"GSM6066117","GSM6066117","Omicron_20_1st","82","Male","COVID-19_Omicron",1,"Vaccination, No prior infection","BA.1","BNT-I (D1)"
+"GSM6066118","GSM6066118","Omicron_24_1st","51","Female","COVID-19_Omicron",2,"No vaccination, No prior infection","BA.1","I (D2)"
+"GSM6066119","GSM6066119","Omicron_25_1st","54","Male","COVID-19_Omicron",2,"No vaccination, No prior infection","BA.1","I (D2)"
+"GSM6066120","GSM6066120","Omicron_26_1st","83","Female","COVID-19_Omicron",0,"No vaccination, No prior infection","BA.1","I (D0)"
+"GSM6066121","GSM6066121","Omicron_27_1st","32","Female","COVID-19_Omicron",2,"No vaccination, No prior infection","BA.1","I (D2)"
+"GSM6066122","GSM6066122","Omicron_28_1st","36","Male","COVID-19_Omicron",3,"No vaccination, No prior infection","BA.1","I (D3)"
+"GSM6066123","GSM6066123","Omicron_29_1st","30","Female","COVID-19_Omicron",4,"No vaccination, No prior infection","BA.1","I (D4)"
+"GSM6066124","GSM6066124","Omicron_30_1st","28","Female","COVID-19_Omicron",1,"No vaccination, No prior infection","BA.1","I (D1)"
+"GSM6066125","GSM6066125","Omicron_31_1st","29","Male","COVID-19_Omicron",1,"No vaccination, No prior infection","BA.1","I (D1)"
+"GSM6066126","GSM6066126","Omicron_33_1st","61","Male","COVID-19_Omicron",2,"No vaccination, No prior infection","BA.1","I (D2)"
+"GSM6066127","GSM6066127","Omicron_34_1st","59","Female","COVID-19_Omicron",0,"No vaccination, No prior infection","BA.1","I (D0)"
+"GSM6066128","GSM6066128","Omicron_35_1st","54","Female","COVID-19_Omicron",5,"No vaccination, Prior infection","BA.1","I-I (D5)"
+"GSM6066129","GSM6066129","Omicron_37_1st","63","Male","COVID-19_Omicron",5,"No vaccination, Prior infection","BA.1","I-I (D5)"
+"GSM6066130","GSM6066130","Omicron_38_1st","62","Female","COVID-19_Omicron",4,"No vaccination, No prior infection","BA.1","I (D4)"
+"GSM6066131","GSM6066131","Omicron_42_1st","26","Male","COVID-19_Omicron",3,"No vaccination, Prior infection","BA.1","I-I (D3)"
+"GSM6066132","GSM6066132","Omicron_43_1st","24","Female","COVID-19_Omicron",0,"No vaccination, Prior infection","BA.1","I-I (D0)"
+"GSM6066133","GSM6066133","Omicron_48_1st","32","Female","COVID-19_Omicron",1,"No vaccination, No prior infection","BA.1","I (D1)"
+"GSM6066134","GSM6066134","Omicron_49_1st","35","Female","COVID-19_Omicron",0,"No vaccination, No prior infection","BA.1","I (D0)"
+"GSM6066135","GSM6066135","Omicron_50_1st","38","Female","COVID-19_Omicron",2,"No vaccination, No prior infection","BA.1","I (D2)"
+"GSM6066136","GSM6066136","Omicron_51_1st","37","Female","COVID-19_Omicron",1,"No vaccination, Prior infection","BA.1","I-I (D1)"
+"GSM6066137","GSM6066137","Omicron_52_1st","24","Female","COVID-19_Omicron",5,"Vaccination, Prior infection","BA.1","I-BNT (D5)"
+"GSM6066138","GSM6066138","Omicron_53_1st","40","Female","COVID-19_Omicron",2,"No vaccination, No prior infection","BA.1","I (D2)"
+"GSM6066139","GSM6066139","Omicron_55_1st","61","Female","COVID-19_Omicron",2,"No vaccination, No prior infection","BA.1","I (D2)"
+"GSM6066140","GSM6066140","Omicron_65_1st","42","Female","COVID-19_Omicron",1,"Vaccination, No prior infection","BA.1","BNT-I (D1)"
+"GSM6066141","GSM6066141","Omicron_66_1st","39","Female","COVID-19_Omicron",0,"No vaccination, No prior infection","BA.1","I (D0)"
+"GSM6066142","GSM6066142","Omicron_67_1st","39","Female","COVID-19_Omicron",3,"No vaccination, No prior infection","BA.1","I (D3)"
+"GSM6066143","GSM6066143","Omicron_68_1st","40","Female","COVID-19_Omicron",3,"No vaccination, No prior infection","BA.1","I (D3)"
+"GSM6066144","GSM6066144","Omicron_70_1st","28","Male","COVID-19_Omicron",2,"No vaccination, Prior infection","BA.1","I-I (D2)"

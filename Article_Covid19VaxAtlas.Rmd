@@ -766,7 +766,16 @@ GSE201530_metadata = GSE201530 %>%
     variant = "omicron sublineage:ch1") %>% 
   separate(timepoint, into = c("delete", "day")) %>% 
   select(-delete) %>% 
-  mutate(variant = if_else(variant == "--", "None", variant))
+  mutate(variant = if_else(variant == "--", "None", variant),
+         day = if_else(group == "Healthy control", "0", day),
+         day = as.double(day)) %>% 
+  mutate(condition = case_when(group == "Healthy control" ~ "H",
+                               group == "Vaccination, No prior infection" ~ "BNT-I",
+                               group == "No vaccination, Prior infection" ~ "I-I",
+                               group == "No vaccination, No prior infection" ~ "I",
+                               group == "Vaccination, Prior infection" ~ "I-BNT",
+                               .default = group),
+         condition = paste0(condition, " (D", day, ")"))
 write.csv(GSE201530_metadata, file = here("raw_data", "GSE201530_metadata.csv"))
 
 # Counts matrix
@@ -1855,311 +1864,7 @@ demographics_plot_days_samples_doses %>%
 
 # 3. Differential Gene Expression Analysis
 
-## 3.1. GSE201530
-
-Metadata
-
-```{r eval=FALSE, echo=TRUE, cache = TRUE}
-#Standardize counts tables
-############### GSE201530
-# Reorder table
-gse201530_counts_ready <- counts_gse201530 %>%
-  column_to_rownames("genes") %>% 
-  t() %>%
-  as.data.frame() %>% 
-  rownames_to_column("sample") %>% 
-  arrange(sample) %>% 
-  column_to_rownames("sample") %>% 
-  t() %>% 
-  as.data.frame() %>%
-  rownames_to_column("genes") %>% 
-  filter(!grepl("_", genes)) %>% 
-  column_to_rownames("genes")
-
-saveRDS(gse201530_counts_ready, file = here("DGE analysis", "gse201530_counts_ready.rds"))
-```
-
-```{r cache = TRUE}
-gse201530_counts_ready = readRDS(here("DGE analysis", "gse201530_counts_ready.rds"))
-
-GSE201530_metadata = ann_vaccines_samples %>% 
-  filter(gse_id == "GSE201530")
-
-countData <- gse201530_counts_ready
-colData <- GSE201530_metadata %>%
-  mutate(
-    condition = as.factor(condition),
-    condition = fct_relevel(condition, "H (D0)")) %>% 
-  select(sample, everything())
-
-
-###### DESeqDataSet
-
-dds <- DESeqDataSetFromMatrix(countData = countData, 
-                              colData = colData, 
-                              design = ~ condition)
-
-keep <- rowSums(counts(dds)) >= 10
-dds <- dds[keep,]
-
-###### Execute DESeq
-
-#Wald
-dds <- DESeq(dds, )
-resultsNames(dds)
-
-###### overall DEGs
-res <- results(dds) %>% 
-  as.data.frame() %>% 
-  rownames_to_column("genes")
-
-gse201530_H_BNT_I_D1 = results(dds, name = "condition_BNT.I..D1._vs_H..D0.") %>% 
-  as.data.frame() %>% 
-  arrange(padj) %>% 
-  mutate(condition = "BNT-I (D1)")  %>% 
-  rownames_to_column("genes")
-
-gse201530_H_BNT_I_D3 = results(dds, name = "condition_BNT.I..D3._vs_H..D0.") %>%
-  as.data.frame() %>%
-  arrange(padj) %>%
-  mutate(condition = "BNT-I (D3)") %>% 
-  rownames_to_column("genes")
-
-gse201530_H_BNT_I_D4 = results(dds, name = "condition_BNT.I..D4._vs_H..D0.") %>%
-  as.data.frame() %>%
-  arrange(padj) %>%
-  mutate(condition = "BNT-I (D4)")  %>% 
-  rownames_to_column("genes")
-
-gse201530_I_BNT_I_D2 = results(dds, name = "condition_I.BNT.I..D2._vs_H..D0.") %>% 
-  as.data.frame() %>% 
-  arrange(padj) %>% 
-  mutate(condition = "I-BNT-I (D2)")  %>% 
-  rownames_to_column("genes")
-
-gse201530_I_BNT_I_D5 = results(dds, name = "condition_I.BNT.I..D5._vs_H..D0.") %>%
-  as.data.frame() %>%
-  arrange(padj) %>%
-  mutate(condition = "I-BNT-I (D5)") %>% 
-  rownames_to_column("genes")
-
-gse201530_H_I_D1 = results(dds, name = "condition_I..D1._vs_H..D0.") %>% 
-  as.data.frame() %>% 
-  arrange(padj) %>% 
-  mutate(condition = "I (D1)")  %>% 
-  rownames_to_column("genes")
-
-gse201530_H_I_D1 = results(dds, name = "condition_I..D1._vs_H..D0.") %>% 
-  as.data.frame() %>% 
-  arrange(padj) %>% 
-  mutate(condition = "I (D1)")  %>% 
-  rownames_to_column("genes")
-
-gse201530_I_I_D0 = results(dds, name = "condition_I.I..D0._vs_H..D0.") %>% 
-  as.data.frame() %>% 
-  arrange(padj) %>% 
-  mutate(condition = "I-I (D0)")  %>% 
-  rownames_to_column("genes")
-
-gse201530_I_I_D1 = results(dds, name = "condition_I.I..D1._vs_H..D0.") %>% 
-  as.data.frame() %>% 
-  arrange(padj) %>% 
-  mutate(condition = "I-I (D1)")  %>% 
-  rownames_to_column("genes")
-
-gse201530_I_I_D2 = results(dds, name = "condition_I.I..D2._vs_H..D0.") %>% 
-  as.data.frame() %>% 
-  arrange(padj) %>% 
-  mutate(condition = "I-I (D2)")  %>% 
-  rownames_to_column("genes")
-
-gse201530_I_I_D3 = results(dds, name = "condition_I.I..D3._vs_H..D0.") %>% 
-  as.data.frame() %>% 
-  arrange(padj) %>% 
-  mutate(condition = "I-I (D3)")  %>% 
-  rownames_to_column("genes")
-
-gse201530_I_I_D5 = results(dds, name = "condition_I.I..D5._vs_H..D0.") %>% 
-  as.data.frame() %>% 
-  arrange(padj) %>% 
-  mutate(condition = "I-I (D5)")  %>% 
-  rownames_to_column("genes")
-
-
-#Bind all
-gse201530_DEGs = bind_rows(gse201530_H_BNT_I_D1, 
-          gse201530_H_BNT_I_D3,
-          gse201530_H_BNT_I_D4,
-          gse201530_H_I_D1,
-          gse201530_I_BNT_I_D2,
-          gse201530_I_BNT_I_D5,
-          gse201530_I_I_D0,
-          gse201530_I_I_D1,
-          gse201530_I_I_D2,
-          gse201530_I_I_D3,
-          gse201530_I_I_D5)
-
-write_csv(gse201530_DEGs, file = here("DGE analysis", "gse201530_DEGs.csv"))
-
-```
-
-## 3.2. GSE189039
-
-```{r eval=FALSE, echo=TRUE, cache = TRUE}
-############### GSE189039
-# Reorder table
-gse189039_counts_ready <- counts_GSE189039 %>%
-  column_to_rownames("genes") %>% 
-  t() %>%
-  as.data.frame() %>% 
-  rownames_to_column("sample") %>% 
-  arrange(sample) %>% 
-  column_to_rownames("sample") %>% 
-  t() %>% 
-  as.data.frame() %>%
-  rownames_to_column("genes") %>% 
-  filter(!grepl("_", genes)) %>% 
-  column_to_rownames("genes")
-
-saveRDS(gse189039_counts_ready, file = "gse189039_counts_ready.rds")
-```
-
-
-```{r eval=FALSE, echo=TRUE, cache = TRUE}
-#DESeq2
-gse189039_counts_ready = readRDS(here("DGE analysis", "gse189039_counts_ready.rds"))
-GSE189039_metadata = ann_vaccines_samples %>% 
-  filter(gse_id == "GSE189039")
-  
-countData <- gse189039_counts_ready
-colData = GSE189039_metadata %>% 
-  mutate(condition = as.factor(condition),
-         condition = fct_relevel(condition, "BNT (V1, D0)"))
-
-
-###### Crie o objeto DESeqDataSet ######
-dds <- DESeqDataSetFromMatrix(countData = countData, 
-                              colData = colData, 
-                              design = ~ condition)
-
-keep <- rowSums(counts(dds)) >= 10
-dds <- dds[keep,]
-dds <- DESeq(dds)
-
-resultsNames(dds)
-
-```
-
-
-```{r }
-
-gse189039_BNT_V1_D11 = results(dds, name = "condition_BNT..V1..D10._vs_BNT..V1..D0.") %>% 
-  as.data.frame() %>% 
-  arrange(padj) %>% 
-  mutate(condition = "BNT (V1, D11)")  %>% 
-  rownames_to_column("genes")
-
-gse189039_BNT_V1_D7 = results(dds, name = "condition_BNT..V1..D7._vs_BNT..V1..D0.") %>% 
-  as.data.frame() %>% 
-  arrange(padj) %>% 
-  mutate(condition = "BNT (V1, D7)")  %>% 
-  rownames_to_column("genes")
-
-gse189039_BNT_I_D10_mild = results(dds, name = "condition_BNT.I..D10..mild._vs_BNT..V1..D0.") %>% 
-  as.data.frame() %>% 
-  arrange(padj) %>% 
-  mutate(condition = "BNT-I (D10, mild)")  %>% 
-  rownames_to_column("genes")
-
-gse189039_BNT_I_D10_severe = results(dds, name = "condition_BNT.I..D10..severe._vs_BNT..V1..D0.") %>% 
-  as.data.frame() %>% 
-  arrange(padj) %>% 
-  mutate(condition = "BNT-I (D10, severe)")  %>% 
-  rownames_to_column("genes")
-
-gse189039_BNT_I_D26_mild = results(dds, name = "condition_BNT.I..D26..mild._vs_BNT..V1..D0.") %>% 
-  as.data.frame() %>% 
-  arrange(padj) %>% 
-  mutate(condition = "BNT-I (D26, mild)")  %>% 
-  rownames_to_column("genes")
-
-gse189039_BNT_I_D26_severe = results(dds, name = "condition_BNT.I..D26..severe._vs_BNT..V1..D0.") %>% 
-  as.data.frame() %>% 
-  arrange(padj) %>% 
-  mutate(condition = "BNT-I (D26, severe)")  %>% 
-  rownames_to_column("genes")
-
-gse189039_BNT_I_D51_severe = results(dds, name = "condition_BNT.I..D51..severe._vs_BNT..V1..D0.") %>% 
-  as.data.frame() %>% 
-  arrange(padj) %>% 
-  mutate(condition = "BNT-I (D51, severe)")  %>% 
-  rownames_to_column("genes")
-
-gse189039_BNT_I_BNT_D51_severe = results(dds, name = "condition_BNT.I.BNT..D51..severe._vs_BNT..V1..D0.") %>% 
-  as.data.frame() %>% 
-  arrange(padj) %>% 
-  mutate(condition = "BNT-I-BNT (D51, severe)")  %>% 
-  rownames_to_column("genes")
-
-gse189039_I_D10_moderate = results(dds, name = "condition_I..D10..moderate._vs_BNT..V1..D0.") %>% 
-  as.data.frame() %>% 
-  arrange(padj) %>% 
-  mutate(condition = "I (D10, moderate)")  %>% 
-  rownames_to_column("genes")
-
-gse189039_I_D10_severe = results(dds, name = "condition_I..D10..severe._vs_BNT..V1..D0.") %>% 
-  as.data.frame() %>% 
-  arrange(padj) %>% 
-  mutate(condition = "I (D10, severe)")  %>% 
-  rownames_to_column("genes")
-
-gse189039_I_D26_moderate = results(dds, name = "condition_I..D26..moderate._vs_BNT..V1..D0.") %>% 
-  as.data.frame() %>% 
-  arrange(padj) %>% 
-  mutate(condition = "I (D26, moderate)")  %>% 
-  rownames_to_column("genes")
-
-gse189039_I_D26_severe = results(dds, name = "condition_I..D26..severe._vs_BNT..V1..D0.") %>% 
-  as.data.frame() %>% 
-  arrange(padj) %>% 
-  mutate(condition = "I (D26, severe)")  %>% 
-  rownames_to_column("genes")
-
-gse189039_I_D51_moderate = results(dds, name = "condition_I..D51..moderate._vs_BNT..V1..D0.") %>% 
-  as.data.frame() %>% 
-  arrange(padj) %>% 
-  mutate(condition = "I (D51, moderate)")  %>% 
-  rownames_to_column("genes")
-
-gse189039_I_D51_severe = results(dds, name = "condition_I..D51..severe._vs_BNT..V1..D0.") %>% 
-  as.data.frame() %>% 
-  arrange(padj) %>% 
-  mutate(condition = "I (D51, severe)")  %>% 
-  rownames_to_column("genes")
-
-
-gse189039_DEGs = bind_rows(
-gse189039_BNT_V1_D11,
-gse189039_BNT_V1_D7,
-gse189039_BNT_I_D10_mild,
-gse189039_BNT_I_D10_severe,
-gse189039_BNT_I_D26_mild,
-gse189039_BNT_I_D26_severe,
-gse189039_BNT_I_D51_severe,
-gse189039_BNT_I_BNT_D51_severe,
-gse189039_I_D10_moderate,
-gse189039_I_D10_severe,
-gse189039_I_D26_moderate,
-gse189039_I_D26_severe,
-gse189039_I_D51_moderate,
-gse189039_I_D51_severe
-)
-
-
-write_csv(gse189039_DEGs, here("DGE analysis", "gse189039_DEGS.csv"))
-```
-
-## 3.3. GSE206023
+## 3.1. GSE206023
 
 ```{r}
 ##Defina as variáveis
@@ -2252,7 +1957,7 @@ gse206023_DEGs %>%
 
 ```
 
-## 3.4. GSE201533
+## 3.2. GSE201533
 
 ```{r}
 ############ Matrix counts ############
@@ -2367,7 +2072,7 @@ gse201533_DEGs %>%
 
 
 
-## 3.5. GSE199750
+## 3.3. GSE199750
 
 ```{r}
 # Required files
@@ -2392,7 +2097,7 @@ colData <- gse199750_metadata %>%
 ###### DESeqDataSet objetct
 dds <- DESeqDataSetFromMatrix(countData = countData, 
                               colData = colData, 
-                              design = ~ condition)
+                              design = ~ age + sex + condition)
 
 
 ###### Pre-filtering
@@ -2400,7 +2105,7 @@ keep <- rowSums(counts(dds)) >= 10
 dds <- dds[keep,]
 
 ###### Execute DESeq2
-dds <- DESeq(dds)
+dds <- DESeq(dds, test = "LRT", reduced = ~age + sex )
 
 ###### Retrieve comparisons
 resultsNames(dds)
@@ -2444,40 +2149,43 @@ gse199750_DEGs %>%
 
 ```
 
-## 3.6. Infection: GSE189039 and GSE201530
-
-Metadata
+## 3.4. Infection: GSE189039 and GSE201530
 
 ```{r eval=FALSE, echo=TRUE, cache = TRUE}
 #Standardize counts tables
 ############### GSE201530
 # Reorder table
-ann_vaccines_conditions
 infection_counts_ready = gse189039_counts_ready %>% 
   bind_cols(gse201530_counts_ready)
 
-
 infection_metadata = ann_vaccines_samples %>% 
-  select(sample, condition, age, sex, gse_id, country, enroll_time, sequencer) %>% 
-  right_join(colnames(infection_counts_ready) %>% as.data.frame() %>% rename(sample = "."))
+  select(sample, condition, age, sex, gse_id, variant, country, enroll_time, sequencer) %>% 
+  left_join(colnames(infection_counts_ready) %>% as.data.frame() %>% rename(sample = ".")) %>% 
   filter(sample %in% colnames(infection_counts_ready)) %>% 
   mutate(condition = if_else(condition == "BNT (V1, D0)", "H (D0)", condition),
          condition = as.factor(condition),
-    condition = fct_relevel(condition, "H (D0)")) %>% 
-  select(sample, everything())
+    condition = fct_relevel(condition, "H (D0)"),
+    country = as.factor(country),
+    variant = fct_relevel(variant, "None", "Beta", "Omicron"),
+    enroll_time = as.factor(enroll_time),
+    sequencer = as.factor(sequencer),
+    sex = as.factor(sex),
+    age_f = as.factor(age),
+    age_f = fct_reorder(age_f, age),
+    gse_id = as.factor(gse_id)) %>% 
+  select(sample, condition, age_f, age, sex, variant)
+
+infection_counts_ready = infection_counts_ready %>% 
+  select(infection_metadata$sample)
 
 countData <- infection_counts_ready
-colData <- infection_metadata %>%
-  
-```
+colData <- infection_metadata 
 
-
-```{r eval=FALSE, echo=TRUE, cache = TRUE}
 ###### DESeqDataSet
 
 dds <- DESeqDataSetFromMatrix(countData = countData, 
                               colData = colData, 
-                              design = ~ condition)
+                              design = ~ age + sex + condition)
 
 keep <- rowSums(counts(dds)) >= 10
 dds <- dds[keep,]
@@ -2485,12 +2193,20 @@ dds <- dds[keep,]
 ###### Execute DESeq
 
 #Wald
-dds <- DESeq(dds, )
-resultsNames(dds)
+dds <- DESeq(dds, test = "LRT", reduced = ~ age + sex)
+results_names = resultsNames(dds) %>% 
+  as.data.frame()
 
 ###### overall DEGs
 res <- results(dds) %>% 
   as.data.frame() %>% 
+  rownames_to_column("genes")
+
+#GSE201530
+gse201530_H_BNT_I_D0 = results(dds, name = "condition_BNT.I..D0._vs_H..D0.") %>% 
+  as.data.frame() %>% 
+  arrange(padj) %>% 
+  mutate(condition = "BNT-I (D0)")  %>% 
   rownames_to_column("genes")
 
 gse201530_H_BNT_I_D1 = results(dds, name = "condition_BNT.I..D1._vs_H..D0.") %>% 
@@ -2499,28 +2215,29 @@ gse201530_H_BNT_I_D1 = results(dds, name = "condition_BNT.I..D1._vs_H..D0.") %>%
   mutate(condition = "BNT-I (D1)")  %>% 
   rownames_to_column("genes")
 
+gse201530_H_BNT_I_D2 = results(dds, name = "condition_BNT.I..D2._vs_H..D0.") %>%
+  as.data.frame() %>%
+  arrange(padj) %>%
+  mutate(condition = "BNT-I (D2)") %>% 
+  rownames_to_column("genes")
+
 gse201530_H_BNT_I_D3 = results(dds, name = "condition_BNT.I..D3._vs_H..D0.") %>%
   as.data.frame() %>%
   arrange(padj) %>%
   mutate(condition = "BNT-I (D3)") %>% 
   rownames_to_column("genes")
 
-gse201530_H_BNT_I_D4 = results(dds, name = "condition_BNT.I..D4._vs_H..D0.") %>%
+gse201530_I_BNT_D5 = results(dds, name = "condition_I.BNT..D5._vs_H..D0.") %>%
   as.data.frame() %>%
   arrange(padj) %>%
-  mutate(condition = "BNT-I (D4)")  %>% 
+  mutate(condition = "I-BNT (D5)") %>% 
   rownames_to_column("genes")
 
-gse201530_I_BNT_I_D2 = results(dds, name = "condition_I.BNT.I..D2._vs_H..D0.") %>% 
+
+gse201530_H_I_D0 = results(dds, name = "condition_I..D0._vs_H..D0.") %>% 
   as.data.frame() %>% 
   arrange(padj) %>% 
-  mutate(condition = "I-BNT-I (D2)")  %>% 
-  rownames_to_column("genes")
-
-gse201530_I_BNT_I_D5 = results(dds, name = "condition_I.BNT.I..D5._vs_H..D0.") %>%
-  as.data.frame() %>%
-  arrange(padj) %>%
-  mutate(condition = "I-BNT-I (D5)") %>% 
+  mutate(condition = "I (D0)")  %>% 
   rownames_to_column("genes")
 
 gse201530_H_I_D1 = results(dds, name = "condition_I..D1._vs_H..D0.") %>% 
@@ -2529,10 +2246,22 @@ gse201530_H_I_D1 = results(dds, name = "condition_I..D1._vs_H..D0.") %>%
   mutate(condition = "I (D1)")  %>% 
   rownames_to_column("genes")
 
-gse201530_H_I_D1 = results(dds, name = "condition_I..D1._vs_H..D0.") %>% 
+gse201530_H_I_D2 = results(dds, name = "condition_I..D2._vs_H..D0.") %>% 
   as.data.frame() %>% 
   arrange(padj) %>% 
-  mutate(condition = "I (D1)")  %>% 
+  mutate(condition = "I (D2)")  %>% 
+  rownames_to_column("genes")
+
+gse201530_H_I_D3 = results(dds, name = "condition_I..D3._vs_H..D0.") %>% 
+  as.data.frame() %>% 
+  arrange(padj) %>% 
+  mutate(condition = "I (D3)")  %>% 
+  rownames_to_column("genes")
+
+gse201530_H_I_D4 = results(dds, name = "condition_I..D4._vs_H..D0.") %>% 
+  as.data.frame() %>% 
+  arrange(padj) %>% 
+  mutate(condition = "I (D4)")  %>% 
   rownames_to_column("genes")
 
 gse201530_I_I_D0 = results(dds, name = "condition_I.I..D0._vs_H..D0.") %>% 
@@ -2565,191 +2294,132 @@ gse201530_I_I_D5 = results(dds, name = "condition_I.I..D5._vs_H..D0.") %>%
   mutate(condition = "I-I (D5)")  %>% 
   rownames_to_column("genes")
 
-
-#Bind all
-gse201530_DEGs = bind_rows(gse201530_H_BNT_I_D1, 
-          gse201530_H_BNT_I_D3,
-          gse201530_H_BNT_I_D4,
-          gse201530_H_I_D1,
-          gse201530_I_BNT_I_D2,
-          gse201530_I_BNT_I_D5,
-          gse201530_I_I_D0,
-          gse201530_I_I_D1,
-          gse201530_I_I_D2,
-          gse201530_I_I_D3,
-          gse201530_I_I_D5)
-
-write_csv(gse201530_DEGs, file = here("DGE analysis", "gse201530_DEGs.csv"))
-
-```
-
-## 3.2. GSE189039
-
-```{r eval=FALSE, echo=TRUE, cache = TRUE}
-############### GSE189039
-# Reorder table
-gse189039_counts_ready <- counts_GSE189039 %>%
-  column_to_rownames("genes") %>% 
-  t() %>%
-  as.data.frame() %>% 
-  rownames_to_column("sample") %>% 
-  arrange(sample) %>% 
-  column_to_rownames("sample") %>% 
-  t() %>% 
-  as.data.frame() %>%
-  rownames_to_column("genes") %>% 
-  filter(!grepl("_", genes)) %>% 
-  column_to_rownames("genes")
-
-saveRDS(gse189039_counts_ready, file = "gse189039_counts_ready.rds")
-```
-
-
-```{r eval=FALSE, echo=TRUE, cache = TRUE}
-#DESeq2
-gse189039_counts_ready = readRDS(here("DGE analysis", "gse189039_counts_ready.rds"))
-GSE189039_metadata = ann_vaccines_samples %>% 
-  filter(gse_id == "GSE189039")
-  
-countData <- gse189039_counts_ready
-colData = GSE189039_metadata %>% 
-  mutate(condition = as.factor(condition),
-         condition = fct_relevel(condition, "BNT (V1, D0)"))
-
-
-###### Crie o objeto DESeqDataSet ######
-dds <- DESeqDataSetFromMatrix(countData = countData, 
-                              colData = colData, 
-                              design = ~ condition)
-
-keep <- rowSums(counts(dds)) >= 10
-dds <- dds[keep,]
-dds <- DESeq(dds)
-
-resultsNames(dds)
-
-```
-
-
-```{r }
-
-gse189039_BNT_V1_D11 = results(dds, name = "condition_BNT..V1..D10._vs_BNT..V1..D0.") %>% 
-  as.data.frame() %>% 
-  arrange(padj) %>% 
-  mutate(condition = "BNT (V1, D11)")  %>% 
-  rownames_to_column("genes")
-
-gse189039_BNT_V1_D7 = results(dds, name = "condition_BNT..V1..D7._vs_BNT..V1..D0.") %>% 
-  as.data.frame() %>% 
-  arrange(padj) %>% 
-  mutate(condition = "BNT (V1, D7)")  %>% 
-  rownames_to_column("genes")
-
-gse189039_BNT_I_D10_mild = results(dds, name = "condition_BNT.I..D10..mild._vs_BNT..V1..D0.") %>% 
+#GSE189039
+gse189039_BNT_I_D10_mild = results(dds, name = "condition_BNT.I..D10..mild._vs_H..D0.") %>% 
   as.data.frame() %>% 
   arrange(padj) %>% 
   mutate(condition = "BNT-I (D10, mild)")  %>% 
   rownames_to_column("genes")
 
-gse189039_BNT_I_D10_severe = results(dds, name = "condition_BNT.I..D10..severe._vs_BNT..V1..D0.") %>% 
+gse189039_BNT_I_D10_severe = results(dds, name = "condition_BNT.I..D10..severe._vs_H..D0.") %>% 
   as.data.frame() %>% 
   arrange(padj) %>% 
   mutate(condition = "BNT-I (D10, severe)")  %>% 
   rownames_to_column("genes")
 
-gse189039_BNT_I_D26_mild = results(dds, name = "condition_BNT.I..D26..mild._vs_BNT..V1..D0.") %>% 
+gse189039_BNT_I_D26_mild = results(dds, name = "condition_BNT.I..D26..mild._vs_H..D0.") %>% 
   as.data.frame() %>% 
   arrange(padj) %>% 
   mutate(condition = "BNT-I (D26, mild)")  %>% 
   rownames_to_column("genes")
 
-gse189039_BNT_I_D26_severe = results(dds, name = "condition_BNT.I..D26..severe._vs_BNT..V1..D0.") %>% 
+gse189039_BNT_I_D26_severe = results(dds, name = "condition_BNT.I..D26..severe._vs_H..D0.") %>% 
   as.data.frame() %>% 
   arrange(padj) %>% 
   mutate(condition = "BNT-I (D26, severe)")  %>% 
   rownames_to_column("genes")
 
-gse189039_BNT_I_D51_severe = results(dds, name = "condition_BNT.I..D51..severe._vs_BNT..V1..D0.") %>% 
+gse189039_BNT_I_D51_severe = results(dds, name = "condition_BNT.I..D51..severe._vs_H..D0.") %>% 
   as.data.frame() %>% 
   arrange(padj) %>% 
   mutate(condition = "BNT-I (D51, severe)")  %>% 
   rownames_to_column("genes")
 
-gse189039_BNT_I_BNT_D51_severe = results(dds, name = "condition_BNT.I.BNT..D51..severe._vs_BNT..V1..D0.") %>% 
+gse189039_BNT_I_BNT_D51_mild = results(dds, name = "condition_BNT.I.BNT..D51..mild._vs_H..D0.") %>% 
+  as.data.frame() %>% 
+  arrange(padj) %>% 
+  mutate(condition = "BNT-I-BNT (D51, mild)")  %>% 
+  rownames_to_column("genes")
+
+gse189039_BNT_I_BNT_D51_severe = results(dds, name = "condition_BNT.I.BNT..D51..severe._vs_H..D0.") %>% 
   as.data.frame() %>% 
   arrange(padj) %>% 
   mutate(condition = "BNT-I-BNT (D51, severe)")  %>% 
   rownames_to_column("genes")
 
-gse189039_I_D10_moderate = results(dds, name = "condition_I..D10..moderate._vs_BNT..V1..D0.") %>% 
+gse189039_I_D10_moderate = results(dds, name = "condition_I..D10..moderate._vs_H..D0.") %>% 
   as.data.frame() %>% 
   arrange(padj) %>% 
   mutate(condition = "I (D10, moderate)")  %>% 
   rownames_to_column("genes")
 
-gse189039_I_D10_severe = results(dds, name = "condition_I..D10..severe._vs_BNT..V1..D0.") %>% 
+gse189039_I_D10_severe = results(dds, name = "condition_I..D10..severe._vs_H..D0.") %>% 
   as.data.frame() %>% 
   arrange(padj) %>% 
   mutate(condition = "I (D10, severe)")  %>% 
   rownames_to_column("genes")
 
-gse189039_I_D26_moderate = results(dds, name = "condition_I..D26..moderate._vs_BNT..V1..D0.") %>% 
+gse189039_I_D26_moderate = results(dds, name = "condition_I..D26..moderate._vs_H..D0.") %>% 
   as.data.frame() %>% 
   arrange(padj) %>% 
   mutate(condition = "I (D26, moderate)")  %>% 
   rownames_to_column("genes")
 
-gse189039_I_D26_severe = results(dds, name = "condition_I..D26..severe._vs_BNT..V1..D0.") %>% 
+gse189039_I_D26_severe = results(dds, name = "condition_I..D26..severe._vs_H..D0.") %>% 
   as.data.frame() %>% 
   arrange(padj) %>% 
   mutate(condition = "I (D26, severe)")  %>% 
   rownames_to_column("genes")
 
-gse189039_I_D51_moderate = results(dds, name = "condition_I..D51..moderate._vs_BNT..V1..D0.") %>% 
+gse189039_I_D51_moderate = results(dds, name = "condition_I..D51..moderate._vs_H..D0.") %>% 
   as.data.frame() %>% 
   arrange(padj) %>% 
   mutate(condition = "I (D51, moderate)")  %>% 
   rownames_to_column("genes")
 
-gse189039_I_D51_severe = results(dds, name = "condition_I..D51..severe._vs_BNT..V1..D0.") %>% 
+gse189039_I_D51_severe = results(dds, name = "condition_I..D51..severe._vs_H..D0.") %>% 
   as.data.frame() %>% 
   arrange(padj) %>% 
   mutate(condition = "I (D51, severe)")  %>% 
   rownames_to_column("genes")
 
 
-gse189039_DEGs = bind_rows(
-gse189039_BNT_V1_D11,
-gse189039_BNT_V1_D7,
-gse189039_BNT_I_D10_mild,
-gse189039_BNT_I_D10_severe,
-gse189039_BNT_I_D26_mild,
-gse189039_BNT_I_D26_severe,
-gse189039_BNT_I_D51_severe,
-gse189039_BNT_I_BNT_D51_severe,
-gse189039_I_D10_moderate,
-gse189039_I_D10_severe,
-gse189039_I_D26_moderate,
-gse189039_I_D26_severe,
-gse189039_I_D51_moderate,
-gse189039_I_D51_severe
+infection_DEGs = bind_rows(
+  gse201530_H_BNT_I_D0,
+  gse201530_H_BNT_I_D1,
+  gse201530_H_BNT_I_D2,
+  gse201530_H_BNT_I_D3,
+  gse201530_I_BNT_D5,
+  gse201530_H_I_D0,
+  gse201530_H_I_D1,
+  gse201530_H_I_D2,
+  gse201530_H_I_D3,
+  gse201530_H_I_D4,
+  gse201530_I_I_D0,
+  gse201530_I_I_D1,
+  gse201530_I_I_D2,
+  gse201530_I_I_D3,
+  gse201530_I_I_D5,
+  gse189039_BNT_I_D10_mild,
+  gse189039_BNT_I_D10_severe,
+  gse189039_BNT_I_D26_mild,
+  gse189039_BNT_I_D26_severe,
+  gse189039_BNT_I_D51_severe,
+  gse189039_BNT_I_BNT_D51_mild,
+  gse189039_BNT_I_BNT_D51_severe,
+  gse189039_I_D10_moderate,
+  gse189039_I_D10_severe,
+  gse189039_I_D26_moderate,
+  gse189039_I_D26_severe,
+  gse189039_I_D51_moderate,
+  gse189039_I_D51_severe
 )
 
 
-write_csv(gse189039_DEGs, here("DGE analysis", "gse189039_DEGS.csv"))
+infection_DEGs
+
+
 ```
 
 
-
-## 3.6. Merge all
+## 3.5. Merge all
 
 ```{r}
 
 all_degs = bind_rows(gse199750_DEGs,
-                     gse189039_DEGs,
-                     gse201530_DEGs,
                      gse201533_DEGs,
-                     gse206023_DEGs)
+                     gse206023_DEGs,
+                     infection_DEGs)
 #Check if there is any repetition
 all_degs %>% 
 dplyr::summarise(n = dplyr::n(), .by = c(genes, condition)) |>
@@ -2762,7 +2432,7 @@ all_degs %>%
 all_degs
 ```
 
-## 3.7. Weight and adjust p values
+## 3.5. Weight and adjust p values
 
 ```{r}
 
@@ -2822,42 +2492,17 @@ By vaccination or disease
 ```{r fig.height=6, fig.width=10}
 # Plot 1
 ggplot_degs_bars_I = all_degs %>%
+    mutate(condition = fct_relevel(condition, c(ann_vaccines_conditions_ordered$condition %>% unique() %>% as.character()))) %>% 
  filter(disease_vac == "I") %>% 
  ggplot() +
-  aes(x = reorder(condition, day), fill = direction, weight = n_degs) +
+  aes(x = condition, fill = direction, weight = n_degs) +
   geom_bar(position = "dodge") +
   scale_fill_manual(
     values = c(DOWN = "#4DBBD5FF",
     NEUTRAL = "gray80",
     UP = "#d90429")) +
   theme_few() +
-  ylim(0, 1400) +
-  geom_text(aes(label = n_degs, y = n_degs), 
-            position = position_dodge(width = 0.9), 
-            angle = 90,
-            vjust = 0.5, 
-            hjust = -0.2, 
-            size = 2) +
-  theme(legend.position = "right",
-        axis.text.x = element_text(angle = 45, vjust = 1, hjust=1, size = 7),
-        axis.text.y = element_text(vjust = 0.5)) +
-  labs(x = "",
-       y = "Total",
-       fill = "",
-       title = "Vaccination")
-
-
-ggplot_degs_bars_V = all_degs %>%
- filter(disease_vac == "V") %>% 
- ggplot() +
-  aes(x = reorder(condition, day), fill = direction, weight = n_degs) +
-  geom_bar(position = "dodge") +
-  scale_fill_manual(
-    values = c(DOWN = "#4DBBD5FF",
-    NEUTRAL = "gray80",
-    UP = "#d90429")) +
-  theme_few() +
-  ylim(0, 3500) +
+  ylim(0, 12000) +
   geom_text(aes(label = n_degs, y = n_degs), 
             position = position_dodge(width = 0.9), 
             angle = 90,
@@ -2871,6 +2516,33 @@ ggplot_degs_bars_V = all_degs %>%
        y = "Total",
        fill = "",
        title = "Infection")
+
+
+ggplot_degs_bars_V = all_degs %>%
+      mutate(condition = fct_relevel(condition, c(ann_vaccines_conditions_ordered$condition %>% unique() %>% as.character()))) %>% 
+ filter(disease_vac == "V") %>% 
+ ggplot() +
+  aes(x = condition, fill = direction, weight = n_degs) +
+  geom_bar(position = "dodge") +
+  scale_fill_manual(
+    values = c(DOWN = "#4DBBD5FF",
+    NEUTRAL = "gray80",
+    UP = "#d90429")) +
+  theme_few() +
+  ylim(0, 6000) +
+  geom_text(aes(label = n_degs, y = n_degs), 
+            position = position_dodge(width = 0.9), 
+            angle = 90,
+            vjust = 0.5, 
+            hjust = -0.2, 
+            size = 2) +
+  theme(legend.position = "right",
+        axis.text.x = element_text(angle = 45, vjust = 1, hjust=1, size = 7),
+        axis.text.y = element_text(vjust = 0.5)) +
+  labs(x = "",
+       y = "Total",
+       fill = "",
+       title = "Vaccination")
 
 ggplot_degs_bars = ggplot_degs_bars_V /
   ggplot_degs_bars_I +
