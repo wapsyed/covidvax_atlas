@@ -119,10 +119,10 @@ Read the recent version here:
 # install.packages("tictoc")
 # install.packages("ggExtra")
 # install.packages("remotes")
-# remotes::install_github("omnideconv/immunedeconv")
-# BiocManager::install("multtest")
-# install.packages("metap")
-# install.packages("weights")
+remotes::install_github("omnideconv/immunedeconv")
+BiocManager::install("multtest")
+install.packages("metap")
+install.packages("weights")
 
 library(weights)
 library(metap)
@@ -1787,6 +1787,43 @@ demographics_time
 
 
 
+
+### 3.1.7. Plot regimen
+
+```{r fig.height=5, fig.width=6}
+demographics_plot_days_samples_doses = ann_vaccines_conditions %>% 
+  mutate(condition = as.factor(condition),
+         condition = fct_relevel(condition, as.character(unique(ann_vaccines_conditions_ordered$condition))),
+         day_f = as.factor(day),
+         day_f = fct_reorder(day_f, day),
+         dose_f = as.factor(dose),
+         dose_f = fct_reorder(dose_f, dose),
+         condition = if_else(condition == "BNT (V1, D0)" & gse_id == "GSE189039", "H (D0)", condition)) %>%
+  separate(condition, into = c("condition"), sep = " \\(") %>%
+  mutate(dose_f = if_else(day_f == "0", "0", dose_f)) %>% 
+  group_by(gse_id, dose_f)
+
+demographics_plot_days_samples_doses %>% 
+  ggplot(.) +
+  aes(x = day_f, ,
+      y = condition, 
+      fill = dose_f,
+      group = dose_f) +
+  geom_point(position = position_dodge(width = 1),
+             pch = 21,
+             size = 3, 
+             color = "black") +
+  scale_fill_manual(values = ann_vaxsig_colors$dose) +
+  theme_minimal() +
+  theme(text = element_text(color = "black"),
+        strip.text.y = element_text(angle = 0)) +
+  labs(x = "Days",
+       y = "",
+       shape = "Disease or vaccination",
+       size = "Samples",
+       fill = "Dose") +
+  facet_grid(vars(gse_id), scales = "free_y", space = "free_y")
+```
 
 
 
