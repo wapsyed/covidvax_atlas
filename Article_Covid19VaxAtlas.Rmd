@@ -224,9 +224,9 @@ ann_vaxsig_colors = list(
                               'VEEV'	= "#ecbcfd",
                               'VZV'	= "#c8b6ff",
                               'YF'	= "#b8c0ff"),
-  covid_other = c("COVID" = "#F5BB00",
+  covid_other = c("COVID" = "#3C5488FF",
                   "OTHER" = "#4DBBD5FF"),
-  set = c("COVID-19" = "#F5BB00",
+  set = c("COVID-19" = "#3C5488FF",
                   "13Vax Atlas" = "#4DBBD5FF"),
   microbe_type = c("VIRUS" = "#5e60ce",
                    'BACTERIUM' = "#00A087FF",
@@ -251,13 +251,13 @@ ann_vaxsig_colors = list(
               "BNT" = "#4DBBD5FF",
               "MO" = "#72ddf7",
               "ChAd" = "#3C5488FF",
-              "I" = "grey95",
-              "H" = "grey95"),
+              "I" = "white",
+              "H" = "white"),
   dose = c(
-    "0" = "grey95",
-    "1" = "#91D1C2A0",
-    "2" = "#00A087FF",
-    "3" = "#3C5488FF"),
+    "0" = "white",
+    "1" = "#6CD5EA",
+    "2" = "#0087BF",
+    "3" = "#03045e"),
   day = c(
     "0" = "white",
     "1" = "#caf0f8",
@@ -281,20 +281,20 @@ ann_vaxsig_colors = list(
   infection = c("0" = "white",
                 "1" = "#00A087FF",
                 "2" = "#3C5488FF"),
-  variant = c("None" = "grey95",
+  variant = c("None" = "white",
               "Beta" = "#00A087FF",
               "Omicron" = "#3C5488FF"),
-  severity = c("H" = "grey95",
+  severity = c("H" = "white",
                "S" = "#DC0000FF",
                "MO" = "#8491B4FF",
                "MI" = "#91D1C2FF",
-               "NA" = "grey95"),
+               "NA" = "white"),
   sex = c("Male" = "#4DBBD5FF",
           "Female" = "#E64B35FF",
           "M/F" = "#8491B4FF"),
   disease_vac = c("I" = "#DC0000FF",
                   "V" = "#4DBBD5FF",
-                  "H" = "grey95"),
+                  "H" = "white"),
   correct = c("Correct" = "#00A087FF",
               "Incorrect" = "#DC0000FF"),
   condition_col = c(
@@ -7914,6 +7914,8 @@ write.csv(btm_annotation_unique, file = "btm_annotation_unique.csv")
 
 #Display
 head(btm_annotation_unique)
+
+btm_annotation_table_long_immune
 ```
 
 ### 7.1.2. CellMarker
@@ -21709,7 +21711,8 @@ hagan_vaxatlas$condition %>% unique()
 
 hagan_vaxatlas_annotation = hagan_vaxatlas %>% 
   select(day, pathogen, type, condition, vaccine, week) %>% 
-  mutate(set = "13Vax Atlas") %>% 
+  mutate(set = "13Vax Atlas",
+         dose = "0") %>% 
   distinct()
 
 ```
@@ -22185,8 +22188,6 @@ ann_vaccines_covid_other_conditions = ann_vaccines_conditions %>%
          set = "COVID-19") %>% 
   bind_rows(hagan_vaxatlas_annotation)
 
-
-  
 ```
 
 
@@ -22235,15 +22236,24 @@ cluster_by_day <- function(df, day_column = "day", condition_column = "condition
   
   return(order_df)
 }
+```
 
 
-
+```{r fig.height=8, fig.width=20}
 df = All_covid_13VaxImmune_GO_T2G_general_GSEA_ALL %>% 
   filter(qvalue<= 0.25) %>% 
   inner_join(ann_vaccines_covid_other_conditions, by = "condition") %>% 
-    mutate(logq = -log10(qvalue)) 
+    mutate(logq = -log10(qvalue)) %>% 
+    mutate(day = fct_relevel(day, df %>% select(day) %>% distinct() %>% 
+                               mutate(day = as.character(day),
+                                      day = as.numeric(day)) %>% 
+                               arrange(day) %>% pull() %>% as.character()))
 
 
+```
+
+
+```{r fig.height=12, fig.width=25}
 row_clustered = df %>% 
   select(condition, id, nes) %>% 
   distinct() %>% 
@@ -22271,7 +22281,7 @@ labels_set <- df %>%
   theme_void() +
   labs(y = "Set") +
   theme(axis.title.y = element_text(size = 10, hjust = 1),
-        legend.position = "none") 
+        legend.position = "right") 
 
 labels_disease_vac <- df %>% 
   filter(id %in% row_clustered$labels) %>% 
@@ -22283,7 +22293,7 @@ labels_disease_vac <- df %>%
   theme_void() +
   labs(y = "Infection/Vaccination") +
   theme(axis.title.y = element_text(size = 10, hjust = 1),
-        legend.position = "none") 
+        legend.position = "right") 
 
 labels_type <- df %>% 
   filter(id %in% row_clustered$labels) %>% 
@@ -22295,7 +22305,19 @@ labels_type <- df %>%
   theme_void() +
   labs(y = "Type") +
   theme(axis.title.y = element_text(size = 10, hjust = 1),
-        legend.position = "none") 
+        legend.position = "right") 
+
+labels_dose <- df %>% 
+  filter(id %in% row_clustered$labels) %>% 
+  mutate(condition = factor(condition, levels = column_order)) %>% 
+  ggplot() +
+  aes(x = condition, y = 1, fill = dose) + 
+  geom_tile() + 
+  scale_fill_manual(values = ann_vaxsig_colors$dose) + 
+  theme_void() +
+  labs(y = "Dose") +
+  theme(axis.title.y = element_text(size = 10, hjust = 1),
+        legend.position = "right") 
 
 labels_week = df %>% 
   filter(id %in% row_clustered$labels) %>% 
@@ -22307,7 +22329,7 @@ labels_week = df %>%
   theme_void() +
   labs(y = "Week") +
   theme(axis.title.y = element_text(size = 10, hjust = 1),
-        legend.position = "none")
+        legend.position = "right")
 
 labels_day = df %>% 
   filter(id %in% row_clustered$labels) %>% 
@@ -22319,7 +22341,7 @@ labels_day = df %>%
   theme_void() +
   labs(y = "Day") +
   theme(axis.title.y = element_text(size = 10, hjust = 1),
-        legend.position = "none")
+        legend.position = "right")
 
 
 #Plot
@@ -22357,29 +22379,340 @@ patch_immune_main =
   labels_set /
   labels_disease_vac /
   labels_type /
-  labels_week/
   labels_day/
+    labels_dose/
   dotplot +
   plot_layout(heights = c(0.3, 0.3, 0.3, 0.3, 0.3, 5),
               guides = 'collect') +
   plot_annotation(title = "GSEA ImmuneGO",
                   subtitle = "Main processes",
-                  theme = theme(legend.position = "bottom",
-                                plot.margin = margin(0.5, 0, 0.5, 1, unit = "cm"),
-                                legend.direction = "horizontal", 
-                                legend.box = "horizontal"))
-dotplot$data
+                  theme = theme(legend.position = "right",
+                                plot.margin = margin(5, 1, 5, 1, unit = "cm"),
+                                legend.direction = "vertical", 
+                                legend.box = "vertical"))
 
 patch_immune_main %>% 
   ggsave(filename = here("Figures", paste0(filename, "_GSEA_ImmuneGO_MainGOs_Bubbleplot.png")),
-         width = 20,
-         height = 8)
+         width = 25,
+         height = 12)
 patch_immune_main
 
 ```
 
 
+## Gene set enrichment analysis
 
+### 5.1. Input
+
+### 5.3. Gene set enrichment analysis (GSEA)
+
+#### 5.3.1. Multiple
+
+```{r}
+autoGSEA <- function(df, TERM2GENE, geneset_name) {
+  resultados <- list()
+
+  condicoes <- df$condition %>% 
+    unique() %>% 
+    as.character()
+
+  for (condicao in condicoes) {
+    
+    degs_condicao <- df %>% 
+      filter(condition == condicao) %>%
+      select(genes, log2fold_change) %>%
+      distinct() %>%
+      mutate(rank = rank(log2fold_change, ties.method = "random")) %>%
+      arrange(desc(rank))
+
+    gene_list_lf2c <- as.vector(degs_condicao$log2fold_change)
+    names(gene_list_lf2c) <- degs_condicao$genes
+    gene_list_lf2c <- na.omit(gene_list_lf2c)
+    gene_list_lf2c <- sort(gene_list_lf2c, decreasing = TRUE)
+
+    auto_gsea <- tryCatch({
+      GSEA(geneList = gene_list_lf2c,
+           TERM2GENE = TERM2GENE,
+           minGSSize = 1,
+           maxGSSize = 1000,
+           pvalueCutoff = 1,
+           pAdjustMethod = "BH") %>%
+        as.data.frame() %>%
+        arrange(qvalue) %>%
+        mutate(condition = condicao,
+               gsea_enrichment = geneset_name)
+    }, error = function(e) {
+      return(NULL)
+    })
+
+    if (!is.null(auto_gsea)) {
+      resultados[[paste(condicao, geneset_name, sep = "_")]] <- auto_gsea
+    }
+  }
+  
+
+  # Combinar todos os resultados em um único dataframe
+  resultado_final <- bind_rows(resultados)
+
+  return(resultado_final)
+}
+```
+
+```{r}
+# Perform GSEA
+
+btm_genes = btm_annotation_table_long_immune %>% 
+  filter(module_category == "immune") %>% 
+  select(process = module_title, genes = module_member_genes)
+
+btm_genes$process %>% unique()
+
+TERM2GENE = btm_genes
+geneset_name = "btm_genes"
+filename = "All_covid_13Vax"
+
+degs_covid_vax_GSEA_ALL <- degs_covid_vax %>%
+  select(condition, genes, log2fold_change) %>% 
+  autoGSEA(TERM2GENE = TERM2GENE, 
+           geneset_name = geneset_name) 
+
+degs_covid_vax_GSEA = degs_covid_vax_GSEA_ALL %>% 
+  rownames_to_column("delete") %>% 
+  clean_names() %>% 
+    select(condition, id, everything()) 
+
+degs_covid_vax_GSEA
+#Save
+write_csv(degs_covid_vax_GSEA, 
+          file = here("Gene set enrichment analysis", paste0(filename, geneset_name, "_GSEA_ALL", ".csv")))
+
+
+```
+
+
+```{r fig.height=8, fig.width=12}
+library(ggdendro)
+library(cowplot)
+
+All_covid_13Vax_BTM_GSEA_ALL <- read_csv("Gene set enrichment analysis/All_covid_13Vaxbtm_genes_GSEA_ALL.csv")
+
+hagan_vaxatlas_annotation = hagan_vaxatlas_annotation %>% 
+  mutate(disease_vac = "V",
+         week = as.factor(week))
+ann_vaccines_covid_other_conditions = ann_vaccines_conditions %>%
+  select(condition, vaccine, day, week, dose, infection, type, disease_vac) %>% 
+  mutate(day = as.factor(day),
+         week = as.factor(week),
+         dose = as.factor(dose),
+         set = "COVID-19") %>% 
+  bind_rows(hagan_vaxatlas_annotation)
+
+```
+
+
+
+
+```{r fig.height=8, fig.width=20}
+# Função para realizar clustering para cada valor da coluna day
+cluster_by_day <- function(df, day_column = "day", condition_column = "condition") {
+  
+  # Obter os níveis do fator da coluna de dias
+  days <- levels(df[[day_column]])
+  
+  # Inicializar uma lista para armazenar as ordens
+  orders <- list()
+  
+  # Loop por cada nível (dia) da coluna fator day
+  for (day_value in days) {
+    # Filtrar os dados para o dia atual
+    day_data <- df %>%
+      filter(!!sym(day_column) == day_value) %>%
+      select(!!sym(condition_column)) %>%
+      distinct()
+    
+    # Criar uma matriz binária onde 1 representa a presença da condição
+    if (nrow(day_data) > 1) {
+      # Matriz com condições como rótulos e 1 para presença
+      presence_matrix <- table(day_data[[condition_column]]) > 0
+      dist_matrix <- as.matrix(presence_matrix)
+      
+      # Aplicar o clustering
+      col_clustered <- dist(dist_matrix) %>% hclust()
+      
+      # Armazenar a ordem dos clusters
+      orders[[day_value]] <- col_clustered$labels[col_clustered$order]
+    } else {
+      # Se houver apenas uma condição, armazenar o rótulo
+      orders[[day_value]] <- as.character(day_data[[condition_column]])
+    }
+  }
+  
+  # Converter a lista de ordens para um data frame
+  order_df <- data.frame(
+    day = rep(names(orders), sapply(orders, length)),
+    condition = unlist(orders)
+  )
+  
+  return(order_df)
+}
+```
+
+
+```{r fig.height=40, fig.width=20}
+df = All_covid_13Vax_BTM_GSEA_ALL %>% 
+  filter(qvalue<= 0.25) %>% 
+  inner_join(ann_vaccines_covid_other_conditions, by = "condition") %>% 
+    mutate(logq = -log10(qvalue)) %>% 
+    mutate(day = fct_relevel(day, df %>% select(day) %>% distinct() %>% 
+                               mutate(day = as.character(day),
+                                      day = as.numeric(day)) %>% 
+                               arrange(day) %>% pull() %>% as.character()))
+
+
+row_clustered = df %>% 
+  select(condition, id, nes) %>% 
+  distinct() %>% 
+  pivot_wider(names_from = "condition",
+              values_from= "nes") %>%
+  column_to_rownames("id") %>% 
+  as.matrix() %>% 
+  replace(is.na(.), 0) %>% 
+  dist(.) %>% 
+  hclust()
+
+result <- cluster_by_day(df, day_column = "day") %>% 
+  mutate(day = fct_relevel(day, df$day %>% unique() %>% sort() %>% as.character()))
+
+# Ordem final das colunas
+column_order <- result$condition
+
+labels_set <- df %>% 
+  filter(id %in% row_clustered$labels) %>% 
+  mutate(condition = factor(condition, levels = column_order)) %>% 
+  ggplot() +
+  aes(x = condition, y = 1, fill = set) + 
+  geom_tile() + 
+  scale_fill_manual(values = ann_vaxsig_colors$set) + 
+  theme_void() +
+  labs(y = "Set") +
+  theme(axis.title.y = element_text(size = 10, hjust = 1),
+        legend.position = "right") 
+
+labels_disease_vac <- df %>% 
+  filter(id %in% row_clustered$labels) %>% 
+  mutate(condition = factor(condition, levels = column_order)) %>% 
+  ggplot() +
+  aes(x = condition, y = 1, fill = disease_vac) + 
+  geom_tile() + 
+  scale_fill_manual(values = ann_vaxsig_colors$disease_vac) + 
+  theme_void() +
+  labs(y = "Infection/Vaccination") +
+  theme(axis.title.y = element_text(size = 10, hjust = 1),
+        legend.position = "right") 
+
+labels_type <- df %>% 
+  filter(id %in% row_clustered$labels) %>% 
+  mutate(condition = factor(condition, levels = column_order)) %>% 
+  ggplot() +
+  aes(x = condition, y = 1, fill = type) + 
+  geom_tile() + 
+  scale_fill_manual(values = ann_vaxsig_colors$Platform) + 
+  theme_void() +
+  labs(y = "Type") +
+  theme(axis.title.y = element_text(size = 10, hjust = 1),
+        legend.position = "right") 
+
+labels_dose <- df %>% 
+  filter(id %in% row_clustered$labels) %>% 
+  mutate(condition = factor(condition, levels = column_order)) %>% 
+  ggplot() +
+  aes(x = condition, y = 1, fill = dose) + 
+  geom_tile() + 
+  scale_fill_manual(values = ann_vaxsig_colors$dose) + 
+  theme_void() +
+  labs(y = "Dose") +
+  theme(axis.title.y = element_text(size = 10, hjust = 1),
+        legend.position = "right") 
+
+labels_week = df %>% 
+  filter(id %in% row_clustered$labels) %>% 
+  mutate(condition = factor(condition, column_order)) %>% 
+  ggplot() +
+  aes(x = condition, y = 1, fill = week) + 
+  geom_tile() + 
+  scale_fill_manual(values = ann_vaxsig_colors$week) + 
+  theme_void() +
+  labs(y = "Week") +
+  theme(axis.title.y = element_text(size = 10, hjust = 1),
+        legend.position = "right")
+
+labels_day = df %>% 
+  filter(id %in% row_clustered$labels) %>% 
+  mutate(condition = factor(condition, column_order)) %>% 
+  ggplot() +
+  aes(x = condition, y = 1, fill = day) + 
+  geom_tile() + 
+  scale_fill_manual(values = ann_vaxsig_colors$day) + 
+  theme_void() +
+  labs(y = "Day") +
+  theme(axis.title.y = element_text(size = 10, hjust = 1),
+        legend.position = "right")
+
+
+#Plot
+dotplot = df %>% 
+  filter(id %in% row_clustered$labels) %>% 
+  mutate(condition = factor(condition, column_order),
+         id = factor(id, levels = row_clustered$labels[row_clustered$order]),
+         id = str_to_title(id),
+         id = case_when(id == "Humoral Adaptive Immune System" ~ "Humoral Adap.",
+                        id == "Cellular Adaptive Immune System" ~ "Cellular Adap.",
+                        id == "Complement Immune System" ~ "Complement",
+                        id == "Immunoglobulin Mediated Response" ~ "Ig-mediated",
+                        id == "Antiviral And Interferon" ~ "Antiviral/IFN",.default = id)) %>% 
+  ggplot(aes(x=condition, y = id, color = nes, size = logq)) +
+  geom_point() + 
+  theme_minimal() + 
+  theme(axis.text = element_text(color = "black", size = 12) ,
+        axis.line  = element_blank(),
+        axis.text.x = element_text(angle = 45, vjust = 1, hjust=1),
+        axis.ticks = element_blank(),
+        legend.direction = "horizontal",
+        legend.position = "bottom") +
+  labs(x = "",
+       y = "") +
+  scale_color_gradient2(low = "blue",
+                        mid = "white",
+                        midpoint = 0, 
+                        name = "NES",
+                      high = "#DC0000FF") +
+  scale_y_discrete(position = "right") +
+  scale_size(range = c(2, 6))
+  
+
+patch_immune_main = 
+  labels_set /
+  labels_disease_vac /
+  labels_type /
+  labels_day/
+    labels_dose/
+  dotplot +
+  plot_layout(heights = c(0.03, 0.03, 0.03, 0.03, 0.03, 5),
+              guides = 'collect') +
+  plot_annotation(title = "GSEA ImmuneGO",
+                  subtitle = "Main processes",
+                  theme = theme(legend.position = "right",
+                                plot.margin = margin(5, 1, 5, 1, unit = "cm"),
+                                legend.direction = "vertical", 
+                                legend.box = "vertical"))
+
+patch_immune_main %>% 
+  ggsave(filename = here("Figures", paste0(filename, "_GSEA_BTM_Bubbleplot.png")),
+         width = 25,
+         height = 40)
+patch_immune_main
+
+```
 
 
 
