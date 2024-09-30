@@ -109,21 +109,6 @@ eigencorplot(p,
 
 
 
-#13 Vax Atlas
-```{r}
-IS2_FDR05_genes <- readRDS(here("13VaxAtlas", "IS2_FDR05_genes.rds"))
 
-hagan_vaxatlas= IS2_FDR05_genes %>% 
-  clean_names() %>% 
-  rename(day = time_post_last_vax,
-         genes = gene, type = vaccine_type, 
-         wavg_fc = weighted_avg_fc,
-         vaccine = pvt)
-
-hagan_vaxatlas$day %>% unique()
-hagan_vaxatlas$vaccine %>% unique()
-
-
-```
 
 

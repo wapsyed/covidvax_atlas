@@ -124,7 +124,6 @@ Read the recent version here:
 # install.packages("metap")
 # install.packages("weights")
 
-library(weights)
 library(metap)
 library(randomForest)
 library(ranger)
@@ -194,6 +193,8 @@ ann_vaxsig_colors = list(
            'VV' = "#3C5488FF", #3rd Gen vaccines
            'RNA' = "#4DBBD5FF",
            'SU' = "#8491B4FF",
+           "IN/SU" = "#8491B4FF",
+           "PS" = "#F39B7FFF",
            'I'= "#DC0000FF",
            "H" = "grey95"),
   Platform = c("VLP" = "#7E6148FF",
@@ -236,7 +237,10 @@ ann_vaxsig_colors = list(
            "4" = "#015BA0", 
            "6" = "#03045e",
            "7" = "#03045e",
-           "8" = "#03045e"),
+           "8" = "#03045e",
+           "9" = "#03045e",
+           "10" = "#03045e",
+           "12" = "#03045e"),
   month = c("1" = "#caf0f8",
             "0" = "#6CD5EA",
             "2" = "#015BA0"),
@@ -263,10 +267,15 @@ ann_vaxsig_colors = list(
     "7" = "#0096c7",
     "10" = "#0087BF",
     "11" = "#0087BF",
+    "13" = "#0087BF",
     "14" = "#0077b6",
+    "21" = "#0077b6",
     "26" = "#015BA0",
     "28" = "#023e8a",
-    "51" = "#03045e"),
+    "51" = "#03045e",
+    "60" = "#03045e",
+    "70" = "#03045e",
+    "84" = "#03045e"),
   infection = c("0" = "white",
                 "1" = "#00A087FF",
                 "2" = "#3C5488FF"),
@@ -1864,6 +1873,28 @@ demographics_plot_days_samples_doses %>%
 
 # 3. Differential Gene Expression Analysis
 
+```{r}
+# Get all comparisons
+generate_all_DESeq2_results <- function(dds) {
+  result_names <- resultsNames(dds)
+  all_results <- data.frame()
+  
+  for (name in result_names) {
+    condition_label <- name
+      result_df <- results(dds, name = name) %>%
+      as.data.frame() %>%
+      arrange(padj) %>%
+      mutate(condition = condition_label) %>%
+      rownames_to_column("genes")
+        
+    all_results <- bind_rows(all_results, result_df)
+  }
+  
+  return(all_results)
+}
+```
+
+
 ## 3.1. GSE206023
 
 ```{r}
@@ -1888,7 +1919,8 @@ colData <- gse206023_metadata %>%
   mutate(condition = case_when(condition == "BBIBP (V3, D0)" ~ "H (D0)",
                                condition == "ZF2001 (V3, D0)" ~ "H (D0)",.default = condition),
          condition = as.factor(condition),
-         condition = fct_relevel(condition, "H (D0)")) %>% 
+         condition = fct_relevel(condition, "H (D0)"),
+         participant_id = as_factor(participant_id)) %>% 
   arrange(sample) %>% 
   select(sample, everything())
 
@@ -1900,60 +1932,28 @@ dds <- DESeqDataSetFromMatrix(countData = countData,
 
 keep <- rowSums(counts(dds)) >= 10
 dds <- dds[keep,]
-dds <- DESeq(dds, test = "LRT", reduced = ~age)
+dds <- DESeq(dds)
 
 resultsNames(dds)
 
+gse206023_dds = generate_all_DESeq2_results(dds)
 
-gse206023_BBIBP_V3_D7 = results(dds, name = "condition_BBIBP..V3..D07._vs_H..D0.") %>% 
-  as.data.frame() %>% 
-  arrange(padj) %>% 
-  mutate(condition = "BBIBP (V3, D07)")  %>% 
-  rownames_to_column("genes")
+gse206023_DEGs =  gse206023_dds %>% 
+  mutate(condition = case_when(condition == "condition_BBIBP..V3..D07._vs_H..D0." ~ "BBIBP (V3, D07)", 
+                                condition == "condition_BBIBP..V3..D14._vs_H..D0." ~ "BBIBP (V3, D14)", 
+                                condition == "condition_BBIBP..V3..D28._vs_H..D0." ~ "BBIBP (V3, D28)", 
+                                condition == "condition_ZF2001..V3..D07._vs_H..D0." ~ "ZF2001 (V3, D07)",
+                                condition == "condition_ZF2001..V3..D14._vs_H..D0." ~ "ZF2001 (V3, D14)",  
+                                condition == "condition_ZF2001..V3..D28._vs_H..D0." ~ "ZF2001 (V3, D28)", 
+                               condition == "age" ~ "GSE201533 Ages",
+                                .default = condition)) %>% 
+  filter(!condition %in% c("Intercept"))
 
-gse206023_BBIBP_V3_D14 = results(dds, name = "condition_BBIBP..V3..D14._vs_H..D0.") %>% 
-  as.data.frame() %>% 
-  arrange(padj) %>% 
-  mutate(condition = "BBIBP (V3, D14)")  %>% 
-  rownames_to_column("genes")
-
-gse206023_BBIBP_V3_D28 = results(dds, name = "condition_BBIBP..V3..D28._vs_H..D0.") %>% 
-  as.data.frame() %>% 
-  arrange(padj) %>% 
-  mutate(condition = "BBIBP (V3, D28)")  %>% 
-  rownames_to_column("genes")
-
-
-gse206023_ZF2001_V3_D7 = results(dds, name = "condition_ZF2001..V3..D07._vs_H..D0.") %>% 
-  as.data.frame() %>% 
-  arrange(padj) %>% 
-  mutate(condition = "ZF2001 (V3, D07)")  %>% 
-  rownames_to_column("genes")
-
-gse206023_ZF2001_V3_D14 = results(dds, name = "condition_ZF2001..V3..D14._vs_H..D0.") %>% 
-  as.data.frame() %>% 
-  arrange(padj) %>% 
-  mutate(condition = "ZF2001 (V3, D14)")  %>% 
-  rownames_to_column("genes")
-
-gse206023_ZF2001_V3_D28 = results(dds, name = "condition_ZF2001..V3..D28._vs_H..D0.") %>% 
-  as.data.frame() %>% 
-  arrange(padj) %>% 
-  mutate(condition = "ZF2001 (V3, D28)")  %>% 
-  rownames_to_column("genes")
-
-gse206023_DEGs =
-  bind_rows(
-    gse206023_BBIBP_V3_D7,
-    gse206023_BBIBP_V3_D14,
-    gse206023_BBIBP_V3_D28,
-    gse206023_ZF2001_V3_D7,
-    gse206023_ZF2001_V3_D14,
-    gse206023_ZF2001_V3_D28
-  )
 
 gse206023_DEGs %>% 
-  write_csv(file = here("DGE analysis", "gse206023_DEGs.csv"))
+  write_csv(file = here("DGE analysis", "gse206023_DEGs_wald.csv"))
+
+gse206023_DEGs
 
 ```
 
@@ -1961,7 +1961,6 @@ gse206023_DEGs %>%
 
 ```{r}
 ############ Matrix counts ############
-
 gse201533_counts <- as.data.frame(counts_gse201533)
 rownames(gse201533_counts) <- gse201533_counts$geneid 
 gse201533_counts <- gse201533_counts[, -1]
@@ -1993,7 +1992,8 @@ countData <- gse201533_counts_ready %>%
   select(gse201533_metadata_ready$sample)
 colData <- gse201533_metadata_ready %>% 
   mutate(condition = as.factor(condition),
-         condition = fct_relevel(condition, "ChAd (V1, D0)")) %>% 
+         condition = fct_relevel(condition, "ChAd (V1, D0)"),
+         sex = as.factor(sex)) %>% 
   select(sample, everything())
   
 
@@ -2001,75 +2001,35 @@ colData <- gse201533_metadata_ready %>%
 # DESeqDataSet
 dds <- DESeqDataSetFromMatrix(countData = countData, 
                               colData = colData, 
-                              design = ~condition)
+                              design = ~ age + condition)
 keep <- rowSums(counts(dds)) >= 10
 dds <- dds[keep,]
 
 # Execute DESeq
 dds <- DESeq(dds)
-
 resultsNames(dds)
-```
 
-```{r}
-gse201533_ChAd_V1_D3 = results(dds, name = "condition_ChAd..V1..D3._vs_ChAd..V1..D0.") %>% 
-  as.data.frame() %>% 
-  arrange(padj) %>% 
-  mutate(condition = "ChAd (V1, D3)")  %>% 
-  rownames_to_column("genes")
-
-gse201533_ChAd_V1_D7 = results(dds, name = "condition_ChAd..V1..D7._vs_ChAd..V1..D0.") %>% 
-  as.data.frame() %>% 
-  arrange(padj) %>% 
-  mutate(condition = "ChAd (V1, D7)")  %>% 
-  rownames_to_column("genes")
-
-gse201533_ChAd_V2_D3 = results(dds, name = "condition_ChAd..V2..D3._vs_ChAd..V1..D0.") %>% 
-  as.data.frame() %>% 
-  arrange(padj) %>% 
-  mutate(condition = "ChAd (V2, D3)")  %>% 
-  rownames_to_column("genes")
-
-gse201533_ChAd_V2_D7 = results(dds, name = "condition_ChAd..V2..D7._vs_ChAd..V1..D0.") %>% 
-  as.data.frame() %>% 
-  arrange(padj) %>% 
-  mutate(condition = "ChAd (V2, D7)")  %>% 
-  rownames_to_column("genes")
+gse201533_dds <- generate_all_DESeq2_results(dds)
 
 
-gse201533_ChAd_BNT_V2_D3 = results(dds, name = "condition_ChAd.BNT..V2..D3._vs_ChAd..V1..D0.") %>% 
-  as.data.frame() %>% 
-  arrange(padj) %>% 
-  mutate(condition = "ChAd-BNT (V2, D3)")  %>% 
-  rownames_to_column("genes")
-
-gse201533_ChAd_BNT_V2_D7 = results(dds, name = "condition_ChAd.BNT..V2..D7._vs_ChAd..V1..D0.") %>% 
-  as.data.frame() %>% 
-  arrange(padj) %>% 
-  mutate(condition = "ChAd-BNT (V2, D7)")  %>% 
-  rownames_to_column("genes")
-
-gse201533_DEGs = bind_rows(
-  gse201533_ChAd_V1_D3,
-  gse201533_ChAd_V1_D7,
-  gse201533_ChAd_V2_D3,
-  gse201533_ChAd_V2_D7,
-  gse201533_ChAd_BNT_V2_D3,
-  gse201533_ChAd_BNT_V2_D7
-)
+gse201533_DEGs =  gse201533_dds %>% 
+  mutate(condition = case_when(condition == "condition_ChAd..V1..D3._vs_ChAd..V1..D0." ~ "ChAd (V1, D3)", 
+                                condition == "condition_ChAd..V1..D7._vs_ChAd..V1..D0." ~ "ChAd (V1, D7)", 
+                                condition == "condition_ChAd..V2..D3._vs_ChAd..V1..D0." ~ "ChAd (V2, D3)", 
+                                condition == "condition_ChAd..V2..D7._vs_ChAd..V1..D0." ~ "ChAd (V2, D7)",
+                                condition == "condition_ChAd.BNT..V2..D3._vs_ChAd..V1..D0." ~ "ChAd-BNT (V2, D3)",  
+                                condition == "condition_ChAd.BNT..V2..D7._vs_ChAd..V1..D0." ~ "ChAd-BNT (V2, D7)", 
+                               condition == "age" ~ "GSE201533 Ages",
+                                .default = condition)) %>% 
+  filter(!condition %in% c("Intercept"))
 
 
 gse201533_DEGs %>% 
-  write_csv(here("DGE analysis", "gse201533_DEGs.csv"))
+  write_csv(here("DGE analysis", "gse201533_DEGs_wald.csv"))
+
+gse201533_DEGs
 
 ```
-
-
-
-
-
-
-
 
 
 ## 3.3. GSE199750
@@ -2105,48 +2065,32 @@ keep <- rowSums(counts(dds)) >= 10
 dds <- dds[keep,]
 
 ###### Execute DESeq2
-dds <- DESeq(dds, test = "LRT", reduced = ~age + sex )
+dds <- DESeq(dds)
 
 ###### Retrieve comparisons
 resultsNames(dds)
 
-
-# Get all comparisons
-generate_all_DESeq2_results <- function(dds) {
-  result_names <- resultsNames(dds)
-  all_results <- data.frame()
-  
-  for (name in result_names) {
-    condition_label <- name
-      result_df <- results(dds, name = name) %>%
-      as.data.frame() %>%
-      arrange(padj) %>%
-      mutate(condition = condition_label) %>%
-      rownames_to_column("genes")
-        
-    all_results <- bind_rows(all_results, result_df)
-  }
-  
-  return(all_results)
-}
-
-
 gse199750_dds <- generate_all_DESeq2_results(dds)
-  
+
 gse199750_DEGs =  gse199750_dds %>% 
-  mutate(condition = case_when( condition == "condition_BNT..V1..D6._vs_H..D0." ~ "BNT (V1, D6)", 
+  mutate(condition = case_when(condition == "condition_BNT..V1..D6._vs_H..D0." ~ "BNT (V1, D6)", 
                                 condition == "condition_ChAd..V1..D6._vs_H..D0." ~ "ChAd (V1, D6)", 
                                 condition == "condition_BNT..V2..D1._vs_H..D0." ~ "BNT (V2, D1)", 
                                 condition == "condition_ChAd..V2..D1._vs_H..D0." ~ "ChAd (V2, D1)",
                                 condition == "condition_BNT..V3..D1._vs_H..D0." ~ "ChAd (V3, D1)",  
                                 condition == "condition_BNT.MO..V3..D1._vs_H..D0." ~ "BNT-MO (V3, D1)", 
                                 condition == "condition_ChAd.BNT..V3..D1._vs_H..D0." ~ "ChAd-BNT (V3, D1)", 
+                               condition == "age" ~ "GSE199750 Ages",
+                                condition == "sex_Male_vs_Female" ~ "GSE199750 Sex",
                                 .default = condition)) %>% 
   filter(!condition %in% c("Intercept", "condition_BNT.MO..V1..D6._vs_H..D0."))
 
-gse199750_DEGs %>% 
-  write_csv(file = here("DGE analysis", "gse199750_DEGs.csv"))
 
+gse199750_DEGs %>% 
+  write_csv(file = here("DGE analysis", "gse199750_DEGs_wald.csv"))
+
+
+gse199750_DEGs
 ```
 
 ## 3.4. Infection: GSE189039 and GSE201530
@@ -2191,222 +2135,53 @@ keep <- rowSums(counts(dds)) >= 10
 dds <- dds[keep,]
 
 ###### Execute DESeq
+dds <- DESeq(dds)
 
-#Wald
-dds <- DESeq(dds, test = "LRT", reduced = ~ age + sex)
-results_names = resultsNames(dds) %>% 
-  as.data.frame()
-
+resultsNames(dds)
 ###### overall DEGs
 res <- results(dds) %>% 
   as.data.frame() %>% 
   rownames_to_column("genes")
 
-#GSE201530
-gse201530_H_BNT_I_D0 = results(dds, name = "condition_BNT.I..D0._vs_H..D0.") %>% 
-  as.data.frame() %>% 
-  arrange(padj) %>% 
-  mutate(condition = "BNT-I (D0)")  %>% 
-  rownames_to_column("genes")
 
-gse201530_H_BNT_I_D1 = results(dds, name = "condition_BNT.I..D1._vs_H..D0.") %>% 
-  as.data.frame() %>% 
-  arrange(padj) %>% 
-  mutate(condition = "BNT-I (D1)")  %>% 
-  rownames_to_column("genes")
+gseinfection_dds <- generate_all_DESeq2_results(dds)
 
-gse201530_H_BNT_I_D2 = results(dds, name = "condition_BNT.I..D2._vs_H..D0.") %>%
-  as.data.frame() %>%
-  arrange(padj) %>%
-  mutate(condition = "BNT-I (D2)") %>% 
-  rownames_to_column("genes")
+infection_DEGs =  gseinfection_dds %>% 
+  mutate(condition = case_when(condition == "condition_BNT.I..D0._vs_H..D0." ~ "BNT-I (D0)", 
+                                condition == "condition_BNT.I..D1._vs_H..D0." ~ "BNT-I (D1)", 
+                                condition == "condition_BNT.I..D2._vs_H..D0." ~ "BNT-I (D2)", 
+                                condition == "condition_BNT.I..D3._vs_H..D0." ~ "BNT-I (D3)",
+                                condition == "condition_I.BNT..D5._vs_H..D0." ~ "I-BNT (D5)",  
+                                condition == "condition_I..D0._vs_H..D0." ~ "I (D0)", 
+                                condition == "condition_I..D1._vs_H..D0." ~ "I (D1)", 
+                                condition == "condition_I..D2._vs_H..D0." ~ "I (D2)", 
+                                condition == "condition_I..D3._vs_H..D0." ~ "I (D3)", 
+                                condition == "condition_I..D4._vs_H..D0." ~ "I (D4)",
+                                condition == "condition_I.I..D0._vs_H..D0." ~ "I-I (D0)", 
+                                condition == "condition_I.I..D1._vs_H..D0." ~ "I-I (D1)", 
+                                condition == "condition_I.I..D2._vs_H..D0." ~ "I-I (D2)", 
+                                condition == "condition_I.I..D3._vs_H..D0." ~ "I-I (D3)", 
+                                condition == "condition_I.I..D5._vs_H..D0." ~ "I-I (D5)", 
+                                condition == "condition_BNT.I..D10..mild._vs_H..D0." ~ "BNT-I (D10, mild)", 
+                                condition == "condition_BNT.I..D10..severe._vs_H..D0." ~ "BNT-I (D10, severe)", 
+                                condition == "condition_BNT.I..D26..mild._vs_H..D0." ~ "BNT-I (D26, mild)", 
+                                condition == "condition_BNT.I..D26..severe._vs_H..D0." ~ "BNT-I (D26, severe)", 
+                                condition == "condition_BNT.I..D51..severe._vs_H..D0." ~ "BNT-I (D51, severe)", 
+                                condition == "condition_BNT.I.BNT..D51..mild._vs_H..D0." ~ "BNT-I-BNT (D51, mild)", 
+                                condition == "condition_BNT.I.BNT..D51..severe._vs_H..D0." ~ "BNT-I-BNT (D51, severe)", 
+                                condition == "condition_I..D10..moderate._vs_H..D0." ~ "I (D10, moderate)", 
+                                condition == "condition_I..D10..severe._vs_H..D0." ~ "I (D10, severe)", 
+                                condition == "condition_I..D26..moderate._vs_H..D0." ~ "I (D26, moderate)", 
+                                condition == "condition_I..D26..severe._vs_H..D0." ~ "I (D26, severe)", 
+                                condition == "condition_I..D51..moderate._vs_H..D0." ~ "I (D51, moderate)", 
+                                condition == "condition_I..D51..severe._vs_H..D0." ~ "I (D51, severe)", 
+                               condition == "age" ~ "Infection Ages",
+                                condition == "sex_Male_vs_Female" ~ "Infection Sex",
+                                .default = condition)) %>% 
+  filter(!condition %in% c("Intercept"))
 
-gse201530_H_BNT_I_D3 = results(dds, name = "condition_BNT.I..D3._vs_H..D0.") %>%
-  as.data.frame() %>%
-  arrange(padj) %>%
-  mutate(condition = "BNT-I (D3)") %>% 
-  rownames_to_column("genes")
-
-gse201530_I_BNT_D5 = results(dds, name = "condition_I.BNT..D5._vs_H..D0.") %>%
-  as.data.frame() %>%
-  arrange(padj) %>%
-  mutate(condition = "I-BNT (D5)") %>% 
-  rownames_to_column("genes")
-
-
-gse201530_H_I_D0 = results(dds, name = "condition_I..D0._vs_H..D0.") %>% 
-  as.data.frame() %>% 
-  arrange(padj) %>% 
-  mutate(condition = "I (D0)")  %>% 
-  rownames_to_column("genes")
-
-gse201530_H_I_D1 = results(dds, name = "condition_I..D1._vs_H..D0.") %>% 
-  as.data.frame() %>% 
-  arrange(padj) %>% 
-  mutate(condition = "I (D1)")  %>% 
-  rownames_to_column("genes")
-
-gse201530_H_I_D2 = results(dds, name = "condition_I..D2._vs_H..D0.") %>% 
-  as.data.frame() %>% 
-  arrange(padj) %>% 
-  mutate(condition = "I (D2)")  %>% 
-  rownames_to_column("genes")
-
-gse201530_H_I_D3 = results(dds, name = "condition_I..D3._vs_H..D0.") %>% 
-  as.data.frame() %>% 
-  arrange(padj) %>% 
-  mutate(condition = "I (D3)")  %>% 
-  rownames_to_column("genes")
-
-gse201530_H_I_D4 = results(dds, name = "condition_I..D4._vs_H..D0.") %>% 
-  as.data.frame() %>% 
-  arrange(padj) %>% 
-  mutate(condition = "I (D4)")  %>% 
-  rownames_to_column("genes")
-
-gse201530_I_I_D0 = results(dds, name = "condition_I.I..D0._vs_H..D0.") %>% 
-  as.data.frame() %>% 
-  arrange(padj) %>% 
-  mutate(condition = "I-I (D0)")  %>% 
-  rownames_to_column("genes")
-
-gse201530_I_I_D1 = results(dds, name = "condition_I.I..D1._vs_H..D0.") %>% 
-  as.data.frame() %>% 
-  arrange(padj) %>% 
-  mutate(condition = "I-I (D1)")  %>% 
-  rownames_to_column("genes")
-
-gse201530_I_I_D2 = results(dds, name = "condition_I.I..D2._vs_H..D0.") %>% 
-  as.data.frame() %>% 
-  arrange(padj) %>% 
-  mutate(condition = "I-I (D2)")  %>% 
-  rownames_to_column("genes")
-
-gse201530_I_I_D3 = results(dds, name = "condition_I.I..D3._vs_H..D0.") %>% 
-  as.data.frame() %>% 
-  arrange(padj) %>% 
-  mutate(condition = "I-I (D3)")  %>% 
-  rownames_to_column("genes")
-
-gse201530_I_I_D5 = results(dds, name = "condition_I.I..D5._vs_H..D0.") %>% 
-  as.data.frame() %>% 
-  arrange(padj) %>% 
-  mutate(condition = "I-I (D5)")  %>% 
-  rownames_to_column("genes")
-
-#GSE189039
-gse189039_BNT_I_D10_mild = results(dds, name = "condition_BNT.I..D10..mild._vs_H..D0.") %>% 
-  as.data.frame() %>% 
-  arrange(padj) %>% 
-  mutate(condition = "BNT-I (D10, mild)")  %>% 
-  rownames_to_column("genes")
-
-gse189039_BNT_I_D10_severe = results(dds, name = "condition_BNT.I..D10..severe._vs_H..D0.") %>% 
-  as.data.frame() %>% 
-  arrange(padj) %>% 
-  mutate(condition = "BNT-I (D10, severe)")  %>% 
-  rownames_to_column("genes")
-
-gse189039_BNT_I_D26_mild = results(dds, name = "condition_BNT.I..D26..mild._vs_H..D0.") %>% 
-  as.data.frame() %>% 
-  arrange(padj) %>% 
-  mutate(condition = "BNT-I (D26, mild)")  %>% 
-  rownames_to_column("genes")
-
-gse189039_BNT_I_D26_severe = results(dds, name = "condition_BNT.I..D26..severe._vs_H..D0.") %>% 
-  as.data.frame() %>% 
-  arrange(padj) %>% 
-  mutate(condition = "BNT-I (D26, severe)")  %>% 
-  rownames_to_column("genes")
-
-gse189039_BNT_I_D51_severe = results(dds, name = "condition_BNT.I..D51..severe._vs_H..D0.") %>% 
-  as.data.frame() %>% 
-  arrange(padj) %>% 
-  mutate(condition = "BNT-I (D51, severe)")  %>% 
-  rownames_to_column("genes")
-
-gse189039_BNT_I_BNT_D51_mild = results(dds, name = "condition_BNT.I.BNT..D51..mild._vs_H..D0.") %>% 
-  as.data.frame() %>% 
-  arrange(padj) %>% 
-  mutate(condition = "BNT-I-BNT (D51, mild)")  %>% 
-  rownames_to_column("genes")
-
-gse189039_BNT_I_BNT_D51_severe = results(dds, name = "condition_BNT.I.BNT..D51..severe._vs_H..D0.") %>% 
-  as.data.frame() %>% 
-  arrange(padj) %>% 
-  mutate(condition = "BNT-I-BNT (D51, severe)")  %>% 
-  rownames_to_column("genes")
-
-gse189039_I_D10_moderate = results(dds, name = "condition_I..D10..moderate._vs_H..D0.") %>% 
-  as.data.frame() %>% 
-  arrange(padj) %>% 
-  mutate(condition = "I (D10, moderate)")  %>% 
-  rownames_to_column("genes")
-
-gse189039_I_D10_severe = results(dds, name = "condition_I..D10..severe._vs_H..D0.") %>% 
-  as.data.frame() %>% 
-  arrange(padj) %>% 
-  mutate(condition = "I (D10, severe)")  %>% 
-  rownames_to_column("genes")
-
-gse189039_I_D26_moderate = results(dds, name = "condition_I..D26..moderate._vs_H..D0.") %>% 
-  as.data.frame() %>% 
-  arrange(padj) %>% 
-  mutate(condition = "I (D26, moderate)")  %>% 
-  rownames_to_column("genes")
-
-gse189039_I_D26_severe = results(dds, name = "condition_I..D26..severe._vs_H..D0.") %>% 
-  as.data.frame() %>% 
-  arrange(padj) %>% 
-  mutate(condition = "I (D26, severe)")  %>% 
-  rownames_to_column("genes")
-
-gse189039_I_D51_moderate = results(dds, name = "condition_I..D51..moderate._vs_H..D0.") %>% 
-  as.data.frame() %>% 
-  arrange(padj) %>% 
-  mutate(condition = "I (D51, moderate)")  %>% 
-  rownames_to_column("genes")
-
-gse189039_I_D51_severe = results(dds, name = "condition_I..D51..severe._vs_H..D0.") %>% 
-  as.data.frame() %>% 
-  arrange(padj) %>% 
-  mutate(condition = "I (D51, severe)")  %>% 
-  rownames_to_column("genes")
-
-
-infection_DEGs = bind_rows(
-  gse201530_H_BNT_I_D0,
-  gse201530_H_BNT_I_D1,
-  gse201530_H_BNT_I_D2,
-  gse201530_H_BNT_I_D3,
-  gse201530_I_BNT_D5,
-  gse201530_H_I_D0,
-  gse201530_H_I_D1,
-  gse201530_H_I_D2,
-  gse201530_H_I_D3,
-  gse201530_H_I_D4,
-  gse201530_I_I_D0,
-  gse201530_I_I_D1,
-  gse201530_I_I_D2,
-  gse201530_I_I_D3,
-  gse201530_I_I_D5,
-  gse189039_BNT_I_D10_mild,
-  gse189039_BNT_I_D10_severe,
-  gse189039_BNT_I_D26_mild,
-  gse189039_BNT_I_D26_severe,
-  gse189039_BNT_I_D51_severe,
-  gse189039_BNT_I_BNT_D51_mild,
-  gse189039_BNT_I_BNT_D51_severe,
-  gse189039_I_D10_moderate,
-  gse189039_I_D10_severe,
-  gse189039_I_D26_moderate,
-  gse189039_I_D26_severe,
-  gse189039_I_D51_moderate,
-  gse189039_I_D51_severe
-)
-
-
-infection_DEGs
+infection_DEGs %>% 
+  write_csv(file = here("DGE analysis", "infection_DEGs_wald.csv"))
 
 
 ```
@@ -2420,14 +2195,10 @@ all_degs = bind_rows(gse199750_DEGs,
                      gse201533_DEGs,
                      gse206023_DEGs,
                      infection_DEGs)
-#Check if there is any repetition
-all_degs %>% 
-dplyr::summarise(n = dplyr::n(), .by = c(genes, condition)) |>
-dplyr::filter(n > 1L)
 
 #Save
 all_degs %>% 
-  saveRDS(file = here("DGE analysis", "all_studies_degs.csv"))
+  saveRDS(file = here("DGE analysis", "all_studies_degs_wald.csv"))
 
 all_degs
 ```
@@ -2444,9 +2215,9 @@ all_degs_annotated = all_degs %>%
 
 all_studies_degs_weighted <- all_degs_annotated %>%
   group_by(genes, condition) %>%
+  arrange(genes) %>% 
   summarise(
-    meta_p = wtd.mean(pvalue, weights = n), 
-    .groups = "drop"
+    meta_p = pvalue/sqrt(n)
   ) %>% 
   inner_join(all_degs_annotated, by = join_by("genes", "condition"))  %>% 
   mutate(fdr = p.adjust(meta_p, method = "BH"),
@@ -2456,6 +2227,7 @@ all_studies_degs_weighted <- all_degs_annotated %>%
   clean_names() %>% 
   select(genes, condition, log2fold_change, direction, meta_p, fdr)
 
+all_studies_degs_weighted
 
 all_studies_degs_weighted %>% 
   saveRDS(file = here("DGE analysis", "all_studies_degs_weighted.rds"))
@@ -2502,7 +2274,7 @@ ggplot_degs_bars_I = all_degs %>%
     NEUTRAL = "gray80",
     UP = "#d90429")) +
   theme_few() +
-  ylim(0, 12000) +
+  ylim(0, 6000) +
   geom_text(aes(label = n_degs, y = n_degs), 
             position = position_dodge(width = 0.9), 
             angle = 90,
@@ -2529,7 +2301,7 @@ ggplot_degs_bars_V = all_degs %>%
     NEUTRAL = "gray80",
     UP = "#d90429")) +
   theme_few() +
-  ylim(0, 6000) +
+  ylim(0, 8000) +
   geom_text(aes(label = n_degs, y = n_degs), 
             position = position_dodge(width = 0.9), 
             angle = 90,
@@ -2576,6 +2348,8 @@ ggplot_degs_bars_2 = all_degs %>%
   ggtitle("DEGs - all studies, p<0.05")
 
 ggsave(ggplot_degs_bars_2, file = here("Figures", "DEGs_up_down_barplot_pvalue05_2.png"),  width = 10, height = 6)
+
+ggplot_degs_bars_2
 
 ```
 
@@ -2707,6 +2481,7 @@ write_csv(shared_genes_df_mirror,
 
 ```{r}
 filename = "All_covid_Shared"
+library(maditr)
 #Anotar colunas
 # Converter para wide table
 matrix_data = shared_genes_df_mirror %>% 
@@ -3197,7 +2972,7 @@ links_df_W7 = shared_genes_df_mirror %>%
   filter(pvalue < 0.05,
          Shared > 1) %>% 
   inner_join(ann_vaccines %>% 
-               filter(week == 7) %>% 
+               filter(week >= 7) %>% 
                dplyr::select(Cond1 = condition),
              by = "Cond1") %>% 
   inner_join(ann_vaccines %>% 
@@ -3328,13 +3103,13 @@ circos.track(
 title("Week 4")
 
 # WEEK 7
-chordDiagram(mat_week7, grid.col = grid.col_w7, 
-             annotationTrack = "grid", 
+chordDiagram(mat_week7, grid.col = grid.col_w7,
+             annotationTrack = "grid",
             big.gap = 50,
              group = group_w7,
              small.gap = 3,
              link.zindex = rank(mat_week7),
-             h.ratio = 0.7, 
+             h.ratio = 0.7,
              directional = -1,
              transparency = 0,
              preAllocateTracks = list(track.height = 0.5 * max(strwidth(unlist(dimnames(mat_week7))))))
@@ -3353,7 +3128,7 @@ circos.track(
       font = 0.1)},
   bg.border = NA)
 
-title("Week 7")
+title("Week 8")
 
 dev.off()
 circos.clear()
@@ -3912,33 +3687,33 @@ circos.track(
 
 title("Week 4")
 
-# WEEK 7
-chordDiagram(mat_week7, grid.col = grid.col_w7, 
-             annotationTrack = "grid", 
-            big.gap = 50,
-             group = group_w7,
-             small.gap = 3,
-             link.zindex = rank(mat_week7),
-             h.ratio = 0.7, 
-             directional = -1,
-             transparency = 0,
-             preAllocateTracks = list(track.height = 0.5 * max(strwidth(unlist(dimnames(mat_week7))))))
-#Labels
-circos.track(
-  track.index = 1,
-  panel.fun = function(x, y) {
-    circos.text(
-      CELL_META$xcenter,
-      CELL_META$ylim[1],
-      CELL_META$sector.index,
-      facing = "clockwise",
-      niceFacing = TRUE,
-      adj = c(0, 0.5),
-      cex = 0.8, #Label size
-      font = 0.1)},
-  bg.border = NA)
-
-title("Week 7")
+# # WEEK 7
+# chordDiagram(mat_week7, grid.col = grid.col_w7, 
+#              annotationTrack = "grid", 
+#             big.gap = 50,
+#              group = group_w7,
+#              small.gap = 3,
+#              link.zindex = rank(mat_week7),
+#              h.ratio = 0.7, 
+#              directional = -1,
+#              transparency = 0,
+#              preAllocateTracks = list(track.height = 0.5 * max(strwidth(unlist(dimnames(mat_week7))))))
+# #Labels
+# circos.track(
+#   track.index = 1,
+#   panel.fun = function(x, y) {
+#     circos.text(
+#       CELL_META$xcenter,
+#       CELL_META$ylim[1],
+#       CELL_META$sector.index,
+#       facing = "clockwise",
+#       niceFacing = TRUE,
+#       adj = c(0, 0.5),
+#       cex = 0.8, #Label size
+#       font = 0.1)},
+#   bg.border = NA)
+# 
+# title("Week 7")
 
 dev.off()
 circos.clear()
@@ -4600,59 +4375,6 @@ ggsave(patch_maingo, file = here("Figures", "main_go_2_plot_values_UP_DOWN_regul
 
 
 
-```{r fig.height=7, fig.width=10}
-### Immune in totals ------
-
-#UP
-immune_other_plot  = main_go_2 %>% 
-  mutate(direction = if_else(direction == "UP", "Upregulated", "Downregulated"),
-         term_ancestor = fct_relevel(term_ancestor, "Immune system", "Cellular", "Metabolism", "Reg. of BP")) %>%
-  filter(term_ancestor %in% c("Immune system")) %>% 
-  rename(n_genes_immune = n_genes) %>% 
-  pivot_longer(names_to = "totals", values_to = "total_number", cols = c(n_genes_immune, n_genes_total)) %>% 
-  select(condition, direction, term_ancestor, n_genes_perc, totals, total_number) %>% 
-  group_by(condition) %>% 
-  mutate(immune_genes = if_else(totals == "n_genes_immune", total_number, NA),
-         total_degs = if_else(totals == "n_genes_total", total_number, NA),
-         totals = fct_rev(factor(totals)),
-         direction = fct_rev(direction)) %>% 
-  fill(total_degs, .direction = "up") %>% 
-  mutate(condition = factor(condition, levels = ann_vaccines_conditions$condition %>% unique())) %>%
-ggplot() +
- aes(x = fct_rev(factor(condition)), y = total_number, fill = totals) +
- geom_col() +
- coord_flip() +
- theme_minimal() +
-  scale_fill_manual(name = "",
-    values = c("n_genes_total" = "gray90",
-              "n_genes_immune" = "#4DBBD5FF"),
-    labels = c('Total', 'Immune')) +
-  facet_grid(~direction) +
-  theme(legend.position = "right", 
-        legend.title = element_text(size = 10),
-        legend.text = element_text(size=10),
-        axis.title.x = element_text(size = 10, color = "black"),
-        axis.text.x = element_text(size = 10, color = "black", angle = 0, hjust = 1),
-        axis.text.y = element_text(size = 10, color = "black", angle = 0, hjust = 1),
-        strip.text.x = element_text(size = 12, color = "black", hjust = 0.5),
-        strip.text.y = element_text(size = 15, angle = 0)
-        ) +
-  geom_text(aes(label = if_else(!is.na(immune_genes), paste0(immune_genes, " (", n_genes_perc, "% of ", total_degs,")") , NA), 
-                y = total_degs + immune_genes), 
-            hjust = -0.05, 
-            size = 3,
-            angle = 0) +
-  labs(title = "DEGs - Classification by type - Immune vs. Non-immune",
-       fill = "Gene type",
-       x = "",
-       y = "Number of genes") +
-  ylim(0, 2800)
-
-ggsave(immune_other_plot, file = here("Figures", "immune_other_plot.png"), width = 15, height = 7)
-immune_other_plot
-
-```
-
 ```{r fig.height=7, fig.width=15}
 degs_immune = main_go_2 %>% 
   mutate(direction = if_else(direction == "UP", "Upregulated", "Downregulated"),
@@ -5116,9 +4838,11 @@ patch
 ### 5.1. Input
 
 ```{r}
-
-
 #Gene sets
+
+all_degs_p_05_vac_infected = readRDS(here("DGE analysis","all_studies_degs_weighted.rds"))
+
+
 ImmuneGO_Annotated_Genes = readRDS(here("VaxGO gene sets", "ImmuneGO_Annotated_Genes_2024-03-26.rds"))
 
 CellMarker_ImmuneCells = read_csv(here("VaxGO gene sets", "CellMarker_ImmuneCells.csv"))
@@ -5146,8 +4870,8 @@ CellMarker_genes = CellMarker_ImmuneCells %>%
   tibble()
 
 
-TERM2GENE = Immune_GO_T2G_specfic
-geneset_name = "Immune_GO_T2G_specfic"
+TERM2GENE = Immune_GO_T2G_general
+geneset_name = "Immune_GO_T2G_general"
 
 
 ```
@@ -5157,7 +4881,6 @@ geneset_name = "Immune_GO_T2G_specfic"
 #### 5.2.1. Multiple
 
 ```{r}
-# Filtrar os genes para todas as condições
 df <- all_degs_p_05_vac_infected
 
 ora_results <- list()
@@ -5196,7 +4919,6 @@ write.csv(ora_results_final, file = "all_degs_other_ORA_2.csv", row.names = F)
 
 ```{r}
 library(GO.db)
-columns(GO.db)
 
 go_bp_ancestor =  GOBPANCESTOR %>% 
   as.data.frame()
@@ -5369,7 +5091,7 @@ autoGSEA <- function(df, TERM2GENE, geneset_name) {
            TERM2GENE = TERM2GENE,
            minGSSize = 1,
            maxGSSize = 1000,
-           pvalueCutoff = 0.25,
+           pvalueCutoff = 1,
            pAdjustMethod = "BH") %>%
         as.data.frame() %>%
         arrange(qvalue) %>%
@@ -5414,19 +5136,46 @@ all_degs_p_05_vac_infected_GSEA
 write_csv(all_degs_p_05_vac_infected_GSEA, 
           file = here("Gene set enrichment analysis", paste0("all_degs_p_05_vac_infected_", geneset_name, "_GSEA_ALL", ".csv")))
 
-all_degs_p_05_vac_infected_GSEA
+all_degs_p_05_vac_infected_GSEA 
 
 ```
 
+```{r}
+# Perform GSEA
+
+TERM2GENE = Immune_GO_T2G_specfic
+geneset_name = "Immune_GO_T2G_specfic"
+
+all_degs_p_05_vac_infected_GSEA_ALL <- all_degs_p_05_vac_infected %>%
+  select(condition, genes, log2fold_change) %>% 
+  autoGSEA(TERM2GENE = Immune_GO_T2G_specfic, 
+           geneset_name = "Immune_GO_T2G_specfic") 
+
+all_degs_p_05_vac_infected_GSEA = all_degs_p_05_vac_infected_GSEA_ALL %>% 
+  rownames_to_column("delete") %>% 
+  clean_names() %>% 
+    select(condition, id, everything()) 
+
+all_degs_p_05_vac_infected_GSEA
+
+#Save
+write_csv(all_degs_p_05_vac_infected_GSEA, 
+          file = here("Gene set enrichment analysis", paste0("all_degs_p_05_vac_infected_", geneset_name, "_GSEA_ALL", ".csv")))
+
+all_degs_p_05_vac_infected_GSEA 
+```
+
+
 #### 5.3.2. Bubbleplot (Heatmap with ggplot)
 https://davemcg.github.io/post/lets-plot-scrna-dotplots/
-```{r fig.height=8, fig.width=10}
+```{r fig.height=8, fig.width=12}
 library(ggdendro)
 library(cowplot)
 
 all_degs_p_05_vac_infected_Immune_GO_T2G_general_GSEA_ALL <- read_csv("Gene set enrichment analysis/all_degs_p_05_vac_infected_Immune_GO_T2G_general_GSEA_ALL.csv")
 
 df = all_degs_p_05_vac_infected_Immune_GO_T2G_general_GSEA_ALL %>% 
+  filter(qvalue<= 0.25) %>% 
   mutate(logq = -log10(qvalue)) %>% 
   inner_join(ann_vaccines_conditions, by = "condition") %>% 
   mutate(day = as.factor(day),
@@ -5539,7 +5288,7 @@ dotplot = df %>%
                         name = "NES",
                       high = "#DC0000FF") +
   scale_y_discrete(position = "right") +
-  scale_size(range = c(3, 6))
+  scale_size(range = c(2, 6))
   
 
 patch_immune_main = 
@@ -5559,10 +5308,9 @@ patch_immune_main =
 
 patch_immune_main %>% 
   ggsave(filename = here("Figures", "GSEA_ImmuneGO_MainGOs_Bubbleplot.png"),
-         width = 10,
+         width = 12,
          height = 8)
 patch_immune_main
-
 ```
 
 Specific
@@ -5575,6 +5323,7 @@ all_degs_p_05_vac_infected_Immune_GO_T2G_specfic_GSEA_ALL = read_csv(here("Gene 
 
 df = all_degs_p_05_vac_infected_Immune_GO_T2G_specfic_GSEA_ALL %>% 
   clean_names() %>% 
+  filter(qvalue <= 0.25) %>% 
   mutate(logq = -log10(qvalue)) %>% 
   inner_join(ann_vaccines_conditions, by = "condition") %>% 
   mutate(day = as.factor(day),
@@ -5689,10 +5438,10 @@ Divide by immune system
 Innate
 ```{r fig.height=15, fig.width=10}
 
-
 ImmuneGO_Annotated_GO <- read_csv("VaxGO gene sets/ImmuneGO_Annotated_GO_2024_03_26.csv")
 df = all_degs_p_05_vac_infected_Immune_GO_T2G_specfic_GSEA_ALL %>% 
   clean_names() %>% 
+  filter(qvalue <= 0.25) %>% 
   mutate(logq = -log10(qvalue)) %>% 
   inner_join(ann_vaccines_conditions, by = "condition") %>% 
   mutate(day = as.factor(day),
@@ -5803,12 +5552,14 @@ patch_immune_specific = labels_type /
                                 legend.direction = "horizontal", 
                                 legend.box = "horizontal"))
 patch_immune_specific
+
 ```
 
 Adaptive
-```{r fig.height=15, fig.width=10}
+```{r fig.height=10, fig.width=10}
 df = all_degs_p_05_vac_infected_Immune_GO_T2G_specfic_GSEA_ALL %>% 
   clean_names() %>% 
+  filter(qvalue<= 0.25) %>% 
   mutate(logq = -log10(qvalue)) %>% 
   inner_join(ann_vaccines_conditions, by = "condition") %>% 
   mutate(day = as.factor(day),
@@ -5922,9 +5673,10 @@ patch_immune_specific
 ```
 
 General
-```{r fig.height=8, fig.width=10}
+```{r fig.height=6, fig.width=10}
 df = all_degs_p_05_vac_infected_Immune_GO_T2G_specfic_GSEA_ALL %>% 
   clean_names() %>% 
+  filter(qvalue<= 0.25) %>% 
   mutate(logq = -log10(qvalue)) %>% 
   inner_join(ann_vaccines_conditions, by = "condition") %>% 
   mutate(day = as.factor(day),
@@ -6041,6 +5793,7 @@ Complement
 ```{r fig.height=5, fig.width=10}
 df = all_degs_p_05_vac_infected_Immune_GO_T2G_specfic_GSEA_ALL %>% 
   clean_names() %>% 
+  filter(qvalue<=0.25) %>% 
   mutate(logq = -log10(qvalue)) %>% 
   inner_join(ann_vaccines_conditions, by = "condition") %>% 
   mutate(day = as.factor(day),
@@ -8076,7 +7829,7 @@ dev.off()
 
 # 7. VAXGO
 
-## 7.1. VaxGO gene sets construction
+## VaxGO gene sets construction
 
 ```{r eval=FALSE, echo=TRUE}
 library(readr)
@@ -9101,7 +8854,7 @@ write.csv(Immune_allgenes_vaccines_SUM, file="Immune_allgenes_vaccines_SUM.csv")
 ```{r}
 # Input files ------
 immunego = ImmuneGO_Annotated_Genes # ImmuneGO Annotation
-degs_updown_p_05_vac_infected = read_csv(here("DGE analysis", "all_degs_p_05_vac_infected_19_12_23.csv")) # DEGs
+degs_updown_p_05_vac_infected = readRDS(here("DGE analysis", "all_studies_degs_weighted.rds")) # DEGs
 ann_vaccines_covid_other = read_csv(here("Annotations and metadata", "ann_vaccines_vaxsig_covid.csv")) #Conditions annotation
 VAX_Genes_Annotated_RAW_2 = read_csv(here("VaxGO gene sets", "VaxSigDB_Gene_sets_Annotated_RAW.csv")) %>% 
   separate_rows(GENE_SYMBOLS)
@@ -9124,7 +8877,7 @@ degs_all_updown_vax = VAX_Genes_Annotated_RAW_3 %>%
 
 degs_all_updown_covid= degs_updown_p_05_vac_infected %>% 
   as.data.frame() %>% 
-  select(condition:direction) %>% 
+  select(genes, condition:direction) %>% 
   filter(direction %in% c("UP", "DOWN")) %>% 
   inner_join(ann_vaccines, by = "condition") %>%
   distinct() %>% 
@@ -9254,7 +9007,8 @@ fisher_exact_test <- function(shared, notshared1, notshared2) {
 }
 shared_genes_df = shared_genes_df %>%
   mutate(pvalue = pmap_dbl(list(Shared, NotShared_cond1, NotShared_cond2), fisher_exact_test)) %>% 
-  mutate("-log(p)" = -log10(pvalue))
+  mutate("-log(p)" = -log10(pvalue),
+         padj = p.adjust(pvalue))
 
 
 #Mirror table
@@ -9299,7 +9053,7 @@ write_csv(shared_genes_df_mirror,
 #Use "vax_degs_up_VAXSigDB_sharedgenes_ann.csv" for comparing UP degs with UP degs from other conditions
 
 #VAC ONLY
-shared_genes_ann_vac = shared_genes_df_mirror_ann %>%
+shared_genes_ann_vac = shared_genes_df_mirror %>%
   select(vac_condition, vaccine_condition, vac_ref, Cond2:sample_source, pmid, gene_symbols:participants) %>% 
   filter(study_type == "VACCINE", 
          sample_source == "PBMC",
@@ -9315,13 +9069,13 @@ vac_only = shared_genes_ann_vac %>%
 ```{r}
 # INPUT ------
 
-degs_all_updown_covid_other_immune_shared = read_csv(here("VaxGO gene sets", "degs_all_updown_covid_other_immune_shared.csv"))
+degs_all_updown_covid_other_immune_shared = read_csv(here("VaxGO gene sets", "degs_all_updown_covid_other_immune_sharedgenes_Fisher_Jaccard.csv"))
 
 table = degs_all_updown_covid_other_immune_shared
-filename = "ImmuneGO_Genes" 
+filename = "ImmuneGO_Genes_JaccardDistance" 
 
 data = table %>% 
-  filter(qvalue <0.25) %>% 
+  filter(pvalue <0.25) %>% 
   inner_join(ann_vaccines_covid_other %>% 
                select(Cond1 = condition, everything()), by = "Cond1") %>% 
   inner_join(ann_vaccines %>% 
@@ -9331,13 +9085,14 @@ data = table %>%
 
 # Matrix ------
 matrix = data %>%
-  filter(qvalue <= 0.10) %>% 
-  select(vac_condition, vac_ref, shared) %>% 
-  pivot_wider(names_from = vac_condition, values_from = shared, values_fn = mean) %>% 
+  filter(pvalue <= 0.10) %>% 
+  select(vac_condition, vac_ref, jaccard_distance) %>% 
+  pivot_wider(names_from = vac_condition, values_from = jaccard_distance, values_fn = mean) %>% 
   replace(is.na(.), 0) %>%
   column_to_rownames(var="vac_ref") %>%
-  as.matrix() %>%
-  round(0)
+  as.matrix()
+
+matrix = matrix*100
 
 # Annotations -------
 ann_vaccines_covid = ann_vaccines_covid_other %>% 
@@ -9405,21 +9160,24 @@ ha = HeatmapAnnotation(df = ann_cols_heatmap,
                        col = ann_vaxsig_colors,
                        annotation_name_side = "left")
 
-row_ha = rowAnnotation(df =  ann_rows_heatmap, 
-                       col = ann_vaxsig_colors)
+row_ha = HeatmapAnnotation(df = ann_rows_heatmap,
+                       col = ann_vaxsig_colors,
+                       which= "row",
+                       show_annotation_name = F,
+                       show_legend = F)
 
 # Values colors
 col_fun <- colorRamp2(c(0, max(matrix_data)), c("white", "#ed6a5a"))
 
 
 mat = matrix_data
-width_image = 40
-height_image = 30
+width_image = 30
+height_image = 25
 width = unit(20, "cm")
 height = unit(15, "cm")
 column_names_gp = gpar(fontsize = 10)
 row_names_gp = gpar(fontsize = 10)
-file = paste0("VAXSig_", filename_2)
+file = paste0("VAXSig_", filename)
 
 fileimageheatmap_grouped = paste0(filename, sep ="_", "Complexheatmap_ALL_CLUSTERED.png")
 
@@ -9434,7 +9192,7 @@ heatmap_plot = Heatmap(mat,
                         show_row_names = TRUE,
                         row_names_side = "left",
                         show_heatmap_legend = TRUE,
-                        heatmap_legend_param = list(title = "Shared", direction = "vertical"),
+                        heatmap_legend_param = list(title = "Jaccard distance", direction = "vertical"),
                         col = col_fun, #color
                         cell_fun = function(j, i, x, y, width, height, fill) {
                                             if(mat[i, j] > 0)
@@ -9445,7 +9203,7 @@ heatmap_plot = Heatmap(mat,
                         show_column_names = TRUE,
                         column_title = fileimageheatmap_grouped,
                         column_title_gp = gpar(fontsize = 10, fontface = "bold"),
-                        column_names_rot = 90,
+                        column_names_rot = 45,
                         column_names_gp = column_names_gp,
                         rect_gp = gpar(col = "gray90", lwd = 1),
                         cluster_rows = TRUE,
@@ -9481,7 +9239,7 @@ dev.off()
 #Input
 degs_all_updown_covid = degs_updown_p_05_vac_infected %>% 
    as.data.frame() %>% 
-   select(condition:direction) %>% 
+   select(genes, condition:direction) %>% 
    filter(direction %in% c("UP", "DOWN")) %>% 
   inner_join(ann_vaccines, by = "condition") %>% 
    distinct() %>% 
@@ -9511,7 +9269,7 @@ Immune_GO_T2G = ImmuneGO_Annotated_Genes %>%
 ```
 
 ```{r}
-# GSEA function
+# ORA function
 perform_ORA <- function(df, Immune_GO_T2G) {
   resultados <- list()
   
@@ -9726,7 +9484,7 @@ degs_all_updown = degs_updown_p_05_vac_infected
 #Immune
 degs_all_updown_covid_immune = degs_all_updown %>% 
   as.data.frame() %>% 
-  select(condition:padj) %>% 
+  select(genes,  condition:fdr) %>% 
   mutate(direction = case_when(log2fold_change >= 1 ~ "UP",
                                log2fold_change <= -1 ~ "DOWN",
                                TRUE ~ "NEUTRAL")) %>% 
@@ -9810,7 +9568,7 @@ Immune_GO_genes_All = covid_other_immunego_genes
 
 ```{r}
 ####### INPUT
-data_2 = Immune_GO_genes_All
+data_2 = covid_other_immunego_genes
 filename_2 = paste0("Immune_GO_genes_All", "_VAX_COVID")
 
 ######## Matrix
@@ -9938,8 +9696,8 @@ height = unit(40, "cm")
 column_names_gp = gpar(fontsize = 10)
 row_names_gp = gpar(fontsize = 0)
 rect_gp = gpar(col = "gray80", lwd = 0)
-row_split = 2
-column_split = 2
+row_split = 3
+column_split = 3
 
 
 fileimageheatmap_grouped = paste0(file, sep ="_", "Complexheatmap.png")
@@ -15296,7 +15054,6 @@ rank_results(fit_wf, rank_metric = "accuracy", select_best = TRUE)
 
 ```
 
-## 8.7. (FAZER) COVID-19 and others: 13 Vaccines atlas dataset
 
 # 9. Heatmaps - Genes - ImmuneGO
 
@@ -15318,14 +15075,15 @@ ImmuneGO = ImmuneGO_Annotated_GO %>%
 immunego_genes = ImmuneGO_Annotated_Genes %>%
   filter(go_term == "Manual") %>% 
   select(process,genes)
+
 ann_vaccines = read_csv(here("Annotations and metadata", "ann_vaccines_conditions.csv")) %>% 
   mutate(week = fct_reorder(as.factor(week), week),
          day = fct_reorder(as.factor(day), day),
          dose = fct_reorder(as.factor(dose), dose))
 
 # DEGs table
-data.immunego = read_csv(here("DGE analysis", "all_degs_p_05_vac_infected_19_12_23.csv")) %>% 
-  select(condition:padj)
+data.immunego = readRDS(here("DGE analysis", "all_studies_degs_weighted.rds")) %>% 
+  filter(fdr <= 0.05)
 
 #Colors
 ann_colors = ann_vaxsig_colors 
@@ -15398,6 +15156,7 @@ Immune_GO_genes_Ig = Immune_GO_genes_All %>%
 
 ```{r}
 library(InteractiveComplexHeatmap)
+library(maditr)
 
 ####### Input
 heatmap_data = Immune_GO_genes_All
@@ -15495,6 +15254,7 @@ ha = HeatmapAnnotation(df = ann_vaccines_heatmap,
 row_ha = HeatmapAnnotation(df = ann_rows_immune,
                        col = col_process_immune,
                        which= "row",
+                       simple_anno_size = unit(2, "mm"),
                        show_annotation_name = F,
                        show_legend = F)
 
@@ -15503,10 +15263,10 @@ col_fun <- colorRamp2(c(-2, 0, 2),
 
 #Parameters
 mat = matrix_data_ordered
-width_image = 40
-height_image = 40
-width = unit(30, "cm")
-height = unit(50, "cm")
+width_image = 30
+height_image = 30
+width = unit(20, "cm")
+height = unit(20, "cm")
 column_names_gp = gpar(fontsize = 10)
 row_names_gp = gpar(fontsize = 10)
 
@@ -15523,10 +15283,13 @@ heatmap_plot_all = Heatmap(mat,
                         heatmap_legend_param = list(direction = "vertical"),
                         name = "L2FC", #Legend
                         col = col_fun,
+                        column_names_rot = 45,
                         show_row_dend = F,
                         row_split = 2, #Split group clusters
                         show_row_names = F,
                         column_names_gp = column_names_gp,
+                        width = width,
+                        height = height,
                         row_names_gp = row_names_gp)
 
 ht_list = draw(heatmap_plot_all, 
@@ -20838,7 +20601,8 @@ write.csv(nodes, file = "Network_immune_notimmune_nodes.csv", row.names = F)
 #### 10.5.1.1. Genes shared by process
 ```{r}
 
-all_covid_vax_atlas =  readRDS(here("DGE analysis", "all_studies_degs_weighted.rds"))
+all_covid_vax_atlas =  readRDS(here("DGE analysis", "all_studies_degs_weighted.rds")) %>% 
+  filter(fdr <= 0.05)
 
 degs_all_updown_covid_vax_other = read_csv(here("VaxGO gene sets","degs_all_updown_covid_vax_other.csv")) %>% 
   select(-"...1")
@@ -20875,7 +20639,8 @@ immune_genes_covid = all_covid_vax_atlas  %>%
   inner_join(annotation_conditions %>% 
                select( condition),
              by = "condition") %>% 
-    select(condition1 = condition, genes)
+    select(condition1 = condition, genes) %>% 
+  distinct()
 
 immune_genes_covid_shared_process = immune_genes_covid %>% 
   rename(condition2 = condition1) %>% 
@@ -20920,6 +20685,17 @@ colors = ann_vaxsig_colors$Platform %>%
   inner_join(annotation_conditions %>% 
  dplyr::select(condition, type), by = "type") %>% 
   select(condition, color)
+
+col_immune = c("ADAPTIVE IMMUNE SYSTEM" = "#6817c5",
+          "COMPLEMENT" = "#2a9d8f",
+          "INNATE IMMUNE SYSTEM" = "#0099ff",
+          "GENERAL" = "#435804",
+          "ANTIMICROBIAL" = "#38b000",
+          
+          #General processes
+          "Immune system" = "black",
+          "Cellular" = "yellow",
+          "Metabolism" = "#DC0000FF")
 
 colors_grid = df_vaccines %>%
   rename(condition = Cond1) %>% 
@@ -21031,7 +20807,7 @@ selected_links_W7 = df_vaccines %>%
   select(Cond1, Cond2) %>% 
   inner_join(annotation_conditions %>% 
               select(Cond1 = condition, week) %>% 
-               filter(week == 7),
+               filter(week >= 7),
              by = "Cond1") %>% 
   select(Cond1) %>% 
   mutate(selected_Cond1 = Cond1) %>% 
@@ -21060,16 +20836,6 @@ df_W7 = df_vaccines_selected_W7 %>%
 
 Weeks 1-7
 ```{r fig.height=10, fig.width=10}
-col_immune = c("ADAPTIVE IMMUNE SYSTEM" = "#6817c5",
-          "COMPLEMENT" = "#2a9d8f",
-          "INNATE IMMUNE SYSTEM" = "#0099ff",
-          "GENERAL" = "#435804",
-          "ANTIMICROBIAL" = "#38b000",
-          
-          #General processes
-          "Immune system" = "black",
-          "Cellular" = "yellow",
-          "Metabolism" = "#DC0000FF")
 
 #Plot
 pdf(file = here("Figures","ChordDiagram_Covid19_AllCovid_By_Process_Weeks_Immune.pdf"), 
@@ -21175,13 +20941,13 @@ circos.track(
 title("Week 4")
 
 
-#Week 7
-chordDiagram(df_W7, 
-             grid.col = colors_grid, 
+#Week 8
+chordDiagram(df_W7,
+             grid.col = colors_grid,
              col = col_links,
-             # link.sort = TRUE, 
+             # link.sort = TRUE,
              # link.decreasing = TRUE,
-             annotationTrack = "grid", 
+             annotationTrack = "grid",
              scale = TRUE,
              directional = 0,
              big.gap = 3,
@@ -21204,1037 +20970,14 @@ circos.track(
       adj = c(0, 0.5),
       cex = 0.8, #Label size
       font = 0.1)},#Label face
-  bg.border = NA) 
-title("Week 7")
+  bg.border = NA)
+title("Week 8")
 
 dev.off()
 circos.clear()
 ```
 
 
-#### 10.5.1.3. By day
-```{r}
-
-# Days 1-2
-selected_links_D1 = df_vaccines %>% 
-  ungroup() %>% 
-  select(Cond1, Cond2) %>% 
-  inner_join(annotation_conditions %>% 
-              select(Cond1 = condition, day) %>% 
-               filter(day == c(1, 2)),
-             by = "Cond1") %>% 
-  select(Cond1) %>% 
-  mutate(selected_Cond1 = Cond1) %>% 
-  distinct()
-
-df_vaccines_selected_D1 = df_vaccines %>% 
-  left_join(selected_links_D1 %>% 
-              rename(Cond2 = Cond1,
-                     selected_Cond2 = selected_Cond1),
-             by = "Cond2") %>% 
-  left_join(selected_links_D1,
-             by = "Cond1") %>% 
-  mutate(selected_TF = if_else(!is.na(selected_Cond1), T, F),
-         Shared = if_else(!is.na(selected_Cond2), Shared, 0))
-
-selected_links_vector_D1 = df_vaccines_selected_D1 %>% 
-  pull(selected_TF)
-
-df_D1 = df_vaccines_selected_D1 %>% 
-  select(Cond1:Shared)
-
-
-# Days 3, 4, 5
-selected_links_D3 = df_vaccines %>% 
-  ungroup() %>% 
-  select(Cond1, Cond2) %>% 
-  inner_join(annotation_conditions %>% 
-              select(Cond1 = condition, day) %>% 
-               filter(day == c(3,4,5)),
-             by = "Cond1") %>% 
-  select(Cond1) %>% 
-  mutate(selected_Cond1 = Cond1) %>% 
-  distinct()
-
-df_vaccines_selected_D3 = df_vaccines %>% 
-  left_join(selected_links_D3 %>% 
-              rename(Cond2 = Cond1,
-                     selected_Cond2 = selected_Cond1),
-             by = "Cond2") %>% 
-  left_join(selected_links_D3,
-             by = "Cond1") %>% 
-  mutate(selected_TF = if_else(!is.na(selected_Cond1), T, F),
-         Shared = if_else(!is.na(selected_Cond2), Shared, 0))
-
-selected_links_vector_D3 = df_vaccines_selected_D3 %>% 
-  pull(selected_TF)
-
-df_D3 = df_vaccines_selected_D3 %>% 
-  select(Cond1:Shared)
-
-
-# Days 6-7
-selected_links_D6 = df_vaccines %>% 
-  ungroup() %>% 
-  select(Cond1, Cond2) %>% 
-  inner_join(annotation_conditions %>% 
-              select(Cond1 = condition, day) %>% 
-               filter(day == c(6,7)),
-             by = "Cond1") %>% 
-  select(Cond1) %>% 
-  mutate(selected_Cond1 = Cond1) %>% 
-  distinct()
-
-df_vaccines_selected_D6 = df_vaccines %>% 
-  left_join(selected_links_D6 %>% 
-              rename(Cond2 = Cond1,
-                     selected_Cond2 = selected_Cond1),
-             by = "Cond2") %>% 
-  left_join(selected_links_D6,
-             by = "Cond1") %>% 
-  mutate(selected_TF = if_else(!is.na(selected_Cond1), T, F),
-         Shared = if_else(!is.na(selected_Cond2), Shared, 0))
-
-selected_links_vector_D6 = df_vaccines_selected_D6 %>% 
-  pull(selected_TF)
-
-df_D6 = df_vaccines_selected_D6 %>% 
-  select(Cond1:Shared)
-
-
-```
-```{r}
-#Plot
-pdf(file = here("Figures","ChordDiagram_Covid19_AllCovid_By_Process_Days_Weeks_Immune_Other.pdf"),
-    width = 15, height = 10)
-
-par(mfrow = c(2, 3))
-#Days 1
-chordDiagram(df_D1, 
-             grid.col = colors_grid, 
-             col = col_links,
-             link.sort = TRUE,
-             link.decreasing = TRUE,
-             annotationTrack = "grid", 
-             directional = 0,
-             scale = TRUE,
-             big.gap = 3,
-             transparency = 0.3,
-             small.gap = 0.5,
-             h.ratio = 0.7,
-             link.visible = selected_links_vector_D1,
-             group = group_types,
-             preAllocateTracks = list(track.height = 0.5 * max(strwidth(unlist(unique(df_vaccines$Cond1)))))
-             )
-circos.track(
-  track.index = 1,
-  panel.fun = function(x, y) {
-    circos.text(
-      CELL_META$xcenter,
-      CELL_META$ylim[1],
-      CELL_META$sector.index,
-      facing = "clockwise",
-      niceFacing = TRUE,
-      adj = c(0, 0.5),
-      cex = 0.8, #Label size
-      font = 0.1)},#Label face
-  bg.border = NA) 
-title("Days 1-2")
-
-
-#Days 3-4-5
-chordDiagram(df_D3, 
-             grid.col = colors_grid, 
-             col = col_links,
-             link.sort = TRUE,
-             link.decreasing = TRUE,
-             scale = TRUE,
-             annotationTrack = "grid", 
-             directional = 0,
-             big.gap = 3,
-             transparency = 0,
-             small.gap = 0.5,
-             h.ratio = 0.7,
-             link.visible = selected_links_vector_D3,
-             group = group_types,
-             preAllocateTracks = list(track.height = 0.5 * max(strwidth(unlist(unique(df_vaccines$Cond1)))))
-             )
-circos.track(
-  track.index = 1,
-  panel.fun = function(x, y) {
-    circos.text(
-      CELL_META$xcenter,
-      CELL_META$ylim[1],
-      CELL_META$sector.index,
-      facing = "clockwise",
-      niceFacing = TRUE,
-      adj = c(0, 0.5),
-      cex = 0.8, #Label size
-      font = 0.1)},#Label face
-  bg.border = NA) 
-title("Days 3-4-5")
-
-#Days 6-7
-chordDiagram(df_D6, 
-             grid.col = colors_grid, 
-             col = col_links,
-             link.sort = TRUE,
-             link.decreasing = TRUE,
-             scale = TRUE,
-             annotationTrack = "grid", 
-             directional = 0,
-             big.gap = 3,
-             transparency = 0,
-             small.gap = 0.5,
-             h.ratio = 0.7,
-             link.visible = selected_links_vector_D6,
-             group = group_types,
-             preAllocateTracks = list(track.height = 0.5 * max(strwidth(unlist(unique(df_vaccines$Cond1)))))
-             )
-circos.track(
-  track.index = 1,
-  panel.fun = function(x, y) {
-    circos.text(
-      CELL_META$xcenter,
-      CELL_META$ylim[1],
-      CELL_META$sector.index,
-      facing = "clockwise",
-      niceFacing = TRUE,
-      adj = c(0, 0.5),
-      cex = 0.8, #Label size
-      font = 0.1)},#Label face
-  bg.border = NA) 
-title("Days 6-7")
-
-
-#Week 2
-chordDiagram(df_W2, 
-             grid.col = colors_grid, 
-             col = col_links,
-             link.sort = TRUE,
-             link.decreasing = TRUE,
-             scale = TRUE,
-             annotationTrack = "grid", 
-             directional = 0,
-             big.gap = 3,
-             transparency = 0,
-             small.gap = 0.5,
-             h.ratio = 0.7,
-             link.visible = selected_links_vector_W2,
-             group = group_types,
-             preAllocateTracks = list(track.height = 0.5 * max(strwidth(unlist(unique(df_vaccines$Cond1)))))
-             )
-circos.track(
-  track.index = 1,
-  panel.fun = function(x, y) {
-    circos.text(
-      CELL_META$xcenter,
-      CELL_META$ylim[1],
-      CELL_META$sector.index,
-      facing = "clockwise",
-      niceFacing = TRUE,
-      adj = c(0, 0.5),
-      cex = 0.8, #Label size
-      font = 0.1)},#Label face
-  bg.border = NA) 
-title("Week 2")
-
-#Week 4
-chordDiagram(df_W4, 
-             grid.col = colors_grid, 
-             col = col_links,
-             link.sort = TRUE,
-             link.decreasing = TRUE,
-             scale = TRUE,
-             annotationTrack = "grid", 
-             directional = 0,
-             big.gap = 3,
-             transparency = 0,
-             small.gap = 0.5,
-             h.ratio = 0.7,
-             link.visible = selected_links_vector_W4,
-             group = group_types,
-             preAllocateTracks = list(track.height = 0.5 * max(strwidth(unlist(unique(df_vaccines$Cond1)))))
-             )
-circos.track(
-  track.index = 1,
-  panel.fun = function(x, y) {
-    circos.text(
-      CELL_META$xcenter,
-      CELL_META$ylim[1],
-      CELL_META$sector.index,
-      facing = "clockwise",
-      niceFacing = TRUE,
-      adj = c(0, 0.5),
-      cex = 0.8, #Label size
-      font = 0.1)},#Label face
-  bg.border = NA) 
-title("Week 4")
-
-
-#Week 7
-chordDiagram(df_W7, 
-             grid.col = colors_grid, 
-             col = col_links,
-             # link.sort = TRUE, 
-             # link.decreasing = TRUE,
-             annotationTrack = "grid", 
-             scale = TRUE,
-             directional = 0,
-             big.gap = 3,
-             transparency = 0,
-             small.gap = 0.5,
-             h.ratio = 0.7,
-             link.visible = selected_links_vector_W7,
-             group = group_types,
-             preAllocateTracks = list(track.height = 0.5 * max(strwidth(unlist(unique(df_vaccines$Cond1)))))
-             )
-circos.track(
-  track.index = 1,
-  panel.fun = function(x, y) {
-    circos.text(
-      CELL_META$xcenter,
-      CELL_META$ylim[1],
-      CELL_META$sector.index,
-      facing = "clockwise",
-      niceFacing = TRUE,
-      adj = c(0, 0.5),
-      cex = 0.8, #Label size
-      font = 0.1)},#Label face
-  bg.border = NA) 
-title("Week 7")
-
-dev.off()
-circos.clear()
-```
-
-### 10.5.2. COVID-19 - Vaccine only 
-
-#### 10.5.2.1. Genes shared by process
-```{r}
-
-all_covid_vax_atlas =  read_csv(here("Example","all_degs_p_05_vac_infected_19_12_23.csv"))
-degs_all_updown_covid_vax_other = read_csv("Example/degs_all_updown_covid_vax_other.csv") %>% 
-  select(-"...1")
-ann_vaccines_vaxsig_covid <- read_csv("Example/ann_vaccines_vaxsig_covid.csv")
-
-annotation_conditions = read_csv(here("Example", "ann_vaccines_conditions.csv"), 
-    col_types = cols(...1 = col_skip())) %>% 
-  filter(disease_vac == "V")
-
-OtherGOs_Annotated_Genes <- read_csv("Tables/OtherGOs_Annotated_Genes.csv") %>% 
-  select(process = term, genes = symbol) %>% 
-  filter(process %in% c("Cellular",
-                        "Immune system",
-                        "Metabolism"))
-
-ImmuneGO_genes_selected = OtherGOs_Annotated_Genes
-
-
-ImmuneGO_genes_selected = ImmuneGO_Annotated_GO %>%
-  filter(go_term == "Manual",
-         process %in% c("ADAPTIVE IMMUNE SYSTEM",
-                        "INNATE IMMUNE SYSTEM",
-                        "ANTIMICROBIAL",
-                        "GENERAL",
-                        "COMPLEMENT")) %>%
-  separate_rows(genes,sep = ",") %>%
-  bind_rows(ImmuneGO_genes_selected) %>% 
-  filter(process != "Immune system")
-
-
-immune_genes_covid = all_covid_vax_atlas  %>% 
-  inner_join(ImmuneGO_genes_selected %>% 
-               select(genes), by = "genes") %>% 
-  inner_join(annotation_conditions %>% 
-               select( condition),
-             by = "condition") %>% 
-    select(condition1 = condition, genes)
-
-immune_genes_covid_shared_process = immune_genes_covid %>% 
-  rename(condition2 = condition1) %>% 
-  inner_join(immune_genes_covid %>% 
-               select(condition1, genes), by = "genes") %>% 
-    filter(condition1 != condition2) %>% 
-  inner_join(ImmuneGO_genes_selected %>% 
-               select(genes, process), by = "genes") %>% 
-  distinct() %>% 
-  group_by(condition1, condition2, process) %>% 
-  summarise(n = n())
-
-```
-
-```{r}
-col_immune = c("ADAPTIVE IMMUNE SYSTEM" = "#6817c5",
-          "COMPLEMENT" = "#2a9d8f",
-          "INNATE IMMUNE SYSTEM" = "#0099ff",
-          "GENERAL" = "#435804",
-          "ANTIMICROBIAL" = "#38b000",
-          
-          #General processes
-          "Immune system" = "#0099ff",
-          "Cellular" = "#6817c5",
-          "Metabolism" = "#DC0000FF")
-
-```
-
-
-```{r}
-df_vaccines <- immune_genes_covid_shared_process %>% 
-  dplyr::select(Cond1 = condition1, 
-                Cond2 = condition2, 
-                Shared = n, 
-                process) %>% 
-  mutate(Shared = Shared*100)
-
-group_types = annotation_conditions %>% 
-  dplyr::select(Cond1 = condition, type) %>% 
-  inner_join(df_vaccines,
-             by = "Cond1") %>% 
-  dplyr::select(Cond1, type) %>% 
-  distinct() %>% 
-  pull(type, Cond1)
-
-types = df_vaccines %>% 
-  dplyr::select(condition = Cond1) %>% 
-  distinct() %>% 
-  inner_join(annotation_conditions %>% 
- dplyr::select(condition, type), by = "condition") %>% 
-  dplyr::select(type)
-
-colors = ann_vaxsig_colors$Platform %>%
-  as.data.frame() %>%
-  rownames_to_column("type") %>%
-  rename(color = ".") %>% 
-  inner_join(annotation_conditions %>% 
- dplyr::select(condition, type), by = "type") %>% 
-  select(condition, color)
-
-colors_grid = df_vaccines %>%
-  rename(condition = Cond1) %>% 
- inner_join(colors, by = "condition") %>% 
- pull(color, condition)
-
-col_links = df_vaccines %>% 
-  inner_join(col_immune %>% 
-  as.data.frame() %>% 
-  rownames_to_column("process") %>% 
-  rename("color" = "."), by = "process") %>% 
-  pull(color)
-
-###### Select links
-
-# Week 1
-
-selected_links_W1 = df_vaccines %>% 
-  ungroup() %>% 
-  select(Cond1, Cond2) %>% 
-  inner_join(annotation_conditions %>% 
-              select(Cond1 = condition, week) %>% 
-               filter(week == 1),
-             by = "Cond1") %>% 
-  select(Cond1) %>% 
-  mutate(selected_Cond1 = Cond1) %>% 
-  distinct()
-
-df_vaccines_selected_W1 = df_vaccines %>% 
-  left_join(selected_links_W1 %>% 
-              rename(Cond2 = Cond1,
-                     selected_Cond2 = selected_Cond1),
-             by = "Cond2") %>% 
-  left_join(selected_links_W1,
-             by = "Cond1") %>% 
-  mutate(selected_TF = if_else(!is.na(selected_Cond1), T, F),
-         Shared = if_else(!is.na(selected_Cond2), Shared, 0))
-
-selected_links_vector_W1 = df_vaccines_selected_W1 %>% 
-  pull(selected_TF)
-
-df_W1 = df_vaccines_selected_W1 %>% 
-  select(Cond1:Shared)
-
-# Week 2
-
-selected_links_W2 = df_vaccines %>% 
-  ungroup() %>% 
-  select(Cond1, Cond2) %>% 
-  inner_join(annotation_conditions %>% 
-              select(Cond1 = condition, week) %>% 
-               filter(week == 2),
-             by = "Cond1") %>% 
-  select(Cond1) %>% 
-  mutate(selected_Cond1 = Cond1) %>% 
-  distinct()
-
-df_vaccines_selected_W2 = df_vaccines %>% 
-  left_join(selected_links_W2 %>% 
-              rename(Cond2 = Cond1,
-                     selected_Cond2 = selected_Cond1),
-             by = "Cond2") %>% 
-  left_join(selected_links_W2,
-             by = "Cond1") %>% 
-  mutate(selected_TF = if_else(!is.na(selected_Cond1), T, F),
-         Shared = if_else(!is.na(selected_Cond2), Shared, 0))
-
-selected_links_vector_W2 = df_vaccines_selected_W2 %>% 
-  pull(selected_TF)
-
-df_W2 = df_vaccines_selected_W2 %>% 
-  select(Cond1:Shared)
-
-# Week 4
-
-selected_links_W4 = df_vaccines %>% 
-  ungroup() %>% 
-  select(Cond1, Cond2) %>% 
-  inner_join(annotation_conditions %>% 
-              select(Cond1 = condition, week) %>% 
-               filter(week == 4),
-             by = "Cond1") %>% 
-  select(Cond1) %>% 
-  mutate(selected_Cond1 = Cond1) %>% 
-  distinct()
-
-df_vaccines_selected_W4 = df_vaccines %>% 
-  left_join(selected_links_W4 %>% 
-              rename(Cond2 = Cond1,
-                     selected_Cond2 = selected_Cond1),
-             by = "Cond2") %>% 
-  left_join(selected_links_W4,
-             by = "Cond1") %>% 
-  mutate(selected_TF = if_else(!is.na(selected_Cond1), T, F),
-         Shared = if_else(!is.na(selected_Cond2), Shared, 0))
-
-selected_links_vector_W4 = df_vaccines_selected_W4 %>% 
-  pull(selected_TF)
-
-df_W4 = df_vaccines_selected_W4 %>% 
-  select(Cond1:Shared)
-
-# Week 7
-
-selected_links_W7 = df_vaccines %>% 
-  ungroup() %>% 
-  select(Cond1, Cond2) %>% 
-  inner_join(annotation_conditions %>% 
-              select(Cond1 = condition, week) %>% 
-               filter(week == 7),
-             by = "Cond1") %>% 
-  select(Cond1) %>% 
-  mutate(selected_Cond1 = Cond1) %>% 
-  distinct()
-
-df_vaccines_selected_W7 = df_vaccines %>% 
-  left_join(selected_links_W7 %>% 
-              rename(Cond2 = Cond1,
-                     selected_Cond2 = selected_Cond1),
-             by = "Cond2") %>% 
-  left_join(selected_links_W7,
-             by = "Cond1") %>% 
-  mutate(selected_TF = if_else(!is.na(selected_Cond1), T, F),
-         Shared = if_else(!is.na(selected_Cond2), Shared, 0))
-
-selected_links_vector_W7 = df_vaccines_selected_W7 %>% 
-  pull(selected_TF)
-
-df_W7 = df_vaccines_selected_W7 %>% 
-  select(Cond1:Shared)
-```
-
-
-#### 10.5.2.2. By week
-
-
-Weeks 1-7
-```{r fig.height=10, fig.width=10}
-
-
-#Plot
-pdf(file = here("Figures","ChordDiagram_Covid19_AllCovid_By_Process_Weeks_Immune_VACCINESONLY.pdf"), 
-    width = 15, 
-    height = 5)
-
-par(mfrow = c(1, 3))
-#Week 1
-chordDiagram(df_W1, 
-             grid.col = colors_grid, 
-             col = col_links,
-             link.sort = TRUE,
-             link.decreasing = TRUE,
-             annotationTrack = "grid", 
-             directional = 0,
-             scale = TRUE,
-             big.gap = 3,
-             transparency = 0.3,
-             small.gap = 0.5,
-             h.ratio = 0.7,
-             link.visible = selected_links_vector_W1,
-             group = group_types,
-             preAllocateTracks = list(track.height = 0.5 * max(strwidth(unlist(unique(df_vaccines$Cond1)))))
-             )
-circos.track(
-  track.index = 1,
-  panel.fun = function(x, y) {
-    circos.text(
-      CELL_META$xcenter,
-      CELL_META$ylim[1],
-      CELL_META$sector.index,
-      facing = "clockwise",
-      niceFacing = TRUE,
-      adj = c(0, 0.5),
-      cex = 0.8, #Label size
-      font = 0.1)},#Label face
-  bg.border = NA) 
-title("Week 1")
-
-
-#Week 2
-chordDiagram(df_W2, 
-             grid.col = colors_grid, 
-             col = col_links,
-             link.sort = TRUE,
-             link.decreasing = TRUE,
-             scale = TRUE,
-             annotationTrack = "grid", 
-             directional = 0,
-             big.gap = 3,
-             transparency = 0,
-             small.gap = 0.5,
-             h.ratio = 0.7,
-             link.visible = selected_links_vector_W2,
-             group = group_types,
-             preAllocateTracks = list(track.height = 0.5 * max(strwidth(unlist(unique(df_vaccines$Cond1)))))
-             )
-circos.track(
-  track.index = 1,
-  panel.fun = function(x, y) {
-    circos.text(
-      CELL_META$xcenter,
-      CELL_META$ylim[1],
-      CELL_META$sector.index,
-      facing = "clockwise",
-      niceFacing = TRUE,
-      adj = c(0, 0.5),
-      cex = 0.8, #Label size
-      font = 0.1)},#Label face
-  bg.border = NA) 
-title("Week 2")
-
-#Week 4
-chordDiagram(df_W4, 
-             grid.col = colors_grid, 
-             col = col_links,
-             link.sort = TRUE,
-             link.decreasing = TRUE,
-             scale = TRUE,
-             annotationTrack = "grid", 
-             directional = 0,
-             big.gap = 3,
-             transparency = 0,
-             small.gap = 0.5,
-             h.ratio = 0.7,
-             link.visible = selected_links_vector_W4,
-             group = group_types,
-             preAllocateTracks = list(track.height = 0.5 * max(strwidth(unlist(unique(df_vaccines$Cond1)))))
-             )
-circos.track(
-  track.index = 1,
-  panel.fun = function(x, y) {
-    circos.text(
-      CELL_META$xcenter,
-      CELL_META$ylim[1],
-      CELL_META$sector.index,
-      facing = "clockwise",
-      niceFacing = TRUE,
-      adj = c(0, 0.5),
-      cex = 0.8, #Label size
-      font = 0.1)},#Label face
-  bg.border = NA) 
-title("Week 4")
-
-dev.off()
-circos.clear()
-```
-
-### 10.5.3. COVID-19 - Infection only 
-
-#### 10.5.3.1. Genes shared by process
-```{r}
-
-all_covid_vax_atlas =  read_csv(here("Example","all_degs_p_05_vac_infected_19_12_23.csv"))
-degs_all_updown_covid_vax_other = read_csv("Example/degs_all_updown_covid_vax_other.csv") %>% 
-  select(-"...1")
-ann_vaccines_vaxsig_covid <- read_csv("Example/ann_vaccines_vaxsig_covid.csv")
-
-annotation_conditions = read_csv(here("Example", "ann_vaccines_conditions.csv"), 
-    col_types = cols(...1 = col_skip())) %>% 
-  filter(disease_vac == "I")
-
-OtherGOs_Annotated_Genes <- read_csv("Tables/OtherGOs_Annotated_Genes.csv") %>% 
-  select(process = term, genes = symbol) %>% 
-  filter(process %in% c("Cellular",
-                        "Immune system",
-                        "Metabolism"))
-
-ImmuneGO_genes_selected = OtherGOs_Annotated_Genes
-
-
-ImmuneGO_genes_selected = ImmuneGO_Annotated_GO %>%
-  filter(go_term == "Manual",
-         process %in% c("ADAPTIVE IMMUNE SYSTEM",
-                        "INNATE IMMUNE SYSTEM",
-                        "ANTIMICROBIAL",
-                        "GENERAL",
-                        "COMPLEMENT")) %>%
-  separate_rows(genes,sep = ",") %>%
-  bind_rows(ImmuneGO_genes_selected) %>% 
-  filter(process != "Immune system")
-
-
-immune_genes_covid = all_covid_vax_atlas  %>% 
-  inner_join(ImmuneGO_genes_selected %>% 
-               select(genes), by = "genes") %>% 
-  inner_join(annotation_conditions %>% 
-               select( condition),
-             by = "condition") %>% 
-    select(condition1 = condition, genes)
-
-immune_genes_covid_shared_process = immune_genes_covid %>% 
-  rename(condition2 = condition1) %>% 
-  inner_join(immune_genes_covid %>% 
-               select(condition1, genes), by = "genes") %>% 
-    filter(condition1 != condition2) %>% 
-  inner_join(ImmuneGO_genes_selected %>% 
-               select(genes, process), by = "genes") %>% 
-  distinct() %>% 
-  group_by(condition1, condition2, process) %>% 
-  summarise(n = n())
-
-```
-
-```{r}
-col_immune = c("ADAPTIVE IMMUNE SYSTEM" = "#6817c5",
-          "COMPLEMENT" = "#2a9d8f",
-          "INNATE IMMUNE SYSTEM" = "#0099ff",
-          "GENERAL" = "#435804",
-          "ANTIMICROBIAL" = "#38b000",
-          
-          #General processes
-          "Immune system" = "#0099ff",
-          "Cellular" = "#6817c5",
-          "Metabolism" = "#DC0000FF")
-
-```
-
-
-```{r}
-df_vaccines <- immune_genes_covid_shared_process %>% 
-  dplyr::select(Cond1 = condition1, 
-                Cond2 = condition2, 
-                Shared = n, 
-                process)
-
-group_types = annotation_conditions %>% 
-  dplyr::select(Cond1 = condition, type) %>% 
-  inner_join(df_vaccines,
-             by = "Cond1") %>% 
-  dplyr::select(Cond1, type) %>% 
-  distinct() %>% 
-  pull(type, Cond1)
-
-types = df_vaccines %>% 
-  dplyr::select(condition = Cond1) %>% 
-  distinct() %>% 
-  inner_join(annotation_conditions %>% 
- dplyr::select(condition, type), by = "condition") %>% 
-  dplyr::select(type)
-
-colors = ann_vaxsig_colors$Platform %>%
-  as.data.frame() %>%
-  rownames_to_column("type") %>%
-  rename(color = ".") %>% 
-  inner_join(annotation_conditions %>% 
- dplyr::select(condition, type), by = "type") %>% 
-  select(condition, color)
-
-colors_grid = df_vaccines %>%
-  rename(condition = Cond1) %>% 
- inner_join(colors, by = "condition") %>% 
- pull(color, condition)
-
-col_links = df_vaccines %>% 
-  inner_join(col_immune %>% 
-  as.data.frame() %>% 
-  rownames_to_column("process") %>% 
-  rename("color" = "."), by = "process") %>% 
-  pull(color)
-
-###### Select links
-
-# Week 1
-
-selected_links_W1 = df_vaccines %>% 
-  ungroup() %>% 
-  select(Cond1, Cond2) %>% 
-  inner_join(annotation_conditions %>% 
-              select(Cond1 = condition, week) %>% 
-               filter(week == 1),
-             by = "Cond1") %>% 
-  select(Cond1) %>% 
-  mutate(selected_Cond1 = Cond1) %>% 
-  distinct()
-
-df_vaccines_selected_W1 = df_vaccines %>% 
-  left_join(selected_links_W1 %>% 
-              rename(Cond2 = Cond1,
-                     selected_Cond2 = selected_Cond1),
-             by = "Cond2") %>% 
-  left_join(selected_links_W1,
-             by = "Cond1") %>% 
-  mutate(selected_TF = if_else(!is.na(selected_Cond1), T, F),
-         Shared = if_else(!is.na(selected_Cond2), Shared, 0))
-
-selected_links_vector_W1 = df_vaccines_selected_W1 %>% 
-  pull(selected_TF)
-
-df_W1 = df_vaccines_selected_W1 %>% 
-  select(Cond1:Shared)
-
-# Week 2
-
-selected_links_W2 = df_vaccines %>% 
-  ungroup() %>% 
-  select(Cond1, Cond2) %>% 
-  inner_join(annotation_conditions %>% 
-              select(Cond1 = condition, week) %>% 
-               filter(week == 2),
-             by = "Cond1") %>% 
-  select(Cond1) %>% 
-  mutate(selected_Cond1 = Cond1) %>% 
-  distinct()
-
-df_vaccines_selected_W2 = df_vaccines %>% 
-  left_join(selected_links_W2 %>% 
-              rename(Cond2 = Cond1,
-                     selected_Cond2 = selected_Cond1),
-             by = "Cond2") %>% 
-  left_join(selected_links_W2,
-             by = "Cond1") %>% 
-  mutate(selected_TF = if_else(!is.na(selected_Cond1), T, F),
-         Shared = if_else(!is.na(selected_Cond2), Shared, 0))
-
-selected_links_vector_W2 = df_vaccines_selected_W2 %>% 
-  pull(selected_TF)
-
-df_W2 = df_vaccines_selected_W2 %>% 
-  select(Cond1:Shared)
-
-# Week 4
-
-selected_links_W4 = df_vaccines %>% 
-  ungroup() %>% 
-  select(Cond1, Cond2) %>% 
-  inner_join(annotation_conditions %>% 
-              select(Cond1 = condition, week) %>% 
-               filter(week == 4),
-             by = "Cond1") %>% 
-  select(Cond1) %>% 
-  mutate(selected_Cond1 = Cond1) %>% 
-  distinct()
-
-df_vaccines_selected_W4 = df_vaccines %>% 
-  left_join(selected_links_W4 %>% 
-              rename(Cond2 = Cond1,
-                     selected_Cond2 = selected_Cond1),
-             by = "Cond2") %>% 
-  left_join(selected_links_W4,
-             by = "Cond1") %>% 
-  mutate(selected_TF = if_else(!is.na(selected_Cond1), T, F),
-         Shared = if_else(!is.na(selected_Cond2), Shared, 0))
-
-selected_links_vector_W4 = df_vaccines_selected_W4 %>% 
-  pull(selected_TF)
-
-df_W4 = df_vaccines_selected_W4 %>% 
-  select(Cond1:Shared)
-
-# Week 7
-
-selected_links_W7 = df_vaccines %>% 
-  ungroup() %>% 
-  select(Cond1, Cond2) %>% 
-  inner_join(annotation_conditions %>% 
-              select(Cond1 = condition, week) %>% 
-               filter(week == 7),
-             by = "Cond1") %>% 
-  select(Cond1) %>% 
-  mutate(selected_Cond1 = Cond1) %>% 
-  distinct()
-
-df_vaccines_selected_W7 = df_vaccines %>% 
-  left_join(selected_links_W7 %>% 
-              rename(Cond2 = Cond1,
-                     selected_Cond2 = selected_Cond1),
-             by = "Cond2") %>% 
-  left_join(selected_links_W7,
-             by = "Cond1") %>% 
-  mutate(selected_TF = if_else(!is.na(selected_Cond1), T, F),
-         Shared = if_else(!is.na(selected_Cond2), Shared, 0))
-
-selected_links_vector_W7 = df_vaccines_selected_W7 %>% 
-  pull(selected_TF)
-
-df_W7 = df_vaccines_selected_W7 %>% 
-  select(Cond1:Shared)
-```
-
-
-#### 10.5.3.2. By week
-
-
-Weeks 1-7
-```{r fig.height=10, fig.width=10}
-
-
-#Plot
-pdf(file = here("Figures","ChordDiagram_Covid19_AllCovid_By_Process_Weeks_Immune_INFECTINOONLY.pdf"), 
-    width = 20, 
-    height = 5)
-
-par(mfrow = c(1, 4))
-#Week 1
-chordDiagram(df_W1, 
-             grid.col = colors_grid, 
-             col = col_links,
-             link.sort = TRUE,
-             link.decreasing = TRUE,
-             annotationTrack = "grid", 
-             directional = 0,
-             scale = TRUE,
-             big.gap = 3,
-             transparency = 0.3,
-             small.gap = 0.5,
-             h.ratio = 0.7,
-             link.visible = selected_links_vector_W1,
-             group = group_types,
-             preAllocateTracks = list(track.height = 0.5 * max(strwidth(unlist(unique(df_vaccines$Cond1)))))
-             )
-circos.track(
-  track.index = 1,
-  panel.fun = function(x, y) {
-    circos.text(
-      CELL_META$xcenter,
-      CELL_META$ylim[1],
-      CELL_META$sector.index,
-      facing = "clockwise",
-      niceFacing = TRUE,
-      adj = c(0, 0.5),
-      cex = 0.8, #Label size
-      font = 0.1)},#Label face
-  bg.border = NA) 
-title("Week 1")
-
-
-#Week 2
-chordDiagram(df_W2, 
-             grid.col = colors_grid, 
-             col = col_links,
-             link.sort = TRUE,
-             link.decreasing = TRUE,
-             scale = TRUE,
-             annotationTrack = "grid", 
-             directional = 0,
-             big.gap = 3,
-             transparency = 0,
-             small.gap = 0.5,
-             h.ratio = 0.7,
-             link.visible = selected_links_vector_W2,
-             group = group_types,
-             preAllocateTracks = list(track.height = 0.5 * max(strwidth(unlist(unique(df_vaccines$Cond1)))))
-             )
-circos.track(
-  track.index = 1,
-  panel.fun = function(x, y) {
-    circos.text(
-      CELL_META$xcenter,
-      CELL_META$ylim[1],
-      CELL_META$sector.index,
-      facing = "clockwise",
-      niceFacing = TRUE,
-      adj = c(0, 0.5),
-      cex = 0.8, #Label size
-      font = 0.1)},#Label face
-  bg.border = NA) 
-title("Week 2")
-
-#Week 4
-chordDiagram(df_W4, 
-             grid.col = colors_grid, 
-             col = col_links,
-             link.sort = TRUE,
-             link.decreasing = TRUE,
-             scale = TRUE,
-             annotationTrack = "grid", 
-             directional = 0,
-             big.gap = 3,
-             transparency = 0,
-             small.gap = 0.5,
-             h.ratio = 0.7,
-             link.visible = selected_links_vector_W4,
-             group = group_types,
-             preAllocateTracks = list(track.height = 0.5 * max(strwidth(unlist(unique(df_vaccines$Cond1)))))
-             )
-circos.track(
-  track.index = 1,
-  panel.fun = function(x, y) {
-    circos.text(
-      CELL_META$xcenter,
-      CELL_META$ylim[1],
-      CELL_META$sector.index,
-      facing = "clockwise",
-      niceFacing = TRUE,
-      adj = c(0, 0.5),
-      cex = 0.8, #Label size
-      font = 0.1)},#Label face
-  bg.border = NA) 
-title("Week 4")
-
-
-#Week 7
-chordDiagram(df_W7, 
-             grid.col = colors_grid, 
-             col = col_links,
-             link.sort = TRUE,
-             link.decreasing = TRUE,
-             scale = TRUE,
-             annotationTrack = "grid", 
-             directional = 0,
-             big.gap = 3,
-             transparency = 0,
-             small.gap = 0.5,
-             h.ratio = 0.7,
-             link.visible = selected_links_vector_W7,
-             group = group_types,
-             preAllocateTracks = list(track.height = 0.5 * max(strwidth(unlist(unique(df_vaccines$Cond1)))))
-             )
-circos.track(
-  track.index = 1,
-  panel.fun = function(x, y) {
-    circos.text(
-      CELL_META$xcenter,
-      CELL_META$ylim[1],
-      CELL_META$sector.index,
-      facing = "clockwise",
-      niceFacing = TRUE,
-      adj = c(0, 0.5),
-      cex = 0.8, #Label size
-      font = 0.1)},#Label face
-  bg.border = NA) 
-title("Week 7")
-
-dev.off()
-circos.clear()
-```
 
 ### 10.5.4. COVID-19 VS OTHER 
 
@@ -22930,14 +21673,644 @@ write_tsv(nodes, file = paste0(filename, "Network_Covid_Other_sharedgenes_nodes.
 
 
 
+#13 Vax Atlas
+```{r}
+IS2_FDR05_genes <- readRDS(here("13VaxAtlas", "IS2_FDR05_genes.rds"))
+
+hagan_vaxatlas = IS2_FDR05_genes %>% 
+  clean_names() %>% 
+  rename(day = time_post_last_vax,
+         genes = gene, type = vaccine_type, 
+         wavg_fc = weighted_avg_fc,
+         vaccine = pvt) %>% 
+  mutate(day = if_else(day <= 1, 1, day),
+         week = ceiling(day / 7),
+         day_f = as_factor(day),
+         day_f = fct_reorder(day_f, day),
+         day = day_f,
+         type = case_when(type == "LV" ~ "LA",
+                          type == "IN/RP" ~ "IN/SU",
+                          type == "RP" ~ "SU",
+                          type == "CJ" ~"CONJ",
+                          type == "RVV" ~ "VV",
+                          .default = type),
+         log2fold_change = if_else(wavg_fc < 0, 
+                          abs(wavg_fc) %>% log2(), 
+                          log2(wavg_fc)),
+         direction = case_when(log2fold_change >=1 ~ "UP",
+                               log2fold_change <= -1 ~"DOWN",
+                               .default = "NEUTRAL"),
+         condition = paste0(pathogen,"/", type, " (D", day, ")"))
+
+hagan_vaxatlas$condition %>% unique()
+
+
+hagan_vaxatlas_annotation = hagan_vaxatlas %>% 
+  select(day, pathogen, type, condition, vaccine, week) %>% 
+  mutate(set = "13Vax Atlas") %>% 
+  distinct()
+
+```
+
+
+
+## Overlapping genes
+
+```{r}
+# DEGs table
+
+all_degs_p_05_vac_infected = readRDS(here("DGE analysis", "all_studies_degs_weighted.rds")) %>% 
+  filter(fdr <= 0.05)
+
+degs_all_updown = all_degs_p_05_vac_infected
+
+hagan_vaxatlas 
+
+ann_vaccines = read_csv(here("Annotations and metadata", "ann_vaccines_conditions.csv"))
+
+# Annotation ------
+immunego = ImmuneGO_Annotated_Genes # ImmuneGO Annotation
+
+filename = "All_covid_13Vax"
+
+degs_covid = degs_all_updown %>% 
+  select(condition, genes, log2fold_change)
+
+degs_hagan = hagan_vaxatlas %>%
+  filter(fdr <= 0.05) %>% 
+  select(condition, genes, log2fold_change)
+
+
+degs_covid_vax = degs_covid %>% 
+  bind_rows(degs_hagan) %>% 
+  inner_join(ImmuneGO_Annotated_Genes %>%
+               select(genes) %>%
+               distinct(), 
+             by = "genes")
+
+degs_covid_vax %>% 
+  saveRDS(file = here("VaxGO gene sets", "degs_covid_vaxhagan_immune.rds"))
+
+
+#Input
+data = degs_covid_vax %>% 
+  rename(process = condition) %>% 
+  select(process, genes)
+  
+```
+
+Function for overlapping
+```{r}
+
+# Function for overlapping -------
+overlap_genes <- function(cond1, cond2, data) {
+  genes_cond1 <- data$genes[data$process == cond1]
+  genes_cond2 <- data$genes[data$process == cond2]
+  
+  genes_shared <- intersect(genes_cond1, genes_cond2)
+  
+  genes_notshared_cond1 <- setdiff(genes_cond1, genes_cond2)
+  genes_notshared_cond2 <- setdiff(genes_cond2, genes_cond1)
+  
+  total_genes_cond1 <- length(genes_cond1)
+  total_genes_cond2 <- length(genes_cond2)
+  
+  percentage_shared_cond1 <- length(genes_shared) / total_genes_cond1 * 100
+  percentage_shared_cond2 <- length(genes_shared) / total_genes_cond2 * 100
+  
+  shared_genes <- data.frame(
+    Cond1 = cond1,
+    Cond2 = cond2,
+    Shared = length(genes_shared),
+    NotShared_cond1 = length(genes_notshared_cond1),
+    NotShared_cond2 = length(genes_notshared_cond2),
+    Total_Genes_Cond1 = total_genes_cond1,
+    Total_Genes_Cond2 = total_genes_cond2,
+    Genes_Names = paste(genes_shared, collapse = ", "),
+    Percentage_Shared_Cond1 = percentage_shared_cond1,
+    Percentage_Shared_Cond2 = percentage_shared_cond2
+  )
+  
+  return(shared_genes)
+}
+conflicted::conflicts_prefer(base::intersect)
+conflicted::conflicts_prefer(base::setdiff)
+conflicted::conflicts_prefer(janitor::fisher.test)
+```
+
+Perform calculations
+```{r}
+# Perform calculations
+unique_cond <- unique(data$process) # List sets
+shared_genes_df <- data.frame() # Store data
+
+for (i in 1:(length(unique_cond) - 1)) {
+  for (j in (i + 1):length(unique_cond)) {
+    resultado_temp <- overlap_genes(unique_cond[i], unique_cond[j], data)
+    shared_genes_df <- bind_rows(shared_genes_df, resultado_temp)
+  }
+}
+
+# Fisher's exact test
+fisher_exact_test <- function(shared, notshared1, notshared2) {
+  cont_table <- matrix(c(shared, notshared1, notshared2, 0), nrow = 2)
+  results_fisher <- fisher.test(cont_table)
+  return(results_fisher$p.value)
+}
+shared_genes_df = shared_genes_df %>%
+  mutate(pvalue = pmap_dbl(list(Shared, NotShared_cond1, NotShared_cond2), fisher_exact_test)) %>% 
+  mutate("-log(p)" = -log10(pvalue),
+         padj = p.adjust(pvalue))
+
+
+#Mirror table
+shared_genes_df2 = shared_genes_df %>% 
+  rename(Cond1_temp = Cond1, Cond2_temp = Cond2) %>%
+  rename(Cond1 = Cond2_temp, Cond2 = Cond1_temp)
+
+shared_genes_df_mirror = shared_genes_df %>% 
+  bind_rows(shared_genes_df2) %>% 
+  mutate(Percentage_Shared_Cond1 = round(Percentage_Shared_Cond1, 2),
+         Percentage_Shared_Cond2 = round(Percentage_Shared_Cond2, 2))
+  
+#Jaccard distance
+jaccard.matrix <- data %>%
+  mutate(present = 1) %>% 
+  distinct() %>% 
+  pivot_wider(names_from = genes, values_from = present, values_fill = 0) %>%
+  column_to_rownames(var = "process") %>%
+  vegdist(binary = TRUE, method = "jaccard", diag = TRUE, upper = TRUE) %>%
+  as.matrix() %>%
+  {1 - .}
+
+shared_genes_df_mirror = jaccard.matrix %>% 
+  as.data.frame() %>% 
+  rownames_to_column("Cond1") %>% 
+  pivot_longer(cols = -"Cond1",
+               names_to = "Cond2",
+               values_to = "jaccard_distance") %>% 
+  inner_join(shared_genes_df_mirror, by = join_by(Cond1, Cond2)) %>% 
+  mutate(jaccard_distance = round(jaccard_distance, 3))
+
+#Save
+write_csv(shared_genes_df_mirror, 
+          file = here("VaxGO gene sets", paste0(filename, "_sharedgenes_Fisher_Jaccard.csv")))
+```
+
+
+### Heatmap
+
+```{r}
+# INPUT ------
+
+degs_all_updown_covid_other_immune_shared = read_csv(here("VaxGO gene sets", "degs_covid_vaxhagan_immune_sharedgenes_Fisher_Jaccard.csv"))
+
+table = degs_all_updown_covid_other_immune_shared
+filename = "ImmuneGO_Genes_JaccardDistance_Hagan" 
+
+data = table %>% 
+  filter(pvalue <0.25) %>% 
+  inner_join(hagan_vaxatlas_annotation %>% 
+               select(Cond1 = condition, everything()), by = "Cond1") %>% 
+  inner_join(ann_vaccines_conditions %>% 
+               select(Cond2 = condition, everything()), by = "Cond2") %>% 
+  clean_names() %>% 
+  rename(vac_ref = cond1, vac_condition = cond2)
+
+# Matrix ------
+matrix = data %>%
+  filter(pvalue <= 0.10) %>% 
+  select(vac_condition, vac_ref, jaccard_distance) %>% 
+  pivot_wider(names_from = vac_condition, values_from = jaccard_distance, values_fn = mean) %>% 
+  replace(is.na(.), 0) %>%
+  column_to_rownames(var="vac_ref") %>%
+  as.matrix()
+
+matrix = matrix*100
+
+# Annotations -------
+ann_vaccines_covid = ann_vaccines_conditions 
+ann_vaccines_other = hagan_vaxatlas_annotation 
+
+# Columns
+ann_cols_heatmap = matrix %>% 
+  colnames() %>% 
+  data.frame() %>% 
+  filter(. != "process") %>% 
+  rename(vac_condition = '.') %>% 
+  merge(ann_vaccines_covid, by.x = "vac_condition", by.y = "condition", all.y = F) %>% 
+  select(vac_condition, type, week, day) %>% #ordenar colunas para anotação
+  distinct() %>% 
+  column_to_rownames(var = "vac_condition") %>% 
+  mutate_all(as.factor)
+
+# Rows
+ann_rows_heatmap = matrix %>%  
+  as.data.frame() %>% 
+  rownames_to_column("condition") %>% 
+  distinct() %>% 
+  inner_join(ann_vaccines_other, by = "condition") %>% 
+  mutate_all(as.factor) %>%
+  arrange(condition) %>%
+  distinct() %>% 
+  column_to_rownames(var= "condition") %>% 
+  select(type, week, day)
+
+# Arrange cols and rows in matrix
+matrix_data = matrix %>% 
+  t() %>% 
+  as.data.frame() %>% 
+  rownames_to_column(var= "condition") %>% 
+  arrange(condition) %>% 
+  column_to_rownames("condition") %>% 
+  t() %>% 
+  as.data.frame() %>%
+  rownames_to_column("condition") %>% 
+  inner_join(ann_rows_heatmap %>% 
+               rownames_to_column("condition") %>% 
+               select(condition),
+             by = "condition") %>% 
+  arrange(condition) %>% 
+  column_to_rownames("condition") %>% 
+  mutate_if(is.character, as.numeric) %>%
+  replace(is.na(.), 0) %>% 
+  as.matrix()
+
+#Check dimensions
+dim(matrix_data)
+dim(ann_rows_heatmap)
+dim(ann_cols_heatmap)
+
+```
+
+Plot
+```{r}
+
+#Heatmap annotation
+ha = HeatmapAnnotation(df = ann_cols_heatmap, 
+                       col = ann_vaxsig_colors,
+                       annotation_name_side = "left")
+
+row_ha = HeatmapAnnotation(df = ann_rows_heatmap,
+                       col = ann_vaxsig_colors,
+                       which= "row",
+                       show_annotation_name = F,
+                       show_legend = T)
+
+# Values colors
+col_fun <- colorRamp2(c(0, max(matrix_data)), c("white", "#ed6a5a"))
+
+
+mat = matrix_data
+width_image = 30
+height_image = 40
+width = unit(20, "cm")
+height = unit(25, "cm")
+column_names_gp = gpar(fontsize = 10)
+row_names_gp = gpar(fontsize = 10)
+file = paste0("Hagan_", filename)
+
+fileimageheatmap_grouped = paste0(filename, sep ="_", "Complexheatmap_ALL_CLUSTERED.png")
+
+png(file = here("Figures", fileimageheatmap_grouped), 
+    width = width_image, 
+    height = height_image,
+    units="cm", res=900)
+
+heatmap_plot = Heatmap(mat,
+                        top_annotation = ha,
+                        left_annotation = row_ha,
+                        show_row_names = TRUE,
+                        row_names_side = "left",
+                        show_heatmap_legend = TRUE,
+                        heatmap_legend_param = list(title = "Jaccard distance", direction = "vertical"),
+                        col = col_fun, #color
+                        cell_fun = function(j, i, x, y, width, height, fill) {
+                                            if(mat[i, j] > 0)
+                                            grid.text(sprintf("%.f", mat[i, j]), 
+                                                      x, y, 
+                                                      gp = gpar(fontsize = 8))},
+                        row_title = "",
+                        show_column_names = TRUE,
+                        column_title = fileimageheatmap_grouped,
+                        column_title_gp = gpar(fontsize = 10, fontface = "bold"),
+                        column_names_rot = 45,
+                        column_names_gp = column_names_gp,
+                        rect_gp = gpar(col = "gray90", lwd = 1),
+                        cluster_rows = TRUE,
+                        row_names_gp = row_names_gp, #Grande = 6, Pequeno 15
+                        row_dend_width = unit(5, "cm"), #Altura do dendrograma
+                        column_split = NULL, #Split column clusters 
+                        row_split = NULL, #Split row clusters
+                        row_gap = unit(2, "mm"),
+                        cluster_columns = TRUE,
+                        column_gap = unit(8, "mm"),
+                        show_column_dend = F,
+                        show_row_dend = F,
+                        row_dend_side = "left",
+                        column_dend_side = "top",
+                        clustering_distance_rows = "euclidean",
+                        border = TRUE,
+                        column_dend_reorder = TRUE,
+                        width = width, # 20 para pequeno e grande
+                        height = height # 20 para pequeno, 60 para grande
+)
+
+draw(heatmap_plot,
+     merge_legend = TRUE,
+     annotation_legend_side = "right", 
+     heatmap_legend_side = "right")
+dev.off()
+
+```
+
+
+## Gene set enrichment analysis
+
+### 5.1. Input
+
+```{r}
+#Gene sets
+
+Immune_GO_T2G_general = ImmuneGO_Annotated_Genes %>% 
+  filter(go_term == "Manual",
+         !process %in% c("ADAPTIVE IMMUNE SYSTEM",
+                         "INNATE IMMUNE SYSTEM",
+                         "BCR REPERTOIRE",
+                         "TCR REPERTOIRE")) %>% 
+  select(process, genes)
+
+
+Immune_GO_T2G_specfic = ImmuneGO_Annotated_Genes %>% 
+  filter(!process %in% c("ADAPTIVE IMMUNE SYSTEM",
+                         "INNATE IMMUNE SYSTEM",
+                         "BCR REPERTOIRE",
+                         "TCR REPERTOIRE")) %>% 
+  select(process=gene_set_short, genes) 
+
+
+TERM2GENE = Immune_GO_T2G_general
+geneset_name = "Immune_GO_T2G_general"
+
+filename = "All_covid_13Vax"
+```
 
 
 
 
 
+### 5.3. Gene set enrichment analysis (GSEA)
+
+#### 5.3.1. Multiple
+
+```{r}
+autoGSEA <- function(df, TERM2GENE, geneset_name) {
+  resultados <- list()
+
+  condicoes <- df$condition %>% 
+    unique() %>% 
+    as.character()
+
+  for (condicao in condicoes) {
+    
+    degs_condicao <- df %>% 
+      filter(condition == condicao) %>%
+      select(genes, log2fold_change) %>%
+      distinct() %>%
+      mutate(rank = rank(log2fold_change, ties.method = "random")) %>%
+      arrange(desc(rank))
+
+    gene_list_lf2c <- as.vector(degs_condicao$log2fold_change)
+    names(gene_list_lf2c) <- degs_condicao$genes
+    gene_list_lf2c <- na.omit(gene_list_lf2c)
+    gene_list_lf2c <- sort(gene_list_lf2c, decreasing = TRUE)
+
+    auto_gsea <- tryCatch({
+      GSEA(geneList = gene_list_lf2c,
+           TERM2GENE = TERM2GENE,
+           minGSSize = 1,
+           maxGSSize = 1000,
+           pvalueCutoff = 1,
+           pAdjustMethod = "BH") %>%
+        as.data.frame() %>%
+        arrange(qvalue) %>%
+        mutate(condition = condicao,
+               gsea_enrichment = geneset_name)
+    }, error = function(e) {
+      return(NULL)
+    })
+
+    if (!is.null(auto_gsea)) {
+      resultados[[paste(condicao, geneset_name, sep = "_")]] <- auto_gsea
+    }
+  }
+  
+
+  # Combinar todos os resultados em um único dataframe
+  resultado_final <- bind_rows(resultados)
+
+  return(resultado_final)
+}
+```
+
+```{r}
+# Perform GSEA
+
+TERM2GENE = Immune_GO_T2G_general
+geneset_name = "Immune_GO_T2G_general"
+
+degs_covid_vax_GSEA_ALL <- degs_covid_vax %>%
+  select(condition, genes, log2fold_change) %>% 
+  autoGSEA(TERM2GENE = Immune_GO_T2G_general, 
+           geneset_name = "Immune_GO_T2G_general") 
+
+degs_covid_vax_GSEA = degs_covid_vax_GSEA_ALL %>% 
+  rownames_to_column("delete") %>% 
+  clean_names() %>% 
+    select(condition, id, everything()) 
+
+degs_covid_vax_GSEA
+
+#Save
+write_csv(degs_covid_vax_GSEA, 
+          file = here("Gene set enrichment analysis", paste0(filename, geneset_name, "_GSEA_ALL", ".csv")))
+
+degs_covid_vax_GSEA 
+
+```
+
+```{r}
+# Perform GSEA
+
+TERM2GENE = Immune_GO_T2G_specfic
+geneset_name = "Immune_GO_T2G_specfic"
+
+all_degs_p_05_vac_infected_GSEA_ALL <- all_degs_p_05_vac_infected %>%
+  select(condition, genes, log2fold_change) %>% 
+  autoGSEA(TERM2GENE = Immune_GO_T2G_specfic, 
+           geneset_name = "Immune_GO_T2G_specfic") 
+
+all_degs_p_05_vac_infected_GSEA = all_degs_p_05_vac_infected_GSEA_ALL %>% 
+  rownames_to_column("delete") %>% 
+  clean_names() %>% 
+    select(condition, id, everything()) 
+
+all_degs_p_05_vac_infected_GSEA
+
+#Save
+write_csv(all_degs_p_05_vac_infected_GSEA, 
+          file = here("Gene set enrichment analysis", paste0(filename, geneset_name, "_GSEA_ALL", ".csv")))
+
+all_degs_p_05_vac_infected_GSEA 
+```
 
 
+#### 5.3.2. Bubbleplot (Heatmap with ggplot)
+https://davemcg.github.io/post/lets-plot-scrna-dotplots/
+```{r fig.height=8, fig.width=12}
+library(ggdendro)
+library(cowplot)
 
+all_degs_p_05_vac_infected_Immune_GO_T2G_general_GSEA_ALL <- read_csv("Gene set enrichment analysis/all_degs_p_05_vac_infected_Immune_GO_T2G_general_GSEA_ALL.csv")
+
+df = all_degs_p_05_vac_infected_Immune_GO_T2G_general_GSEA_ALL %>% 
+  filter(qvalue<= 0.25) %>% 
+  mutate(logq = -log10(qvalue)) %>% 
+  inner_join(ann_vaccines_conditions, by = "condition") %>% 
+  mutate(day = as.factor(day),
+         week = as.factor(week),
+         dose = as.factor(dose))
+
+row_clustered = df %>% 
+  select(condition, id, nes) %>% 
+  distinct() %>% 
+  pivot_wider(names_from = "condition",
+              values_from= "nes") %>%
+  column_to_rownames("id") %>% 
+  as.matrix() %>% 
+  replace(is.na(.), 0) %>% 
+  dist(.) %>% 
+  hclust()
+
+
+col_clustered_vac = df %>% 
+  filter(disease_vac == "V",
+         id %in% row_clustered$labels) %>% 
+  select(condition, id, nes) %>% 
+  distinct() %>% 
+  pivot_wider(names_from = "id",
+              values_from= "nes") %>%
+  column_to_rownames("condition") %>% 
+  as.matrix() %>% 
+  replace(is.na(.), 0) %>% 
+  dist(.) %>% 
+  hclust()
+
+
+col_clustered_inf = df %>% 
+  filter(disease_vac == "I",
+         id %in% row_clustered$labels) %>% 
+  select(condition, id, nes) %>% 
+  distinct() %>% 
+  pivot_wider(names_from = "id",
+              values_from= "nes") %>%
+  column_to_rownames("condition") %>% 
+  as.matrix() %>% 
+  replace(is.na(.), 0) %>% 
+  dist(.) %>% 
+  hclust()
+
+column_order = 
+  c(col_clustered_vac$labels[col_clustered_vac$order], col_clustered_inf$labels[col_clustered_inf$order])
+
+
+labels_disease_vac <- df %>% 
+  filter(id %in% row_clustered$labels) %>% 
+  mutate(condition = factor(condition, levels = column_order)) %>% 
+  ggplot() +
+  aes(x = condition, y = 1, fill = disease_vac) + 
+  geom_tile() + 
+  scale_fill_manual(values = ann_vaxsig_colors$disease_vac) + 
+  theme_void() +
+  labs(y = "Infection/Vaccination") +
+  theme(axis.title.y = element_text(size = 10, hjust = 1),
+        legend.position = "none") 
+
+labels_type <- df %>% 
+  filter(id %in% row_clustered$labels) %>% 
+  mutate(condition = factor(condition, levels = column_order)) %>% 
+  ggplot() +
+  aes(x = condition, y = 1, fill = type) + 
+  geom_tile() + 
+  scale_fill_manual(values = ann_vaxsig_colors$Platform) + 
+  theme_void() +
+  labs(y = "Type") +
+  theme(axis.title.y = element_text(size = 10, hjust = 1),
+        legend.position = "none") 
+
+labels_week = df %>% 
+  filter(id %in% row_clustered$labels) %>% 
+  mutate(condition = factor(condition, column_order)) %>% 
+  ggplot() +
+  aes(x = condition, y = 1, fill = week) + 
+  geom_tile() + 
+  scale_fill_manual(values = ann_vaxsig_colors$week) + 
+  theme_void() +
+  labs(y = "Week") +
+  theme(axis.title.y = element_text(size = 10, hjust = 1),
+        legend.position = "none")
+#Plot
+dotplot = df %>% 
+  filter(id %in% row_clustered$labels) %>% 
+  mutate(condition = factor(condition, column_order),
+         id = factor(id, levels = row_clustered$labels[row_clustered$order]),
+         id = str_to_title(id),
+         id = case_when(id == "Humoral Adaptive Immune System" ~ "Humoral Adap.",
+                        id == "Cellular Adaptive Immune System" ~ "Cellular Adap.",
+                        id == "Complement Immune System" ~ "Complement",
+                        id == "Immunoglobulin Mediated Response" ~ "Ig-mediated",
+                        id == "Antiviral And Interferon" ~ "Antiviral/IFN",.default = id)) %>% 
+  ggplot(aes(x=condition, y = id, color = nes, size = logq)) +
+  geom_point() + 
+  theme_minimal() + 
+  theme(axis.text = element_text(color = "black", size = 12) ,
+        axis.line  = element_blank(),
+        axis.text.x = element_text(angle = 45, vjust = 1, hjust=1),
+        axis.ticks = element_blank(),
+        legend.direction = "horizontal",
+        legend.position = "bottom") +
+  labs(x = "",
+       y = "") +
+  scale_color_gradient2(low = "blue",
+                        mid = "white",
+                        midpoint = 0, 
+                        name = "NES",
+                      high = "#DC0000FF") +
+  scale_y_discrete(position = "right") +
+  scale_size(range = c(2, 6))
+  
+
+patch_immune_main = 
+  labels_disease_vac /
+  labels_type /
+  labels_week/
+  dotplot +
+  plot_layout(heights = c(0.3, 0.3, 0.3, 5),
+              guides = 'collect') +
+  plot_annotation(title = "GSEA ImmuneGO",
+                  subtitle = "Main processes",
+                  theme = theme(legend.position = "bottom",
+                                plot.margin = margin(0.5, 0, 0.5, 1, unit = "cm"),
+                                legend.direction = "horizontal", 
+                                legend.box = "horizontal"))
+
+
+patch_immune_main %>% 
+  ggsave(filename = here("Figures", "GSEA_ImmuneGO_MainGOs_Bubbleplot.png"),
+         width = 12,
+         height = 8)
+patch_immune_main
+```
 
 
 
