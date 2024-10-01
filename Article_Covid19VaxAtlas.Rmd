@@ -21677,7 +21677,8 @@ write_tsv(nodes, file = paste0(filename, "Network_Covid_Other_sharedgenes_nodes.
 
 
 
-#13 Vax Atlas
+# 13 Vax Atlas
+
 ```{r}
 IS2_FDR05_genes <- readRDS(here("13VaxAtlas", "IS2_FDR05_genes.rds"))
 
@@ -21712,26 +21713,27 @@ hagan_vaxatlas$condition %>% unique()
 hagan_vaxatlas_annotation = hagan_vaxatlas %>% 
   select(day, pathogen, type, condition, vaccine, week) %>% 
   mutate(set = "13Vax Atlas",
-         dose = "0") %>% 
+         dose = "1",
+         week = as.factor(week),
+         disease_vac = "V") %>% 
   distinct()
 
-```
-
-
-
-## Overlapping genes
-
-```{r}
-# DEGs table
 
 all_degs_p_05_vac_infected = readRDS(here("DGE analysis", "all_studies_degs_weighted.rds")) %>% 
   filter(fdr <= 0.05)
 
 degs_all_updown = all_degs_p_05_vac_infected
 
-hagan_vaxatlas 
-
 ann_vaccines = read_csv(here("Annotations and metadata", "ann_vaccines_conditions.csv"))
+ann_vaccines_conditions = ann_vaccines
+
+ann_vaccines_covid_other_conditions = ann_vaccines_conditions %>%
+  select(condition, vaccine, day, week, dose, infection, type, disease_vac) %>% 
+  mutate(day = as.factor(day),
+         week = as.factor(week),
+         dose = as.factor(dose),
+         set = "COVID-19") %>% 
+  bind_rows(hagan_vaxatlas_annotation)
 
 # Annotation ------
 immunego = ImmuneGO_Annotated_Genes # ImmuneGO Annotation
@@ -21746,6 +21748,7 @@ degs_hagan = hagan_vaxatlas %>%
 
 degs_covid_vax = degs_covid %>% 
   bind_rows(degs_hagan)
+
 degs_covid_vax %>% 
   saveRDS(file = here("VaxGO gene sets", "degs_covid_vaxhagan.rds"))
 
@@ -21759,7 +21762,13 @@ degs_covid_vax_immune = degs_covid %>%
 degs_covid_vax_immune %>% 
   saveRDS(file = here("VaxGO gene sets", "degs_covid_vaxhagan_immune.rds"))
 
+```
 
+
+
+## Overlapping genes
+
+```{r}
 #Input
 data = degs_covid_vax %>% 
   rename(process = condition) %>% 
@@ -22035,7 +22044,7 @@ dev.off()
 
 ## Gene set enrichment analysis
 
-### 5.1. Input
+Input
 
 ```{r}
 #Gene sets
@@ -22069,7 +22078,7 @@ filename = "All_covid_13Vax"
 
 ### 5.3. Gene set enrichment analysis (GSEA)
 
-#### ImmuneGO
+#### 5.3.1. ImmuneGO
 
 ```{r}
 autoGSEA <- function(df, TERM2GENE, geneset_name) {
@@ -22137,15 +22146,10 @@ degs_covid_vax_GSEA = degs_covid_vax_GSEA_ALL %>%
   clean_names() %>% 
     select(condition, id, everything()) 
 
-degs_covid_vax_GSEA
 #Save
 write_csv(degs_covid_vax_GSEA, 
           file = here("Gene set enrichment analysis", paste0(filename, geneset_name, "_GSEA_ALL", ".csv")))
 
-
-```
-
-```{r}
 # Perform GSEA
 
 TERM2GENE = Immune_GO_T2G_specfic
@@ -22169,8 +22173,6 @@ degs_covid_vax_GSEA
 ```
 
 
-#### 5.3.2. Bubbleplot (Heatmap with ggplot)
-https://davemcg.github.io/post/lets-plot-scrna-dotplots/
 ```{r fig.height=8, fig.width=12}
 library(ggdendro)
 library(cowplot)
@@ -22180,6 +22182,7 @@ All_covid_13VaxImmune_GO_T2G_general_GSEA_ALL <- read_csv("Gene set enrichment a
 hagan_vaxatlas_annotation = hagan_vaxatlas_annotation %>% 
   mutate(disease_vac = "V",
          week = as.factor(week))
+
 ann_vaccines_covid_other_conditions = ann_vaccines_conditions %>%
   select(condition, vaccine, day, week, dose, infection, type, disease_vac) %>% 
   mutate(day = as.factor(day),
@@ -22194,7 +22197,7 @@ ann_vaccines_covid_other_conditions = ann_vaccines_conditions %>%
 
 
 ```{r fig.height=8, fig.width=20}
-# Função para realizar clustering para cada valor da coluna day
+# Function for clustering by day
 cluster_by_day <- function(df, day_column = "day", condition_column = "condition") {
   
   # Obter os níveis do fator da coluna de dias
@@ -22236,24 +22239,81 @@ cluster_by_day <- function(df, day_column = "day", condition_column = "condition
   
   return(order_df)
 }
-```
 
 
-```{r fig.height=8, fig.width=20}
-df = All_covid_13VaxImmune_GO_T2G_general_GSEA_ALL %>% 
-  filter(qvalue<= 0.25) %>% 
-  inner_join(ann_vaccines_covid_other_conditions, by = "condition") %>% 
-    mutate(logq = -log10(qvalue)) %>% 
-    mutate(day = fct_relevel(day, df %>% select(day) %>% distinct() %>% 
-                               mutate(day = as.character(day),
-                                      day = as.numeric(day)) %>% 
-                               arrange(day) %>% pull() %>% as.character()))
 
+# Função para realizar clustering por dia e disease_vac
+cluster_by_day_and_disease_vac <- function(df, day_column = "day", condition_column = "condition", disease_vac_column = "disease_vac") {
+  
+  # Obter os níveis únicos do fator da coluna de dias
+  days <- unique(df[[day_column]])
+  
+  # Inicializar uma lista para armazenar as ordens
+  orders <- list()
+  
+  # Loop por cada dia
+  for (day_value in days) {
+    
+    # Filtrar os dados por dia
+    df_day <- df %>%
+      filter(!!sym(day_column) == day_value)
+    
+    # Loop por cada valor de disease_vac ("v" ou "i")
+    for (vac_group in unique(df_day[[disease_vac_column]])) {
+      
+      # Filtrar os dados para o grupo disease_vac atual
+      df_vac <- df_day %>%
+        filter(!!sym(disease_vac_column) == vac_group) %>%
+        select(!!sym(condition_column)) %>%
+        distinct()
+      
+      # Verificar se há mais de uma condição para o dia e o grupo vac
+      if (nrow(df_vac) > 1) {
+        # Criar uma matriz binária onde 1 representa a presença da condição
+        presence_matrix <- table(df_vac[[condition_column]]) > 0
+        dist_matrix <- as.matrix(presence_matrix)
+        
+        # Aplicar o clustering
+        col_clustered <- dist(dist_matrix) %>% hclust()
+        
+        # Armazenar a ordem dos clusters
+        orders[[paste(day_value, vac_group, sep = "_")]] <- col_clustered$labels[col_clustered$order]
+      } else {
+        # Se houver apenas uma condição, armazenar o rótulo
+        orders[[paste(day_value, vac_group, sep = "_")]] <- as.character(df_vac[[condition_column]])
+      }
+    }
+  }
+  
+  # Converter a lista de ordens para um data frame
+  order_df <- data.frame(
+    group = rep(names(orders), sapply(orders, length)),
+    condition = unlist(orders)
+  )
+  
+  return(order_df)
+}
 
 ```
 
 
 ```{r fig.height=12, fig.width=25}
+df = All_covid_13VaxImmune_GO_T2G_general_GSEA_ALL %>% 
+  filter(qvalue<= 0.25) %>% 
+  inner_join(ann_vaccines_covid_other_conditions, by = "condition") %>% 
+    mutate(logq = -log10(qvalue)) 
+  
+df =  df %>% 
+    mutate(day = fct_relevel(day, df %>% 
+                               select(day) %>% 
+                               distinct() %>% 
+                               mutate(day = as.character(day),
+                                      day = as.numeric(day)) %>% 
+                               arrange(day) %>% 
+                               pull() %>% 
+                               as.character()))
+
+
 row_clustered = df %>% 
   select(condition, id, nes) %>% 
   distinct() %>% 
@@ -22268,7 +22328,6 @@ row_clustered = df %>%
 result <- cluster_by_day(df, day_column = "day") %>% 
   mutate(day = fct_relevel(day, df$day %>% unique() %>% sort() %>% as.character()))
 
-# Ordem final das colunas
 column_order <- result$condition
 
 labels_set <- df %>% 
@@ -22280,7 +22339,7 @@ labels_set <- df %>%
   scale_fill_manual(values = ann_vaxsig_colors$set) + 
   theme_void() +
   labs(y = "Set") +
-  theme(axis.title.y = element_text(size = 10, hjust = 1),
+  theme(axis.title.y = element_text(size = 12, hjust = 1),
         legend.position = "right") 
 
 labels_disease_vac <- df %>% 
@@ -22292,7 +22351,7 @@ labels_disease_vac <- df %>%
   scale_fill_manual(values = ann_vaxsig_colors$disease_vac) + 
   theme_void() +
   labs(y = "Infection/Vaccination") +
-  theme(axis.title.y = element_text(size = 10, hjust = 1),
+  theme(axis.title.y = element_text(size = 12, hjust = 1),
         legend.position = "right") 
 
 labels_type <- df %>% 
@@ -22304,7 +22363,7 @@ labels_type <- df %>%
   scale_fill_manual(values = ann_vaxsig_colors$Platform) + 
   theme_void() +
   labs(y = "Type") +
-  theme(axis.title.y = element_text(size = 10, hjust = 1),
+  theme(axis.title.y = element_text(size = 12, hjust = 1),
         legend.position = "right") 
 
 labels_dose <- df %>% 
@@ -22316,7 +22375,7 @@ labels_dose <- df %>%
   scale_fill_manual(values = ann_vaxsig_colors$dose) + 
   theme_void() +
   labs(y = "Dose") +
-  theme(axis.title.y = element_text(size = 10, hjust = 1),
+  theme(axis.title.y = element_text(size = 12, hjust = 1),
         legend.position = "right") 
 
 labels_week = df %>% 
@@ -22328,7 +22387,7 @@ labels_week = df %>%
   scale_fill_manual(values = ann_vaxsig_colors$week) + 
   theme_void() +
   labs(y = "Week") +
-  theme(axis.title.y = element_text(size = 10, hjust = 1),
+  theme(axis.title.y = element_text(size = 12, hjust = 1),
         legend.position = "right")
 
 labels_day = df %>% 
@@ -22340,7 +22399,7 @@ labels_day = df %>%
   scale_fill_manual(values = ann_vaxsig_colors$day) + 
   theme_void() +
   labs(y = "Day") +
-  theme(axis.title.y = element_text(size = 10, hjust = 1),
+  theme(axis.title.y = element_text(size = 12, hjust = 1),
         legend.position = "right")
 
 
@@ -22366,7 +22425,7 @@ dotplot = df %>%
         legend.position = "bottom") +
   labs(x = "",
        y = "") +
-  scale_color_gradient2(low = "blue",
+  scale_color_gradient2(low = "#4DBBD5FF",
                         mid = "white",
                         midpoint = 0, 
                         name = "NES",
@@ -22379,14 +22438,16 @@ patch_immune_main =
   labels_set /
   labels_disease_vac /
   labels_type /
+  labels_dose/
   labels_day/
-    labels_dose/
   dotplot +
   plot_layout(heights = c(0.3, 0.3, 0.3, 0.3, 0.3, 5),
               guides = 'collect') +
   plot_annotation(title = "GSEA ImmuneGO",
                   subtitle = "Main processes",
                   theme = theme(legend.position = "right",
+                                plot.title = element_text(hjust = 0.5, size = 20),
+                                plot.subtitle = element_text(hjust = 0.5, size = 20),
                                 plot.margin = margin(5, 1, 5, 1, unit = "cm"),
                                 legend.direction = "vertical", 
                                 legend.box = "vertical"))
@@ -22400,7 +22461,7 @@ patch_immune_main
 ```
 
 
-## BTM modules
+#### 5.3.2. BTM modules
 
 ```{r}
 # Perform GSEA
@@ -22434,7 +22495,7 @@ write_csv(degs_covid_vax_GSEA,
 ```
 
 
-```{r fig.height=8, fig.width=12}
+```{r fig.height=12, fig.width=25}
 library(ggdendro)
 library(cowplot)
 
@@ -22443,6 +22504,7 @@ All_covid_13Vax_BTM_GSEA_ALL <- read_csv("Gene set enrichment analysis/All_covid
 hagan_vaxatlas_annotation = hagan_vaxatlas_annotation %>% 
   mutate(disease_vac = "V",
          week = as.factor(week))
+
 ann_vaccines_covid_other_conditions = ann_vaccines_conditions %>%
   select(condition, vaccine, day, week, dose, infection, type, disease_vac) %>% 
   mutate(day = as.factor(day),
@@ -22451,13 +22513,12 @@ ann_vaccines_covid_other_conditions = ann_vaccines_conditions %>%
          set = "COVID-19") %>% 
   bind_rows(hagan_vaxatlas_annotation)
 
-```
-
-```{r fig.height=12, fig.width=25}
 df = All_covid_13Vax_BTM_GSEA_ALL %>% 
   filter(qvalue<= 0.25) %>% 
   inner_join(ann_vaccines_covid_other_conditions, by = "condition") %>% 
-    mutate(logq = -log10(qvalue)) %>% 
+    mutate(logq = -log10(qvalue))
+
+df = df %>% 
     mutate(day = fct_relevel(day, df %>% select(day) %>% distinct() %>% 
                                mutate(day = as.character(day),
                                       day = as.numeric(day)) %>% 
@@ -22587,7 +22648,7 @@ dotplot = df %>%
         legend.position = "bottom") +
   labs(x = "",
        y = "") +
-  scale_color_gradient2(low = "blue",
+  scale_color_gradient2(low = "#4DBBD5FF",
                         mid = "white",
                         midpoint = 0, 
                         name = "NES",
@@ -22600,8 +22661,8 @@ patch_immune_main =
   labels_set /
   labels_disease_vac /
   labels_type /
+      labels_dose/
   labels_day/
-    labels_dose/
   dotplot +
   plot_layout(heights = c(0.3, 0.3, 0.3, 0.3, 0.3, 5),
               guides = 'collect') +
@@ -22623,27 +22684,429 @@ patch_immune_main
 ```
 
 
-#Gene analysis
-```{r}
-degs_covid_vax %>% 
+## 5.4. Gene analysis
+```{r fig.height=18, fig.width=25}
+topdegs_all = degs_covid_vax_immune %>% 
   group_by(genes) %>% 
   summarize(n = n()) %>% 
-  arrange(-n)
+  arrange(-n) %>% 
+  slice_head(n = 20)
+
+topdegs_vac = degs_covid_vax_immune %>%
+  inner_join(ann_vaccines_covid_other_conditions %>% 
+               filter(dose != "0") %>% 
+               select(condition), 
+             by = "condition") %>% 
+  group_by(genes) %>% 
+  summarize(n = n()) %>% 
+  arrange(-n) %>% 
+  slice_head(n = 20)
+
+topdegs_inf = degs_covid_vax_immune %>%
+  inner_join(ann_vaccines_covid_other_conditions %>% 
+               filter(disease_vac == "I") %>% 
+               select(condition), 
+             by = "condition") %>% 
+  group_by(genes) %>% 
+  summarize(n = n()) %>% 
+  arrange(-n) %>% 
+  slice_head(n = 20)
 ```
 
-# 6. Principal components analysis
+Vaccination
+```{r fig.height=18, fig.width=25}
+hagan_vaxatlas_annotation = hagan_vaxatlas_annotation %>% 
+  mutate(week = as.factor(week))
 
-Tutorials [Data Camp - PCA Analysis in
-R](https://www.datacamp.com/tutorial/pca-analysis-r){.uri}
+ann_vaccines_covid_other_conditions = ann_vaccines_conditions %>%
+  select(condition, vaccine, day, week, dose, infection, type, disease_vac) %>% 
+  mutate(day = as.factor(day),
+         week = as.factor(week),
+         dose = as.factor(dose),
+         set = "COVID-19") %>% 
+  bind_rows(hagan_vaxatlas_annotation) 
+  
 
-[FactoExtra](https://rpkgs.datanovia.com/factoextra/index.html){.uri}
-[STHDA: Principal Component Methods in R - Practical
-guide](http://www.sthda.com/english/articles/31-principal-component-methods-in-r-practical-guide/114-mca-multiple-correspondence-analysis-in-r-essentials/){.uri}
+df = degs_covid_vax_immune %>% 
+  inner_join(ann_vaccines_covid_other_conditions, by = "condition") %>% 
+  filter(genes %in% topdegs_vac$genes) %>% 
+  ungroup()
 
-[Statistics globe: PCA before K Means
-Clustering](https://statisticsglobe.com/pca-before-k-means-clustering-r){.uri}\>
+df = df %>% 
+    mutate(day = fct_relevel(day, df %>% select(day) %>% distinct() %>% 
+                               mutate(day = as.character(day),
+                                      day = as.numeric(day)) %>% 
+                               arrange(day) %>% 
+                               distinct() %>% pull() %>% as.character()))
 
-## 6.1. Packages and colors
+row_clustered = df %>% 
+  select(condition, genes, log2fold_change) %>% 
+  distinct() %>% 
+  pivot_wider(names_from = "condition",
+              values_from= "log2fold_change", values_fn = mean) %>%
+  column_to_rownames("genes") %>% 
+  as.matrix() %>% 
+  replace(is.na(.), 0) %>% 
+  dist(.) %>% 
+  hclust()
+
+result_vac <- cluster_by_day(df %>% 
+                               filter(dose != "0"), day_column = "day") %>%
+  mutate(day = fct_relevel(day, df$day %>% unique() %>% sort() %>% as.character()))
+
+result_inf <- cluster_by_day(df %>% 
+                               filter(dose == "0"), day_column = "day") %>%
+  mutate(day = fct_relevel(day, df$day %>% unique() %>% sort() %>% as.character()))
+
+
+# Ordem final das colunas
+column_order <- c(result_vac$condition, result_inf$condition)
+
+labels_set <- degs_covid_vax_immune %>% 
+  full_join(ann_vaccines_covid_other_conditions, by = "condition") %>% 
+  mutate(condition = factor(condition, levels = column_order)) %>% 
+  ggplot() +
+  aes(x = condition, y = 1, fill = set) + 
+  geom_tile() + 
+  scale_fill_manual(values = ann_vaxsig_colors$set) + 
+  theme_void() +
+  labs(y = "Set") +
+  theme(axis.title.y = element_text(size = 10, hjust = 1),
+        legend.direction = "horizontal",
+        legend.position = "bottom") 
+
+labels_disease_vac <- degs_covid_vax_immune %>% 
+  full_join(ann_vaccines_covid_other_conditions, by = "condition") %>% 
+  mutate(condition = factor(condition, levels = column_order)) %>% 
+  ggplot() +
+  aes(x = condition, y = 1, fill = disease_vac) + 
+  geom_tile() + 
+  scale_fill_manual(values = ann_vaxsig_colors$disease_vac) + 
+  theme_void() +
+  labs(y = "Infection/Vaccination") +
+  theme(axis.title.y = element_text(size = 10, hjust = 1),
+        legend.direction = "horizontal",
+        legend.position = "bottom") 
+
+labels_type <-degs_covid_vax_immune %>% 
+  full_join(ann_vaccines_covid_other_conditions, by = "condition") %>% 
+  mutate(condition = factor(condition, levels = column_order)) %>% 
+  ggplot() +
+  aes(x = condition, y = 1, fill = type) + 
+  geom_tile() + 
+  scale_fill_manual(values = ann_vaxsig_colors$type) + 
+  theme_void() +
+  labs(y = "Type") +
+  theme(axis.title.y = element_text(size = 10, hjust = 1),
+        legend.direction = "horizontal",
+        legend.position = "bottom") 
+
+labels_dose <- degs_covid_vax_immune %>% 
+  full_join(ann_vaccines_covid_other_conditions, by = "condition") %>% 
+  mutate(condition = factor(condition, levels = column_order)) %>% 
+  ggplot() +
+  aes(x = condition, y = 1, fill = dose) + 
+  geom_tile() + 
+  scale_fill_manual(values = ann_vaxsig_colors$dose) + 
+  theme_void() +
+  labs(y = "Dose") +
+  theme(axis.title.y = element_text(size = 10, hjust = 1),
+        legend.direction = "horizontal",
+        legend.position = "bottom") 
+
+labels_week = degs_covid_vax_immune %>% 
+  full_join(ann_vaccines_covid_other_conditions, by = "condition") %>% 
+  mutate(condition = factor(condition, column_order)) %>% 
+  ggplot() +
+  aes(x = condition, y = 1, fill = week) + 
+  geom_tile() + 
+  scale_fill_manual(values = ann_vaxsig_colors$week) + 
+  theme_void() +
+  labs(y = "Week") +
+  theme(axis.title.y = element_text(size = 10, hjust = 1),
+        legend.direction = "horizontal",
+        legend.position = "bottom")
+
+labels_day = degs_covid_vax_immune %>% 
+  full_join(ann_vaccines_covid_other_conditions, by = "condition") %>% 
+  mutate(condition = factor(condition, column_order)) %>% 
+  ggplot() +
+  aes(x = condition, y = 1, fill = day) + 
+  geom_tile() + 
+  scale_fill_manual(values = ann_vaxsig_colors$day) + 
+  theme_void() +
+  labs(y = "Day") +
+  theme(axis.title.y = element_text(size = 10, hjust = 1),
+        legend.direction = "horizontal",
+        legend.position = "bottom")
+
+
+#Plot
+dotplot = df %>% 
+  filter(genes %in% row_clustered$labels) %>% 
+  mutate(condition = factor(condition, column_order),
+         genes = factor(genes, levels = row_clustered$labels[row_clustered$order])) %>% 
+  ggplot(aes(x=condition, y = genes, fill = log2fold_change)) +
+  geom_tile() + 
+  theme_minimal() + 
+  theme(axis.text = element_text(color = "black", size = 12) ,
+        axis.line  = element_blank(),
+        axis.text.x = element_text(angle = 45, vjust = 1, hjust=1),
+        axis.ticks = element_blank(),
+        legend.direction = "horizontal",
+        legend.position = "bottom") +
+  labs(x = "",
+       y = "") +
+  scale_fill_gradient2(low = "#4DBBD5FF",
+                        mid = "white",
+                        midpoint = 0, 
+                        name = "NES", 
+                       limits = c(-2, 2),     # Definir os limites
+    oob = scales::squish,
+                      high = "#DC0000FF") +
+  scale_y_discrete(position = "right")
+  
+
+patch_immune_genes_vac = 
+  labels_set /
+  labels_disease_vac /
+  labels_type /
+  labels_dose/
+  labels_week/
+  labels_day/
+  dotplot +
+  plot_layout(heights = c(0.3, 0.3, 0.3, 0.3, 0.3, 0.3, 5),
+              guides = 'collect') +
+  plot_annotation(title = "Top 20 genes shared",
+                  subtitle = "At least one vaccine dose",
+                  theme = theme(legend.position = "bottom",
+                                plot.title = element_text(hjust = 0.5, size = 15),
+                                plot.subtitle = element_text(hjust = 0.5, size = 15),
+                                plot.margin = margin(10, 0.5, 10, 1, unit = "cm"),
+                                legend.direction = "horizontal", 
+                                legend.box = "horizontal"))
+patch_immune_genes_vac
+patch_immune_genes_vac %>% 
+  ggsave(filename = here("Figures", paste0(filename, "_Top20DEGs_1dose_Bubbleplot.png")),
+         width = 25,
+         height = 18)
+
+```
+
+
+Infection
+```{r fig.height=18, fig.width=25}
+hagan_vaxatlas_annotation = hagan_vaxatlas_annotation %>% 
+  mutate(week = as.factor(week))
+
+ann_vaccines_covid_other_conditions = ann_vaccines_conditions %>%
+  select(condition, vaccine, day, week, dose, infection, type, disease_vac) %>% 
+  mutate(day = as.factor(day),
+         week = as.factor(week),
+         dose = as.factor(dose),
+         set = "COVID-19") %>% 
+  bind_rows(hagan_vaxatlas_annotation)
+  
+
+df = degs_covid_vax_immune %>% 
+  inner_join(ann_vaccines_covid_other_conditions, by = "condition") %>% 
+  filter(genes %in% topdegs_inf$genes) %>% 
+  ungroup()
+
+df = df %>% 
+    mutate(day = fct_relevel(day, df %>% select(day) %>% distinct() %>% 
+                               mutate(day = as.character(day),
+                                      day = as.numeric(day)) %>% 
+                               arrange(day) %>% 
+                               distinct() %>% pull() %>% as.character()))
+
+row_clustered = df %>% 
+  select(condition, genes, log2fold_change) %>% 
+  distinct() %>% 
+  pivot_wider(names_from = "condition",
+              values_from= "log2fold_change", values_fn = mean) %>%
+  column_to_rownames("genes") %>% 
+  as.matrix() %>% 
+  replace(is.na(.), 0) %>% 
+  dist(.) %>% 
+  hclust()
+
+result_vac <- cluster_by_day(df %>% 
+                               filter(dose != "0"), day_column = "day") %>%
+  mutate(day = fct_relevel(day, df$day %>% unique() %>% sort() %>% as.character()))
+
+result_inf <- cluster_by_day(df %>% 
+                               filter(dose == "0"), day_column = "day") %>%
+  mutate(day = fct_relevel(day, df$day %>% unique() %>% sort() %>% as.character()))
+
+
+# Ordem final das colunas
+column_order <- c(result_vac$condition, result_inf$condition)
+
+
+labels_set <- degs_covid_vax_immune %>% 
+  full_join(ann_vaccines_covid_other_conditions, by = "condition") %>% 
+  mutate(condition = factor(condition, levels = column_order)) %>% 
+  ggplot() +
+  aes(x = condition, y = 1, fill = set) + 
+  geom_tile() + 
+  scale_fill_manual(values = ann_vaxsig_colors$set) + 
+  theme_void() +
+  labs(y = "Set") +
+  theme(axis.title.y = element_text(size = 10, hjust = 1),
+        legend.direction = "horizontal",
+        legend.position = "bottom") 
+
+labels_disease_vac <- degs_covid_vax_immune %>% 
+  full_join(ann_vaccines_covid_other_conditions, by = "condition") %>% 
+  mutate(condition = factor(condition, levels = column_order)) %>% 
+  ggplot() +
+  aes(x = condition, y = 1, fill = disease_vac) + 
+  geom_tile() + 
+  scale_fill_manual(values = ann_vaxsig_colors$disease_vac) + 
+  theme_void() +
+  labs(y = "Infection/Vaccination") +
+  theme(axis.title.y = element_text(size = 10, hjust = 1),
+        legend.direction = "horizontal",
+        legend.position = "bottom") 
+
+labels_type <-degs_covid_vax_immune %>% 
+  full_join(ann_vaccines_covid_other_conditions, by = "condition") %>% 
+  mutate(condition = factor(condition, levels = column_order)) %>% 
+  ggplot() +
+  aes(x = condition, y = 1, fill = type) + 
+  geom_tile() + 
+  scale_fill_manual(values = ann_vaxsig_colors$type) + 
+  theme_void() +
+  labs(y = "Type") +
+  theme(axis.title.y = element_text(size = 10, hjust = 1),
+        legend.direction = "horizontal",
+        legend.position = "bottom") 
+
+labels_dose <- degs_covid_vax_immune %>% 
+  full_join(ann_vaccines_covid_other_conditions, by = "condition") %>% 
+  mutate(condition = factor(condition, levels = column_order)) %>% 
+  ggplot() +
+  aes(x = condition, y = 1, fill = dose) + 
+  geom_tile() + 
+  scale_fill_manual(values = ann_vaxsig_colors$dose) + 
+  theme_void() +
+  labs(y = "Dose") +
+  theme(axis.title.y = element_text(size = 10, hjust = 1),
+        legend.direction = "horizontal",
+        legend.position = "bottom") 
+
+labels_week = degs_covid_vax_immune %>% 
+  full_join(ann_vaccines_covid_other_conditions, by = "condition") %>% 
+  mutate(condition = factor(condition, column_order)) %>% 
+  ggplot() +
+  aes(x = condition, y = 1, fill = week) + 
+  geom_tile() + 
+  scale_fill_manual(values = ann_vaxsig_colors$week) + 
+  theme_void() +
+  labs(y = "Week") +
+  theme(axis.title.y = element_text(size = 10, hjust = 1),
+        legend.direction = "horizontal",
+        legend.position = "bottom")
+
+labels_day = degs_covid_vax_immune %>% 
+  full_join(ann_vaccines_covid_other_conditions, by = "condition") %>% 
+  mutate(condition = factor(condition, column_order)) %>% 
+  ggplot() +
+  aes(x = condition, y = 1, fill = day) + 
+  geom_tile() + 
+  scale_fill_manual(values = ann_vaxsig_colors$day) + 
+  theme_void() +
+  labs(y = "Day") +
+  theme(axis.title.y = element_text(size = 10, hjust = 1),
+        legend.direction = "horizontal",
+        legend.position = "bottom")
+
+
+#Plot
+dotplot_vac = df %>% 
+  filter(genes %in% row_clustered$labels) %>% 
+    filter(dose != "0") %>% 
+  mutate(condition = factor(condition, column_order),
+         genes = factor(genes, levels = row_clustered$labels[row_clustered$order])) %>% 
+  ggplot(aes(x=condition, y = genes, fill = log2fold_change)) +
+  geom_tile() + 
+  theme_minimal() + 
+  theme(axis.text = element_text(color = "black", size = 12) ,
+        axis.line  = element_blank(),
+        axis.text.x = element_text(angle = 45, vjust = 1, hjust=1),
+        axis.ticks = element_blank(),
+        legend.direction = "horizontal",
+        legend.position = "bottom") +
+  labs(x = "",
+       y = "") +
+  scale_fill_gradient2(low = "#4DBBD5FF",
+                        mid = "white",
+                        midpoint = 0, 
+                        name = "L2FC", 
+                       limits = c(-2, 2),     # Definir os limites
+    oob = scales::squish,
+                      high = "#DC0000FF") +
+  scale_y_discrete(position = "right")
+
+dotplot_infec = df %>% 
+  filter(genes %in% row_clustered$labels) %>% 
+  filter(dose == "0") %>% 
+  mutate(condition = factor(condition, column_order),
+         genes = factor(genes, levels = row_clustered$labels[row_clustered$order])) %>% 
+  ggplot(aes(x=condition, y = genes, fill = log2fold_change)) +
+  geom_tile() + 
+  theme_minimal() + 
+  theme(axis.text = element_text(color = "black", size = 12) ,
+        axis.line  = element_blank(),
+        axis.text.x = element_text(angle = 45, vjust = 1, hjust=1),
+        axis.ticks = element_blank(),
+        legend.direction = "horizontal",
+        legend.position = "bottom") +
+  labs(x = "",
+       y = "") +
+  scale_fill_gradient2(low = "#4DBBD5FF",
+                        mid = "white",
+                        midpoint = 0, 
+                        name = "L2FC", 
+                       limits = c(-2, 2),     # Definir os limites
+    oob = scales::squish,
+                      high = "#DC0000FF") +
+  scale_y_discrete(position = "right")
+  
+
+patch_immune_genes_infec = 
+  labels_set /
+  labels_disease_vac /
+  labels_type /
+  labels_dose/
+  labels_week/
+  labels_day/
+  (dotplot_vac + dotplot_infec)+
+  plot_layout(heights = c(0.2, 0.2, 0.2, 0.2, 0.2, 0.2, 5),
+              widths = c(1, 1, 1, 1, 1, 1, 0.5),
+              guides = 'collect',
+              axes = "collect") +
+  plot_annotation(title = "Top 20 genes shared",
+                  subtitle = "Among infection",
+                  theme = theme(legend.position = "bottom",
+                                plot.title = element_text(hjust = 0.5, size = 15),
+                                plot.subtitle = element_text(hjust = 0.5, size = 15),
+                                plot.margin = margin(10, 0.5, 10, 1, unit = "cm"),
+                                legend.direction = "horizontal", 
+                                legend.box = "horizontal"))
+patch_immune_genes_infec
+patch_immune_genes_infec %>% 
+  ggsave(filename = here("Figures", paste0(filename, "_Top20DEGs_infec_Bubbleplot.png")),
+         width = 25,
+         height = 18)
+
+```
+
+
+
+
+## Principal components analysis
 
 ```{r}
 library(tidyverse)
@@ -22661,10 +23124,10 @@ library(circlize)
 library(ggExtra)
 library(FactoMineR)
 library(here)
+library(PCAtools)
+library(ggplotify)
 
 ```
-
-## 6.2. Process data
 
 **Required files**
 
@@ -22735,36 +23198,35 @@ ann_vaccines_pca_matrix_ready = ann_vaccines_pca_matrix %>%
 
 ```
 
-## PCA with PCAtools
-
-#With infection
-```{r fig.height=20, fig.width=20, cache = TRUE}
+### With infection
+```{r fig.height=5, fig.width=10, cache = TRUE}
 ##### PCA using PCAtools
 # BiocManager::install('PCAtools')
-# BiocManager::install("airway")
+
 library(PCAtools)
 
 data_annotation
 #Matrix (genes, sample)
-matrix = ann_vaccines_pca_matrix_ready %>% 
+p_vacinfec_matrix = ann_vaccines_pca_matrix_ready %>% 
   t() %>% 
-  as.data.frame() %>% 
-  select(rownames(metadata)) %>% 
-  as.matrix()
+  as.data.frame()
 #Annotation 
-metadata = data_annotation %>% 
-  inner_join(matrix %>% t() %>% 
+p_vacinfec_metadata = data_annotation %>% 
+  inner_join(p_vacinfec_matrix %>% t() %>% 
                as.data.frame() %>% 
                rownames_to_column("condition") %>% select("condition"), 
              by = "condition") %>% 
   column_to_rownames("condition") %>% 
   select(disease_vac, type, vaccine, dose, day, week, set)
 
+p_vacinfec_matrix = p_vacinfec_matrix%>% 
+  select(rownames(p_vacinfec_metadata)) %>% 
+  as.matrix()
 
 
 #PCA
-p <- pca(mat = matrix, 
-         metadata = metadata, 
+p_vacinfec <- pca(mat = p_vacinfec_matrix, 
+         metadata = p_vacinfec_metadata, 
          removeVar = 0.1)
 
 options(ggrepel.max.overlaps = Inf)
@@ -22772,21 +23234,27 @@ options(ggrepel.max.overlaps = Inf)
 conflicted::conflicts_prefer(PCAtools::biplot)
 
 #Screeplot
-#Determine optimal number of PCs
-horn <- parallelPCA(mat)
-elbow <- findElbowPoint(p$variance)
+
+p_vacinfec_horn <- parallelPCA(mat)
+p_vacinfec_elbow <- findElbowPoint(p_vacinfec$variance)
 conflicted::conflicts_prefer(PCAtools::screeplot)
-screeplot(p,
-          components = getComponents(p, 1:20),
-          vline = c(horn$n, elbow)) +
-  geom_label(aes(x = horn$n + 1, y = 50,
+
+p_vacinfec_screeplot = screeplot(p_vacinfec,
+          components = getComponents(p_vacinfec, 1:20),
+          vline = c(p_vacinfec_horn$n, p_vacinfec_elbow)) +
+  geom_label(aes(x = p_vacinfec_horn$n + 1, y = 50,
                  label = 'Horn\'s', vjust = -1, size = 8)) +
-  geom_label(aes(x = elbow + 1, y = 50,
+  geom_label(aes(x = p_vacinfec_elbow + 1, y = 50,
                  label = 'Elbow method', vjust = -1, size = 8)) 
 
+p_vacinfec_screeplot
+```
+
+
+```{r fig.height=20, fig.width=20, message=FALSE, warning=FALSE, cache=FALSE}
 #Plot all paired components 
-pairsplot_type = pairsplot(p,
-          components = getComponents(p, c(1:10)),
+p_vacinfec_pairsplot_type = pairsplot(p_vacinfec,
+          components = getComponents(p_vacinfec, c(1:10)),
           triangle = T, 
           trianglelabSize = 12,
           hline = 0, vline = 0,
@@ -22795,12 +23263,12 @@ pairsplot_type = pairsplot(p,
           gridlines.minor = FALSE,
           colby = 'type',
           colkey = ann_vaxsig_colors$type,
-          title = 'Pairs plot', returnPlot = T,
+          title = 'Pairs plot, by vaccine type', returnPlot = T,
           plotaxes = FALSE) 
 
 
-pairsplot_set = pairsplot(p,
-          components = getComponents(p, c(1:10)),
+p_vacinfec_pairsplot_set = pairsplot(p_vacinfec,
+          components = getComponents(p_vacinfec, c(1:10)),
           triangle = T, 
           trianglelabSize = 12,
           hline = 0, vline = 0,
@@ -22809,12 +23277,12 @@ pairsplot_set = pairsplot(p,
           gridlines.minor = FALSE,
           colby = 'set',
           colkey = ann_vaxsig_colors$set,
-          title = 'Pairs plot', returnPlot = T,
+          title = 'Pairs plot, by atlas set', returnPlot = T,
           plotaxes = FALSE) 
 
 
-pairsplot_disease_vac = pairsplot(p,
-          components = getComponents(p, c(1:10)),
+p_vacinfec_pairsplot_disease_vac = pairsplot(p_vacinfec,
+          components = getComponents(p_vacinfec, c(1:10)),
           triangle = T, 
           trianglelabSize = 12,
           hline = 0, vline = 0,
@@ -22823,12 +23291,12 @@ pairsplot_disease_vac = pairsplot(p,
           gridlines.minor = FALSE,
           colby = 'disease_vac',
           colkey = ann_vaxsig_colors$disease_vac,
-          title = 'Pairs plot', returnPlot = T,
+          title = 'Pairs plot, by infection or vaccination', returnPlot = T,
           plotaxes = FALSE) 
 
 
-pairsplot_week = pairsplot(p,
-          components = getComponents(p, c(1:10)),
+p_vacinfec_pairsplot_week = pairsplot(p_vacinfec,
+          components = getComponents(p_vacinfec, c(1:10)),
           triangle = T, 
           trianglelabSize = 12,
           hline = 0, vline = 0,
@@ -22837,92 +23305,103 @@ pairsplot_week = pairsplot(p,
           gridlines.minor = FALSE,
           colby = 'week',
           colkey = ann_vaxsig_colors$week,
-          title = 'Pairs plot', returnPlot = T,
+          title = 'Pairs plot, by week', returnPlot = T,
           plotaxes = FALSE)
 
-pairsplot_set
-pairsplot_type
-pairsplot_disease_vac
-pairsplot_week
+p_vacinfec_pairsplot_set
+p_vacinfec_pairsplot_type
+p_vacinfec_pairsplot_disease_vac
+p_vacinfec_pairsplot_week
 
 ```
 
 
-```{r fig.height=8, fig.width=10, cache = TRUE}
+```{r fig.height=15, fig.width=10, cache = TRUE}
 #Loadings plot
-loadingsplot = plotloadings(p, labSize = 3,  shapeSizeRange = 5,
+p_vacinfec_loadingsplot = plotloadings(p_vacinfec, 
+                                       labSize = 3,  
+                                       shapeSizeRange = 5,titleLabSize = 22,
                             components = 1:10,
-             col = c(low = '#4DBBD5FF', mid = "white", high = '#DC0000FF') )
+                            title = "Loadings plot, Vaccination and infection",
+                            col = c(low = '#4DBBD5FF', mid = "white", high = '#DC0000FF') )
 
 #Meta variables
-metavars = eigencorplot(p,
-             metavars = colnames(metadata), 
+p_vacinfec_metavars = eigencorplot(p_vacinfec,
+             metavars = colnames(p_vacinfec_metadata), 
+             main = "Meta variables, Vaccination and infection",
              col = c(low = '#4DBBD5FF', mid = "white", high = '#DC0000FF')) 
+library(ggplotify)
+library(cowplot)
+bottom_row <- plot_grid(p_vacinfec_loadingsplot,
+      as.grob(p_vacinfec_metavars),
+      ncol = 1,
+      labels = c('D', 'E'),
+      label_fontface = 'bold',
+      # label_size = 22,
+      align = 'v',
+      rel_widths = c(1, 1.5),
+      rel_heights = c(1, 1))
 
+bottom_row
 
-library(patchwork)
-metavars
-loadingsplot
 ```
 
 
 
-#Only vaccines
-```{r fig.height=10, fig.width=10, cache = TRUE}
-##### PCA using PCAtools
-# BiocManager::install('PCAtools')
-# BiocManager::install("airway")
-library(PCAtools)
-
-#Annotation [rownames(sample), columns (other attributes)] Dataframe
-metadata = data_annotation %>% 
-  mutate(condition = fct_relevel(condition, colnames(matrix))) %>% 
-  inner_join(matrix %>% t() %>% as.data.frame() %>% rownames_to_column("condition") %>% select("condition"), 
-             by = "condition") %>% 
-  column_to_rownames("condition") %>% 
-  filter(disease_vac!= "I") %>% 
-  select(type, vaccine, dose, day, week, set)
-
+### Only vaccines
+```{r fig.height=5, fig.width=10, message=TRUE, warning=TRUE, cache=FALSE}
 
 #Matrix (genes, sample)
-matrix = ann_vaccines_pca_matrix_ready %>% 
+p_vac_matrix = ann_vaccines_pca_matrix_ready %>% 
   t() %>% 
-  as.data.frame() %>% 
-  select(rownames(metadata)) %>% 
-  as.matrix()
+  as.data.frame()
+#Annotation 
+p_vac_metadata = data_annotation %>% 
+  inner_join(p_vac_matrix %>% t() %>% 
+               as.data.frame() %>% 
+               rownames_to_column("condition") %>% select("condition"), 
+             by = "condition") %>% 
+  column_to_rownames("condition") %>% 
+  filter(dose != "0") %>% 
+  select(disease_vac, type, vaccine, dose, day, week, set)
 
+p_vac_matrix = p_vac_matrix%>% 
+  select(rownames(p_vac_metadata)) %>% 
+  as.matrix()
 #PCA
-p <- pca(mat = matrix, 
-         metadata = metadata, 
+vac_p <- pca(mat = p_vac_matrix, 
+         metadata = p_vac_metadata, 
          removeVar = 0.1)
 
 options(ggrepel.max.overlaps = Inf)
 #Plot
 conflicted::conflicts_prefer(PCAtools::biplot)
-biplot(p,labSize = 3, pointSize = 5, 
+biplot(vac_p,labSize = 3, pointSize = 5, 
        colby = 'type',
                  hline = 0, vline = 0,max.overlaps = Inf,
        colkey = ann_vaxsig_colors$type) 
 
 #Screeplot
 #Determine optimal number of PCs
-horn <- parallelPCA(mat)
-elbow <- findElbowPoint(p$variance)
+vac_horn <- parallelPCA(mat)
+vac_elbow <- findElbowPoint(vac_p$variance)
 conflicted::conflicts_prefer(PCAtools::screeplot)
-screeplot(p,
-          components = getComponents(p, 1:20),
-          vline = c(horn$n, elbow)) +
-  geom_label(aes(x = horn$n + 1, y = 50,
+vac_screeplot = screeplot(vac_p,
+          components = getComponents(vac_p, 1:20),
+          vline = c(vac_horn$n, vac_elbow)) +
+  geom_label(aes(x = vac_horn$n + 1, y = 50,
                  label = 'Horn\'s', vjust = -1, size = 8)) +
-  geom_label(aes(x = elbow + 1, y = 50,
+  geom_label(aes(x = vac_elbow + 1, y = 50,
                  label = 'Elbow method', vjust = -1, size = 8))
+
+vac_screeplot
 ```
 
 
 ```{r fig.height=20, fig.width=20, cache = TRUE}
 #Plot all paired components 
-pairsplot_type = pairsplot(p,
-          components = getComponents(p, c(1:10)),
+vac_pairsplot_type = pairsplot(vac_p,
+          components = getComponents(vac_p, c(1:10)),
           triangle = T, 
           trianglelabSize = 12,
           hline = 0, vline = 0,
@@ -22931,12 +23410,12 @@ pairsplot_type = pairsplot(p,
           gridlines.minor = FALSE,
           colby = 'type',
           colkey = ann_vaxsig_colors$type,
-          title = 'Pairs plot', returnPlot = T,
+          title = 'Pairs plot, by type', returnPlot = T,
           plotaxes = FALSE) 
 
 
-pairsplot_set = pairsplot(p,
-          components = getComponents(p, c(1:10)),
+vac_pairsplot_set = pairsplot(vac_p,
+          components = getComponents(vac_p, c(1:10)),
           triangle = T, 
           trianglelabSize = 12,
           hline = 0, vline = 0,
@@ -22945,12 +23424,12 @@ pairsplot_set = pairsplot(p,
           gridlines.minor = FALSE,
           colby = 'set',
           colkey = ann_vaxsig_colors$set,
-          title = 'Pairs plot', returnPlot = T,
+          title = 'Pairs plot, by atlas set', returnPlot = T,
           plotaxes = FALSE) 
 
 
-pairsplot_disease_vac = pairsplot(p,
-          components = getComponents(p, c(1:10)),
+vac_pairsplot_disease_vac = pairsplot(vac_p,
+          components = getComponents(vac_p, c(1:10)),
           triangle = T, 
           trianglelabSize = 12,
           hline = 0, vline = 0,
@@ -22959,46 +23438,55 @@ pairsplot_disease_vac = pairsplot(p,
           gridlines.minor = FALSE,
           colby = 'disease_vac',
           colkey = ann_vaxsig_colors$disease_vac,
-          title = 'Pairs plot', returnPlot = T,
+          title = 'Pairs plot, by infection or vaccination', returnPlot = T,
           plotaxes = FALSE) 
 
 
-pairsplot_week = pairsplot(p,
-          components = getComponents(p, c(1:10)),
+vac_pairsplot_week = pairsplot(vac_p,
+          components = getComponents(vac_p, c(1:10)),
           triangle = T, 
           trianglelabSize = 12,
-          hline = 0, vline = 0,
+          hline = 0, 
+          vline = 0,
           pointSize = 2,
           gridlines.major = FALSE, 
           gridlines.minor = FALSE,
           colby = 'week',
           colkey = ann_vaxsig_colors$week,
-          title = 'Pairs plot', returnPlot = T,
+          title = 'Pairs plot, by week', 
+          returnPlot = T,
           plotaxes = FALSE)
 
-pairsplot_set
-pairsplot_type
-pairsplot_disease_vac
-pairsplot_week
+vac_pairsplot_set
+vac_pairsplot_type
+vac_pairsplot_week
+vac_pairsplot_disease_vac
 
 ```
 
 
 ```{r fig.height=8, fig.width=10, cache = TRUE}
 #Loadings plot
-loadingsplot = plotloadings(p, labSize = 3,  shapeSizeRange = 5,
+vac_loadingsplot = plotloadings(vac_p, labSize = 3,  shapeSizeRange = 5,
                             components = 1:10,
              col = c(low = '#4DBBD5FF', mid = "white", high = '#DC0000FF') )
 
 #Meta variables
-metavars = eigencorplot(p,
-             metavars = colnames(metadata), 
+vac_metavars = eigencorplot(vac_p,
+             metavars = colnames(vac_metadata), 
              col = c(low = '#4DBBD5FF', mid = "white", high = '#DC0000FF')) 
 
+bottom_row <- plot_grid(vac_loadingsplot,
+      as.grob(vac_metavars),
+      ncol = 1,
+      labels = c('D', 'E'),
+      label_fontface = 'bold',
+      # label_size = 22,
+      align = 'v',
+      rel_widths = c(1, 1.5),
+      rel_heights = c(1, 1))
 
-library(patchwork)
-metavars
-loadingsplot
+bottom_row
 ```
 
 
