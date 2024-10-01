@@ -22069,7 +22069,7 @@ filename = "All_covid_13Vax"
 
 ### 5.3. Gene set enrichment analysis (GSEA)
 
-#### 5.3.1. Multiple
+#### ImmuneGO
 
 ```{r}
 autoGSEA <- function(df, TERM2GENE, geneset_name) {
@@ -22400,63 +22400,7 @@ patch_immune_main
 ```
 
 
-## Gene set enrichment analysis
-
-### 5.1. Input
-
-### 5.3. Gene set enrichment analysis (GSEA)
-
-#### 5.3.1. Multiple
-
-```{r}
-autoGSEA <- function(df, TERM2GENE, geneset_name) {
-  resultados <- list()
-
-  condicoes <- df$condition %>% 
-    unique() %>% 
-    as.character()
-
-  for (condicao in condicoes) {
-    
-    degs_condicao <- df %>% 
-      filter(condition == condicao) %>%
-      select(genes, log2fold_change) %>%
-      distinct() %>%
-      mutate(rank = rank(log2fold_change, ties.method = "random")) %>%
-      arrange(desc(rank))
-
-    gene_list_lf2c <- as.vector(degs_condicao$log2fold_change)
-    names(gene_list_lf2c) <- degs_condicao$genes
-    gene_list_lf2c <- na.omit(gene_list_lf2c)
-    gene_list_lf2c <- sort(gene_list_lf2c, decreasing = TRUE)
-
-    auto_gsea <- tryCatch({
-      GSEA(geneList = gene_list_lf2c,
-           TERM2GENE = TERM2GENE,
-           minGSSize = 1,
-           maxGSSize = 1000,
-           pvalueCutoff = 1,
-           pAdjustMethod = "BH") %>%
-        as.data.frame() %>%
-        arrange(qvalue) %>%
-        mutate(condition = condicao,
-               gsea_enrichment = geneset_name)
-    }, error = function(e) {
-      return(NULL)
-    })
-
-    if (!is.null(auto_gsea)) {
-      resultados[[paste(condicao, geneset_name, sep = "_")]] <- auto_gsea
-    }
-  }
-  
-
-  # Combinar todos os resultados em um único dataframe
-  resultado_final <- bind_rows(resultados)
-
-  return(resultado_final)
-}
-```
+## BTM modules
 
 ```{r}
 # Perform GSEA
@@ -22509,56 +22453,7 @@ ann_vaccines_covid_other_conditions = ann_vaccines_conditions %>%
 
 ```
 
-
-
-
-```{r fig.height=8, fig.width=20}
-# Função para realizar clustering para cada valor da coluna day
-cluster_by_day <- function(df, day_column = "day", condition_column = "condition") {
-  
-  # Obter os níveis do fator da coluna de dias
-  days <- levels(df[[day_column]])
-  
-  # Inicializar uma lista para armazenar as ordens
-  orders <- list()
-  
-  # Loop por cada nível (dia) da coluna fator day
-  for (day_value in days) {
-    # Filtrar os dados para o dia atual
-    day_data <- df %>%
-      filter(!!sym(day_column) == day_value) %>%
-      select(!!sym(condition_column)) %>%
-      distinct()
-    
-    # Criar uma matriz binária onde 1 representa a presença da condição
-    if (nrow(day_data) > 1) {
-      # Matriz com condições como rótulos e 1 para presença
-      presence_matrix <- table(day_data[[condition_column]]) > 0
-      dist_matrix <- as.matrix(presence_matrix)
-      
-      # Aplicar o clustering
-      col_clustered <- dist(dist_matrix) %>% hclust()
-      
-      # Armazenar a ordem dos clusters
-      orders[[day_value]] <- col_clustered$labels[col_clustered$order]
-    } else {
-      # Se houver apenas uma condição, armazenar o rótulo
-      orders[[day_value]] <- as.character(day_data[[condition_column]])
-    }
-  }
-  
-  # Converter a lista de ordens para um data frame
-  order_df <- data.frame(
-    day = rep(names(orders), sapply(orders, length)),
-    condition = unlist(orders)
-  )
-  
-  return(order_df)
-}
-```
-
-
-```{r fig.height=40, fig.width=20}
+```{r fig.height=12, fig.width=25}
 df = All_covid_13Vax_BTM_GSEA_ALL %>% 
   filter(qvalue<= 0.25) %>% 
   inner_join(ann_vaccines_covid_other_conditions, by = "condition") %>% 
@@ -22567,6 +22462,17 @@ df = All_covid_13Vax_BTM_GSEA_ALL %>%
                                mutate(day = as.character(day),
                                       day = as.numeric(day)) %>% 
                                arrange(day) %>% pull() %>% as.character()))
+
+#Filter most shared modules
+filtered_mods = df %>% 
+  group_by(id) %>% 
+  summarize(n = n()) %>% 
+  filter(n > 10) %>% 
+  .$id
+
+
+df = df %>% 
+  filter(id %in% c(filtered_mods))
 
 
 row_clustered = df %>% 
@@ -22697,22 +22603,419 @@ patch_immune_main =
   labels_day/
     labels_dose/
   dotplot +
-  plot_layout(heights = c(0.03, 0.03, 0.03, 0.03, 0.03, 5),
+  plot_layout(heights = c(0.3, 0.3, 0.3, 0.3, 0.3, 5),
               guides = 'collect') +
-  plot_annotation(title = "GSEA ImmuneGO",
-                  subtitle = "Main processes",
-                  theme = theme(legend.position = "right",
-                                plot.margin = margin(5, 1, 5, 1, unit = "cm"),
+  plot_annotation(title = "GSEA BTM modules",
+                  subtitle = "Modules shared at least 7 times among conditions",
+                  theme = theme(legend.position = "left",
+                                plot.title = element_text(hjust = 0.5, size = 15),
+                                plot.subtitle = element_text(hjust = 0.5, size = 15),
+                                plot.margin = margin(5, 0.5, 5, 1, unit = "cm"),
                                 legend.direction = "vertical", 
                                 legend.box = "vertical"))
-
+patch_immune_main
 patch_immune_main %>% 
   ggsave(filename = here("Figures", paste0(filename, "_GSEA_BTM_Bubbleplot.png")),
          width = 25,
-         height = 40)
+         height = 12)
 patch_immune_main
 
 ```
+
+
+#Gene analysis
+```{r}
+degs_covid_vax %>% 
+  group_by(genes) %>% 
+  summarize(n = n()) %>% 
+  arrange(-n)
+```
+
+# 6. Principal components analysis
+
+Tutorials [Data Camp - PCA Analysis in
+R](https://www.datacamp.com/tutorial/pca-analysis-r){.uri}
+
+[FactoExtra](https://rpkgs.datanovia.com/factoextra/index.html){.uri}
+[STHDA: Principal Component Methods in R - Practical
+guide](http://www.sthda.com/english/articles/31-principal-component-methods-in-r-practical-guide/114-mca-multiple-correspondence-analysis-in-r-essentials/){.uri}
+
+[Statistics globe: PCA before K Means
+Clustering](https://statisticsglobe.com/pca-before-k-means-clustering-r){.uri}\>
+
+## 6.1. Packages and colors
+
+```{r}
+library(tidyverse)
+library(ggrepel) #load before factoextra
+library(factoextra)
+library(caret)
+library(stats)
+library(ggfortify)
+library(ggplot2)
+library(corrplot)
+library(cowplot)
+library(ggcorrplot)
+library(ComplexHeatmap)
+library(circlize)
+library(ggExtra)
+library(FactoMineR)
+library(here)
+
+```
+
+## 6.2. Process data
+
+**Required files**
+
+```{r}
+# Genes in long table format
+degs_covid_vax = degs_covid_vax %>% ungroup()
+
+# Gene set annotation.Used only to merge and filter genes.
+ImmuneGO_Annotated_Genes = readRDS(here("VaxGO gene sets", "ImmuneGO_Annotated_Genes_2024-03-26.rds"))
+
+# Sample or condition annotation
+ann_vaccines = ann_vaccines_covid_other_conditions
+
+data_annotation = ann_vaccines %>%
+  mutate(day = as.factor(day),
+         dose = as.factor(dose)) 
+```
+
+**Filtering data**
+
+```{r}
+# Gene set data.
+ImmuneGO_Annotated_Genes_all = ImmuneGO_Annotated_Genes
+ImmuneGO_Annotated_Genes = ImmuneGO_Annotated_Genes_all %>% 
+  filter(!process %in% c("TCR REPERTOIRE", "BCR REPERTOIRE"))
+
+ImmuneGO_Genes = degs_covid_vax %>%
+  inner_join(ImmuneGO_Annotated_Genes %>% 
+               select(genes, process) %>% 
+               distinct() %>% 
+               select(genes),
+               by = "genes") %>% 
+  distinct()
+```
+
+**Input**
+
+```{r}
+#INPUT
+data_genes = ImmuneGO_Genes 
+filename = "13Vax_Covid_ImmuneGO"
+
+#Convert long to wide table format.
+#Dataframe with sample annotation
+
+ann_vaccines_pca_matrix = data_genes %>% 
+  dplyr::summarise(n = dplyr::n(), .by = c(genes, condition)) |>
+  dplyr::filter(n > 1L) %>% 
+  select(genes) %>% 
+  inner_join(data_genes, by = "genes") %>% 
+  select(condition, genes, log2fold_change) %>% 
+  distinct() %>% 
+  pivot_wider(names_from = "condition", 
+              values_from = "log2fold_change", values_fn = mean) %>% 
+  replace(is.na(.), 0) %>%
+  column_to_rownames("genes") %>% 
+  t() %>% 
+  as.data.frame() %>% 
+  rownames_to_column("condition") %>% 
+  inner_join(data_annotation %>% 
+               select(condition, disease_vac, vaccine, day, week, dose, type, set), by = "condition") 
+
+# Convert dataframe to matrix without annotation columns
+ann_vaccines_pca_matrix_ready = ann_vaccines_pca_matrix %>% 
+  column_to_rownames("condition") %>% 
+  select(!disease_vac:set)
+
+
+```
+
+## PCA with PCAtools
+
+#With infection
+```{r fig.height=20, fig.width=20, cache = TRUE}
+##### PCA using PCAtools
+# BiocManager::install('PCAtools')
+# BiocManager::install("airway")
+library(PCAtools)
+
+data_annotation
+#Matrix (genes, sample)
+matrix = ann_vaccines_pca_matrix_ready %>% 
+  t() %>% 
+  as.data.frame() %>% 
+  select(rownames(metadata)) %>% 
+  as.matrix()
+#Annotation 
+metadata = data_annotation %>% 
+  inner_join(matrix %>% t() %>% 
+               as.data.frame() %>% 
+               rownames_to_column("condition") %>% select("condition"), 
+             by = "condition") %>% 
+  column_to_rownames("condition") %>% 
+  select(disease_vac, type, vaccine, dose, day, week, set)
+
+
+
+#PCA
+p <- pca(mat = matrix, 
+         metadata = metadata, 
+         removeVar = 0.1)
+
+options(ggrepel.max.overlaps = Inf)
+#Plot
+conflicted::conflicts_prefer(PCAtools::biplot)
+
+#Screeplot
+#Determine optimal number of PCs
+horn <- parallelPCA(mat)
+elbow <- findElbowPoint(p$variance)
+conflicted::conflicts_prefer(PCAtools::screeplot)
+screeplot(p,
+          components = getComponents(p, 1:20),
+          vline = c(horn$n, elbow)) +
+  geom_label(aes(x = horn$n + 1, y = 50,
+                 label = 'Horn\'s', vjust = -1, size = 8)) +
+  geom_label(aes(x = elbow + 1, y = 50,
+                 label = 'Elbow method', vjust = -1, size = 8)) 
+
+#Plot all paired components 
+pairsplot_type = pairsplot(p,
+          components = getComponents(p, c(1:10)),
+          triangle = T, 
+          trianglelabSize = 12,
+          hline = 0, vline = 0,
+          pointSize = 2,
+          gridlines.major = FALSE, 
+          gridlines.minor = FALSE,
+          colby = 'type',
+          colkey = ann_vaxsig_colors$type,
+          title = 'Pairs plot', returnPlot = T,
+          plotaxes = FALSE) 
+
+
+pairsplot_set = pairsplot(p,
+          components = getComponents(p, c(1:10)),
+          triangle = T, 
+          trianglelabSize = 12,
+          hline = 0, vline = 0,
+          pointSize = 2,
+          gridlines.major = FALSE, 
+          gridlines.minor = FALSE,
+          colby = 'set',
+          colkey = ann_vaxsig_colors$set,
+          title = 'Pairs plot', returnPlot = T,
+          plotaxes = FALSE) 
+
+
+pairsplot_disease_vac = pairsplot(p,
+          components = getComponents(p, c(1:10)),
+          triangle = T, 
+          trianglelabSize = 12,
+          hline = 0, vline = 0,
+          pointSize = 2,
+          gridlines.major = FALSE, 
+          gridlines.minor = FALSE,
+          colby = 'disease_vac',
+          colkey = ann_vaxsig_colors$disease_vac,
+          title = 'Pairs plot', returnPlot = T,
+          plotaxes = FALSE) 
+
+
+pairsplot_week = pairsplot(p,
+          components = getComponents(p, c(1:10)),
+          triangle = T, 
+          trianglelabSize = 12,
+          hline = 0, vline = 0,
+          pointSize = 2,
+          gridlines.major = FALSE, 
+          gridlines.minor = FALSE,
+          colby = 'week',
+          colkey = ann_vaxsig_colors$week,
+          title = 'Pairs plot', returnPlot = T,
+          plotaxes = FALSE)
+
+pairsplot_set
+pairsplot_type
+pairsplot_disease_vac
+pairsplot_week
+
+```
+
+
+```{r fig.height=8, fig.width=10, cache = TRUE}
+#Loadings plot
+loadingsplot = plotloadings(p, labSize = 3,  shapeSizeRange = 5,
+                            components = 1:10,
+             col = c(low = '#4DBBD5FF', mid = "white", high = '#DC0000FF') )
+
+#Meta variables
+metavars = eigencorplot(p,
+             metavars = colnames(metadata), 
+             col = c(low = '#4DBBD5FF', mid = "white", high = '#DC0000FF')) 
+
+
+library(patchwork)
+metavars
+loadingsplot
+```
+
+
+
+#Only vaccines
+```{r fig.height=10, fig.width=10, cache = TRUE}
+##### PCA using PCAtools
+# BiocManager::install('PCAtools')
+# BiocManager::install("airway")
+library(PCAtools)
+
+#Annotation [rownames(sample), columns (other attributes)] Dataframe
+metadata = data_annotation %>% 
+  mutate(condition = fct_relevel(condition, colnames(matrix))) %>% 
+  inner_join(matrix %>% t() %>% as.data.frame() %>% rownames_to_column("condition") %>% select("condition"), 
+             by = "condition") %>% 
+  column_to_rownames("condition") %>% 
+  filter(disease_vac!= "I") %>% 
+  select(type, vaccine, dose, day, week, set)
+
+
+#Matrix (genes, sample)
+matrix = ann_vaccines_pca_matrix_ready %>% 
+  t() %>% 
+  as.data.frame() %>% 
+  select(rownames(metadata)) %>% 
+  as.matrix()
+
+#PCA
+p <- pca(mat = matrix, 
+         metadata = metadata, 
+         removeVar = 0.1)
+
+options(ggrepel.max.overlaps = Inf)
+#Plot
+conflicted::conflicts_prefer(PCAtools::biplot)
+biplot(p,labSize = 3, pointSize = 5, 
+       colby = 'type',
+                 hline = 0, vline = 0,max.overlaps = Inf,
+       colkey = ann_vaxsig_colors$type) 
+
+#Screeplot
+#Determine optimal number of PCs
+horn <- parallelPCA(mat)
+elbow <- findElbowPoint(p$variance)
+conflicted::conflicts_prefer(PCAtools::screeplot)
+screeplot(p,
+          components = getComponents(p, 1:20),
+          vline = c(horn$n, elbow)) +
+  geom_label(aes(x = horn$n + 1, y = 50,
+                 label = 'Horn\'s', vjust = -1, size = 8)) +
+  geom_label(aes(x = elbow + 1, y = 50,
+                 label = 'Elbow method', vjust = -1, size = 8))
+```
+
+
+```{r fig.height=20, fig.width=20, cache = TRUE}
+#Plot all paired components 
+pairsplot_type = pairsplot(p,
+          components = getComponents(p, c(1:10)),
+          triangle = T, 
+          trianglelabSize = 12,
+          hline = 0, vline = 0,
+          pointSize = 2,
+          gridlines.major = FALSE, 
+          gridlines.minor = FALSE,
+          colby = 'type',
+          colkey = ann_vaxsig_colors$type,
+          title = 'Pairs plot', returnPlot = T,
+          plotaxes = FALSE) 
+
+
+pairsplot_set = pairsplot(p,
+          components = getComponents(p, c(1:10)),
+          triangle = T, 
+          trianglelabSize = 12,
+          hline = 0, vline = 0,
+          pointSize = 2,
+          gridlines.major = FALSE, 
+          gridlines.minor = FALSE,
+          colby = 'set',
+          colkey = ann_vaxsig_colors$set,
+          title = 'Pairs plot', returnPlot = T,
+          plotaxes = FALSE) 
+
+
+pairsplot_disease_vac = pairsplot(p,
+          components = getComponents(p, c(1:10)),
+          triangle = T, 
+          trianglelabSize = 12,
+          hline = 0, vline = 0,
+          pointSize = 2,
+          gridlines.major = FALSE, 
+          gridlines.minor = FALSE,
+          colby = 'disease_vac',
+          colkey = ann_vaxsig_colors$disease_vac,
+          title = 'Pairs plot', returnPlot = T,
+          plotaxes = FALSE) 
+
+
+pairsplot_week = pairsplot(p,
+          components = getComponents(p, c(1:10)),
+          triangle = T, 
+          trianglelabSize = 12,
+          hline = 0, vline = 0,
+          pointSize = 2,
+          gridlines.major = FALSE, 
+          gridlines.minor = FALSE,
+          colby = 'week',
+          colkey = ann_vaxsig_colors$week,
+          title = 'Pairs plot', returnPlot = T,
+          plotaxes = FALSE)
+
+pairsplot_set
+pairsplot_type
+pairsplot_disease_vac
+pairsplot_week
+
+```
+
+
+```{r fig.height=8, fig.width=10, cache = TRUE}
+#Loadings plot
+loadingsplot = plotloadings(p, labSize = 3,  shapeSizeRange = 5,
+                            components = 1:10,
+             col = c(low = '#4DBBD5FF', mid = "white", high = '#DC0000FF') )
+
+#Meta variables
+metavars = eigencorplot(p,
+             metavars = colnames(metadata), 
+             col = c(low = '#4DBBD5FF', mid = "white", high = '#DC0000FF')) 
+
+
+library(patchwork)
+metavars
+loadingsplot
+```
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
