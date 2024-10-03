@@ -6114,7 +6114,7 @@ create_boxplots <- function(result_df) {
   facet_wrap(~disease_vac, scales = "free_x")
 
     ggsave(cellmarker_boxplot, 
-           file = here("Figures", paste0("ssgsea_xcell_boxplot_", process_name, ".png")),
+           file = here("Figures", "XCell", paste0("ssgsea_xcell_boxplot_", process_name, ".png")),
            width = 12, height = 6)
   })
 }
