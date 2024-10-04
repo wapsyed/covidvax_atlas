@@ -1868,7 +1868,25 @@ demographics_plot_days_samples_doses %>%
 
 ```
 
+#### Immunological endpoints
+```{r}
 
+Serology_data <- read_csv("raw_data/GSE199750/Serology_data.csv")
+Serology_data %>%
+  clean_names() %>%
+  separate(sample_id, into = c("study", "participant_id", "dose")) %>%
+  inner_join(ann_vaccines_samples %>% 
+               filter(gse_id == "GSE199750") %>% 
+               separate(participant_id, into = c("study", "participant_id")) , by = "participant_id") %>% 
+  view()
+  group_by(dose) %>%
+  drop_na(pseudovirus_neutralisation_id50) %>%
+  mutate(pseudovirus_neutralisation_id50 = ifelse(pseudovirus_neutralisation_id50 <= 0, 1e-10, pseudovirus_neutralisation_id50)) %>%  # Substituir zeros ou valores negativos
+  summarise(
+    pseudovirus_neutralisation_id50_gmt = log10(prod(pseudovirus_neutralisation_id50)^(1/n()))  # Calcular a média geométrica
+  )
+
+```
 
 
 
@@ -2367,6 +2385,17 @@ degs_all_updown = read_rds(file = here("DGE analysis", "all_studies_degs_weighte
   # mutate_all(~ replace(., is.na(.), "NA")) %>% 
   filter(genes %in% btm_annotation_genes_immune$genes)
 
+
+add = GSE201530_metadata_annotate %>% 
+              select(day, condition, gse_id, vaccine, week:sequencer) %>% 
+  distinct() %>% 
+  anti_join(ann_vaccines,
+            by = "condition")
+
+
+ann_vaccines %>% 
+  bind_rows(add) %>% 
+  write_csv(file = here("Annotations and metadata", "ann_vaccines_conditions.csv"))
 
 
 ann_vaccines = read_csv(here("Annotations and metadata", "ann_vaccines_conditions.csv"))
