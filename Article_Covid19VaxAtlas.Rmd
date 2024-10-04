@@ -2363,17 +2363,19 @@ ggplot_degs_bars_2
 # DEGs table
 degs_all_updown = read_rds(file = here("DGE analysis", "all_studies_degs_weighted.rds")) %>% 
   filter(fdr <= 0.05) %>% 
-  filter(direction != "NEUTRAL") %>% 
-  mutate_all(~ replace(., is.na(.), "NA"))
+  # filter(direction != "NEUTRAL") %>% 
+  # mutate_all(~ replace(., is.na(.), "NA")) %>% 
+  filter(genes %in% btm_annotation_genes_immune$genes)
+
+
 
 ann_vaccines = read_csv(here("Annotations and metadata", "ann_vaccines_conditions.csv"))
 
 # Only up and down
 data = degs_all_updown %>% 
-  filter(fdr < 0.05) %>% 
  dplyr::select(process = condition, genes)
 
-filename = "All_covid"
+filename = "All_covid_BTM_immune"
 ```
 
 ### 4.2.2. Function
@@ -2482,7 +2484,7 @@ write_csv(shared_genes_df_mirror,
 #### 4.2.4.1. Shared genes
 
 ```{r}
-filename = "All_covid_Shared"
+filename = paste0(filename, "_Shared") 
 library(maditr)
 #Anotar colunas
 # Converter para wide table
@@ -2632,7 +2634,7 @@ dev.off()
 #### 4.2.4.2. Jaccard distance
 
 ```{r}
-filename = "All_covid_Jaccarddist"
+filename = "All_covid_BTM_immune_Jaccarddist"
 
 
 matrix_data = shared_genes_df_mirror %>% 
