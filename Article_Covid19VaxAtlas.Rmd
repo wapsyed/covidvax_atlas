@@ -1565,10 +1565,16 @@ ann_vaccines_conditions_ordered %>%
 ### 3.1.2. Samples by condition
 
 ```{r fig.height=10, fig.width=20, cache = TRUE}
-
-ann_vaccines = read_csv(here("Annotations and metadata", "ann_vaccines_conditions.csv"))
-ann_vaccines_conditions = ann_vaccines
+ann_vaccines_conditions = read_csv(here("Annotations and metadata", "ann_vaccines_conditions.csv"))
 ann_vaccines_samples <- read_csv(here("Annotations and metadata","ann_vaccines_samples.csv"))
+
+ann_vaccines_conditions = ann_vaccines_samples %>% 
+  group_by(condition, gse_id) %>% 
+  summarize(samples = n()) %>% 
+  inner_join(ann_vaccines_conditions %>% select(-samples), by = join_by("condition", "gse_id"))
+
+ann_vaccines = ann_vaccines_conditions
+
 
 #### SAMPLES BY CONDITION -----
 samples_by_condition  = ann_vaccines %>% 

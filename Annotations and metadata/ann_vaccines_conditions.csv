@@ -3,59 +3,56 @@ condition,gse_id,samples,vaccine,day,week,dose,infection,type,gmt_nab_wt,gmt_igg
 "BBIBP (V3, D07)",GSE206023,6,BBIBP,7,1,3,0,IN,34.61,0,HO,V,H,None,No,Yes,China,"November, 2021",NextSeq 2000
 "BBIBP (V3, D14)",GSE206023,6,BBIBP,14,2,3,0,IN,81.52,355.05,HO,V,H,None,No,Yes,China,"November, 2021",NextSeq 2000
 "BBIBP (V3, D28)",GSE206023,6,BBIBP,28,4,3,0,IN,97.9,552.69,HO,V,H,None,No,Yes,China,"November, 2021",NextSeq 2000
-"ZF2001 (V3, D0)",GSE206023,6,ZF2001,0,0,3,0,SU,3.63,0,HE,V,H,None,No,Yes,China,"November, 2021",NextSeq 2000
-"ZF2001 (V3, D07)",GSE206023,6,ZF2001,7,1,3,0,SU,36.31,0,HE,V,H,None,No,Yes,China,"November, 2021",NextSeq 2000
-"ZF2001 (V3, D14)",GSE206023,6,ZF2001,14,2,3,0,SU,448.28,4170.39,HE,V,H,None,No,Yes,China,"November, 2021",NextSeq 2000
-"ZF2001 (V3, D28)",GSE206023,6,ZF2001,28,4,3,0,SU,461.16,3207.81,HE,V,H,None,No,Yes,China,"November, 2021",NextSeq 2000
+"BNT (V1, D0)",GSE189039,8,BNT,0,0,1,0,RNA,NA,NA,HO,V,H,None,No,No,Italy,"January, 2021",Illumina NovaSeq 6000
+"BNT (V1, D0)",GSE199750,67,BNT,0,0,1,0,RNA,NA,NA,HO,V,H,None,No,No,Australia,2021,DNBSEQ-G400
+"BNT (V1, D6)",GSE199750,64,BNT,6,1,1,0,RNA,NA,NA,HO,V,H,None,No,No,Australia,2021,DNBSEQ-G400
+"BNT (V2, D1)",GSE199750,46,BNT,1,1,2,0,RNA,NA,NA,HO,V,H,None,No,Yes,Australia,2021,DNBSEQ-G400
+"BNT (V3, D1)",GSE199750,25,BNT,1,1,3,0,RNA,NA,NA,HO,V,H,None,No,Yes,Australia,2021,DNBSEQ-G400
+BNT-I (D0),GSE201530,9,BNT,0,1,2,1,RNA,5.2,NA,V-V-I,I,MI,Omicron,No,Yes,Korea,December 2021 and March 2022,Illumina NovaSeq 6000
+BNT-I (D1),GSE201530,2,BNT,1,1,1,1,I,5.2,NA,V-I,I,MI,Omicron,No,Yes,Korea,December 2021 and March 2022,Illumina NovaSeq 6000
+"BNT-I (D10, mild)",GSE189039,1,BNT,10,2,1,1,RNA,NA,NA,V-I,I,MI,Beta,No,Yes,Italy,"January, 2021",Illumina NovaSeq 6000
+"BNT-I (D10, severe)",GSE189039,3,BNT,10,2,1,1,RNA,NA,NA,V-I,I,S,Beta,No,Yes,Italy,"January, 2021",Illumina NovaSeq 6000
+BNT-I (D2),GSE201530,5,BNT,2,1,1,1,I,5.2,NA,V-I,I,MI,Omicron,No,Yes,Korea,December 2021 and March 2022,Illumina NovaSeq 6000
+"BNT-I (D26, mild)",GSE189039,1,BNT,26,4,1,1,RNA,NA,NA,V-I,I,MI,Beta,No,Yes,Italy,"January, 2021",Illumina NovaSeq 6000
+"BNT-I (D26, severe)",GSE189039,2,BNT,26,4,1,1,RNA,NA,NA,V-I,I,S,Beta,No,Yes,Italy,"January, 2021",Illumina NovaSeq 6000
+BNT-I (D3),GSE201530,3,BNT,3,1,1,1,I,5.2,NA,V-I,I,MI,Omicron,No,Yes,Korea,December 2021 and March 2022,Illumina NovaSeq 6000
+"BNT-I (D51, severe)",GSE189039,1,BNT,51,8,1,1,RNA,NA,NA,V-I-V,I,S,Beta,No,Yes,Italy,"January, 2021",Illumina NovaSeq 6000
+"BNT-I-BNT (D51, mild)",GSE189039,1,BNT,51,8,2,1,RNA,NA,NA,V-I-V,I,MI,Beta,No,Yes,Italy,"January, 2021",Illumina NovaSeq 6000
+"BNT-I-BNT (D51, severe)",GSE189039,1,BNT,51,8,2,1,RNA,NA,NA,V-I-V,I,S,Beta,No,Yes,Italy,"January, 2021",Illumina NovaSeq 6000
+"BNT-MO (V1, D0)",GSE199750,2,BNT,0,0,1,0,RNA,NA,NA,HE,V,H,None,No,No,Australia,2021,DNBSEQ-G400
+"BNT-MO (V1, D6)",GSE199750,2,BNT,6,1,1,0,RNA,NA,NA,HE,V,H,None,No,No,Australia,2021,DNBSEQ-G400
+"BNT-MO (V3, D1)",GSE199750,10,MO,1,1,3,0,RNA,NA,NA,HE,V,H,None,No,Yes,Australia,2021,DNBSEQ-G400
+"ChAd (V1, D0)",GSE199750,16,ChAd,0,0,1,0,VV,NA,NA,HO,V,H,None,No,No,Australia,2021,DNBSEQ-G400
 "ChAd (V1, D0)",GSE201533,37,ChAd,0,0,1,0,VV,NA,NA,HO,V,H,None,No,No,Korea,"June to August, 2021",Illumina NovaSeq 6000
 "ChAd (V1, D3)",GSE201533,36,ChAd,3,1,1,0,VV,NA,NA,HO,V,H,None,No,No,Korea,"June to August, 2021",Illumina NovaSeq 6000
+"ChAd (V1, D6)",GSE199750,15,ChAd,6,1,1,0,VV,NA,NA,HO,V,H,None,No,No,Australia,2021,DNBSEQ-G400
 "ChAd (V1, D7)",GSE201533,37,ChAd,7,1,1,0,VV,NA,NA,HO,V,H,None,No,No,Korea,"June to August, 2021",Illumina NovaSeq 6000
+"ChAd (V2, D1)",GSE199750,8,ChAd,1,1,2,0,VV,NA,NA,HO,V,H,None,No,Yes,Australia,2021,DNBSEQ-G400
 "ChAd (V2, D3)",GSE201533,4,ChAd,3,1,2,0,VV,NA,NA,HO,V,H,None,No,Yes,Korea,"June to August, 2021",Illumina NovaSeq 6000
 "ChAd (V2, D7)",GSE201533,1,ChAd,7,1,2,0,VV,NA,NA,HO,V,H,None,No,Yes,Korea,"June to August, 2021",Illumina NovaSeq 6000
 "ChAd-BNT (V2, D0)",GSE201533,16,BNT,0,0,2,0,RNA,NA,NA,HE,V,H,None,No,Yes,Korea,"June to August, 2021",Illumina NovaSeq 6000
 "ChAd-BNT (V2, D3)",GSE201533,17,BNT,3,1,2,0,RNA,NA,NA,HE,V,H,None,No,Yes,Korea,"June to August, 2021",Illumina NovaSeq 6000
 "ChAd-BNT (V2, D7)",GSE201533,11,BNT,7,1,2,0,RNA,NA,NA,HE,V,H,None,No,Yes,Korea,"June to August, 2021",Illumina NovaSeq 6000
-BNT-I (D0),GSE201530,NA,BNT,0,1,2,1,RNA,5.2,NA,V-V-I,I,MI,Omicron,No,Yes,Korea,December 2021 and March 2022,Illumina NovaSeq 6000
-BNT-I (D1),GSE201530,5,BNT,1,1,1,1,I,5.2,NA,V-I,I,MI,Omicron,No,Yes,Korea,December 2021 and March 2022,Illumina NovaSeq 6000
-BNT-I (D2),GSE201530,12,BNT,2,1,1,1,I,5.2,NA,V-I,I,MI,Omicron,No,Yes,Korea,December 2021 and March 2022,Illumina NovaSeq 6000
-BNT-I (D3),GSE201530,6,BNT,3,1,1,1,I,5.2,NA,V-I,I,MI,Omicron,No,Yes,Korea,December 2021 and March 2022,Illumina NovaSeq 6000
-BNT-I (D4),GSE201530,2,BNT,4,1,1,1,I,5.2,NA,V-I,I,MI,Omicron,No,Yes,Korea,December 2021 and March 2022,Illumina NovaSeq 6000
-H (D0),GSE201530,8,H,0,0,0,0,H,NA,NA,H,H,H,None,No,No,Korea,December 2021 and March 2022,Illumina NovaSeq 6000
-I (D0),GSE201530,NA,I,0,1,0,1,I,4.05,NA,I,I,MI,Omicron,No,No,Korea,December 2021 and March 2022,Illumina NovaSeq 6000
-I (D1),GSE201530,1,I,1,1,0,1,I,4.05,NA,I,I,MI,Omicron,No,No,Korea,December 2021 and March 2022,Illumina NovaSeq 6000
-I (D2),GSE201530,NA,I,2,1,0,1,I,4.05,NA,I,I,MI,Omicron,No,No,Korea,December 2021 and March 2022,Illumina NovaSeq 6000
-I (D3),GSE201530,NA,I,3,1,0,1,I,4.05,NA,I,I,MI,Omicron,No,No,Korea,December 2021 and March 2022,Illumina NovaSeq 6000
-I (D4),GSE201530,NA,I,4,1,0,1,I,4.05,NA,I,I,MI,Omicron,No,No,Korea,December 2021 and March 2022,Illumina NovaSeq 6000
-I-BNT (D5),GSE201530,NA,BNT,5,1,1,2,RNA,NA,NA,I-V,I,MI,Omicron,Yes,Yes,Korea,December 2021 and March 2022,Illumina NovaSeq 6000
-I-BNT-I (D2),GSE201530,1,BNT,2,1,1,2,I,NA,NA,I-V-I,I,MI,Omicron,Yes,Yes,Korea,December 2021 and March 2022,Illumina NovaSeq 6000
-I-BNT-I (D5),GSE201530,1,BNT,5,1,1,2,I,NA,NA,I-V-I,I,MI,Omicron,Yes,Yes,Korea,December 2021 and March 2022,Illumina NovaSeq 6000
-I-I (D0),GSE201530,1,I,0,0,0,2,I,4.12,NA,I-I,I,MI,Omicron,Yes,No,Korea,December 2021 and March 2022,Illumina NovaSeq 6000
-I-I (D1),GSE201530,1,I,1,1,0,2,I,4.12,NA,I-I,I,MI,Omicron,Yes,No,Korea,December 2021 and March 2022,Illumina NovaSeq 6000
-I-I (D2),GSE201530,1,I,2,1,0,2,I,4.12,NA,I-I,I,MI,Omicron,Yes,No,Korea,December 2021 and March 2022,Illumina NovaSeq 6000
-I-I (D3),GSE201530,1,I,3,1,0,2,I,4.12,NA,I-I,I,MI,Omicron,Yes,No,Korea,December 2021 and March 2022,Illumina NovaSeq 6000
-I-I (D5),GSE201530,2,I,5,1,0,2,I,4.12,NA,I-I,I,MI,Omicron,Yes,No,Korea,December 2021 and March 2022,Illumina NovaSeq 6000
-"BNT (V1, D0)",GSE199750,67,BNT,0,0,1,0,RNA,NA,NA,HO,V,H,None,No,No,Australia,2021,DNBSEQ-G400
-"BNT (V1, D6)",GSE199750,64,BNT,6,1,1,0,RNA,NA,NA,HO,V,H,None,No,No,Australia,2021,DNBSEQ-G400
-"BNT (V2, D1)",GSE199750,46,BNT,1,1,2,0,RNA,NA,NA,HO,V,H,None,No,Yes,Australia,2021,DNBSEQ-G400
-"BNT (V3, D1)",GSE199750,25,BNT,1,1,3,0,RNA,NA,NA,HO,V,H,None,No,Yes,Australia,2021,DNBSEQ-G400
-"BNT-MO (V1, D0)",GSE199750,2,BNT,0,0,1,0,RNA,NA,NA,HE,V,H,None,No,No,Australia,2021,DNBSEQ-G400
-"BNT-MO (V1, D6)",GSE199750,2,BNT,6,1,1,0,RNA,NA,NA,HE,V,H,None,No,No,Australia,2021,DNBSEQ-G400
-"BNT-MO (V3, D1)",GSE199750,10,MO,1,1,3,0,RNA,NA,NA,HE,V,H,None,No,Yes,Australia,2021,DNBSEQ-G400
-"ChAd (V1, D0)",GSE199750,16,ChAd,0,0,1,0,VV,NA,NA,HO,V,H,None,No,No,Australia,2021,DNBSEQ-G400
-"ChAd (V1, D6)",GSE199750,15,ChAd,6,1,1,0,VV,NA,NA,HO,V,H,None,No,No,Australia,2021,DNBSEQ-G400
-"ChAd (V2, D1)",GSE199750,8,ChAd,1,1,2,0,VV,NA,NA,HO,V,H,None,No,Yes,Australia,2021,DNBSEQ-G400
 "ChAd-BNT (V3, D1)",GSE199750,5,BNT,1,1,3,0,RNA,NA,NA,HE,V,H,None,No,Yes,Australia,2021,DNBSEQ-G400
-"BNT (V1, D0)",GSE189039,8,BNT,0,0,1,0,RNA,NA,NA,HO,V,H,None,No,No,Italy,"January, 2021",Illumina NovaSeq 6000
-"BNT-I (D10, mild)",GSE189039,1,BNT,10,2,1,1,RNA,NA,NA,V-I,I,MI,Beta,No,Yes,Italy,"January, 2021",Illumina NovaSeq 6000
-"BNT-I (D10, severe)",GSE189039,3,BNT,10,2,1,1,RNA,NA,NA,V-I,I,S,Beta,No,Yes,Italy,"January, 2021",Illumina NovaSeq 6000
-"BNT-I (D26, mild)",GSE189039,1,BNT,26,4,1,1,RNA,NA,NA,V-I,I,MI,Beta,No,Yes,Italy,"January, 2021",Illumina NovaSeq 6000
-"BNT-I (D26, severe)",GSE189039,2,BNT,26,4,1,1,RNA,NA,NA,V-I,I,S,Beta,No,Yes,Italy,"January, 2021",Illumina NovaSeq 6000
-"BNT-I (D51, severe)",GSE189039,1,BNT,51,8,1,1,RNA,NA,NA,V-I-V,I,S,Beta,No,Yes,Italy,"January, 2021",Illumina NovaSeq 6000
-"BNT-I-BNT (D51, mild)",GSE189039,1,BNT,51,8,2,1,RNA,NA,NA,V-I-V,I,MI,Beta,No,Yes,Italy,"January, 2021",Illumina NovaSeq 6000
-"BNT-I-BNT (D51, severe)",GSE189039,1,BNT,51,8,2,1,RNA,NA,NA,V-I-V,I,S,Beta,No,Yes,Italy,"January, 2021",Illumina NovaSeq 6000
+H (D0),GSE201530,8,H,0,0,0,0,H,NA,NA,H,H,H,None,No,No,Korea,December 2021 and March 2022,Illumina NovaSeq 6000
+I (D0),GSE201530,4,I,0,1,0,1,I,4.05,NA,I,I,MI,Omicron,No,No,Korea,December 2021 and March 2022,Illumina NovaSeq 6000
+I (D1),GSE201530,4,I,1,1,0,1,I,4.05,NA,I,I,MI,Omicron,No,No,Korea,December 2021 and March 2022,Illumina NovaSeq 6000
 "I (D10, moderate)",GSE189039,3,I,10,2,0,1,I,NA,NA,I,I,MO,Beta,No,No,Italy,"January, 2021",Illumina NovaSeq 6000
 "I (D10, severe)",GSE189039,2,I,10,2,0,1,I,NA,NA,I,I,S,Beta,No,No,Italy,"January, 2021",Illumina NovaSeq 6000
+I (D2),GSE201530,7,I,2,1,0,1,I,4.05,NA,I,I,MI,Omicron,No,No,Korea,December 2021 and March 2022,Illumina NovaSeq 6000
 "I (D26, moderate)",GSE189039,3,I,26,4,0,1,I,NA,NA,I,I,MO,Beta,No,No,Italy,"January, 2021",Illumina NovaSeq 6000
 "I (D26, severe)",GSE189039,2,I,26,4,0,1,I,NA,NA,I,I,S,Beta,No,No,Italy,"January, 2021",Illumina NovaSeq 6000
+I (D3),GSE201530,3,I,3,1,0,1,I,4.05,NA,I,I,MI,Omicron,No,No,Korea,December 2021 and March 2022,Illumina NovaSeq 6000
+I (D4),GSE201530,2,I,4,1,0,1,I,4.05,NA,I,I,MI,Omicron,No,No,Korea,December 2021 and March 2022,Illumina NovaSeq 6000
 "I (D51, moderate)",GSE189039,2,I,51,8,0,1,I,NA,NA,I,I,MO,Beta,No,No,Italy,"January, 2021",Illumina NovaSeq 6000
 "I (D51, severe)",GSE189039,2,I,51,8,0,1,I,NA,NA,I,I,S,Beta,No,No,Italy,"January, 2021",Illumina NovaSeq 6000
+I-BNT (D5),GSE201530,1,BNT,5,1,1,2,RNA,NA,NA,I-V,I,MI,Omicron,Yes,Yes,Korea,December 2021 and March 2022,Illumina NovaSeq 6000
+I-I (D0),GSE201530,1,I,0,0,0,2,I,4.12,NA,I-I,I,MI,Omicron,Yes,No,Korea,December 2021 and March 2022,Illumina NovaSeq 6000
+I-I (D1),GSE201530,1,I,1,1,0,2,I,4.12,NA,I-I,I,MI,Omicron,Yes,No,Korea,December 2021 and March 2022,Illumina NovaSeq 6000
+I-I (D2),GSE201530,2,I,2,1,0,2,I,4.12,NA,I-I,I,MI,Omicron,Yes,No,Korea,December 2021 and March 2022,Illumina NovaSeq 6000
+I-I (D3),GSE201530,1,I,3,1,0,2,I,4.12,NA,I-I,I,MI,Omicron,Yes,No,Korea,December 2021 and March 2022,Illumina NovaSeq 6000
+I-I (D5),GSE201530,2,I,5,1,0,2,I,4.12,NA,I-I,I,MI,Omicron,Yes,No,Korea,December 2021 and March 2022,Illumina NovaSeq 6000
+"ZF2001 (V3, D0)",GSE206023,6,ZF2001,0,0,3,0,SU,3.63,0,HE,V,H,None,No,Yes,China,"November, 2021",NextSeq 2000
+"ZF2001 (V3, D07)",GSE206023,6,ZF2001,7,1,3,0,SU,36.31,0,HE,V,H,None,No,Yes,China,"November, 2021",NextSeq 2000
+"ZF2001 (V3, D14)",GSE206023,6,ZF2001,14,2,3,0,SU,448.28,4170.39,HE,V,H,None,No,Yes,China,"November, 2021",NextSeq 2000
+"ZF2001 (V3, D28)",GSE206023,6,ZF2001,28,4,3,0,SU,461.16,3207.81,HE,V,H,None,No,Yes,China,"November, 2021",NextSeq 2000
