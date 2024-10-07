@@ -1487,9 +1487,10 @@ ann_vaccines_conditions %>%
 
 ```
 
-
+### Reorder conditions as factors
 ```{r}
 ann_vaccines_conditions_ordered = ann_vaccines_conditions %>% 
+  mutate(condition = as.character(condition)) %>% 
   filter(condition != "BNT-MO (V1, D0)",
          condition != "BNT-MO (V1, D6)") %>% 
   mutate(disease_vac = if_else(disease_vac == "Healthy", "H", disease_vac)) %>% 
@@ -1505,8 +1506,21 @@ ann_vaccines_conditions_ordered = ann_vaccines_conditions_ordered %>%
                                    distinct() %>% 
                                    pull(condition), 
                                  ann_vaccines_conditions_ordered %>% 
+                                   filter(grepl("^I \\(D[0-9]\\)$", condition)) %>% 
+                                   select(condition) %>% 
+                                   arrange(condition) %>% 
+                                   distinct() %>% 
+                                   pull(condition),
+                                 ann_vaccines_conditions_ordered %>% 
+                                   filter(!grepl("^I \\(D[0-9]\\)$", condition)) %>% 
                                    filter(str_detect(condition, "^I")) %>% 
                                    filter(!str_detect(condition, "^I-I")) %>% 
+                                   select(condition) %>% 
+                                   arrange(condition) %>% 
+                                   distinct() %>% 
+                                   pull(condition),
+                                 ann_vaccines_conditions_ordered %>% 
+                                   filter(str_detect(condition, "^I-I")) %>% 
                                    select(condition) %>% 
                                    arrange(condition) %>% 
                                    distinct() %>% 
@@ -1557,7 +1571,8 @@ ann_vaccines_conditions_ordered = ann_vaccines_conditions_ordered %>%
          disease_vac = if_else(disease_vac == "H", "I", disease_vac)) 
 
 
-ann_vaccines_conditions_ordered %>% 
+ann_vaccines_conditions_ordered %>%
+  arrange(condition) %>% 
   saveRDS(file = here("Annotations and metadata", "ann_vaccines_conditions_ordered.rds"))
 ```
 
@@ -4130,7 +4145,7 @@ go_bp_all_comma = go_bp_all %>%
 
 write_csv(go_bp_all_comma, file = here("VaxGO gene sets","OtherGOs_Annotated_GOs.csv"))
 
-go_bp_all
+go_bp_all = OtherGOs_Annotated_Genes
 go_bp_all_comma
 ```
 
@@ -4207,6 +4222,7 @@ write_csv(main_go_2, file = here("DGE analysis", "degs_annotated_mainGOs_stats.c
 
 ```{r fig.height=10, fig.width=15, warning=FALSE}
 degs_annotated_mainGOs_stats <- read_csv(here("DGE analysis", "degs_annotated_mainGOs_stats.csv"))
+main_go_2 = degs_annotated_mainGOs_stats
 
 # Table
 df_day =  degs_annotated_mainGOs_stats %>% 
@@ -4274,7 +4290,6 @@ Explore data with interactive plots
 
 ```{r fig.height=15, fig.width=20, message=FALSE, warning=FALSE}
 
-ann_vaccines_conditions = ann_vaccines_conditions_ordered
 
 main_go_2_plot_up_down = main_go_2 %>%
   inner_join(ann_vaccines_conditions, by = "condition") %>% 
@@ -4287,10 +4302,10 @@ main_go_2_plot_up_down = main_go_2 %>%
       "Reg. of BP"
     )
   ) %>%
-  filter(term_ancestor %in% c("Immune system", "Cellular", "Metabolism")) %>% 
+filter(term_ancestor %in% c("Immune system", "Cellular", "Metabolism")) %>% 
 mutate(disease_vac = fct_relevel(disease_vac, "I", "V")) %>% 
   arrange(disease_vac) %>% 
-  mutate(condition = factor(condition, levels = ann_vaccines_conditions$condition %>% unique())) %>% 
+  mutate(condition = factor(condition, levels = ann_vaccines_conditions_ordered$condition %>% unique())) %>% 
   ggplot() +
  aes(x = fct_rev(factor(condition)), y = n_genes_perc, fill = type) +
  geom_col() +

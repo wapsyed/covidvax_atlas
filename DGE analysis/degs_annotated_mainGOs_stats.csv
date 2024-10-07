@@ -1,52 +1,52 @@
 condition,direction,term_ancestor,n_genes,n_genes_total,n_genes_perc
-"BBIBP (V3, D07)",DOWN,Cellular,85,106,80.2
-"BBIBP (V3, D07)",DOWN,Immune system,31,106,29.2
-"BBIBP (V3, D07)",DOWN,Interspecies interaction,22,106,20.8
-"BBIBP (V3, D07)",DOWN,Metabolism,60,106,56.6
-"BBIBP (V3, D07)",DOWN,Not mapped,15,106,14.2
-"BBIBP (V3, D07)",DOWN,Reg. of BP,75,106,70.8
-"BBIBP (V3, D07)",UP,Cellular,25,117,21.4
-"BBIBP (V3, D07)",UP,Immune system,7,117,6
-"BBIBP (V3, D07)",UP,Interspecies interaction,2,117,1.7
-"BBIBP (V3, D07)",UP,Metabolism,15,117,12.8
-"BBIBP (V3, D07)",UP,Not mapped,90,117,76.9
-"BBIBP (V3, D07)",UP,Reg. of BP,19,117,16.2
-"BBIBP (V3, D14)",DOWN,Cellular,47,63,74.6
-"BBIBP (V3, D14)",DOWN,Immune system,34,63,54
-"BBIBP (V3, D14)",DOWN,Interspecies interaction,26,63,41.3
-"BBIBP (V3, D14)",DOWN,Metabolism,37,63,58.7
-"BBIBP (V3, D14)",DOWN,Not mapped,12,63,19
-"BBIBP (V3, D14)",DOWN,Reg. of BP,42,63,66.7
-"BBIBP (V3, D14)",UP,Cellular,583,1110,52.5
-"BBIBP (V3, D14)",UP,Immune system,63,1110,5.7
-"BBIBP (V3, D14)",UP,Interspecies interaction,40,1110,3.6
-"BBIBP (V3, D14)",UP,Metabolism,328,1110,29.5
-"BBIBP (V3, D14)",UP,Not mapped,506,1110,45.6
-"BBIBP (V3, D14)",UP,Reg. of BP,439,1110,39.5
-"BBIBP (V3, D28)",DOWN,Cellular,61,82,74.4
-"BBIBP (V3, D28)",DOWN,Immune system,29,82,35.4
-"BBIBP (V3, D28)",DOWN,Interspecies interaction,23,82,28
-"BBIBP (V3, D28)",DOWN,Metabolism,47,82,57.3
-"BBIBP (V3, D28)",DOWN,Not mapped,19,82,23.2
-"BBIBP (V3, D28)",DOWN,Reg. of BP,55,82,67.1
-"BBIBP (V3, D28)",UP,Cellular,151,519,29.1
-"BBIBP (V3, D28)",UP,Immune system,31,519,6
-"BBIBP (V3, D28)",UP,Interspecies interaction,13,519,2.5
-"BBIBP (V3, D28)",UP,Metabolism,78,519,15
-"BBIBP (V3, D28)",UP,Not mapped,362,519,69.7
-"BBIBP (V3, D28)",UP,Reg. of BP,108,519,20.8
+"BBIBP (V3, D07)",DOWN,Cellular,83,104,79.8
+"BBIBP (V3, D07)",DOWN,Immune system,31,104,29.8
+"BBIBP (V3, D07)",DOWN,Interspecies interaction,22,104,21.2
+"BBIBP (V3, D07)",DOWN,Metabolism,60,104,57.7
+"BBIBP (V3, D07)",DOWN,Not mapped,15,104,14.4
+"BBIBP (V3, D07)",DOWN,Reg. of BP,74,104,71.2
+"BBIBP (V3, D07)",UP,Cellular,23,115,20
+"BBIBP (V3, D07)",UP,Immune system,7,115,6.1
+"BBIBP (V3, D07)",UP,Interspecies interaction,2,115,1.7
+"BBIBP (V3, D07)",UP,Metabolism,13,115,11.3
+"BBIBP (V3, D07)",UP,Not mapped,90,115,78.3
+"BBIBP (V3, D07)",UP,Reg. of BP,18,115,15.7
+"BBIBP (V3, D14)",DOWN,Cellular,46,62,74.2
+"BBIBP (V3, D14)",DOWN,Immune system,34,62,54.8
+"BBIBP (V3, D14)",DOWN,Interspecies interaction,26,62,41.9
+"BBIBP (V3, D14)",DOWN,Metabolism,36,62,58.1
+"BBIBP (V3, D14)",DOWN,Not mapped,12,62,19.4
+"BBIBP (V3, D14)",DOWN,Reg. of BP,41,62,66.1
+"BBIBP (V3, D14)",UP,Cellular,559,1081,51.7
+"BBIBP (V3, D14)",UP,Immune system,61,1081,5.6
+"BBIBP (V3, D14)",UP,Interspecies interaction,38,1081,3.5
+"BBIBP (V3, D14)",UP,Metabolism,312,1081,28.9
+"BBIBP (V3, D14)",UP,Not mapped,503,1081,46.5
+"BBIBP (V3, D14)",UP,Reg. of BP,422,1081,39
+"BBIBP (V3, D28)",DOWN,Cellular,57,78,73.1
+"BBIBP (V3, D28)",DOWN,Immune system,29,78,37.2
+"BBIBP (V3, D28)",DOWN,Interspecies interaction,23,78,29.5
+"BBIBP (V3, D28)",DOWN,Metabolism,45,78,57.7
+"BBIBP (V3, D28)",DOWN,Not mapped,19,78,24.4
+"BBIBP (V3, D28)",DOWN,Reg. of BP,52,78,66.7
+"BBIBP (V3, D28)",UP,Cellular,146,511,28.6
+"BBIBP (V3, D28)",UP,Immune system,31,511,6.1
+"BBIBP (V3, D28)",UP,Interspecies interaction,13,511,2.5
+"BBIBP (V3, D28)",UP,Metabolism,75,511,14.7
+"BBIBP (V3, D28)",UP,Not mapped,360,511,70.5
+"BBIBP (V3, D28)",UP,Reg. of BP,102,511,20
 "BNT (V1, D6)",DOWN,Cellular,10,17,58.8
 "BNT (V1, D6)",DOWN,Immune system,5,17,29.4
 "BNT (V1, D6)",DOWN,Interspecies interaction,1,17,5.9
 "BNT (V1, D6)",DOWN,Metabolism,7,17,41.2
 "BNT (V1, D6)",DOWN,Not mapped,7,17,41.2
 "BNT (V1, D6)",DOWN,Reg. of BP,4,17,23.5
-"BNT (V1, D6)",UP,Cellular,57,82,69.5
-"BNT (V1, D6)",UP,Immune system,7,82,8.5
-"BNT (V1, D6)",UP,Interspecies interaction,4,82,4.9
-"BNT (V1, D6)",UP,Metabolism,25,82,30.5
-"BNT (V1, D6)",UP,Not mapped,22,82,26.8
-"BNT (V1, D6)",UP,Reg. of BP,39,82,47.6
+"BNT (V1, D6)",UP,Cellular,55,80,68.8
+"BNT (V1, D6)",UP,Immune system,7,80,8.8
+"BNT (V1, D6)",UP,Interspecies interaction,4,80,5
+"BNT (V1, D6)",UP,Metabolism,23,80,28.7
+"BNT (V1, D6)",UP,Not mapped,22,80,27.5
+"BNT (V1, D6)",UP,Reg. of BP,38,80,47.5
 "BNT (V2, D1)",DOWN,Cellular,12,40,30
 "BNT (V2, D1)",DOWN,Immune system,4,40,10
 "BNT (V2, D1)",DOWN,Interspecies interaction,2,40,5
@@ -59,138 +59,150 @@ condition,direction,term_ancestor,n_genes,n_genes_total,n_genes_perc
 "BNT (V2, D1)",UP,Metabolism,7,27,25.9
 "BNT (V2, D1)",UP,Not mapped,15,27,55.6
 "BNT (V2, D1)",UP,Reg. of BP,8,27,29.6
-BNT-I (D1),DOWN,Cellular,229,374,61.2
-BNT-I (D1),DOWN,Immune system,55,374,14.7
-BNT-I (D1),DOWN,Interspecies interaction,26,374,7
-BNT-I (D1),DOWN,Metabolism,130,374,34.8
-BNT-I (D1),DOWN,Not mapped,141,374,37.7
-BNT-I (D1),DOWN,Reg. of BP,167,374,44.7
-BNT-I (D1),UP,Cellular,650,842,77.2
-BNT-I (D1),UP,Immune system,157,842,18.6
-BNT-I (D1),UP,Interspecies interaction,117,842,13.9
-BNT-I (D1),UP,Metabolism,410,842,48.7
-BNT-I (D1),UP,Not mapped,175,842,20.8
-BNT-I (D1),UP,Reg. of BP,509,842,60.5
-"BNT-I (D10, mild)",DOWN,Cellular,1698,2287,74.2
-"BNT-I (D10, mild)",DOWN,Immune system,286,2287,12.5
-"BNT-I (D10, mild)",DOWN,Interspecies interaction,148,2287,6.5
-"BNT-I (D10, mild)",DOWN,Metabolism,1236,2287,54
-"BNT-I (D10, mild)",DOWN,Not mapped,536,2287,23.4
-"BNT-I (D10, mild)",DOWN,Reg. of BP,1227,2287,53.7
-"BNT-I (D10, mild)",UP,Cellular,1126,1536,73.3
-"BNT-I (D10, mild)",UP,Immune system,290,1536,18.9
-"BNT-I (D10, mild)",UP,Interspecies interaction,230,1536,15
-"BNT-I (D10, mild)",UP,Metabolism,827,1536,53.8
-"BNT-I (D10, mild)",UP,Not mapped,355,1536,23.1
-"BNT-I (D10, mild)",UP,Reg. of BP,837,1536,54.5
-"BNT-I (D10, severe)",DOWN,Cellular,1463,2000,73.2
-"BNT-I (D10, severe)",DOWN,Immune system,283,2000,14.1
-"BNT-I (D10, severe)",DOWN,Interspecies interaction,150,2000,7.5
-"BNT-I (D10, severe)",DOWN,Metabolism,986,2000,49.3
-"BNT-I (D10, severe)",DOWN,Not mapped,499,2000,25
-"BNT-I (D10, severe)",DOWN,Reg. of BP,1104,2000,55.2
-"BNT-I (D10, severe)",UP,Cellular,1401,2023,69.3
-"BNT-I (D10, severe)",UP,Immune system,345,2023,17.1
-"BNT-I (D10, severe)",UP,Interspecies interaction,276,2023,13.6
-"BNT-I (D10, severe)",UP,Metabolism,1009,2023,49.9
-"BNT-I (D10, severe)",UP,Not mapped,554,2023,27.4
-"BNT-I (D10, severe)",UP,Reg. of BP,1048,2023,51.8
-BNT-I (D2),DOWN,Cellular,254,413,61.5
-BNT-I (D2),DOWN,Immune system,37,413,9
-BNT-I (D2),DOWN,Interspecies interaction,24,413,5.8
-BNT-I (D2),DOWN,Metabolism,178,413,43.1
-BNT-I (D2),DOWN,Not mapped,156,413,37.8
-BNT-I (D2),DOWN,Reg. of BP,166,413,40.2
-BNT-I (D2),UP,Cellular,735,1001,73.4
-BNT-I (D2),UP,Immune system,204,1001,20.4
-BNT-I (D2),UP,Interspecies interaction,165,1001,16.5
-BNT-I (D2),UP,Metabolism,471,1001,47.1
-BNT-I (D2),UP,Not mapped,234,1001,23.4
-BNT-I (D2),UP,Reg. of BP,576,1001,57.5
-"BNT-I (D26, mild)",DOWN,Cellular,969,1267,76.5
-"BNT-I (D26, mild)",DOWN,Immune system,149,1267,11.8
-"BNT-I (D26, mild)",DOWN,Interspecies interaction,74,1267,5.8
-"BNT-I (D26, mild)",DOWN,Metabolism,696,1267,54.9
-"BNT-I (D26, mild)",DOWN,Not mapped,277,1267,21.9
-"BNT-I (D26, mild)",DOWN,Reg. of BP,700,1267,55.2
-"BNT-I (D26, mild)",UP,Cellular,846,1147,73.8
-"BNT-I (D26, mild)",UP,Immune system,180,1147,15.7
-"BNT-I (D26, mild)",UP,Interspecies interaction,140,1147,12.2
-"BNT-I (D26, mild)",UP,Metabolism,636,1147,55.4
-"BNT-I (D26, mild)",UP,Not mapped,260,1147,22.7
-"BNT-I (D26, mild)",UP,Reg. of BP,633,1147,55.2
-"BNT-I (D26, severe)",DOWN,Cellular,331,425,77.9
-"BNT-I (D26, severe)",DOWN,Immune system,60,425,14.1
-"BNT-I (D26, severe)",DOWN,Interspecies interaction,35,425,8.2
-"BNT-I (D26, severe)",DOWN,Metabolism,228,425,53.6
-"BNT-I (D26, severe)",DOWN,Not mapped,90,425,21.2
-"BNT-I (D26, severe)",DOWN,Reg. of BP,254,425,59.8
-"BNT-I (D26, severe)",UP,Cellular,366,546,67
-"BNT-I (D26, severe)",UP,Immune system,63,546,11.5
-"BNT-I (D26, severe)",UP,Interspecies interaction,56,546,10.3
-"BNT-I (D26, severe)",UP,Metabolism,280,546,51.3
-"BNT-I (D26, severe)",UP,Not mapped,165,546,30.2
-"BNT-I (D26, severe)",UP,Reg. of BP,260,546,47.6
-BNT-I (D3),DOWN,Cellular,377,577,65.3
-BNT-I (D3),DOWN,Immune system,54,577,9.4
-BNT-I (D3),DOWN,Interspecies interaction,42,577,7.3
-BNT-I (D3),DOWN,Metabolism,289,577,50.1
-BNT-I (D3),DOWN,Not mapped,190,577,32.9
-BNT-I (D3),DOWN,Reg. of BP,237,577,41.1
-BNT-I (D3),UP,Cellular,708,905,78.2
-BNT-I (D3),UP,Immune system,151,905,16.7
-BNT-I (D3),UP,Interspecies interaction,111,905,12.3
-BNT-I (D3),UP,Metabolism,490,905,54.1
-BNT-I (D3),UP,Not mapped,176,905,19.4
-BNT-I (D3),UP,Reg. of BP,541,905,59.8
-"BNT-I (D51, severe)",DOWN,Cellular,40,52,76.9
-"BNT-I (D51, severe)",DOWN,Immune system,5,52,9.6
-"BNT-I (D51, severe)",DOWN,Interspecies interaction,2,52,3.8
-"BNT-I (D51, severe)",DOWN,Metabolism,29,52,55.8
-"BNT-I (D51, severe)",DOWN,Not mapped,10,52,19.2
-"BNT-I (D51, severe)",DOWN,Reg. of BP,32,52,61.5
-"BNT-I (D51, severe)",UP,Cellular,36,46,78.3
-"BNT-I (D51, severe)",UP,Immune system,2,46,4.3
-"BNT-I (D51, severe)",UP,Interspecies interaction,1,46,2.2
-"BNT-I (D51, severe)",UP,Metabolism,24,46,52.2
-"BNT-I (D51, severe)",UP,Not mapped,10,46,21.7
-"BNT-I (D51, severe)",UP,Reg. of BP,27,46,58.7
-"BNT-I-BNT (D51, mild)",DOWN,Cellular,325,436,74.5
-"BNT-I-BNT (D51, mild)",DOWN,Immune system,56,436,12.8
-"BNT-I-BNT (D51, mild)",DOWN,Interspecies interaction,28,436,6.4
-"BNT-I-BNT (D51, mild)",DOWN,Metabolism,230,436,52.8
-"BNT-I-BNT (D51, mild)",DOWN,Not mapped,102,436,23.4
-"BNT-I-BNT (D51, mild)",DOWN,Reg. of BP,242,436,55.5
-"BNT-I-BNT (D51, mild)",UP,Cellular,168,233,72.1
-"BNT-I-BNT (D51, mild)",UP,Immune system,41,233,17.6
-"BNT-I-BNT (D51, mild)",UP,Interspecies interaction,33,233,14.2
-"BNT-I-BNT (D51, mild)",UP,Metabolism,133,233,57.1
-"BNT-I-BNT (D51, mild)",UP,Not mapped,57,233,24.5
-"BNT-I-BNT (D51, mild)",UP,Reg. of BP,118,233,50.6
-"BNT-I-BNT (D51, severe)",DOWN,Cellular,65,85,76.5
-"BNT-I-BNT (D51, severe)",DOWN,Immune system,9,85,10.6
-"BNT-I-BNT (D51, severe)",DOWN,Interspecies interaction,3,85,3.5
-"BNT-I-BNT (D51, severe)",DOWN,Metabolism,60,85,70.6
-"BNT-I-BNT (D51, severe)",DOWN,Not mapped,17,85,20
-"BNT-I-BNT (D51, severe)",DOWN,Reg. of BP,48,85,56.5
-"BNT-I-BNT (D51, severe)",UP,Cellular,112,165,67.9
-"BNT-I-BNT (D51, severe)",UP,Immune system,7,165,4.2
-"BNT-I-BNT (D51, severe)",UP,Interspecies interaction,6,165,3.6
-"BNT-I-BNT (D51, severe)",UP,Metabolism,81,165,49.1
-"BNT-I-BNT (D51, severe)",UP,Not mapped,50,165,30.3
-"BNT-I-BNT (D51, severe)",UP,Reg. of BP,67,165,40.6
-"BNT-MO (V3, D1)",DOWN,Cellular,26,61,42.6
-"BNT-MO (V3, D1)",DOWN,Immune system,11,61,18
-"BNT-MO (V3, D1)",DOWN,Interspecies interaction,3,61,4.9
-"BNT-MO (V3, D1)",DOWN,Metabolism,22,61,36.1
-"BNT-MO (V3, D1)",DOWN,Not mapped,32,61,52.5
-"BNT-MO (V3, D1)",DOWN,Reg. of BP,3,61,4.9
-"BNT-MO (V3, D1)",UP,Cellular,298,432,69
-"BNT-MO (V3, D1)",UP,Immune system,29,432,6.7
-"BNT-MO (V3, D1)",UP,Interspecies interaction,18,432,4.2
-"BNT-MO (V3, D1)",UP,Metabolism,153,432,35.4
-"BNT-MO (V3, D1)",UP,Not mapped,123,432,28.5
-"BNT-MO (V3, D1)",UP,Reg. of BP,209,432,48.4
+BNT-I (D0),DOWN,Cellular,445,752,59.2
+BNT-I (D0),DOWN,Immune system,47,752,6.2
+BNT-I (D0),DOWN,Interspecies interaction,34,752,4.5
+BNT-I (D0),DOWN,Metabolism,339,752,45.1
+BNT-I (D0),DOWN,Not mapped,293,752,39
+BNT-I (D0),DOWN,Reg. of BP,236,752,31.4
+BNT-I (D0),UP,Cellular,827,1105,74.8
+BNT-I (D0),UP,Immune system,244,1105,22.1
+BNT-I (D0),UP,Interspecies interaction,192,1105,17.4
+BNT-I (D0),UP,Metabolism,546,1105,49.4
+BNT-I (D0),UP,Not mapped,244,1105,22.1
+BNT-I (D0),UP,Reg. of BP,665,1105,60.2
+BNT-I (D1),DOWN,Cellular,226,370,61.1
+BNT-I (D1),DOWN,Immune system,54,370,14.6
+BNT-I (D1),DOWN,Interspecies interaction,25,370,6.8
+BNT-I (D1),DOWN,Metabolism,130,370,35.1
+BNT-I (D1),DOWN,Not mapped,139,370,37.6
+BNT-I (D1),DOWN,Reg. of BP,164,370,44.3
+BNT-I (D1),UP,Cellular,653,836,78.1
+BNT-I (D1),UP,Immune system,162,836,19.4
+BNT-I (D1),UP,Interspecies interaction,121,836,14.5
+BNT-I (D1),UP,Metabolism,414,836,49.5
+BNT-I (D1),UP,Not mapped,166,836,19.9
+BNT-I (D1),UP,Reg. of BP,510,836,61
+"BNT-I (D10, mild)",DOWN,Cellular,1677,2256,74.3
+"BNT-I (D10, mild)",DOWN,Immune system,284,2256,12.6
+"BNT-I (D10, mild)",DOWN,Interspecies interaction,148,2256,6.6
+"BNT-I (D10, mild)",DOWN,Metabolism,1229,2256,54.5
+"BNT-I (D10, mild)",DOWN,Not mapped,526,2256,23.3
+"BNT-I (D10, mild)",DOWN,Reg. of BP,1216,2256,53.9
+"BNT-I (D10, mild)",UP,Cellular,1106,1513,73.1
+"BNT-I (D10, mild)",UP,Immune system,287,1513,19
+"BNT-I (D10, mild)",UP,Interspecies interaction,229,1513,15.1
+"BNT-I (D10, mild)",UP,Metabolism,814,1513,53.8
+"BNT-I (D10, mild)",UP,Not mapped,351,1513,23.2
+"BNT-I (D10, mild)",UP,Reg. of BP,819,1513,54.1
+"BNT-I (D10, severe)",DOWN,Cellular,1457,1993,73.1
+"BNT-I (D10, severe)",DOWN,Immune system,280,1993,14
+"BNT-I (D10, severe)",DOWN,Interspecies interaction,147,1993,7.4
+"BNT-I (D10, severe)",DOWN,Metabolism,986,1993,49.5
+"BNT-I (D10, severe)",DOWN,Not mapped,498,1993,25
+"BNT-I (D10, severe)",DOWN,Reg. of BP,1095,1993,54.9
+"BNT-I (D10, severe)",UP,Cellular,1396,2005,69.6
+"BNT-I (D10, severe)",UP,Immune system,344,2005,17.2
+"BNT-I (D10, severe)",UP,Interspecies interaction,276,2005,13.8
+"BNT-I (D10, severe)",UP,Metabolism,1003,2005,50
+"BNT-I (D10, severe)",UP,Not mapped,542,2005,27
+"BNT-I (D10, severe)",UP,Reg. of BP,1047,2005,52.2
+BNT-I (D2),DOWN,Cellular,246,403,61
+BNT-I (D2),DOWN,Immune system,38,403,9.4
+BNT-I (D2),DOWN,Interspecies interaction,24,403,6
+BNT-I (D2),DOWN,Metabolism,172,403,42.7
+BNT-I (D2),DOWN,Not mapped,154,403,38.2
+BNT-I (D2),DOWN,Reg. of BP,160,403,39.7
+BNT-I (D2),UP,Cellular,731,998,73.2
+BNT-I (D2),UP,Immune system,205,998,20.5
+BNT-I (D2),UP,Interspecies interaction,166,998,16.6
+BNT-I (D2),UP,Metabolism,468,998,46.9
+BNT-I (D2),UP,Not mapped,235,998,23.5
+BNT-I (D2),UP,Reg. of BP,575,998,57.6
+"BNT-I (D26, mild)",DOWN,Cellular,931,1212,76.8
+"BNT-I (D26, mild)",DOWN,Immune system,139,1212,11.5
+"BNT-I (D26, mild)",DOWN,Interspecies interaction,71,1212,5.9
+"BNT-I (D26, mild)",DOWN,Metabolism,670,1212,55.3
+"BNT-I (D26, mild)",DOWN,Not mapped,262,1212,21.6
+"BNT-I (D26, mild)",DOWN,Reg. of BP,671,1212,55.4
+"BNT-I (D26, mild)",UP,Cellular,821,1108,74.1
+"BNT-I (D26, mild)",UP,Immune system,179,1108,16.2
+"BNT-I (D26, mild)",UP,Interspecies interaction,140,1108,12.6
+"BNT-I (D26, mild)",UP,Metabolism,616,1108,55.6
+"BNT-I (D26, mild)",UP,Not mapped,247,1108,22.3
+"BNT-I (D26, mild)",UP,Reg. of BP,614,1108,55.4
+"BNT-I (D26, severe)",DOWN,Cellular,309,402,76.9
+"BNT-I (D26, severe)",DOWN,Immune system,55,402,13.7
+"BNT-I (D26, severe)",DOWN,Interspecies interaction,33,402,8.2
+"BNT-I (D26, severe)",DOWN,Metabolism,217,402,54
+"BNT-I (D26, severe)",DOWN,Not mapped,89,402,22.1
+"BNT-I (D26, severe)",DOWN,Reg. of BP,237,402,59
+"BNT-I (D26, severe)",UP,Cellular,357,527,67.7
+"BNT-I (D26, severe)",UP,Immune system,62,527,11.8
+"BNT-I (D26, severe)",UP,Interspecies interaction,56,527,10.6
+"BNT-I (D26, severe)",UP,Metabolism,275,527,52.2
+"BNT-I (D26, severe)",UP,Not mapped,156,527,29.6
+"BNT-I (D26, severe)",UP,Reg. of BP,253,527,48
+BNT-I (D3),DOWN,Cellular,379,579,65.5
+BNT-I (D3),DOWN,Immune system,52,579,9
+BNT-I (D3),DOWN,Interspecies interaction,42,579,7.3
+BNT-I (D3),DOWN,Metabolism,291,579,50.3
+BNT-I (D3),DOWN,Not mapped,190,579,32.8
+BNT-I (D3),DOWN,Reg. of BP,236,579,40.8
+BNT-I (D3),UP,Cellular,711,910,78.1
+BNT-I (D3),UP,Immune system,155,910,17
+BNT-I (D3),UP,Interspecies interaction,113,910,12.4
+BNT-I (D3),UP,Metabolism,491,910,54
+BNT-I (D3),UP,Not mapped,178,910,19.6
+BNT-I (D3),UP,Reg. of BP,544,910,59.8
+"BNT-I (D51, severe)",DOWN,Cellular,36,48,75
+"BNT-I (D51, severe)",DOWN,Immune system,5,48,10.4
+"BNT-I (D51, severe)",DOWN,Interspecies interaction,2,48,4.2
+"BNT-I (D51, severe)",DOWN,Metabolism,27,48,56.2
+"BNT-I (D51, severe)",DOWN,Not mapped,10,48,20.8
+"BNT-I (D51, severe)",DOWN,Reg. of BP,28,48,58.3
+"BNT-I (D51, severe)",UP,Cellular,35,45,77.8
+"BNT-I (D51, severe)",UP,Immune system,2,45,4.4
+"BNT-I (D51, severe)",UP,Interspecies interaction,1,45,2.2
+"BNT-I (D51, severe)",UP,Metabolism,23,45,51.1
+"BNT-I (D51, severe)",UP,Not mapped,10,45,22.2
+"BNT-I (D51, severe)",UP,Reg. of BP,26,45,57.8
+"BNT-I-BNT (D51, mild)",DOWN,Cellular,310,412,75.2
+"BNT-I-BNT (D51, mild)",DOWN,Immune system,56,412,13.6
+"BNT-I-BNT (D51, mild)",DOWN,Interspecies interaction,28,412,6.8
+"BNT-I-BNT (D51, mild)",DOWN,Metabolism,219,412,53.2
+"BNT-I-BNT (D51, mild)",DOWN,Not mapped,93,412,22.6
+"BNT-I-BNT (D51, mild)",DOWN,Reg. of BP,231,412,56.1
+"BNT-I-BNT (D51, mild)",UP,Cellular,163,224,72.8
+"BNT-I-BNT (D51, mild)",UP,Immune system,40,224,17.9
+"BNT-I-BNT (D51, mild)",UP,Interspecies interaction,32,224,14.3
+"BNT-I-BNT (D51, mild)",UP,Metabolism,127,224,56.7
+"BNT-I-BNT (D51, mild)",UP,Not mapped,53,224,23.7
+"BNT-I-BNT (D51, mild)",UP,Reg. of BP,114,224,50.9
+"BNT-I-BNT (D51, severe)",DOWN,Cellular,60,77,77.9
+"BNT-I-BNT (D51, severe)",DOWN,Immune system,8,77,10.4
+"BNT-I-BNT (D51, severe)",DOWN,Interspecies interaction,3,77,3.9
+"BNT-I-BNT (D51, severe)",DOWN,Metabolism,54,77,70.1
+"BNT-I-BNT (D51, severe)",DOWN,Not mapped,15,77,19.5
+"BNT-I-BNT (D51, severe)",DOWN,Reg. of BP,44,77,57.1
+"BNT-I-BNT (D51, severe)",UP,Cellular,112,164,68.3
+"BNT-I-BNT (D51, severe)",UP,Immune system,8,164,4.9
+"BNT-I-BNT (D51, severe)",UP,Interspecies interaction,6,164,3.7
+"BNT-I-BNT (D51, severe)",UP,Metabolism,79,164,48.2
+"BNT-I-BNT (D51, severe)",UP,Not mapped,50,164,30.5
+"BNT-I-BNT (D51, severe)",UP,Reg. of BP,67,164,40.9
+"BNT-MO (V3, D1)",DOWN,Cellular,26,62,41.9
+"BNT-MO (V3, D1)",DOWN,Immune system,11,62,17.7
+"BNT-MO (V3, D1)",DOWN,Interspecies interaction,3,62,4.8
+"BNT-MO (V3, D1)",DOWN,Metabolism,22,62,35.5
+"BNT-MO (V3, D1)",DOWN,Not mapped,33,62,53.2
+"BNT-MO (V3, D1)",DOWN,Reg. of BP,3,62,4.8
+"BNT-MO (V3, D1)",UP,Cellular,276,405,68.1
+"BNT-MO (V3, D1)",UP,Immune system,27,405,6.7
+"BNT-MO (V3, D1)",UP,Interspecies interaction,17,405,4.2
+"BNT-MO (V3, D1)",UP,Metabolism,137,405,33.8
+"BNT-MO (V3, D1)",UP,Not mapped,119,405,29.4
+"BNT-MO (V3, D1)",UP,Reg. of BP,195,405,48.1
 "ChAd (V1, D3)",DOWN,Cellular,51,81,63
 "ChAd (V1, D3)",DOWN,Immune system,11,81,13.6
 "ChAd (V1, D3)",DOWN,Interspecies interaction,9,81,11.1
@@ -203,279 +215,337 @@ BNT-I (D3),UP,Reg. of BP,541,905,59.8
 "ChAd (V1, D3)",UP,Metabolism,74,157,47.1
 "ChAd (V1, D3)",UP,Not mapped,33,157,21
 "ChAd (V1, D3)",UP,Reg. of BP,96,157,61.1
-"ChAd (V1, D6)",DOWN,Cellular,24,59,40.7
-"ChAd (V1, D6)",DOWN,Immune system,2,59,3.4
-"ChAd (V1, D6)",DOWN,Interspecies interaction,2,59,3.4
-"ChAd (V1, D6)",DOWN,Metabolism,17,59,28.8
-"ChAd (V1, D6)",DOWN,Not mapped,34,59,57.6
-"ChAd (V1, D6)",DOWN,Reg. of BP,10,59,16.9
-"ChAd (V1, D6)",UP,Cellular,11,25,44
-"ChAd (V1, D6)",UP,Immune system,1,25,4
-"ChAd (V1, D6)",UP,Interspecies interaction,1,25,4
-"ChAd (V1, D6)",UP,Metabolism,6,25,24
-"ChAd (V1, D6)",UP,Not mapped,14,25,56
-"ChAd (V1, D6)",UP,Reg. of BP,6,25,24
-"ChAd (V1, D7)",DOWN,Cellular,43,71,60.6
-"ChAd (V1, D7)",DOWN,Immune system,11,71,15.5
-"ChAd (V1, D7)",DOWN,Interspecies interaction,7,71,9.9
-"ChAd (V1, D7)",DOWN,Metabolism,32,71,45.1
-"ChAd (V1, D7)",DOWN,Not mapped,27,71,38
-"ChAd (V1, D7)",DOWN,Reg. of BP,30,71,42.3
-"ChAd (V1, D7)",UP,Cellular,171,221,77.4
-"ChAd (V1, D7)",UP,Immune system,31,221,14
-"ChAd (V1, D7)",UP,Interspecies interaction,15,221,6.8
-"ChAd (V1, D7)",UP,Metabolism,104,221,47.1
-"ChAd (V1, D7)",UP,Not mapped,47,221,21.3
-"ChAd (V1, D7)",UP,Reg. of BP,131,221,59.3
-"ChAd (V2, D1)",DOWN,Cellular,46,90,51.1
-"ChAd (V2, D1)",DOWN,Immune system,20,90,22.2
-"ChAd (V2, D1)",DOWN,Interspecies interaction,10,90,11.1
-"ChAd (V2, D1)",DOWN,Metabolism,28,90,31.1
-"ChAd (V2, D1)",DOWN,Not mapped,37,90,41.1
-"ChAd (V2, D1)",DOWN,Reg. of BP,29,90,32.2
-"ChAd (V2, D1)",UP,Cellular,11,33,33.3
-"ChAd (V2, D1)",UP,Immune system,2,33,6.1
-"ChAd (V2, D1)",UP,Interspecies interaction,1,33,3
-"ChAd (V2, D1)",UP,Metabolism,5,33,15.2
-"ChAd (V2, D1)",UP,Not mapped,21,33,63.6
-"ChAd (V2, D1)",UP,Reg. of BP,10,33,30.3
-"ChAd (V2, D3)",DOWN,Cellular,121,151,80.1
-"ChAd (V2, D3)",DOWN,Immune system,25,151,16.6
-"ChAd (V2, D3)",DOWN,Interspecies interaction,19,151,12.6
-"ChAd (V2, D3)",DOWN,Metabolism,66,151,43.7
-"ChAd (V2, D3)",DOWN,Not mapped,26,151,17.2
-"ChAd (V2, D3)",DOWN,Reg. of BP,87,151,57.6
-"ChAd (V2, D3)",UP,Cellular,112,282,39.7
-"ChAd (V2, D3)",UP,Immune system,13,282,4.6
-"ChAd (V2, D3)",UP,Interspecies interaction,10,282,3.5
-"ChAd (V2, D3)",UP,Metabolism,68,282,24.1
-"ChAd (V2, D3)",UP,Not mapped,166,282,58.9
-"ChAd (V2, D3)",UP,Reg. of BP,78,282,27.7
-"ChAd (V2, D7)",DOWN,Cellular,122,150,81.3
-"ChAd (V2, D7)",DOWN,Immune system,38,150,25.3
-"ChAd (V2, D7)",DOWN,Interspecies interaction,28,150,18.7
-"ChAd (V2, D7)",DOWN,Metabolism,70,150,46.7
-"ChAd (V2, D7)",DOWN,Not mapped,27,150,18
-"ChAd (V2, D7)",DOWN,Reg. of BP,102,150,68
-"ChAd (V2, D7)",UP,Cellular,81,161,50.3
-"ChAd (V2, D7)",UP,Immune system,12,161,7.5
-"ChAd (V2, D7)",UP,Interspecies interaction,8,161,5
-"ChAd (V2, D7)",UP,Metabolism,52,161,32.3
-"ChAd (V2, D7)",UP,Not mapped,77,161,47.8
-"ChAd (V2, D7)",UP,Reg. of BP,59,161,36.6
-"ChAd-BNT (V2, D3)",DOWN,Cellular,209,346,60.4
-"ChAd-BNT (V2, D3)",DOWN,Immune system,47,346,13.6
-"ChAd-BNT (V2, D3)",DOWN,Interspecies interaction,32,346,9.2
-"ChAd-BNT (V2, D3)",DOWN,Metabolism,126,346,36.4
-"ChAd-BNT (V2, D3)",DOWN,Not mapped,127,346,36.7
-"ChAd-BNT (V2, D3)",DOWN,Reg. of BP,166,346,48
-"ChAd-BNT (V2, D3)",UP,Cellular,226,410,55.1
-"ChAd-BNT (V2, D3)",UP,Immune system,59,410,14.4
-"ChAd-BNT (V2, D3)",UP,Interspecies interaction,51,410,12.4
-"ChAd-BNT (V2, D3)",UP,Metabolism,150,410,36.6
-"ChAd-BNT (V2, D3)",UP,Not mapped,173,410,42.2
-"ChAd-BNT (V2, D3)",UP,Reg. of BP,180,410,43.9
-"ChAd-BNT (V2, D7)",DOWN,Cellular,314,474,66.2
-"ChAd-BNT (V2, D7)",DOWN,Immune system,93,474,19.6
-"ChAd-BNT (V2, D7)",DOWN,Interspecies interaction,72,474,15.2
-"ChAd-BNT (V2, D7)",DOWN,Metabolism,191,474,40.3
-"ChAd-BNT (V2, D7)",DOWN,Not mapped,143,474,30.2
-"ChAd-BNT (V2, D7)",DOWN,Reg. of BP,252,474,53.2
-"ChAd-BNT (V2, D7)",UP,Cellular,178,285,62.5
-"ChAd-BNT (V2, D7)",UP,Immune system,21,285,7.4
-"ChAd-BNT (V2, D7)",UP,Interspecies interaction,10,285,3.5
-"ChAd-BNT (V2, D7)",UP,Metabolism,109,285,38.2
-"ChAd-BNT (V2, D7)",UP,Not mapped,105,285,36.8
-"ChAd-BNT (V2, D7)",UP,Reg. of BP,126,285,44.2
+"ChAd (V1, D6)",DOWN,Cellular,25,60,41.7
+"ChAd (V1, D6)",DOWN,Immune system,2,60,3.3
+"ChAd (V1, D6)",DOWN,Interspecies interaction,3,60,5
+"ChAd (V1, D6)",DOWN,Metabolism,18,60,30
+"ChAd (V1, D6)",DOWN,Not mapped,34,60,56.7
+"ChAd (V1, D6)",DOWN,Reg. of BP,11,60,18.3
+"ChAd (V1, D6)",UP,Cellular,10,24,41.7
+"ChAd (V1, D6)",UP,Immune system,1,24,4.2
+"ChAd (V1, D6)",UP,Interspecies interaction,1,24,4.2
+"ChAd (V1, D6)",UP,Metabolism,5,24,20.8
+"ChAd (V1, D6)",UP,Not mapped,14,24,58.3
+"ChAd (V1, D6)",UP,Reg. of BP,5,24,20.8
+"ChAd (V1, D7)",DOWN,Cellular,42,68,61.8
+"ChAd (V1, D7)",DOWN,Immune system,11,68,16.2
+"ChAd (V1, D7)",DOWN,Interspecies interaction,7,68,10.3
+"ChAd (V1, D7)",DOWN,Metabolism,32,68,47.1
+"ChAd (V1, D7)",DOWN,Not mapped,25,68,36.8
+"ChAd (V1, D7)",DOWN,Reg. of BP,29,68,42.6
+"ChAd (V1, D7)",UP,Cellular,171,222,77
+"ChAd (V1, D7)",UP,Immune system,31,222,14
+"ChAd (V1, D7)",UP,Interspecies interaction,15,222,6.8
+"ChAd (V1, D7)",UP,Metabolism,104,222,46.8
+"ChAd (V1, D7)",UP,Not mapped,48,222,21.6
+"ChAd (V1, D7)",UP,Reg. of BP,131,222,59
+"ChAd (V2, D1)",DOWN,Cellular,43,87,49.4
+"ChAd (V2, D1)",DOWN,Immune system,20,87,23
+"ChAd (V2, D1)",DOWN,Interspecies interaction,10,87,11.5
+"ChAd (V2, D1)",DOWN,Metabolism,27,87,31
+"ChAd (V2, D1)",DOWN,Not mapped,37,87,42.5
+"ChAd (V2, D1)",DOWN,Reg. of BP,28,87,32.2
+"ChAd (V2, D1)",UP,Cellular,12,35,34.3
+"ChAd (V2, D1)",UP,Immune system,2,35,5.7
+"ChAd (V2, D1)",UP,Interspecies interaction,1,35,2.9
+"ChAd (V2, D1)",UP,Metabolism,6,35,17.1
+"ChAd (V2, D1)",UP,Not mapped,22,35,62.9
+"ChAd (V2, D1)",UP,Reg. of BP,10,35,28.6
+"ChAd (V2, D3)",DOWN,Cellular,117,144,81.2
+"ChAd (V2, D3)",DOWN,Immune system,24,144,16.7
+"ChAd (V2, D3)",DOWN,Interspecies interaction,19,144,13.2
+"ChAd (V2, D3)",DOWN,Metabolism,64,144,44.4
+"ChAd (V2, D3)",DOWN,Not mapped,23,144,16
+"ChAd (V2, D3)",DOWN,Reg. of BP,85,144,59
+"ChAd (V2, D3)",UP,Cellular,109,274,39.8
+"ChAd (V2, D3)",UP,Immune system,13,274,4.7
+"ChAd (V2, D3)",UP,Interspecies interaction,10,274,3.6
+"ChAd (V2, D3)",UP,Metabolism,67,274,24.5
+"ChAd (V2, D3)",UP,Not mapped,161,274,58.8
+"ChAd (V2, D3)",UP,Reg. of BP,76,274,27.7
+"ChAd (V2, D7)",DOWN,Cellular,114,139,82
+"ChAd (V2, D7)",DOWN,Immune system,37,139,26.6
+"ChAd (V2, D7)",DOWN,Interspecies interaction,26,139,18.7
+"ChAd (V2, D7)",DOWN,Metabolism,65,139,46.8
+"ChAd (V2, D7)",DOWN,Not mapped,24,139,17.3
+"ChAd (V2, D7)",DOWN,Reg. of BP,96,139,69.1
+"ChAd (V2, D7)",UP,Cellular,81,156,51.9
+"ChAd (V2, D7)",UP,Immune system,12,156,7.7
+"ChAd (V2, D7)",UP,Interspecies interaction,8,156,5.1
+"ChAd (V2, D7)",UP,Metabolism,53,156,34
+"ChAd (V2, D7)",UP,Not mapped,72,156,46.2
+"ChAd (V2, D7)",UP,Reg. of BP,61,156,39.1
+"ChAd-BNT (V2, D3)",DOWN,Cellular,208,345,60.3
+"ChAd-BNT (V2, D3)",DOWN,Immune system,47,345,13.6
+"ChAd-BNT (V2, D3)",DOWN,Interspecies interaction,32,345,9.3
+"ChAd-BNT (V2, D3)",DOWN,Metabolism,126,345,36.5
+"ChAd-BNT (V2, D3)",DOWN,Not mapped,127,345,36.8
+"ChAd-BNT (V2, D3)",DOWN,Reg. of BP,165,345,47.8
+"ChAd-BNT (V2, D3)",UP,Cellular,223,406,54.9
+"ChAd-BNT (V2, D3)",UP,Immune system,60,406,14.8
+"ChAd-BNT (V2, D3)",UP,Interspecies interaction,52,406,12.8
+"ChAd-BNT (V2, D3)",UP,Metabolism,147,406,36.2
+"ChAd-BNT (V2, D3)",UP,Not mapped,173,406,42.6
+"ChAd-BNT (V2, D3)",UP,Reg. of BP,178,406,43.8
+"ChAd-BNT (V2, D7)",DOWN,Cellular,311,467,66.6
+"ChAd-BNT (V2, D7)",DOWN,Immune system,93,467,19.9
+"ChAd-BNT (V2, D7)",DOWN,Interspecies interaction,72,467,15.4
+"ChAd-BNT (V2, D7)",DOWN,Metabolism,189,467,40.5
+"ChAd-BNT (V2, D7)",DOWN,Not mapped,139,467,29.8
+"ChAd-BNT (V2, D7)",DOWN,Reg. of BP,249,467,53.3
+"ChAd-BNT (V2, D7)",UP,Cellular,177,282,62.8
+"ChAd-BNT (V2, D7)",UP,Immune system,21,282,7.4
+"ChAd-BNT (V2, D7)",UP,Interspecies interaction,10,282,3.5
+"ChAd-BNT (V2, D7)",UP,Metabolism,108,282,38.3
+"ChAd-BNT (V2, D7)",UP,Not mapped,103,282,36.5
+"ChAd-BNT (V2, D7)",UP,Reg. of BP,125,282,44.3
 "ChAd-BNT (V3, D1)",DOWN,Cellular,20,53,37.7
 "ChAd-BNT (V3, D1)",DOWN,Immune system,4,53,7.5
 "ChAd-BNT (V3, D1)",DOWN,Interspecies interaction,3,53,5.7
 "ChAd-BNT (V3, D1)",DOWN,Metabolism,12,53,22.6
 "ChAd-BNT (V3, D1)",DOWN,Not mapped,32,53,60.4
 "ChAd-BNT (V3, D1)",DOWN,Reg. of BP,14,53,26.4
-"ChAd-BNT (V3, D1)",UP,Cellular,12,32,37.5
-"ChAd-BNT (V3, D1)",UP,Immune system,3,32,9.4
-"ChAd-BNT (V3, D1)",UP,Interspecies interaction,1,32,3.1
-"ChAd-BNT (V3, D1)",UP,Metabolism,7,32,21.9
-"ChAd-BNT (V3, D1)",UP,Not mapped,20,32,62.5
-"ChAd-BNT (V3, D1)",UP,Reg. of BP,8,32,25
-I (D1),DOWN,Cellular,371,548,67.7
-I (D1),DOWN,Immune system,51,548,9.3
-I (D1),DOWN,Interspecies interaction,27,548,4.9
-I (D1),DOWN,Metabolism,257,548,46.9
-I (D1),DOWN,Not mapped,171,548,31.2
-I (D1),DOWN,Reg. of BP,267,548,48.7
-I (D1),UP,Cellular,756,1043,72.5
-I (D1),UP,Immune system,256,1043,24.5
-I (D1),UP,Interspecies interaction,219,1043,21
-I (D1),UP,Metabolism,502,1043,48.1
-I (D1),UP,Not mapped,249,1043,23.9
-I (D1),UP,Reg. of BP,596,1043,57.1
-"I (D10, moderate)",DOWN,Cellular,983,1318,74.6
-"I (D10, moderate)",DOWN,Immune system,207,1318,15.7
-"I (D10, moderate)",DOWN,Interspecies interaction,124,1318,9.4
-"I (D10, moderate)",DOWN,Metabolism,641,1318,48.6
-"I (D10, moderate)",DOWN,Not mapped,299,1318,22.7
-"I (D10, moderate)",DOWN,Reg. of BP,747,1318,56.7
-"I (D10, moderate)",UP,Cellular,994,1462,68
-"I (D10, moderate)",UP,Immune system,234,1462,16
-"I (D10, moderate)",UP,Interspecies interaction,199,1462,13.6
-"I (D10, moderate)",UP,Metabolism,697,1462,47.7
-"I (D10, moderate)",UP,Not mapped,420,1462,28.7
-"I (D10, moderate)",UP,Reg. of BP,742,1462,50.8
-"I (D10, severe)",DOWN,Cellular,1266,1675,75.6
-"I (D10, severe)",DOWN,Immune system,228,1675,13.6
-"I (D10, severe)",DOWN,Interspecies interaction,145,1675,8.7
-"I (D10, severe)",DOWN,Metabolism,893,1675,53.3
-"I (D10, severe)",DOWN,Not mapped,371,1675,22.1
-"I (D10, severe)",DOWN,Reg. of BP,927,1675,55.3
-"I (D10, severe)",UP,Cellular,1431,2068,69.2
-"I (D10, severe)",UP,Immune system,280,2068,13.5
-"I (D10, severe)",UP,Interspecies interaction,219,2068,10.6
-"I (D10, severe)",UP,Metabolism,1043,2068,50.4
-"I (D10, severe)",UP,Not mapped,569,2068,27.5
-"I (D10, severe)",UP,Reg. of BP,1065,2068,51.5
-"I (D26, moderate)",DOWN,Cellular,622,858,72.5
-"I (D26, moderate)",DOWN,Immune system,146,858,17
-"I (D26, moderate)",DOWN,Interspecies interaction,81,858,9.4
-"I (D26, moderate)",DOWN,Metabolism,417,858,48.6
-"I (D26, moderate)",DOWN,Not mapped,217,858,25.3
-"I (D26, moderate)",DOWN,Reg. of BP,488,858,56.9
-"I (D26, moderate)",UP,Cellular,667,925,72.1
-"I (D26, moderate)",UP,Immune system,147,925,15.9
-"I (D26, moderate)",UP,Interspecies interaction,110,925,11.9
-"I (D26, moderate)",UP,Metabolism,467,925,50.5
-"I (D26, moderate)",UP,Not mapped,230,925,24.9
-"I (D26, moderate)",UP,Reg. of BP,490,925,53
-"I (D26, severe)",DOWN,Cellular,1596,2084,76.6
-"I (D26, severe)",DOWN,Immune system,304,2084,14.6
-"I (D26, severe)",DOWN,Interspecies interaction,181,2084,8.7
-"I (D26, severe)",DOWN,Metabolism,1128,2084,54.1
-"I (D26, severe)",DOWN,Not mapped,432,2084,20.7
-"I (D26, severe)",DOWN,Reg. of BP,1127,2084,54.1
-"I (D26, severe)",UP,Cellular,1217,1746,69.7
-"I (D26, severe)",UP,Immune system,227,1746,13
-"I (D26, severe)",UP,Interspecies interaction,173,1746,9.9
-"I (D26, severe)",UP,Metabolism,895,1746,51.3
-"I (D26, severe)",UP,Not mapped,466,1746,26.7
-"I (D26, severe)",UP,Reg. of BP,898,1746,51.4
-"I (D51, moderate)",DOWN,Cellular,106,154,68.8
-"I (D51, moderate)",DOWN,Immune system,16,154,10.4
-"I (D51, moderate)",DOWN,Interspecies interaction,12,154,7.8
-"I (D51, moderate)",DOWN,Metabolism,72,154,46.8
-"I (D51, moderate)",DOWN,Not mapped,47,154,30.5
-"I (D51, moderate)",DOWN,Reg. of BP,78,154,50.6
-"I (D51, moderate)",UP,Cellular,90,130,69.2
-"I (D51, moderate)",UP,Immune system,27,130,20.8
-"I (D51, moderate)",UP,Interspecies interaction,18,130,13.8
-"I (D51, moderate)",UP,Metabolism,67,130,51.5
-"I (D51, moderate)",UP,Not mapped,35,130,26.9
-"I (D51, moderate)",UP,Reg. of BP,65,130,50
-"I (D51, severe)",DOWN,Cellular,474,665,71.3
-"I (D51, severe)",DOWN,Immune system,74,665,11.1
-"I (D51, severe)",DOWN,Interspecies interaction,48,665,7.2
-"I (D51, severe)",DOWN,Metabolism,323,665,48.6
-"I (D51, severe)",DOWN,Not mapped,176,665,26.5
-"I (D51, severe)",DOWN,Reg. of BP,365,665,54.9
-"I (D51, severe)",UP,Cellular,1100,1502,73.2
-"I (D51, severe)",UP,Immune system,269,1502,17.9
-"I (D51, severe)",UP,Interspecies interaction,207,1502,13.8
-"I (D51, severe)",UP,Metabolism,812,1502,54.1
-"I (D51, severe)",UP,Not mapped,361,1502,24
-"I (D51, severe)",UP,Reg. of BP,852,1502,56.7
-I-I (D0),DOWN,Cellular,34,64,53.1
-I-I (D0),DOWN,Immune system,5,64,7.8
-I-I (D0),DOWN,Interspecies interaction,3,64,4.7
-I-I (D0),DOWN,Metabolism,25,64,39.1
-I-I (D0),DOWN,Not mapped,29,64,45.3
-I-I (D0),DOWN,Reg. of BP,22,64,34.4
-I-I (D0),UP,Cellular,43,56,76.8
-I-I (D0),UP,Immune system,16,56,28.6
-I-I (D0),UP,Interspecies interaction,19,56,33.9
-I-I (D0),UP,Metabolism,34,56,60.7
-I-I (D0),UP,Not mapped,9,56,16.1
-I-I (D0),UP,Reg. of BP,33,56,58.9
-I-I (D1),DOWN,Cellular,103,142,72.5
-I-I (D1),DOWN,Immune system,13,142,9.2
-I-I (D1),DOWN,Interspecies interaction,11,142,7.7
-I-I (D1),DOWN,Metabolism,70,142,49.3
-I-I (D1),DOWN,Not mapped,36,142,25.4
-I-I (D1),DOWN,Reg. of BP,63,142,44.4
-I-I (D1),UP,Cellular,227,310,73.2
-I-I (D1),UP,Immune system,79,310,25.5
-I-I (D1),UP,Interspecies interaction,81,310,26.1
-I-I (D1),UP,Metabolism,171,310,55.2
-I-I (D1),UP,Not mapped,70,310,22.6
-I-I (D1),UP,Reg. of BP,178,310,57.4
-I-I (D2),DOWN,Cellular,35,54,64.8
-I-I (D2),DOWN,Immune system,3,54,5.6
-I-I (D2),DOWN,Interspecies interaction,2,54,3.7
-I-I (D2),DOWN,Metabolism,29,54,53.7
-I-I (D2),DOWN,Not mapped,17,54,31.5
-I-I (D2),DOWN,Reg. of BP,17,54,31.5
-I-I (D2),UP,Cellular,87,127,68.5
-I-I (D2),UP,Immune system,36,127,28.3
-I-I (D2),UP,Interspecies interaction,36,127,28.3
-I-I (D2),UP,Metabolism,57,127,44.9
-I-I (D2),UP,Not mapped,33,127,26
-I-I (D2),UP,Reg. of BP,74,127,58.3
-I-I (D3),DOWN,Cellular,27,45,60
+"ChAd-BNT (V3, D1)",UP,Cellular,10,28,35.7
+"ChAd-BNT (V3, D1)",UP,Immune system,3,28,10.7
+"ChAd-BNT (V3, D1)",UP,Interspecies interaction,1,28,3.6
+"ChAd-BNT (V3, D1)",UP,Metabolism,6,28,21.4
+"ChAd-BNT (V3, D1)",UP,Not mapped,18,28,64.3
+"ChAd-BNT (V3, D1)",UP,Reg. of BP,6,28,21.4
+I (D0),DOWN,Cellular,170,271,62.7
+I (D0),DOWN,Immune system,35,271,12.9
+I (D0),DOWN,Interspecies interaction,17,271,6.3
+I (D0),DOWN,Metabolism,96,271,35.4
+I (D0),DOWN,Not mapped,97,271,35.8
+I (D0),DOWN,Reg. of BP,120,271,44.3
+I (D0),UP,Cellular,529,702,75.4
+I (D0),UP,Immune system,201,702,28.6
+I (D0),UP,Interspecies interaction,174,702,24.8
+I (D0),UP,Metabolism,345,702,49.1
+I (D0),UP,Not mapped,150,702,21.4
+I (D0),UP,Reg. of BP,416,702,59.3
+I (D1),DOWN,Cellular,419,629,66.6
+I (D1),DOWN,Immune system,58,629,9.2
+I (D1),DOWN,Interspecies interaction,29,629,4.6
+I (D1),DOWN,Metabolism,286,629,45.5
+I (D1),DOWN,Not mapped,203,629,32.3
+I (D1),DOWN,Reg. of BP,301,629,47.9
+I (D1),UP,Cellular,792,1111,71.3
+I (D1),UP,Immune system,259,1111,23.3
+I (D1),UP,Interspecies interaction,222,1111,20
+I (D1),UP,Metabolism,527,1111,47.4
+I (D1),UP,Not mapped,278,1111,25
+I (D1),UP,Reg. of BP,620,1111,55.8
+"I (D10, moderate)",DOWN,Cellular,970,1296,74.8
+"I (D10, moderate)",DOWN,Immune system,203,1296,15.7
+"I (D10, moderate)",DOWN,Interspecies interaction,122,1296,9.4
+"I (D10, moderate)",DOWN,Metabolism,636,1296,49.1
+"I (D10, moderate)",DOWN,Not mapped,292,1296,22.5
+"I (D10, moderate)",DOWN,Reg. of BP,736,1296,56.8
+"I (D10, moderate)",UP,Cellular,983,1442,68.2
+"I (D10, moderate)",UP,Immune system,233,1442,16.2
+"I (D10, moderate)",UP,Interspecies interaction,196,1442,13.6
+"I (D10, moderate)",UP,Metabolism,690,1442,47.9
+"I (D10, moderate)",UP,Not mapped,411,1442,28.5
+"I (D10, moderate)",UP,Reg. of BP,733,1442,50.8
+"I (D10, severe)",DOWN,Cellular,1251,1650,75.8
+"I (D10, severe)",DOWN,Immune system,226,1650,13.7
+"I (D10, severe)",DOWN,Interspecies interaction,145,1650,8.8
+"I (D10, severe)",DOWN,Metabolism,883,1650,53.5
+"I (D10, severe)",DOWN,Not mapped,361,1650,21.9
+"I (D10, severe)",DOWN,Reg. of BP,914,1650,55.4
+"I (D10, severe)",UP,Cellular,1414,2044,69.2
+"I (D10, severe)",UP,Immune system,281,2044,13.7
+"I (D10, severe)",UP,Interspecies interaction,219,2044,10.7
+"I (D10, severe)",UP,Metabolism,1028,2044,50.3
+"I (D10, severe)",UP,Not mapped,562,2044,27.5
+"I (D10, severe)",UP,Reg. of BP,1052,2044,51.5
+I (D2),DOWN,Cellular,205,318,64.5
+I (D2),DOWN,Immune system,45,318,14.2
+I (D2),DOWN,Interspecies interaction,23,318,7.2
+I (D2),DOWN,Metabolism,134,318,42.1
+I (D2),DOWN,Not mapped,105,318,33
+I (D2),DOWN,Reg. of BP,154,318,48.4
+I (D2),UP,Cellular,442,597,74
+I (D2),UP,Immune system,155,597,26
+I (D2),UP,Interspecies interaction,135,597,22.6
+I (D2),UP,Metabolism,285,597,47.7
+I (D2),UP,Not mapped,136,597,22.8
+I (D2),UP,Reg. of BP,355,597,59.5
+"I (D26, moderate)",DOWN,Cellular,615,847,72.6
+"I (D26, moderate)",DOWN,Immune system,142,847,16.8
+"I (D26, moderate)",DOWN,Interspecies interaction,80,847,9.4
+"I (D26, moderate)",DOWN,Metabolism,410,847,48.4
+"I (D26, moderate)",DOWN,Not mapped,213,847,25.1
+"I (D26, moderate)",DOWN,Reg. of BP,484,847,57.1
+"I (D26, moderate)",UP,Cellular,662,915,72.3
+"I (D26, moderate)",UP,Immune system,148,915,16.2
+"I (D26, moderate)",UP,Interspecies interaction,111,915,12.1
+"I (D26, moderate)",UP,Metabolism,463,915,50.6
+"I (D26, moderate)",UP,Not mapped,227,915,24.8
+"I (D26, moderate)",UP,Reg. of BP,487,915,53.2
+"I (D26, severe)",DOWN,Cellular,1586,2061,77
+"I (D26, severe)",DOWN,Immune system,302,2061,14.7
+"I (D26, severe)",DOWN,Interspecies interaction,182,2061,8.8
+"I (D26, severe)",DOWN,Metabolism,1125,2061,54.6
+"I (D26, severe)",DOWN,Not mapped,420,2061,20.4
+"I (D26, severe)",DOWN,Reg. of BP,1117,2061,54.2
+"I (D26, severe)",UP,Cellular,1208,1723,70.1
+"I (D26, severe)",UP,Immune system,225,1723,13.1
+"I (D26, severe)",UP,Interspecies interaction,172,1723,10
+"I (D26, severe)",UP,Metabolism,889,1723,51.6
+"I (D26, severe)",UP,Not mapped,453,1723,26.3
+"I (D26, severe)",UP,Reg. of BP,895,1723,51.9
+I (D3),DOWN,Cellular,82,132,62.1
+I (D3),DOWN,Immune system,16,132,12.1
+I (D3),DOWN,Interspecies interaction,11,132,8.3
+I (D3),DOWN,Metabolism,50,132,37.9
+I (D3),DOWN,Not mapped,45,132,34.1
+I (D3),DOWN,Reg. of BP,59,132,44.7
+I (D3),UP,Cellular,199,257,77.4
+I (D3),UP,Immune system,75,257,29.2
+I (D3),UP,Interspecies interaction,78,257,30.4
+I (D3),UP,Metabolism,137,257,53.3
+I (D3),UP,Not mapped,49,257,19.1
+I (D3),UP,Reg. of BP,163,257,63.4
+I (D4),DOWN,Cellular,39,52,75
+I (D4),DOWN,Immune system,8,52,15.4
+I (D4),DOWN,Interspecies interaction,3,52,5.8
+I (D4),DOWN,Metabolism,25,52,48.1
+I (D4),DOWN,Not mapped,13,52,25
+I (D4),DOWN,Reg. of BP,29,52,55.8
+I (D4),UP,Cellular,47,73,64.4
+I (D4),UP,Immune system,21,73,28.8
+I (D4),UP,Interspecies interaction,28,73,38.4
+I (D4),UP,Metabolism,37,73,50.7
+I (D4),UP,Not mapped,23,73,31.5
+I (D4),UP,Reg. of BP,38,73,52.1
+"I (D51, moderate)",DOWN,Cellular,99,142,69.7
+"I (D51, moderate)",DOWN,Immune system,16,142,11.3
+"I (D51, moderate)",DOWN,Interspecies interaction,12,142,8.5
+"I (D51, moderate)",DOWN,Metabolism,69,142,48.6
+"I (D51, moderate)",DOWN,Not mapped,42,142,29.6
+"I (D51, moderate)",DOWN,Reg. of BP,72,142,50.7
+"I (D51, moderate)",UP,Cellular,87,126,69
+"I (D51, moderate)",UP,Immune system,27,126,21.4
+"I (D51, moderate)",UP,Interspecies interaction,18,126,14.3
+"I (D51, moderate)",UP,Metabolism,64,126,50.8
+"I (D51, moderate)",UP,Not mapped,34,126,27
+"I (D51, moderate)",UP,Reg. of BP,64,126,50.8
+"I (D51, severe)",DOWN,Cellular,451,634,71.1
+"I (D51, severe)",DOWN,Immune system,71,634,11.2
+"I (D51, severe)",DOWN,Interspecies interaction,45,634,7.1
+"I (D51, severe)",DOWN,Metabolism,309,634,48.7
+"I (D51, severe)",DOWN,Not mapped,168,634,26.5
+"I (D51, severe)",DOWN,Reg. of BP,349,634,55
+"I (D51, severe)",UP,Cellular,1102,1496,73.7
+"I (D51, severe)",UP,Immune system,273,1496,18.2
+"I (D51, severe)",UP,Interspecies interaction,209,1496,14
+"I (D51, severe)",UP,Metabolism,815,1496,54.5
+"I (D51, severe)",UP,Not mapped,352,1496,23.5
+"I (D51, severe)",UP,Reg. of BP,856,1496,57.2
+I-BNT (D5),DOWN,Cellular,12,25,48
+I-BNT (D5),DOWN,Immune system,6,25,24
+I-BNT (D5),DOWN,Interspecies interaction,4,25,16
+I-BNT (D5),DOWN,Metabolism,10,25,40
+I-BNT (D5),DOWN,Not mapped,13,25,52
+I-BNT (D5),DOWN,Reg. of BP,9,25,36
+I-BNT (D5),UP,Cellular,4,6,66.7
+I-BNT (D5),UP,Metabolism,2,6,33.3
+I-BNT (D5),UP,Not mapped,2,6,33.3
+I-BNT (D5),UP,Reg. of BP,3,6,50
+I-I (D0),DOWN,Cellular,35,66,53
+I-I (D0),DOWN,Immune system,5,66,7.6
+I-I (D0),DOWN,Interspecies interaction,3,66,4.5
+I-I (D0),DOWN,Metabolism,26,66,39.4
+I-I (D0),DOWN,Not mapped,29,66,43.9
+I-I (D0),DOWN,Reg. of BP,23,66,34.8
+I-I (D0),UP,Cellular,45,60,75
+I-I (D0),UP,Immune system,16,60,26.7
+I-I (D0),UP,Interspecies interaction,19,60,31.7
+I-I (D0),UP,Metabolism,35,60,58.3
+I-I (D0),UP,Not mapped,11,60,18.3
+I-I (D0),UP,Reg. of BP,34,60,56.7
+I-I (D1),DOWN,Cellular,105,141,74.5
+I-I (D1),DOWN,Immune system,12,141,8.5
+I-I (D1),DOWN,Interspecies interaction,10,141,7.1
+I-I (D1),DOWN,Metabolism,71,141,50.4
+I-I (D1),DOWN,Not mapped,33,141,23.4
+I-I (D1),DOWN,Reg. of BP,64,141,45.4
+I-I (D1),UP,Cellular,242,326,74.2
+I-I (D1),UP,Immune system,86,326,26.4
+I-I (D1),UP,Interspecies interaction,85,326,26.1
+I-I (D1),UP,Metabolism,181,326,55.5
+I-I (D1),UP,Not mapped,71,326,21.8
+I-I (D1),UP,Reg. of BP,189,326,58
+I-I (D2),DOWN,Cellular,38,58,65.5
+I-I (D2),DOWN,Immune system,4,58,6.9
+I-I (D2),DOWN,Interspecies interaction,2,58,3.4
+I-I (D2),DOWN,Metabolism,31,58,53.4
+I-I (D2),DOWN,Not mapped,18,58,31
+I-I (D2),DOWN,Reg. of BP,19,58,32.8
+I-I (D2),UP,Cellular,95,135,70.4
+I-I (D2),UP,Immune system,38,135,28.1
+I-I (D2),UP,Interspecies interaction,37,135,27.4
+I-I (D2),UP,Metabolism,59,135,43.7
+I-I (D2),UP,Not mapped,33,135,24.4
+I-I (D2),UP,Reg. of BP,82,135,60.7
+I-I (D3),DOWN,Cellular,26,45,57.8
 I-I (D3),DOWN,Immune system,5,45,11.1
 I-I (D3),DOWN,Interspecies interaction,4,45,8.9
-I-I (D3),DOWN,Metabolism,18,45,40
-I-I (D3),DOWN,Not mapped,18,45,40
-I-I (D3),DOWN,Reg. of BP,18,45,40
-I-I (D3),UP,Cellular,47,75,62.7
-I-I (D3),UP,Immune system,22,75,29.3
-I-I (D3),UP,Interspecies interaction,24,75,32
-I-I (D3),UP,Metabolism,34,75,45.3
-I-I (D3),UP,Not mapped,24,75,32
-I-I (D3),UP,Reg. of BP,40,75,53.3
-I-I (D5),DOWN,Cellular,137,204,67.2
-I-I (D5),DOWN,Immune system,27,204,13.2
-I-I (D5),DOWN,Interspecies interaction,9,204,4.4
-I-I (D5),DOWN,Metabolism,90,204,44.1
-I-I (D5),DOWN,Not mapped,61,204,29.9
-I-I (D5),DOWN,Reg. of BP,99,204,48.5
-I-I (D5),UP,Cellular,297,373,79.6
-I-I (D5),UP,Immune system,113,373,30.3
-I-I (D5),UP,Interspecies interaction,104,373,27.9
-I-I (D5),UP,Metabolism,205,373,55
-I-I (D5),UP,Not mapped,64,373,17.2
-I-I (D5),UP,Reg. of BP,240,373,64.3
-"ZF2001 (V3, D07)",DOWN,Cellular,153,188,81.4
-"ZF2001 (V3, D07)",DOWN,Immune system,84,188,44.7
-"ZF2001 (V3, D07)",DOWN,Interspecies interaction,52,188,27.7
-"ZF2001 (V3, D07)",DOWN,Metabolism,115,188,61.2
-"ZF2001 (V3, D07)",DOWN,Not mapped,29,188,15.4
-"ZF2001 (V3, D07)",DOWN,Reg. of BP,121,188,64.4
-"ZF2001 (V3, D07)",UP,Cellular,1672,2531,66.1
-"ZF2001 (V3, D07)",UP,Immune system,152,2531,6
-"ZF2001 (V3, D07)",UP,Interspecies interaction,110,2531,4.3
-"ZF2001 (V3, D07)",UP,Metabolism,908,2531,35.9
-"ZF2001 (V3, D07)",UP,Not mapped,801,2531,31.6
-"ZF2001 (V3, D07)",UP,Reg. of BP,1209,2531,47.8
-"ZF2001 (V3, D14)",DOWN,Cellular,88,108,81.5
-"ZF2001 (V3, D14)",DOWN,Immune system,50,108,46.3
-"ZF2001 (V3, D14)",DOWN,Interspecies interaction,16,108,14.8
-"ZF2001 (V3, D14)",DOWN,Metabolism,70,108,64.8
-"ZF2001 (V3, D14)",DOWN,Not mapped,14,108,13
-"ZF2001 (V3, D14)",DOWN,Reg. of BP,46,108,42.6
-"ZF2001 (V3, D14)",UP,Cellular,325,833,39
-"ZF2001 (V3, D14)",UP,Immune system,30,833,3.6
-"ZF2001 (V3, D14)",UP,Interspecies interaction,14,833,1.7
-"ZF2001 (V3, D14)",UP,Metabolism,183,833,22
-"ZF2001 (V3, D14)",UP,Not mapped,496,833,59.5
-"ZF2001 (V3, D14)",UP,Reg. of BP,229,833,27.5
-"ZF2001 (V3, D28)",DOWN,Cellular,84,109,77.1
-"ZF2001 (V3, D28)",DOWN,Immune system,63,109,57.8
-"ZF2001 (V3, D28)",DOWN,Interspecies interaction,17,109,15.6
-"ZF2001 (V3, D28)",DOWN,Metabolism,62,109,56.9
-"ZF2001 (V3, D28)",DOWN,Not mapped,14,109,12.8
-"ZF2001 (V3, D28)",DOWN,Reg. of BP,37,109,33.9
-"ZF2001 (V3, D28)",UP,Cellular,104,268,38.8
-"ZF2001 (V3, D28)",UP,Immune system,20,268,7.5
-"ZF2001 (V3, D28)",UP,Interspecies interaction,6,268,2.2
-"ZF2001 (V3, D28)",UP,Metabolism,60,268,22.4
-"ZF2001 (V3, D28)",UP,Not mapped,160,268,59.7
-"ZF2001 (V3, D28)",UP,Reg. of BP,85,268,31.7
+I-I (D3),DOWN,Metabolism,17,45,37.8
+I-I (D3),DOWN,Not mapped,19,45,42.2
+I-I (D3),DOWN,Reg. of BP,17,45,37.8
+I-I (D3),UP,Cellular,50,77,64.9
+I-I (D3),UP,Immune system,23,77,29.9
+I-I (D3),UP,Interspecies interaction,25,77,32.5
+I-I (D3),UP,Metabolism,38,77,49.4
+I-I (D3),UP,Not mapped,23,77,29.9
+I-I (D3),UP,Reg. of BP,42,77,54.5
+I-I (D5),DOWN,Cellular,135,207,65.2
+I-I (D5),DOWN,Immune system,26,207,12.6
+I-I (D5),DOWN,Interspecies interaction,9,207,4.3
+I-I (D5),DOWN,Metabolism,92,207,44.4
+I-I (D5),DOWN,Not mapped,67,207,32.4
+I-I (D5),DOWN,Reg. of BP,101,207,48.8
+I-I (D5),UP,Cellular,309,389,79.4
+I-I (D5),UP,Immune system,119,389,30.6
+I-I (D5),UP,Interspecies interaction,109,389,28
+I-I (D5),UP,Metabolism,211,389,54.2
+I-I (D5),UP,Not mapped,66,389,17
+I-I (D5),UP,Reg. of BP,251,389,64.5
+"ZF2001 (V3, D07)",DOWN,Cellular,152,188,80.9
+"ZF2001 (V3, D07)",DOWN,Immune system,83,188,44.1
+"ZF2001 (V3, D07)",DOWN,Interspecies interaction,51,188,27.1
+"ZF2001 (V3, D07)",DOWN,Metabolism,114,188,60.6
+"ZF2001 (V3, D07)",DOWN,Not mapped,30,188,16
+"ZF2001 (V3, D07)",DOWN,Reg. of BP,120,188,63.8
+"ZF2001 (V3, D07)",UP,Cellular,1650,2502,65.9
+"ZF2001 (V3, D07)",UP,Immune system,150,2502,6
+"ZF2001 (V3, D07)",UP,Interspecies interaction,110,2502,4.4
+"ZF2001 (V3, D07)",UP,Metabolism,900,2502,36
+"ZF2001 (V3, D07)",UP,Not mapped,798,2502,31.9
+"ZF2001 (V3, D07)",UP,Reg. of BP,1190,2502,47.6
+"ZF2001 (V3, D14)",DOWN,Cellular,86,106,81.1
+"ZF2001 (V3, D14)",DOWN,Immune system,50,106,47.2
+"ZF2001 (V3, D14)",DOWN,Interspecies interaction,16,106,15.1
+"ZF2001 (V3, D14)",DOWN,Metabolism,69,106,65.1
+"ZF2001 (V3, D14)",DOWN,Not mapped,14,106,13.2
+"ZF2001 (V3, D14)",DOWN,Reg. of BP,45,106,42.5
+"ZF2001 (V3, D14)",UP,Cellular,315,821,38.4
+"ZF2001 (V3, D14)",UP,Immune system,30,821,3.7
+"ZF2001 (V3, D14)",UP,Interspecies interaction,14,821,1.7
+"ZF2001 (V3, D14)",UP,Metabolism,173,821,21.1
+"ZF2001 (V3, D14)",UP,Not mapped,495,821,60.3
+"ZF2001 (V3, D14)",UP,Reg. of BP,219,821,26.7
+"ZF2001 (V3, D28)",DOWN,Cellular,82,104,78.8
+"ZF2001 (V3, D28)",DOWN,Immune system,62,104,59.6
+"ZF2001 (V3, D28)",DOWN,Interspecies interaction,17,104,16.3
+"ZF2001 (V3, D28)",DOWN,Metabolism,60,104,57.7
+"ZF2001 (V3, D28)",DOWN,Not mapped,11,104,10.6
+"ZF2001 (V3, D28)",DOWN,Reg. of BP,36,104,34.6
+"ZF2001 (V3, D28)",UP,Cellular,103,267,38.6
+"ZF2001 (V3, D28)",UP,Immune system,20,267,7.5
+"ZF2001 (V3, D28)",UP,Interspecies interaction,6,267,2.2
+"ZF2001 (V3, D28)",UP,Metabolism,61,267,22.8
+"ZF2001 (V3, D28)",UP,Not mapped,159,267,59.6
+"ZF2001 (V3, D28)",UP,Reg. of BP,85,267,31.8
