@@ -101,7 +101,7 @@ Read the recent version here:
 
 # 1. Preparing
 
-## Packages
+## 1.1. Packages
 
 ```{r message=FALSE, warning=FALSE, cache = TRUE}
 # install.packages("randomForest")
@@ -181,7 +181,7 @@ library(immunedeconv)
 tidymodels_prefer()
 ```
 
-## Standardize figures
+## 1.2. Standardize figures
 
 ```{r cache = TRUE, message=FALSE, warning=FALSE}
 ### VAX SIG DB ----
@@ -649,7 +649,7 @@ col_process_immune = list(
 
 # 2. Select studies and retrieve data
 
-## Download and process data
+## 2.1. Download and process data
 
 Download general data (counts data and metadata). GEO supplementary
 files have the counts matrices. Download studies individually. I
@@ -944,7 +944,7 @@ GSE206023_pseudoalign_stats <- read_excel("raw_data/GSE206023_pseudoalignment_ST
     sheet = "General Statistics")
 ```
 
-## Combine raw counts
+## 2.2. Combine raw counts
 
 ```{r cache = TRUE}
 # Counts
@@ -991,9 +991,9 @@ all_matrices_genes %>%
   write_csv(file = here("DGE analysis", "all_matrices_genes.csv"))
 ```
 
-## Principal Variance Components Analysis
+## 2.3. Principal Variance Components Analysis
 
-### Counts normalization
+### 2.3.1. Counts normalization
 Log2fc by sample
 ```{r cache = TRUE}
 #### Log2fc by sample
@@ -1174,7 +1174,7 @@ normalized_counts = read_rds(here("DGE analysis", "all_matrices_normalized_count
 
 ```
 
-### PVCA of normalized raw counts
+### 2.3.2. PVCA of normalized raw counts
 
 ```{r cache = TRUE}
 #### PVCA of normalized raw counts -----
@@ -1363,9 +1363,9 @@ ggsave(normalizedcounts_pca_plot_sex, file = here("Figures", "covid_vax_pca_samp
 
 # 3. General data analysis
 
-## Metadata
+## 3.1. Metadata
 
-### Annotate metadata
+### 3.1.1. Annotate metadata
 
 Conditions
 
@@ -1577,7 +1577,7 @@ ann_vaccines_conditions_ordered %>%
 ```
 
 
-### Samples by condition
+### 3.1.2. Samples by condition
 
 ```{r fig.height=10, fig.width=20, cache = TRUE}
 ann_vaccines_conditions = read_csv(here("Annotations and metadata", "ann_vaccines_conditions.csv"))
@@ -1644,7 +1644,7 @@ ggsave(samples_by_condition_plot, file = here("Figures", "demographics_samples-b
 samples_by_condition_plot
 ```
 
-### Age by GSE
+### 3.1.3. Age by GSE
 
 ```{r fig.height=5, fig.width=6, cache = TRUE}
 #### AGE BY GSE -------------
@@ -1683,7 +1683,7 @@ ggsave(age_stats, file = here("Figures", "Demographics_age.png") , width = 6, he
 age_stats
 ```
 
-### Sex by GSE
+### 3.1.4. Sex by GSE
 This figure's text was manipulated further in a design software.
 ```{r fig.height=8, fig.width=10, cache = TRUE}
 #### AGE BY GSE -------------
@@ -1775,7 +1775,7 @@ sex_stats_annotated
 ```
 
 
-### Participants by condition
+### 3.1.5. Participants by condition
 
 ```{r cache = TRUE}
 #### Participants by condition ------
@@ -1792,7 +1792,7 @@ participants = ann_vaccines_conditions %>%
 ```
 
 
-### Participants by day
+### 3.1.6. Participants by day
 
 ```{r fig.height=5, fig.width=8, cache = TRUE}
 
@@ -1826,7 +1826,7 @@ demographics_time
 
 
 
-### Studies designs
+### 3.1.7. Studies designs
 
 ```{r fig.height=5, fig.width=6}
 
@@ -1889,7 +1889,7 @@ demographics_plot_days_samples_doses %>%
 
 ```
 
-### Immunological endpoints
+#### Immunological endpoints
 
 ```{r}
 Serology_data <- read_csv("raw_data/GSE199750/Serology_data.csv")
@@ -1936,7 +1936,7 @@ generate_all_DESeq2_results <- function(dds) {
 ```
 
 
-## GSE206023
+## 3.1. GSE206023
 
 ```{r}
 ##Defina as variáveis
@@ -1998,7 +1998,7 @@ gse206023_DEGs
 
 ```
 
-## GSE201533
+## 3.2. GSE201533
 
 ```{r}
 ############ Matrix counts ############
@@ -2073,7 +2073,7 @@ gse201533_DEGs
 ```
 
 
-## GSE199750
+## 3.3. GSE199750
 
 ```{r}
 # Required files
@@ -2134,7 +2134,7 @@ gse199750_DEGs %>%
 gse199750_DEGs
 ```
 
-## Infection: GSE189039 and GSE201530
+## 3.4. Infection: GSE189039 and GSE201530
 
 ```{r eval=FALSE, echo=TRUE, cache = TRUE}
 #Standardize counts tables
@@ -2228,7 +2228,7 @@ infection_DEGs %>%
 ```
 
 
-## Merge all
+## 3.5. Merge all
 
 ```{r}
 
@@ -2244,7 +2244,7 @@ all_degs %>%
 all_degs
 ```
 
-## Weight and adjust p values
+## 3.5. Weight and adjust p values
 
 ```{r}
 
@@ -2278,7 +2278,7 @@ all_studies_degs_weighted %>%
 
 # 4. DEGs analysis
 
-## Up and down-regulated DEGs
+## 4.1. Up and down-regulated DEGs
 
 ```{r}
 #Required files
@@ -2394,9 +2394,9 @@ ggplot_degs_bars_2
 
 ```
 
-## Overlapping genes
+## 4.2. Overlapping genes
 
-Input
+### 4.2.1. Input
 
 ```{r}
 # DEGs table
@@ -2416,7 +2416,7 @@ data = degs_all_updown %>%
 filename = "All_covid_BTM_immune"
 ```
 
-Function
+### 4.2.2. Function
 
 ```{r}
 # Function for overlapping -------
@@ -2452,7 +2452,7 @@ overlap_genes <- function(cond1, cond2, data) {
 }
 ```
 
-Perform calculations
+### 4.2.3. Perform calculations
 
 ```{r}
 
@@ -2517,9 +2517,9 @@ write_csv(shared_genes_df_mirror,
 
 ```
 
-### Heatmap
+### 4.2.4. Heatmap
 
-#### Shared genes
+#### 4.2.4.1. Shared genes
 
 ```{r}
 filename = paste0(filename, "_Shared") 
@@ -2669,7 +2669,7 @@ draw(heatmap_plot_all, annotation_legend_side = "left")
 dev.off()
 ```
 
-#### Jaccard distance
+#### 4.2.4.2. Jaccard distance
 
 ```{r}
 filename = "All_covid_BTM_immune_Jaccarddist"
@@ -2813,11 +2813,11 @@ draw(heatmap_plot_all, annotation_legend_side = "left")
 dev.off()
 ```
 
-### Chord diagram
+### 4.2.5. Chord diagram
 
-#### Shared
+#### 4.2.5.1. Shared
 
-##### All conditions (Interactive)
+##### 4.2.5.1.1. All conditions (Interactive)
 
 ```{r}
 library(chorddiag)
@@ -2884,7 +2884,7 @@ all_shared = chorddiag(matrix_vaccines,
 all_shared
 ```
 
-##### Weeks
+##### 4.2.5.1.2. Weeks
 
 Prepare tables
 
@@ -3177,7 +3177,7 @@ circos.clear()
 
 ```
 
-##### Types
+##### 4.2.5.1.3. Types
 
 Prepare tables
 
@@ -3402,9 +3402,9 @@ circos.clear()
 dev.off()
 ```
 
-#### Jaccard distance
+#### 4.2.5.2. Jaccard distance
 
-##### All conditions (Interactive)
+##### 4.2.5.2.1. All conditions (Interactive)
 
 ```{r}
 
@@ -3469,7 +3469,7 @@ chorddiag(matrix_vaccines,
 )
 ```
 
-#####  Weeks
+##### 4.2.5.2.2. Weeks
 
 Prepare tables
 
@@ -3762,7 +3762,7 @@ circos.clear()
 
 ```
 
-##### Types
+##### 4.2.5.2.3. Types
 
 Prepare tables
 
@@ -3987,7 +3987,7 @@ circos.clear()
 dev.off()
 ```
 
-## Immune and non-immune DEGs
+## 4.3.Immune and non-immune DEGs
 
 ```{r}
 ImmuneGO_Annotated_GO <- read_csv(here("VaxGO gene sets", "ImmuneGO_Annotated_GO_2024_03_26.csv"))
@@ -4037,7 +4037,7 @@ all_degs_processes_immune_nonimmune %>%
 write_csv(all_degs_processes_immune_nonimmune, file = here("DGE analysis", "all_degs_processes_immune_nonimmune.csv"))
 ```
 
-### Retrieving genes by Gene Ontology
+### 4.4.1. Retrieving genes by Gene Ontology
 
 ```{r}
 organism = "org.Hs.eg.db"
@@ -4218,7 +4218,7 @@ main_go_2 = degs_GO %>%
 write_csv(main_go_2, file = here("DGE analysis", "degs_annotated_mainGOs_stats.csv"))
 ```
 
-### Boxplot
+###4.4.2.1. Boxplot
 
 ```{r fig.height=10, fig.width=15, warning=FALSE}
 degs_annotated_mainGOs_stats <- read_csv(here("DGE analysis", "degs_annotated_mainGOs_stats.csv"))
@@ -4286,7 +4286,7 @@ ggsave(all_up_down_day, width = 20, height = 10, file = here("Figures", "MainGOs
 
 Explore data with interactive plots
 
-### Barplot by term
+###4.4.2.2. Barplot by term
 
 ```{r fig.height=15, fig.width=20, message=FALSE, warning=FALSE}
 main_go_2_plot_up_down = main_go_2 %>%
@@ -4415,7 +4415,7 @@ ggsave(patch_maingo, file = here("Figures", "main_go_2_plot_values_UP_DOWN_regul
 
 
 
-######  Immune vs. non-immune genes
+###### 4.4.2.2.1. Immune vs. non-immune genes
 ```{r fig.height=7, fig.width=15}
 degs_immune = main_go_2 %>% 
   mutate(direction = if_else(direction == "UP", "Upregulated", "Downregulated"),
@@ -4519,9 +4519,9 @@ patch_immune_degs
 ```
 
 
-### Shared genes
+### 4.4.3 Shared genes
 
-#### Immune related only
+#### 4.4.3.1. Immune related only
 
 ```{r}
 
@@ -4706,11 +4706,11 @@ ggsave(patch, file = here("Figures", "Genes_shared_Vaccination_Infection_united.
 patch
 ```
 
-#### Not-immune related only
+#### 4.4.3.1. Not-immune related only
 
 ```{r}
 degs_all_updown = all_degs_p_05_vac_infected %>% 
-  # filter(direction != "NEUTRAL") %>% 
+  filter(direction != "NEUTRAL") %>% 
   distinct()
 
 ImmuneGO_Annotated_Genes = ImmuneGO_Annotated_Genes
@@ -4874,7 +4874,7 @@ patch
 
 # 5. Gene set enrichment analysis
 
-Input
+### 5.1. Input
 
 ```{r}
 #Gene sets
@@ -4915,9 +4915,9 @@ geneset_name = "Immune_GO_T2G_general"
 
 ```
 
-### Over representation analysis (ORA)
+### 5.2. Over representation analysis (ORA)
 
-#### Multiple
+#### 5.2.1. Multiple
 
 ```{r}
 df <- all_degs_p_05_vac_infected
@@ -4954,7 +4954,7 @@ write.csv(ora_results_final, file = "all_degs_other_ORA_2.csv", row.names = F)
 
 ```
 
-#### GO Analysis
+#### 5.2.2. GO Analysis
 
 ```{r}
 library(GO.db)
@@ -4975,7 +4975,7 @@ go = ora_results_final %>%
 
 ```
 
-#### Heatmap
+#### 5.2.3. Heatmap
 
 ```{r}
 
@@ -5099,9 +5099,9 @@ dev.off()
 
 ```
 
-### Gene set enrichment analysis (GSEA)
+### 5.3. Gene set enrichment analysis (GSEA)
 
-Function
+#### 5.3.1. Multiple
 
 ```{r}
 autoGSEA <- function(df, TERM2GENE, geneset_name) {
@@ -5153,7 +5153,6 @@ autoGSEA <- function(df, TERM2GENE, geneset_name) {
 }
 ```
 
-#### ImmuneGO
 ```{r}
 # Perform GSEA
 
@@ -5206,7 +5205,7 @@ all_degs_p_05_vac_infected_GSEA
 ```
 
 
-#### Bubbleplot (Heatmap with ggplot)
+#### 5.3.2. Bubbleplot (Heatmap with ggplot)
 https://davemcg.github.io/post/lets-plot-scrna-dotplots/
 ```{r fig.height=8, fig.width=12}
 library(ggdendro)
@@ -5719,7 +5718,160 @@ patch_immune_specific %>%
 ```
 
 
-## Cell proportion
+
+### BTM
+Specific
+```{r fig.height=8, fig.width=10}
+library(ggdendro)
+library(cowplot)
+
+all_degs_p_05_vac_infected_Immune_GO_T2G_specfic_GSEA_ALL = read_csv(here("Gene set enrichment analysis", "all_degs_p_05_vac_infected_Immune_GO_T2G_specfic_GSEA_ALL.csv")) 
+
+
+df = all_degs_p_05_vac_infected_Immune_GO_T2G_specfic_GSEA_ALL %>% 
+  clean_names() %>% 
+  filter(qvalue <= 0.25) %>% 
+  mutate(logq = -log10(qvalue)) %>% 
+  inner_join(ann_vaccines_conditions, by = "condition") %>% 
+  mutate(day = as.factor(day),
+         week = as.factor(week),
+         dose = as.factor(dose))
+
+id_filtered = df %>% 
+  select(condition, id) %>%
+  group_by(id) %>% 
+  summarize(n = n()) %>% 
+  arrange(-n) %>% 
+  filter(n>5)
+
+df = df %>% 
+  filter(id %in% c(id_filtered$id))
+
+row_clustered = df %>% 
+  select(condition, id, nes) %>% 
+  distinct() %>% 
+  pivot_wider(names_from = "condition",
+              values_from= "nes") %>%
+  column_to_rownames("id") %>% 
+  as.matrix() %>% 
+  replace(is.na(.), 0) %>% 
+  dist(.) %>% 
+  hclust()
+
+result_vac <- cluster_by_day(df %>% filter(disease_vac == "V"), day_column = "day", condition_column = "condition") %>%
+  distinct() %>% 
+  mutate(day = fct_relevel(day, df$day %>% unique() %>% sort() %>% as.character()))
+
+result_inf_vac2 <- cluster_by_day(df %>% 
+                               filter(disease_vac == "I",
+                                      dose %in% c("2")), day_column = "day") %>%
+  mutate(day = fct_relevel(day, df$day %>% unique() %>% sort() %>% as.character()))
+
+column_order <- c(result_vac$condition, result_inf_vac2$condition, result_inf_vac01$condition) %>% 
+  unique()
+
+result_inf_vac01 <- cluster_by_day(df %>% 
+                               filter(disease_vac == "I",
+                                      dose %in% c("0", "1")), day_column = "day") %>%
+  mutate(day = fct_relevel(day, df$day %>% unique() %>% sort() %>% as.character()))
+
+column_order <- c(result_vac$condition, result_inf_vac2$condition, result_inf_vac01$condition)
+
+labels_type <- df %>% 
+  filter(id %in% row_clustered$labels) %>% 
+  mutate(condition = factor(condition, levels = column_order)) %>% 
+  ggplot() +
+  aes(x = condition, y = 1, fill = type) + 
+  geom_tile() + 
+  scale_fill_manual(values = ann_vaxsig_colors$Platform) + 
+  theme_void() +
+  labs(y = "Type") +
+  theme(axis.title.y = element_text(size = 10),
+        legend.position = "none") 
+
+labels_disease_vac <- df %>% 
+  filter(id %in% row_clustered$labels) %>% 
+  mutate(condition = factor(condition, levels = column_order)) %>% 
+  ggplot() +
+  aes(x = condition, y = 1, fill = disease_vac) + 
+  geom_tile() + 
+  scale_fill_manual(values = ann_vaxsig_colors$disease_vac) + 
+  theme_void() +
+  labs(y = "Type") +
+  theme(axis.title.y = element_text(size = 10),
+        legend.position = "none") 
+
+labels_week = df %>% 
+  filter(id %in% row_clustered$labels) %>% 
+  mutate(condition = factor(condition, column_order)) %>% 
+  ggplot() +
+  aes(x = condition, y = 1, fill = week) + 
+  geom_tile() + 
+  scale_fill_manual(values = ann_vaxsig_colors$week) + 
+  theme_void() +
+  labs(y = "Week") +
+  theme(axis.title.y = element_text(size = 10),
+        legend.position = "none")
+
+labels_day<- df %>% 
+  filter(id %in% row_clustered$labels) %>% 
+  mutate(condition = factor(condition, levels = column_order)) %>% 
+  ggplot() +
+  aes(x = condition, y = 1, fill = day) + 
+  geom_tile() + 
+  scale_fill_manual(values = ann_vaxsig_colors$day) + 
+  theme_void() +
+  labs(y = "Type") +
+  theme(axis.title.y = element_text(size = 10),
+        legend.position = "none") 
+#Plot
+dotplot_specific = df %>% 
+  filter(id %in% row_clustered$labels) %>% 
+  mutate(condition = factor(condition, column_order),
+         id = factor(id, levels = row_clustered$labels[row_clustered$order])) %>% 
+  ggplot(aes(x=condition, y = id, color = nes, size = logq)) +
+  geom_point() + 
+  theme_minimal() + 
+  theme(axis.text = element_text(color = "black") ,
+        axis.line  = element_blank(),
+        axis.text.x = element_text(angle = 45, vjust = 1, hjust=1),
+        axis.ticks = element_blank(),
+        legend.direction = "horizontal",
+        legend.position = "bottom") +
+  labs(x = "",
+       y = "") +
+  scale_color_gradient2(low = "blue",
+                        mid = "white",
+                        midpoint = 0, 
+                        name = "NES",
+                      high = "red") +
+  scale_y_discrete(position = "right")  
+  
+
+patch_immune_specific_filtered =  labels_disease_vac/
+  labels_type /
+  labels_week/
+  labels_day/
+  dotplot_specific +
+  plot_layout(heights = c(0.3, 0.3, 0.3, 0.3, 5),
+              guides = 'collect') +
+  plot_annotation(title = "GSEA ImmuneGO",
+                  subtitle = "Specific processes",
+                  theme = theme(legend.position = "bottom",
+                                plot.margin = margin(0.5, 0, 0.5, 1, unit = "cm"),
+                                legend.direction = "horizontal", 
+                                legend.box = "horizontal"))
+patch_immune_specific_filtered
+
+
+```
+
+
+
+
+
+
+## 5.4. Cell proportion
 
 <https://www.datacamp.com/tutorial/pca-analysis-r>
 <https://rpkgs.datanovia.com/factoextra/index.html>
@@ -5728,7 +5880,7 @@ patch_immune_specific %>%
 
 
 
-### ssGSEA: CellMarker
+### 5.4.1. ssGSEA: CellMarker
 ```{r}
 library(corto)
 
@@ -5806,7 +5958,7 @@ head(nesmat_result_CellMarker)
 
 
 
-### immunedeconv/XCell
+### 5.4.2. ssGSEA: immunedeconv/XCell
 
 ```{r fig.height=6, fig.width=12}
 all_matrices_counts <- readRDS(here("DGE analysis", "all_matrices_counts.rds"))
@@ -5922,7 +6074,7 @@ create_boxplots(xcell_results_annotated_2_plot)
 
 
 
-### Visualization
+### 5.4.3. Visualization
 
 Generate a single boxplot
 ```{r fig.height=6, fig.width=12}
@@ -6130,7 +6282,7 @@ ssgsea_pca_day = autoplot(pca_res,  data = labels) +
 
 ```
 
-### Statistical analysis
+### 5.4.4. Statistical analysis
 
 ```{r}
 # install.packages("ggstatsplot")
@@ -6165,7 +6317,7 @@ grouped_ggbetweenstats(
 
 ```
 
-#### Kruskal Wallis
+#### 5.4.3.2. Kruskal Wallis
 
 ```{r}
 library(ggsignif)
@@ -6210,7 +6362,7 @@ guide](http://www.sthda.com/english/articles/31-principal-component-methods-in-r
 [Statistics globe: PCA before K Means
 Clustering](https://statisticsglobe.com/pca-before-k-means-clustering-r){.uri}\>
 
-Packages and colors
+## 6.1. Packages and colors
 
 ```{r}
 library(tidyverse)
@@ -6233,7 +6385,7 @@ library(here)
 
 
 ## Immune genes
-Process data
+## 6.2. Process data
 
 **Required files**
 
@@ -6308,7 +6460,7 @@ dim(ann_vaccines_pca_matrix_ready) #1189 genes
 
 ```
 
-## PCA: COVID-19 conditions only
+## 6.3. PCA: COVID-19 conditions only
 
 ```{r cache = TRUE}
 # Delete columns with near 0 variance
@@ -6348,7 +6500,7 @@ scree_plot
 
 ```
 
-Loadings plot
+## 6.3.1. Loadings plot
 
 ```{r}
 # Loadings plot ----
@@ -6373,7 +6525,7 @@ ggsave(circle_contrib, file = here("Figures", paste0(filename, "_circle_contrib_
 circle_contrib
 ```
 
-KNN
+## 6.3.2. KNN
 
 ```{r}
 #KNN classification -----
@@ -6396,11 +6548,82 @@ cluster_model <- kmeans(pca_res$x[, 1:2], centers = 3)  #Set the number of clust
 ann_vaccines_pca_matrix$cluster <- as.factor(cluster_model$cluster)
 ```
 
-
-### Plot PC1-2
+## 6.3.3. Plot
+### PC1-2
 ```{r fig.height=7, fig.width=10, paged.print=FALSE, cache=TRUE}
 # Condition with density plot ------
 pca_plot_knn_cluster = autoplot(pca_res, 
+        data = ann_vaccines_pca_matrix)  +
+  stat_ellipse(aes(color = cluster, fill = cluster), 
+               geom = "polygon", 
+               alpha = 0.2, 
+               linetype = 1,
+               size = 0.3,
+               type = "t") +
+  labs(title=paste0(filename, "_bycondition"),
+       x = "PC1 (77.7%)",
+       y = "PC2 (12.2%)") + 
+  geom_hline(yintercept = 0, size = 0.3, color = "gray50", linetype = 4) +
+  geom_vline(xintercept = 0, size = 0.3, color = "gray50", linetype = 4) +
+  geom_point(aes(fill = condition,
+                 color = condition),
+             stroke = 0.2) +
+   scale_color_manual(values = c("1" = "#DC0000FF", 
+                               "2" = "#4DBBD5FF", 
+                               "3" = "#F5BB00",
+                               "4" = "#8491B4FF",
+                                condition_col), 
+                     guide = "none") +
+  scale_fill_manual(values = c("1" = "#DC0000FF", 
+                               "2" = "#4DBBD5FF", 
+                               "3" = "#F5BB00",
+                               "4" = "#8491B4FF",
+                               condition_col),
+                    guide = "none") + 
+  guides(col="none") +
+  theme_few() +
+  theme(panel.grid.minor = element_blank(),
+        text = element_text(color = "black"),
+        panel.border = element_blank(),
+        axis.line = element_line(colour = "black")) +
+  geom_text_repel(aes(label = condition,
+                      segment.colour="gray70"),
+                  box.padding = 0.8,
+                  size = 3) +
+  xlim(-0.4, 0.6)
+pca_plot_knn_cluster
+
+ggsave(pca_plot_knn_cluster, 
+       file = here( "Figures", paste0(filename, pcas, "_KNN_Clustered_labels.png")), width = 10, height = 7)
+pca_plot_knn_cluster
+
+
+# pca_plot_knn_cluster_marginal = ggMarginal(
+#   pca_plot_knn_cluster,
+#   type = "histogram",
+#   groupFill = T,
+#   groupColour = T,
+#   xparams = list(binwidth = 0.1, size = 0.1),
+#   yparams = list(binwidth = 0.1, size = 0.1)
+# )
+# 
+# ggsave(
+#   pca_plot_knn_cluster_marginal,
+#   file = here(paste0(filename, pcas, "_KNN_Clustered_labels_Marginal.png"), "Figures"),
+#   width = 8,
+#   height = 5
+# )
+
+pca_plot_knn_cluster %>% ggplotly()
+
+
+```
+
+
+#### PC1-PC3
+```{r fig.height=7, fig.width=10, paged.print=FALSE, cache=TRUE}
+# Condition with density plot ------
+pca_plot_knn_cluster = autoplot(pca_res,
         data = ann_vaccines_pca_matrix)  +
   stat_ellipse(aes(color = cluster, fill = cluster), 
                geom = "polygon", 
@@ -6472,9 +6695,9 @@ pca_plot_knn_cluster %>% ggplotly()
 
 
 
+## 6.3.4. Heatmap
 
-
-## Heatmap of PC1 and PC2 genes
+### 6.3.4.1. Get PC1 and PC2 genes
 
 Inputs
 ```{r}
@@ -6507,7 +6730,7 @@ PC1_2 %>% write.csv(file = "PC_1_2_cos2.csv", row.names = F)
 ```
 
 
-#### PC1 genes heatmap
+#### 6.3.4.1.1. PC1 genes heatmap
 ```{r}
 # INPUT
 ann_genes = ImmuneGO_Annotated_Genes
@@ -6669,7 +6892,7 @@ draw(heatmap_plot,
 dev.off()
 
 ```
-#### PC2 genes heatmap
+####  6.3.4.1.2. PC2 genes heatmap
 ```{r}
 # INPUT
 ann_genes = ImmuneGO_Annotated_Genes
@@ -6833,7 +7056,7 @@ dev.off()
 ```
 
 
-### Gene expression by gender
+### 6.3.4.2 Gene expression by gender
 
 #### PC1 genes
 
@@ -7680,9 +7903,9 @@ library(janitor)
 ```
 
 
-##Gene set databases
+## 7.1. Gene set databases
 
-### Blood transcription modules <https://www.nature.com/articles/ni.2789>
+### 7.1.1. Blood transcription modules <https://www.nature.com/articles/ni.2789>
 
 ```{r}
 #Converter ítens de "Module member genes" em linhas em uma tabela longa
@@ -7730,7 +7953,7 @@ head(btm_annotation_unique)
 btm_annotation_table_long_immune
 ```
 
-### CellMarker
+### 7.1.2. CellMarker
 
 Download database from
 "<http://117.50.127.228/CellMarker/CellMarker_download_files/file/Cell_marker_Human.xlsx>"
@@ -7876,7 +8099,7 @@ ggsave(ggImmune_cells_cellsbyimmune, file= "CellMarker_nCellsbyimmunesystem.png"
 print(ggImmune_cells_cellsbyimmune)
 ```
 
-### ImmuneGO
+### 7.1.3. ImmuneGO
 
 ```{r}
 organism = "org.Hs.eg.db"
@@ -8310,7 +8533,7 @@ ggsave(ImmuneGO_top10_barplot, file="ImmuneGO_top10_barplot.png", width = 10, he
 head(ImmuneGO_top10_barplot)
 ```
 
-### VAX MSigDB
+### 7.1.4. VAX MSigDB
 
 
 ```{r}
@@ -8464,7 +8687,7 @@ VAX_GeneSets_Blood_PBMC_VAC.stats = VAX_GeneSets_Blood_PBMC_VAC %>%
 
 ```
 
-## Immune genes representation in the datasets
+## 7.2 Immune genes representation in the datasets
 Are all immune-related genes represented in all datasets?
 
 ```{r}
@@ -8665,7 +8888,7 @@ write.csv(Immune_allgenes_vaccines_SUM, file="Immune_allgenes_vaccines_SUM.csv")
 ```
 
 
-## COVID-19 and other vaccines
+## 7.3. COVID-19 and other vaccines
 
 ```{r}
 # Input files ------
@@ -8751,7 +8974,7 @@ degs_covid_vax %>%
 
 ```
 
-### Gene overlap analysis
+### 7.3.1. Gene overlap analysis
 
 ```{r}
 #Input
@@ -8862,7 +9085,7 @@ write_csv(shared_genes_df_mirror,
 ```
 
 
-### Other comparisons
+### 7.3.2. Other comparisons
 
 ```{r}
 ############# VACCINE
@@ -8880,7 +9103,7 @@ vac_only = shared_genes_ann_vac %>%
 
 ```
 
-### Heatmap
+### 7.3.3. Heatmap
 
 ```{r}
 # INPUT ------
@@ -9049,7 +9272,7 @@ dev.off()
 
 ```
 
-##ORA COVID vs. VAXGO with ImmuneGO
+## 7.4. ORA COVID vs. VAXGO com ImmuneGO
 
 ```{r}
 #Input
@@ -9146,7 +9369,7 @@ write.csv(immune_GO_ORA_covid_other, file = here("VaxGO gene sets", "COVID_VAX_i
 
 ```
 
-#### Heatmap
+#### 7.4.1. Heatmap
 
 ```{r}
 ####### INPUT
@@ -9277,7 +9500,7 @@ dev.off()
 
 ```
 
-## COVID-19 genes vs. VaxGO genes with ImmuneGO genes
+## 7.5. COVID-19 genes vs. VaxGO genes with ImmuneGO genes
 
 ```{r}
 # VAX Genes  ------
@@ -9380,7 +9603,7 @@ Immune_GO_genes_All = covid_other_immunego_genes
 
 ```
 
-#### Heatmap
+#### 7.5.1. Heatmap
 
 ```{r}
 ####### INPUT
@@ -9483,7 +9706,7 @@ column_split = 2
 More refs:
 <https://debrowser.readthedocs.io/en/master/heatmap/heatmap.html>
 
-#### All genes
+#### 7.5.2. All genes
 
 ```{r}
 ################# Immune 
@@ -9702,7 +9925,7 @@ htShiny(ht_list, save = "Interactive_Covid_Other_Vax_Heatmap")
 
 
 
-#### Get Cluster 1 Immune genes
+#### 7.5.3. Get Cluster 1 Immune genes
 Get row clusters
 
 ```{r}
@@ -9877,7 +10100,7 @@ dev.off()
 
 ```
 
-#### 50 most shared genes
+#### 7.5.4. 50 most shared genes
 
 ```{r fig.height=10, fig.width=10}
 #### Immune -----
@@ -9937,9 +10160,9 @@ covid_other_immune_genes_50_mostshared_all = stats_1 %>%
 
 # 8. Machine learning descriptors
 
-Preparing
+## 8.1 Preparing
 
-Library
+## 8.1.1. Library
 
 ```{r message=FALSE, warning=FALSE}
 # install.packages("randomForest")
@@ -9983,7 +10206,7 @@ library(ggthemes)
 
 ```
 
-Import files
+## 8.1.2. Import files
 
 ```{r}
 all_matrices_normalized_counts <- readRDS(here("DGE analysis", "all_matrices_normalized_counts.rds"))
@@ -9997,9 +10220,7 @@ dim(all_matrices_normalized_counts)
 
 
 
-## COVID-19 vaccines vs infection (counts)
-
-### Build models
+## 8.2. COVID-19 vaccines vs infection
 
 ```{r}
 # Input data ----
@@ -10028,7 +10249,7 @@ order_levels = c("I", #TRUE
 PC1_2 = PC_1_2_cos2
 ```
 
-Train and test
+### 8.2.1. Train and test
 
 ```{r fig.height=10, fig.width=10}
 # Prepare data ------
@@ -10106,7 +10327,7 @@ tune_res <- tune_grid(
 )
 ```
 
-Assess metrics
+### 8.2.2. Assess metrics
 
 ```{r fig.height=10, fig.width=10}
 # Assess data ----
@@ -10140,7 +10361,7 @@ min_n_selec = 5 #Observations by node)
 mtry_selec = 6 #Features/genes by tree)
 ```
 
-Hyperparameter tuning
+### 8.2.3. Hyperparameter tuning
 
 ```{r}
 # Tune hyperparameters ----
@@ -10195,7 +10416,7 @@ final_rf <- finalize_model(
 )
 ```
 
-Important features
+### 8.2.4. Important features
 
 ```{r fig.height=3, fig.width=5}
 final = final_rf %>%
@@ -10249,7 +10470,7 @@ importance_plot
 
 ```
 
-Train final model with tuned hyperparameters
+### 8.2.5. Train final model with tuned hyperparameters
 
 ```{r}
 # Train final model with tuned hyperparameters
@@ -10357,8 +10578,7 @@ final_res_preds %>% rownames_to_column("sample") %>%
   filter(correct == "Incorrect") %>% 
   select(sample, condition, everything())
 ```
-
-Precision recall curve
+#### Precision recall curve
 ```{r}
 # Precision recall
 pr_curve_res = pr_curve(final_res_preds, outcomevar...6, .pred_I) %>% 
@@ -10426,7 +10646,7 @@ all_matrices_counts_genesRF = all_matrices_counts_long_annotated %>%
 ```
 
 
-### Relative effects
+#### Relative effects
 
 Function
 ```{r fig.height=5, fig.width=7}
@@ -10590,7 +10810,7 @@ plot
 
 ```
 
-### Butterfly plot
+#### Butterfly plot
 ```{r}
 ##### Butterfly plot
 all_degs_p_05_vac_infected = read_csv("DGE analysis/all_degs_p_05_vac_infected_19_12_23.csv")
@@ -10626,7 +10846,34 @@ ggplotly(butterfly_plot)
 
 ```
 
-### Heatmap by sample, prediction
+
+## ggheatmap
+```{r fig.height=10, fig.width=10}
+
+all_matrices_counts <- readRDS(here("DGE analysis", "all_matrices_counts.rds"))
+all_matrices_counts_long = all_matrices_counts %>% 
+  pivot_longer(cols = -genes,
+               names_to = "sample", 
+               values_to = "counts")
+head(all_matrices_counts)
+all_matrices_counts_long_annotated = all_matrices_counts_long %>% 
+  inner_join(ann_vaccines_samples,
+             by = "sample")
+
+all_matrices_counts_long_annotated %>% saveRDS(here("DGE analysis", "all_matrices_counts_long_annotated.rds"))
+
+control_counts_gse206023 = all_matrices_counts_long_annotated %>% 
+  filter(gse_id == "GSE206023") %>% 
+  select(genes, sample, counts, condition, vaccine, day) %>% 
+  filter(day == 0) %>% 
+  group_by(day, genes) %>% 
+  summarize(control_counts_mean = mean(counts)) %>% 
+  select(genes, control_counts_mean) %>% 
+  inner_join()
+  
+```
+
+
 
 ```{r fig.height=10, fig.width=10}
 pred_genes_counts = final_res_preds %>% 
@@ -10654,7 +10901,7 @@ pred_genes_counts %>%
 ```
 
 
-### Heatmap: Gene L2FC per condition
+### 8.2.6. Heatmap: Gene L2FC per condition
 
 ```{r}
 # Required files
@@ -10864,13 +11111,13 @@ dev.off()
 
 ```
 
-### Boxplot: VIP gene expression by condition
+### 8.2.7. Boxplot: VIP gene expression by condition
 Import tables
 ```{r fig.height=10, fig.width=10}
 genes_rf = read_csv("Machine learning/vipgenes_tidymodels_ImmuneGO_Genes_Type_including_Infection_type2024-06-27.csv") 
 ann_vaccines_conditions = read_csv(here("Annotations and metadata", "ann_vaccines_conditions.csv"))
 
-all_matrices_counts_long_annotated <- readRDS(here("DGE analysis", "all_matrices_counts_long_annotated.rds"))
+all_matrices_counts_long_annotated <- readRDS("DGE analysis", "all_matrices_counts_long_annotated.rds"))
 
 all_samples_l2fc = read_rds(here("DGE analysis", "all_samples_l2fc.rds"))
 
@@ -11087,7 +11334,7 @@ vip_genes_boxplot_type_sex
 ```
 
 
-### PCA with VIP genes
+#### PCA
 **Input**
 
 ```{r}
@@ -11119,6 +11366,11 @@ ann_vaccines_pca_matrix_ready = ann_vaccines_pca_matrix %>%
   select(!condition:type) %>% 
   as.matrix()
 
+```
+
+## 6.3. PCA
+
+```{r}
 # Delete columns with near 0 variance
 nearZeroVarCols <- nearZeroVar(ann_vaccines_pca_matrix_ready, saveMetrics = TRUE)
 ann_vaccines_pca_matrix_ready <- ann_vaccines_pca_matrix_ready[, !nearZeroVarCols$nzv]
@@ -11154,6 +11406,8 @@ print(scree_plot)
 
 ```
 
+## 6.3.1. Loadings plot
+
 ```{r}
 # Loadings plot ----
 options(ggrepel.max.overlaps = Inf)
@@ -11177,6 +11431,7 @@ ggsave(circle_contrib, file = here("Figures", paste0(filename, "_circle_contrib_
 circle_contrib
 ```
 
+## 6.3.2. KNN
 
 ```{r}
 #KNN classification -----
@@ -11198,6 +11453,8 @@ cluster_model <- kmeans(pca_res$x[, 1:2], centers = 3)  #Set the number of clust
 
 ann_vaccines_pca_matrix$cluster <- as.factor(cluster_model$cluster)
 ```
+
+## 6.3.3. Plot
 
 ```{r fig.height=7, fig.width=10, paged.print=FALSE}
 # Condition with density plot ------
@@ -11264,7 +11521,7 @@ pca_plot_knn_cluster
 ```
 
 
-### Heatmap: Gene L2FC per condition
+### 8.2.6. Heatmap: Gene L2FC per condition
 
 ```{r}
 # Required files
@@ -11454,7 +11711,7 @@ dev.off()
 
 
 
-### Heatmap: Gene counts per sample
+### 8.2.6. Heatmap: Gene counts per sample
 ```{r}
 # Required files
 ImmuneGO_Annotated_Genes = readRDS(here("VaxGO gene sets","ImmuneGO_Annotated_Genes_2024-03-26.rds"))
@@ -11807,7 +12064,7 @@ dev.off()
 
 ```
 
-## COVID-19 vaccines vs infection (L2FC)
+## 8.2. COVID-19 vaccines vs infection (Log2fold_change values)
 
 ```{r}
 ImmuneGO_Annotated_Genes = readRDS(here("VaxGO gene sets","ImmuneGO_Annotated_Genes_2024-03-26.rds"))
@@ -11838,7 +12095,7 @@ order_levels = c("I", #TRUE
                  "V") #FALSE
 ```
 
-### Build model
+### 8.2.1. Train and test
 
 Step_corr:
 - threshold = 0.9 -> From 963 genes to 894
@@ -11919,7 +12176,7 @@ tune_res <- tune_grid(
 )
 ```
 
-Assess metrics
+### 8.2.2. Assess metrics
 
 ```{r fig.height=10, fig.width=10}
 # Assess data ----
@@ -11953,7 +12210,7 @@ min_n_selec = 6 #Observations by node)
 mtry_selec = 23 #Features/genes by tree)
 ```
 
-Hyperparameter tuning
+### 8.2.3. Hyperparameter tuning
 
 ```{r}
 # Tune hyperparameters ----
@@ -12008,7 +12265,7 @@ final_rf <- finalize_model(
 )
 ```
 
-Important features
+### 8.2.4. Important features
 
 ```{r fig.height=3, fig.width=5}
 final = final_rf %>%
@@ -12062,7 +12319,7 @@ importance_plot
 
 ```
 
-Train final model with tuned hyperparameters
+### 8.2.5. Train final model with tuned hyperparameters
 
 ```{r}
 # Train final model with tuned hyperparameters
@@ -12170,11 +12427,7 @@ final_res_preds %>% rownames_to_column("sample") %>%
   filter(correct == "Incorrect") %>% 
   select(sample, condition, everything())
 ```
-
-
-
-
-Precision recall curve
+#### Precision recall curve
 ```{r}
 # Precision recall
 pr_curve_res = pr_curve(final_res_preds, outcomevar...6, .pred_I) %>% 
@@ -12247,7 +12500,7 @@ all_matrices_counts_genesRF = df %>%
 ```
 
 
-### Relative effects
+#### Relative effects
 
 Function
 ```{r fig.height=5, fig.width=7}
@@ -12411,7 +12664,7 @@ plot
 
 ```
 
-### Butterfly plot
+#### Butterfly plot
 ```{r}
 ##### Butterfly plot
 all_degs_p_05_vac_infected = read_csv("DGE analysis/all_degs_p_05_vac_infected_19_12_23.csv")
@@ -12448,7 +12701,33 @@ ggplotly(butterfly_plot)
 ```
 
 
-### Prediction samples heatmap
+## ggheatmap
+```{r fig.height=10, fig.width=10}
+
+all_matrices_counts <- readRDS(here("DGE analysis", "all_matrices_counts.rds"))
+all_matrices_counts_long = all_matrices_counts %>% 
+  pivot_longer(cols = -genes,
+               names_to = "sample", 
+               values_to = "counts")
+head(all_matrices_counts)
+all_matrices_counts_long_annotated = all_matrices_counts_long %>% 
+  inner_join(ann_vaccines_samples,
+             by = "sample")
+
+all_matrices_counts_long_annotated %>% saveRDS(here("DGE analysis", "all_matrices_counts_long_annotated.rds"))
+
+control_counts_gse206023 = all_matrices_counts_long_annotated %>% 
+  filter(gse_id == "GSE206023") %>% 
+  select(genes, sample, counts, condition, vaccine, day) %>% 
+  filter(day == 0) %>% 
+  group_by(day, genes) %>% 
+  summarize(control_counts_mean = mean(counts)) %>% 
+  select(genes, control_counts_mean) %>% 
+  inner_join()
+  
+```
+
+
 
 ```{r fig.height=10, fig.width=10}
 pred_genes_counts = final_res_preds %>% 
@@ -12476,7 +12755,7 @@ pred_genes_counts %>%
 ```
 
 
-###  Heatmap: Gene L2FC per condition
+### 8.2.6. Heatmap: Gene L2FC per condition
 
 ```{r}
 # Required files
@@ -12684,7 +12963,7 @@ dev.off()
 
 ```
 
-### Boxplot: VIP gene expression by condition
+### 8.2.7. Boxplot: VIP gene expression by condition
 Import tables
 ```{r fig.height=10, fig.width=10}
 genes_rf = read_csv("Machine learning/vipgenes_tidymodels_ImmuneGO_Genes_Type_including_Infection_type2024-06-27.csv") 
@@ -12906,7 +13185,7 @@ vip_genes_boxplot_type_sex
 ```
 
 
-### PCA with VIP genes
+#### PCA
 **Input**
 
 ```{r}
@@ -12938,6 +13217,11 @@ ann_vaccines_pca_matrix_ready = ann_vaccines_pca_matrix %>%
   select(!condition:type) %>% 
   as.matrix()
 
+```
+
+## 6.3. PCA
+
+```{r}
 # Delete columns with near 0 variance
 nearZeroVarCols <- nearZeroVar(ann_vaccines_pca_matrix_ready, saveMetrics = TRUE)
 ann_vaccines_pca_matrix_ready <- ann_vaccines_pca_matrix_ready[, !nearZeroVarCols$nzv]
@@ -12973,7 +13257,7 @@ print(scree_plot)
 
 ```
 
-Loadings plot
+## 6.3.1. Loadings plot
 
 ```{r}
 # Loadings plot ----
@@ -12998,7 +13282,7 @@ ggsave(circle_contrib, file = here("Figures", paste0(filename, "_circle_contrib_
 circle_contrib
 ```
 
-KNN
+## 6.3.2. KNN
 
 ```{r}
 #KNN classification -----
@@ -13021,7 +13305,7 @@ cluster_model <- kmeans(pca_res$x[, 1:2], centers = 3)  #Set the number of clust
 ann_vaccines_pca_matrix$cluster <- as.factor(cluster_model$cluster)
 ```
 
-Plot
+## 6.3.3. Plot
 
 ```{r fig.height=7, fig.width=10, paged.print=FALSE}
 # Condition with density plot ------
@@ -13088,7 +13372,7 @@ pca_plot_knn_cluster
 ```
 
 
-### Heatmap: Gene L2FC per condition
+### 8.2.6. Heatmap: Gene L2FC per condition
 
 ```{r}
 # Required files
@@ -13278,7 +13562,7 @@ dev.off()
 
 
 
-### Heatmap: Gene counts per sample
+### 8.2.6. Heatmap: Gene counts per sample
 ```{r}
 # Required files
 ImmuneGO_Annotated_Genes = readRDS(here("VaxGO gene sets","ImmuneGO_Annotated_Genes_2024-03-26.rds"))
@@ -13637,7 +13921,7 @@ dev.off()
 
 
 
-##  COVID-19 vaccines types
+## 8.2. COVID-19 vaccines types
 
 ### All types + Healthy
 ```{r}
@@ -13668,7 +13952,7 @@ levels = nrow(count_levels)
 PC1_2 = PC_1_2_cos2
 ```
 
-Train and test
+### 8.2.1. Train and test
 
 ```{r fig.height=10, fig.width=10}
 # Prepare data ------
@@ -13746,7 +14030,7 @@ tune_res <- tune_grid(
 )
 ```
 
-Assess metrics
+### 8.2.2. Assess metrics
 
 ```{r fig.height=10, fig.width=10}
 # Assess data ----
@@ -13780,7 +14064,7 @@ min_n_selec = c(3:5) #Observations by node)
 mtry_selec = 68:70 #Features/genes by tree)
 ```
 
-Hyperparameter tuning
+### 8.2.3. Hyperparameter tuning
 
 ```{r}
 # Tune hyperparameters ----
@@ -13849,7 +14133,7 @@ final_rf <- finalize_model(
 )
 ```
 
-Important features
+### 8.2.4. Important features
 
 ```{r fig.height=3, fig.width=5}
 final = final_rf %>%
@@ -13907,7 +14191,7 @@ importance_plot
 
 ```
 
- Train final model with tuned hyperparameters
+### 8.2.5. Train final model with tuned hyperparameters
 
 ```{r}
 # Train final model with tuned hyperparameters
@@ -14249,7 +14533,7 @@ plot
 ```
 
 
-#### Heatmap: Gene L2FC per condition
+### 8.2.6. Heatmap: Gene L2FC per condition
 
 ```{r}
 # Required files
@@ -14440,7 +14724,7 @@ heatmap_plot = draw(heatmap_plot,
 dev.off()
 
 ```
-#### Heatmap: Gene counts per sample
+### 8.2.6. Heatmap: Gene counts per sample
 
 ```{r}
 # Required files
@@ -14642,6 +14926,172 @@ dev.off()
 ```
 
 
+## 8.6. COVID-19 and others: up and down
+
+```{r}
+# Input data ----
+filename = "COVID_Others_ImmuneGO_Genes_Type_including_Infection_"
+degs_covid_vax = readRDS("~/Desktop/Github - Covid Atlas/VaxGO gene sets/degs_covid_vaxsig_up_down_immune.rds")
+data_annotation = read_csv(here("Annotations and metadata", "ann_vaccines_vaxsig_covid.csv")) %>% 
+  select(condition, target_pathogen_disease, type, week)
+
+df = degs_covid_vax %>% 
+  select(condition, genes, regulation_numeric) %>% 
+  distinct() %>% 
+  pivot_wider(names_from = genes,
+              values_from = regulation_numeric,
+              values_fn = mean) %>% 
+  inner_join(data_annotation , by = "condition")
+
+## Vaccination types
+outcomevar = "type"
+
+ann_vaccines_samples_filtered = df %>% 
+  mutate(outcomevar = type) %>% 
+  select(-type) %>% 
+  select(target_pathogen_disease, week, outcomevar, condition, everything())
+  #filter(!outcomevar %in% c("CONJ", "VLP", "SU", "I")) #Remove classes with few rows
+
+#How many samples by level?
+count_levels = ann_vaccines_samples_filtered %>% 
+  count(outcomevar)
+
+count_levels
+
+#How many levels?
+levels = nrow(count_levels)
+```
+
+### 8.6.1. Train and test
+
+```{r}
+# Prepare data ------
+
+df_input <- ann_vaccines_samples_filtered %>% 
+  distinct() %>% 
+  column_to_rownames("condition") %>%
+  mutate_if(is.character, factor) %>% 
+  mutate(week = as.factor(week),
+         week = fct_relevel(week, -week)) %>% 
+  replace(is.na(.), 0)
+
+glimpse(df_input)
+
+# Split data
+set.seed(123)  
+split <- initial_split(df_input, prop = 0.6, strata = outcomevar)
+train <- training(split)
+test <- testing(split)
+
+# Create recipe
+base_rec <- recipe(outcomevar ~ ., data = train) %>%
+  step_dummy(all_nominal(), -all_outcomes())
+
+base_rec <- prep(base_rec)
+juiced <- juice(base_rec)
+juiced %>% 
+  glimpse()
+
+#Cross validation
+set.seed(764)
+cv_folds <- vfold_cv(
+  data = train, 
+  v = 5
+  ) 
+```
+
+### 8.6.2. Workflowsets
+
+```{r}
+#Recipe
+base_rec <- recipe(outcomevar ~ ., data = train) %>%
+  step_dummy(all_nominal(), -all_outcomes()) %>%
+  step_upsample(outcomevar)
+
+# Definir os modelos
+glm_model <- logistic_reg() %>%
+  set_engine("glm")
+
+rf_model <- rand_forest(trees = tune(), 
+                        min_n = tune(), 
+                        mtry = tune()) %>%
+  set_engine("ranger") %>%
+  set_mode("classification")
+
+tree_model <- decision_tree() %>%
+  set_engine("rpart") %>%
+  set_mode("classification")
+
+knn_model <- nearest_neighbor(neighbors = tune()) %>%
+  set_engine("kknn") %>%
+  set_mode("classification")
+
+nn_model <- mlp(hidden_units = tune(), 
+                penalty = tune()) %>%
+  set_engine("nnet") %>%
+  set_mode("classification")
+
+# Criar os workflows
+glm_wf <- workflow() %>%
+  add_model(glm_model) %>%
+  add_recipe(base_rec)
+
+rf_wf <- workflow() %>%
+  add_model(rf_model) %>%
+  add_recipe(base_rec)
+
+tree_wf <- workflow() %>%
+  add_model(tree_model) %>%
+  add_recipe(base_rec)
+
+knn_wf <- workflow() %>%
+  add_model(knn_model) %>%
+  add_recipe(base_rec)
+
+nn_wf <- workflow() %>%
+  add_model(nn_model) %>%
+  add_recipe(base_rec)
+
+# Criar o conjunto de workflows
+wf_set <- workflow_set(
+  preproc = list(base_rec),
+  models = list(glm = glm_model, 
+                rf = rf_model, 
+                tree = tree_model, 
+                knn = knn_model, 
+                nn = nn_model)
+)
+
+#Tuning
+doParallel::registerDoParallel(cores = 10)
+ 
+tic()
+ 
+fit_wf <- wf_set %>%  
+  workflow_map(
+    seed = 44, 
+    fn = "tune_grid",
+    grid = 10,           ## parameters to pass to tune grid
+    resamples = cv_folds
+  )
+ 
+toc()
+ 
+doParallel::stopImplicitCluster()
+ 
+fit_wf
+
+#Evaluate
+## plot each of the model's performance and ROC
+autoplot(fit_wf)
+ 
+## Look at the model metrics for each of the models
+collect_metrics(fit_wf) 
+ 
+## Rank the results based on model accuracy
+rank_results(fit_wf, rank_metric = "accuracy", select_best = TRUE)
+
+```
 
 
 # 9. Heatmaps - Genes - ImmuneGO
@@ -14924,7 +15374,7 @@ htShiny(ht_list, save = "Interactive_CovidOnly_Heatmap")
 
 ```
 
-### General
+### 9.1. General
 
 ```{r}
 ####### Input
@@ -15047,7 +15497,7 @@ draw(heatmap_plot_all, annotation_legend_side = "right", heatmap_legend_side = "
 dev.off()
 ```
 
-### Antimicrobial
+### 9.2. Antimicrobial
 
 ```{r}
 ####### Input
@@ -15154,7 +15604,7 @@ draw(heatmap_plot_all, annotation_legend_side = "right", heatmap_legend_side = "
 dev.off()
 ```
 
-### Complement
+### 9.3. Complement
 
 ```{r}
 heatmap_data = Immune_GO_genes_Complement
@@ -15262,7 +15712,7 @@ draw(heatmap_plot_all, annotation_legend_side = "right", heatmap_legend_side = "
 dev.off()
 ```
 
-### Inflammation
+### 9.4. Inflammation
 
 ```{r}
 heatmap_data = Immune_GO_genes_Inflammation
@@ -15368,7 +15818,7 @@ draw(heatmap_plot_all, annotation_legend_side = "right", heatmap_legend_side = "
 dev.off()
 ```
 
-### ARPP
+### 9.5. ARPP
 
 ```{r}
 ####### Input
@@ -15494,7 +15944,7 @@ draw(heatmap_plot_all, annotation_legend_side = "right", heatmap_legend_side = "
 dev.off()
 ```
 
-### AV and IFN
+### 9.6. AV and IFN
 
 ```{r}
 ####### Input
@@ -15620,7 +16070,7 @@ draw(heatmap_plot_all, annotation_legend_side = "right", heatmap_legend_side = "
 dev.off()
 ```
 
-### Neutrophil
+### 9.7. Neutrophil
 
 ```{r}
 ####### Input
@@ -15746,7 +16196,7 @@ draw(heatmap_plot_all, annotation_legend_side = "right", heatmap_legend_side = "
 dev.off()
 ```
 
-### Eosinophil
+### 9.8. Eosinophil
 
 ```{r}
 ####### Input
@@ -15872,7 +16322,7 @@ draw(heatmap_plot_all, annotation_legend_side = "right", heatmap_legend_side = "
 dev.off()
 ```
 
-### Monocyte
+### 9.9. Monocyte
 
 ```{r}
 ####### Input
@@ -15998,7 +16448,7 @@ draw(heatmap_plot_all, annotation_legend_side = "right", heatmap_legend_side = "
 dev.off()
 ```
 
-### Dendritic cells
+### 9.10. Dendritic cells
 
 ```{r}
 ####### Input
@@ -16124,7 +16574,7 @@ draw(heatmap_plot_all, annotation_legend_side = "right", heatmap_legend_side = "
 dev.off()
 ```
 
-### Macrophage
+### 9.11. Macrophage
 
 ```{r}
 ####### Input
@@ -16250,7 +16700,7 @@ draw(heatmap_plot_all, annotation_legend_side = "right", heatmap_legend_side = "
 dev.off()
 ```
 
-### NK
+### 9.12. NK
 
 ```{r}
 ####### Input
@@ -16376,7 +16826,7 @@ draw(heatmap_plot_all, annotation_legend_side = "right", heatmap_legend_side = "
 dev.off()
 ```
 
-### Mast cell
+### 9.13. Mast cell
 
 ```{r}
 ####### Input
@@ -16502,7 +16952,7 @@ draw(heatmap_plot_all, annotation_legend_side = "right", heatmap_legend_side = "
 dev.off()
 ```
 
-###Cellular adaptive immune system
+### 9.14. Cellular adaptive immune system
 
 ```{r}
 ####### Input
@@ -16628,7 +17078,7 @@ draw(heatmap_plot_all, annotation_legend_side = "right", heatmap_legend_side = "
 dev.off()
 ```
 
-###T Cell
+### 9.15. T Cell
 
 ```{r}
 ####### Input
@@ -16754,7 +17204,7 @@ draw(heatmap_plot_all, annotation_legend_side = "right", heatmap_legend_side = "
 dev.off()
 ```
 
-### Th Cell
+### 9.16. Th Cell
 
 ```{r}
 ####### Input
@@ -16880,7 +17330,7 @@ draw(heatmap_plot_all, annotation_legend_side = "right", heatmap_legend_side = "
 dev.off()
 ```
 
-### Humoral adaptive immune system
+### 9.17. Humoral adaptive immune system
 
 ```{r}
 ####### Input
@@ -17006,7 +17456,7 @@ draw(heatmap_plot_all, annotation_legend_side = "right", heatmap_legend_side = "
 dev.off()
 ```
 
-### B cells
+### 9.18. B cells
 
 ```{r}
 ####### Input
@@ -17132,7 +17582,7 @@ draw(heatmap_plot_all, annotation_legend_side = "right", heatmap_legend_side = "
 dev.off()
 ```
 
-### Ig mediated response
+### 9.19. Ig mediated response
 
 ```{r}
 ####### Input
@@ -17269,9 +17719,9 @@ degs_all_updown = read_csv(here("DGE analysis", "degs_updown_filtered_p_05_vac_i
   filter(direction != "NEUTRAL")
 ```
 
-## COVID immune genes
+## 10.1. COVID immune genes
 
-### Chord diagram
+### 10.1.1. Chord diagram
 
 Input
 ```{r}
@@ -17281,7 +17731,7 @@ shared_genes_df_mirror = All_covid_sharedgenes_Fisher_Jaccard
 ```
 
 
-#### Shared
+####  10.1.1.1. Shared
 ```{r}
 #Filters 
 filter_shared = 1
@@ -17423,7 +17873,7 @@ week1
 ```
 
 
-###### Weeks
+###### 10.1.1.1.1. Weeks
 Prepare tables
 ```{r fig.height=5, fig.width=5}
 #Week 1 ------
@@ -17712,7 +18162,7 @@ circos.clear()
 
 ```
 
-##### Types
+##### 10.1.1.1.2. Types
 Prepare tables
 ```{r fig.height= 10, fig.width=10}
 #Types
@@ -17935,8 +18385,8 @@ dev.off()
 ```
 
 
-#### Jaccard distance
-##### Interactive
+#### 10.1.1.2. Jaccard distance
+##### 10.1.1.2.1. Interactive
 ```{r}
 
 matrix_vaccines <- shared_genes_df_mirror %>% 
@@ -18000,7 +18450,7 @@ chorddiag(matrix_vaccines,
 )
 ```
 
-##### Static
+##### 10.1.1.2.2.Static
 Prepare tables
 ```{r fig.height=5, fig.width=5}
 #Week 1 ------
@@ -18289,7 +18739,7 @@ circos.clear()
 
 ```
 
-##### Types
+##### 10.1.1.2.3. Types
 Prepare tables
 ```{r fig.height= 10, fig.width=10}
 #Types
@@ -18510,9 +18960,9 @@ title("Infection only")
 circos.clear()
 dev.off()
 ```
-## COVID and other Vaccines - immune genes
+## 10.2. COVID and other Vaccines - immune genes
 
-### Chord diagram
+### 10.2.1. Chord diagram
 
 Input
 ```{r}
@@ -18524,7 +18974,7 @@ shared_genes_df_mirror = All_covid_sharedgenes_Fisher_Jaccard
 ```
 
 
-##### Shared
+##### 10.2.1.1. Shared
 ```{r}
 #Filters 
 filter_shared = 1
@@ -18666,7 +19116,7 @@ week1
 ```
 
 
-###### Weeks
+###### 10.2.1.2. Weeks
 Prepare tables
 ```{r fig.height=5, fig.width=5}
 #Week 1 ------
@@ -18955,7 +19405,7 @@ circos.clear()
 
 ```
 
-###### Types
+###### 10.2.2.2. Types
 Prepare tables
 ```{r fig.height= 10, fig.width=10}
 #Types
@@ -19178,8 +19628,8 @@ dev.off()
 ```
 
 
-##### Jaccard distance
-###### Interactive
+#### 10.2.2. Jaccard distance
+##### 10.2.2.1. Interactive
 ```{r}
 
 matrix_vaccines <- shared_genes_df_mirror %>% 
@@ -19243,7 +19693,7 @@ chorddiag(matrix_vaccines,
 )
 ```
 
-###### Static
+##### 10.2.2.2. Static
 Prepare tables
 ```{r fig.height=5, fig.width=5}
 #Week 1 ------
@@ -19532,7 +19982,7 @@ circos.clear()
 
 ```
 
-###### Types
+##### 10.2.2.3. Types
 Prepare tables
 ```{r fig.height= 10, fig.width=10}
 #Types
@@ -19755,8 +20205,7 @@ dev.off()
 ```
 
 
-## Cytoscape 
-### COVID-19 non-immune genes
+## 10.3. Cytoscape - COVID-19 non-immune genes
 
 ```{r}
 ImmuneGO_Annotated_Genes
@@ -19821,7 +20270,7 @@ write.csv(nodes, file = paste0(filename, "Network_nodes.csv"), row.names = F)
 
 ```
 
-### COVID immune and non immune genes
+## 10.4. Cytoscape -  COVID immune and non immune genes
 
 ```{r}
 ImmuneGO_Annotated_Genes
@@ -19925,7 +20374,7 @@ write.csv(nodes, file = paste0(filename, "Network_immune_notimmune_nodes.csv"), 
 
 ```
 
-### COVID-COVID Network by statistics only (TOTAL = UP AND DOWN)
+### 10.4.1. COVID-COVID Network by statistics only (TOTAL = UP AND DOWN)
 
 ```{r}
 # Vaccines and infection -----
@@ -20018,7 +20467,7 @@ write_tsv(nodes, file = paste0(filename, "Network_Covid_Other_sharedgenes_nodes.
 
 ```
 
-### COVID-COVID Network (UP + DOWN)
+### 10.4.2. COVID-COVID Network (UP + DOWN)
 
 ```{r}
 # Vaccines and infection -----
@@ -20185,10 +20634,10 @@ write.csv(edges, file = "Network_immune_notimmune_edges.csv", row.names = F)
 write.csv(nodes, file = "Network_immune_notimmune_nodes.csv", row.names = F)
 ```
 
-## Chord plot
+## 10.5. Chord plot
 
-### COVID-19 - All conditions
-#### Genes shared by process (immune and non immune)
+### 10.5.1 COVID-19 - All conditions
+#### 10.5.1.1. Genes shared by process (immune and non immune)
 ```{r}
 
 all_covid_vax_atlas =  readRDS(here("DGE analysis", "all_studies_degs_weighted.rds")) %>% 
@@ -20420,7 +20869,7 @@ df_W7 = df_vaccines_selected_W7 %>%
 ```
 
 
-#### By week
+#### 10.5.1.2. By week
 
 
 Weeks 1-7
@@ -20568,9 +21017,9 @@ circos.clear()
 
 
 
-### COVID-19 VS OTHER 
+### 10.5.4. COVID-19 VS OTHER 
 
-#### Genes shared by process
+#### 10.5.4.1. Genes shared by process
 ```{r}
 degs_all_updown_covid_vax_other = read_csv("Example/degs_all_updown_covid_vax_other.csv") %>% 
   select(-"...1")
@@ -20959,7 +21408,7 @@ circos.clear()
 ```
 
 
-#### Jaccard distance
+#### 10.5.4.2. Jaccard distance
 ```{r}
 ann_vaccines_vaxsig_covid <- read_csv("Example/ann_vaccines_vaxsig_covid.csv")
 
@@ -20969,7 +21418,7 @@ annotation_conditions = ann_vaccines_vaxsig_covid %>%
   filter(disease_vac != "I")
 ```
 
-#####  Types
+##### 10.5.4.2.1. Types
 Prepare tables
 ```{r fig.height= 10, fig.width=10}
 #Types
@@ -21059,7 +21508,7 @@ dev.off()
 circos.clear()
 ```
 
-#### Shared total genes
+#### 10.5.4.3. Shared total genes
 ```{r, cache = TRUE}
 ann_vaccines_vaxsig_covid <- read_csv("Example/ann_vaccines_vaxsig_covid.csv")
 
@@ -21069,7 +21518,7 @@ annotation_conditions = ann_vaccines_vaxsig_covid %>%
   filter(disease_vac != "I")
 ```
 
-##### Types
+##### 10.5.4.3.1. Types
 Prepare tables
 ```{r fig.height= 10, fig.width=10, cache = TRUE}
 #Types
@@ -21162,7 +21611,7 @@ circos.clear()
 
 
 
-### Shared genes (Cytoscape and Flourish)
+### 10.5.5. Shared genes (Cytoscape and Flourish)
 
 ```{r cache = TRUE}
 # Vaccines and infection -----
@@ -21649,7 +22098,12 @@ filename = "All_covid_13Vax"
 ```
 
 
-#### ImmuneGO
+
+
+
+### 5.3. Gene set enrichment analysis (GSEA)
+
+#### 5.3.1. ImmuneGO
 
 ```{r}
 autoGSEA <- function(df, TERM2GENE, geneset_name) {
@@ -21992,7 +22446,7 @@ patch_immune_main
 ```
 
 
-#### BTM modules
+#### 5.3.2. BTM modules
 
 ```{r}
 # Perform GSEA
@@ -22416,7 +22870,7 @@ patch_immune_main %>%
 ```
 
 
-## Gene analysis
+## 5.4. Gene analysis
 ```{r fig.height=18, fig.width=25}
 
 degs_covid_vax_immune = degs_covid_vax %>%
@@ -23001,7 +23455,7 @@ patch_immune_genes_infec %>%
          height = 10)
 ```
 
-#### Antiviral
+#### antiviral
 ```{r fig.height=10, fig.width=25}
 selected_degs = btm_annotation_table_long_immune %>% 
   filter(module_title == "antiviral IFN signature") %>% 
@@ -23614,7 +24068,7 @@ plot(hc)
 
 
 
-## Cell proportion
+## 5.4. Cell proportion
 
 <https://www.datacamp.com/tutorial/pca-analysis-r>
 <https://rpkgs.datanovia.com/factoextra/index.html>
@@ -24073,7 +24527,6 @@ create_colplots(xcell_results_annotated %>%
                                                        day = as.integer(day)) %>% 
                                                 arrange(disease_vac, vaccine, day) %>% pull(condition)))))
 ```
-
 ##### COVID-19 only
 ```{r fig.height=10, fig.width=25}
 #XCell (ssGSEA) ----
