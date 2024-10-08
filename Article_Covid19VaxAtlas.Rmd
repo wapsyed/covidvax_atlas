@@ -5977,7 +5977,7 @@ autoGSEA <- function(df, TERM2GENE, geneset_name) {
 
 #### ImmuneGO
 ```{r}
-# Perform GSEA
+# General terms
 
 TERM2GENE = Immune_GO_T2G_general
 geneset_name = "Immune_GO_T2G_general"
@@ -6003,7 +6003,7 @@ all_degs_p_05_vac_infected_GSEA
 ```
 
 ```{r}
-# Perform GSEA
+# Specific terms
 
 TERM2GENE = Immune_GO_T2G_specfic
 geneset_name = "Immune_GO_T2G_specfic"
@@ -6029,7 +6029,56 @@ all_degs_p_05_vac_infected_GSEA
 
 
 #### Bubbleplot (Heatmap with ggplot)
-https://davemcg.github.io/post/lets-plot-scrna-dotplots/
+
+```{r fig.height=8, fig.width=20}
+# Function for clustering by day
+cluster_by_day <- function(df, day_column = "day", condition_column = "condition") {
+  
+  # Obter os níveis do fator da coluna de dias
+  days <- levels(df[[day_column]])
+  
+  # Inicializar uma lista para armazenar as ordens
+  orders <- list()
+  
+  # Loop por cada nível (dia) da coluna fator day
+  for (day_value in days) {
+    # Filtrar os dados para o dia atual
+    day_data <- df %>%
+      filter(!!sym(day_column) == day_value) %>%
+      select(!!sym(condition_column)) %>%
+      distinct()
+    
+    # Criar uma matriz binária onde 1 representa a presença da condição
+    if (nrow(day_data) > 1) {
+      # Matriz com condições como rótulos e 1 para presença
+      presence_matrix <- table(day_data[[condition_column]]) > 0
+      dist_matrix <- as.matrix(presence_matrix)
+      
+      # Aplicar o clustering
+      col_clustered <- dist(dist_matrix) %>% hclust()
+      
+      # Armazenar a ordem dos clusters
+      orders[[day_value]] <- col_clustered$labels[col_clustered$order]
+    } else {
+      # Se houver apenas uma condição, armazenar o rótulo
+      orders[[day_value]] <- as.character(day_data[[condition_column]])
+    }
+  }
+  
+  # Converter a lista de ordens para um data frame
+  order_df <- data.frame(
+    day = rep(names(orders), sapply(orders, length)),
+    condition = unlist(orders)
+  )
+  
+  return(order_df)
+}
+
+```
+
+
+
+Main processes
 ```{r fig.height=8, fig.width=12}
 library(ggdendro)
 library(cowplot)
@@ -6134,7 +6183,7 @@ dotplot = df %>%
         legend.position = "bottom") +
   labs(x = "",
        y = "") +
-  scale_color_gradient2(low = "blue",
+  scale_color_gradient2(low = "#4DBBD5FF",
                         mid = "white",
                         midpoint = 0, 
                         name = "NES",
@@ -6165,7 +6214,7 @@ patch_immune_main %>%
 patch_immune_main
 ```
 
-Specific
+Specific all
 ```{r fig.height=22, fig.width=10}
 library(ggdendro)
 library(cowplot)
@@ -6251,11 +6300,11 @@ dotplot_specific = df %>%
         legend.position = "bottom") +
   labs(x = "",
        y = "") +
-  scale_color_gradient2(low = "blue",
+  scale_color_gradient2(low = "#4DBBD5FF",
                         mid = "white",
                         midpoint = 0, 
                         name = "NES",
-                      high = "red") +
+                      high = "#DC0000FF") +
   scale_y_discrete(position = "right") 
   
 
@@ -6279,7 +6328,7 @@ patch_immune_specific %>%
 
 ```
 
-Specific
+Specific filtered 
 ```{r fig.height=8, fig.width=10}
 library(ggdendro)
 library(cowplot)
@@ -6399,11 +6448,11 @@ dotplot_specific = df %>%
         legend.position = "bottom") +
   labs(x = "",
        y = "") +
-  scale_color_gradient2(low = "blue",
+  scale_color_gradient2(low = "#4DBBD5FF",
                         mid = "white",
                         midpoint = 0, 
                         name = "NES",
-                      high = "red") +
+                      high = "#DC0000FF") +
   scale_y_discrete(position = "right")  
   
 
@@ -6512,11 +6561,11 @@ dotplot_specific = df %>%
         legend.position = "bottom") +
   labs(x = "",
        y = "") +
-  scale_color_gradient2(low = "blue",
+  scale_color_gradient2(low = "#4DBBD5FF",
                         mid = "white",
                         midpoint = 0, 
                         name = "NES",
-                      high = "red") +
+                      high = "#DC0000FF") +
   scale_y_discrete(position = "right") 
   
 
