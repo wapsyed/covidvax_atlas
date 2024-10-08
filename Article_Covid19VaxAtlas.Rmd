@@ -7533,12 +7533,12 @@ ha = HeatmapAnnotation(df = ann_cols_heatmap,
                        col = ann_vaxsig_colors,
                        annotation_name_side = "right")
 
-# row_ha = HeatmapAnnotation(df = ann_rows_immune, 
-#                             which = "row",
-#                        col = col_process_immune, #col_process_immune / col_process_notimmune 
-#                        show_annotation_name = F,
-#                        show_legend = F,
-#                        simple_anno_size = unit(2, "mm"))
+row_ha = HeatmapAnnotation(df = ann_rows_immune,
+                            which = "row",
+                       col = col_process_immune, #col_process_immune / col_process_notimmune
+                       show_annotation_name = F,
+                       show_legend = F,
+                       simple_anno_size = unit(2, "mm"))
 
 # Values colors -----
 col_fun <- colorRamp2(c(-2, 0, 2), c("#9bc1bc", "white", "#ed6a5a"))
@@ -7549,7 +7549,7 @@ file = filename_2
 mat = matrix_data
 width_image = 35
 height_image = 30
-width = unit(25, "cm")
+width = unit(20, "cm")
 height = unit(5, "cm")
 column_names_gp = gpar(fontsize = 10)
 row_names_gp = gpar(fontsize = 10)
@@ -7566,7 +7566,7 @@ png(file = here("Figures", fileimageheatmap_grouped),
 heatmap_plot = Heatmap(mat,
                         top_annotation = ha,
                        name = "L2FC",
-                        # left_annotation = row_ha,
+                        left_annotation = row_ha,
                         show_row_names = TRUE,
                         row_names_side = "right",
                         show_heatmap_legend = TRUE,
@@ -7694,13 +7694,13 @@ dim(ann_cols_heatmap)
 ha = HeatmapAnnotation(df = ann_cols_heatmap, 
                        col = ann_vaxsig_colors,
                        annotation_name_side = "right")
-# 
-# row_ha = HeatmapAnnotation(df = ann_rows_immune, 
-#                             which = "row",
-#                        col = col_process_immune, #col_process_immune / col_process_notimmune 
-#                        show_annotation_name = F,
-#                        show_legend = F,
-#                        simple_anno_size = unit(2, "mm"))
+
+row_ha = HeatmapAnnotation(df = ann_rows_immune,
+                            which = "row",
+                       col = col_process_immune, #col_process_immune / col_process_notimmune
+                       show_annotation_name = F,
+                       show_legend = F,
+                       simple_anno_size = unit(2, "mm"))
 
 # Values colors -----
 col_fun <- colorRamp2(c(-2, 0, 2), c("#9bc1bc", "white", "#ed6a5a"))
@@ -7711,7 +7711,7 @@ file = filename_2
 mat = matrix_data
 width_image = 35
 height_image = 30
-width = unit(25, "cm")
+width = unit(20, "cm")
 height = unit(5, "cm")
 column_names_gp = gpar(fontsize = 10)
 row_names_gp = gpar(fontsize = 10)
@@ -7728,7 +7728,7 @@ png(file = here("Figures", fileimageheatmap_grouped),
 heatmap_plot = Heatmap(mat,
                         top_annotation = ha,
                        name = "L2FC",
-                        # left_annotation = row_ha,
+                        left_annotation = row_ha,
                         show_row_names = TRUE,
                         row_names_side = "right",
                         show_heatmap_legend = TRUE,
