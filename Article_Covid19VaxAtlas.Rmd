@@ -2118,7 +2118,7 @@ gse199750_DEGs =  gse199750_dds %>%
                                 condition == "condition_ChAd..V1..D6._vs_H..D0." ~ "ChAd (V1, D6)", 
                                 condition == "condition_BNT..V2..D1._vs_H..D0." ~ "BNT (V2, D1)", 
                                 condition == "condition_ChAd..V2..D1._vs_H..D0." ~ "ChAd (V2, D1)",
-                                condition == "condition_BNT..V3..D1._vs_H..D0." ~ "ChAd (V3, D1)",  
+                                condition == "condition_BNT..V3..D1._vs_H..D0." ~ "BNT (V3, D1)",  
                                 condition == "condition_BNT.MO..V3..D1._vs_H..D0." ~ "BNT-MO (V3, D1)", 
                                 condition == "condition_ChAd.BNT..V3..D1._vs_H..D0." ~ "ChAd-BNT (V3, D1)", 
                                condition == "age" ~ "GSE199750 Ages",
@@ -2132,6 +2132,9 @@ gse199750_DEGs %>%
 
 
 gse199750_DEGs
+
+
+
 ```
 
 ## Infection: GSE189039 and GSE201530
@@ -2224,6 +2227,7 @@ infection_DEGs =  gseinfection_dds %>%
 infection_DEGs %>% 
   write_csv(file = here("DGE analysis", "infection_DEGs_wald.csv"))
 
+gse199750_DEGs_wald %>% filter(condition == "ChAd (V3, D1)")
 
 ```
 
@@ -2231,7 +2235,6 @@ infection_DEGs %>%
 ## Merge all
 
 ```{r}
-
 all_degs = bind_rows(gse199750_DEGs,
                      gse201533_DEGs,
                      gse206023_DEGs,
@@ -2282,7 +2285,7 @@ all_studies_degs_weighted %>%
 
 ```{r}
 #Required files
-all_degs_p_05_vac_infected = read_rds(file = here("DGE analysis", "all_studies_degs_weighted.rds")) %>% 
+all_degs_p_05_vac_infected = read_rds(file = here("DGE analysis", "all_studies_degs_weighted.rds")) %>%
   filter(fdr <= 0.05) 
 
 ann_vaccines = read_csv(here("Annotations and metadata", "ann_vaccines_conditions.csv"))
@@ -2290,7 +2293,8 @@ ann_vaccines = read_csv(here("Annotations and metadata", "ann_vaccines_condition
 all_degs = all_degs_p_05_vac_infected %>% 
   group_by(condition, direction) %>% 
   summarise(n_degs = n()) %>% 
-  inner_join(ann_vaccines, by="condition")
+  inner_join(ann_vaccines, by="condition") %>% 
+  ungroup()
 
 all_degs_total = all_degs %>% 
   pivot_wider(names_from = "direction", values_from = "n_degs") %>% 
@@ -2305,7 +2309,7 @@ By vaccination or disease
 ```{r fig.height=6, fig.width=10}
 # Plot 1
 ggplot_degs_bars_I = all_degs %>%
-    mutate(condition = fct_relevel(condition, c(ann_vaccines_conditions_ordered$condition %>% unique() %>% as.character()))) %>% 
+    mutate(condition = fct_relevel(condition, c(ann_vaccines_conditions_ordered$condition %>% as.character() %>% unique()))) %>% 
  filter(disease_vac == "I") %>% 
  ggplot() +
   aes(x = condition, fill = direction, weight = n_degs) +
@@ -2332,7 +2336,7 @@ ggplot_degs_bars_I = all_degs %>%
 
 
 ggplot_degs_bars_V = all_degs %>%
-      mutate(condition = fct_relevel(condition, c(ann_vaccines_conditions_ordered$condition %>% unique() %>% as.character()))) %>% 
+      mutate(condition = fct_relevel(condition, c(ann_vaccines_conditions_ordered$condition %>% as.character() %>% unique()))) %>% 
  filter(disease_vac == "V") %>% 
  ggplot() +
   aes(x = condition, fill = direction, weight = n_degs) +
@@ -2404,7 +2408,7 @@ degs_all_updown = read_rds(file = here("DGE analysis", "all_studies_degs_weighte
   filter(fdr <= 0.05) %>% 
   # filter(direction != "NEUTRAL") %>% 
   # mutate_all(~ replace(., is.na(.), "NA")) %>% 
-  filter(genes %in% btm_annotation_genes_immune$genes)
+  filter(genes %in% btm_annotation_genes$genes)
 
 
 ann_vaccines = read_csv(here("Annotations and metadata", "ann_vaccines_conditions.csv"))
@@ -2524,8 +2528,6 @@ write_csv(shared_genes_df_mirror,
 ```{r}
 filename = paste0(filename, "_Shared") 
 library(maditr)
-#Anotar colunas
-# Converter para wide table
 matrix_data = shared_genes_df_mirror %>% 
   dcast(Cond1 ~ Cond2, 
         value.var = "Shared", 
@@ -2536,7 +2538,6 @@ matrix_data = shared_genes_df_mirror %>%
 
 dim(matrix_data)
 
-# Verificar se todas as vacinas da anotação estão na matriz e unir as tabelas
 ann_vaccines_complex = matrix_data %>% 
   as.data.frame() %>%
   rownames_to_column("condition") %>% 
@@ -2545,7 +2546,7 @@ ann_vaccines_complex = matrix_data %>%
   select(condition, vaccine:regimen, week) %>% 
   distinct() 
 
-# Unir tabela de anotações
+# merge
 ann_vaccines_heatmap = matrix_data %>% 
   colnames() %>% 
   data.frame() %>% 
@@ -2557,18 +2558,18 @@ ann_vaccines_heatmap = matrix_data %>%
   column_to_rownames(var= "condition")  %>% 
   mutate(dose = ifelse(is.na(dose), "NA", dose))
 
-# Ordenar colunas da matriz para a mesma ordem das linhas da tabela de anotações
+# Reorder
 matrix_data_ordered = matrix_data %>% 
   t() %>% 
   as.data.frame() %>% 
   rownames_to_column(var= "condition") %>% 
   merge(ann_vaccines_complex, by.y = "condition", all.x=TRUE) %>% 
-  arrange(condition) %>% #Trocar a variável pela qual deseja ordenar (Vaccine, Day, Condition, etc.)
+  arrange(condition) %>% 
   select(!c(vaccine:regimen, week)) %>% 
   column_to_rownames("condition") %>% 
   t() %>% 
   as.data.frame() %>% 
-  mutate_if(is.character, as.numeric) %>% #Converter em numéricos
+  mutate_if(is.character, as.numeric) %>% 
   as.matrix()
 
 matrix_data_ordered_rows = matrix_data_ordered %>% 
@@ -2578,11 +2579,10 @@ matrix_data_ordered_rows = matrix_data_ordered %>%
   column_to_rownames(var= "condition") %>% 
   as.matrix()
 
-#Verificar se as linhas sao iguais------
-dim(matrix_data_ordered_rows) #Usar se for ordenar por colunas
-dim(ann_vaccines_heatmap) #Anotações sobre as colunas
+#Check
+dim(matrix_data_ordered_rows) 
+dim(ann_vaccines_heatmap)
 
-#Espectro de cores
 col_fun <- colorRamp2(c(0, 500), c("white", "#d90429"))
 
 ```
@@ -2606,7 +2606,7 @@ row_ha = rowAnnotation(df = ann_vaccines_heatmap,
 
 mat = matrix_data_ordered_rows
 width_image = 40
-height_image = 40
+height_image = 50
 width = unit(20, "cm")
 height = unit(20, "cm")
 column_names_gp = gpar(fontsize = 10)
@@ -2820,7 +2820,7 @@ dev.off()
 ##### All conditions (Interactive)
 
 ```{r}
-library(chorddiag)
+# library(chorddiag)
 
 matrix_vaccines <- shared_genes_df_mirror %>% 
   filter(pvalue < 0.05,
@@ -3995,7 +3995,8 @@ ImmuneGO_Annotated_GO <- read_csv(here("VaxGO gene sets", "ImmuneGO_Annotated_GO
 immunego = ImmuneGO_Annotated_GO %>% 
   mutate(genes = str_split(genes, ",")) %>%
   unnest(genes)
-#### Not immune
+
+
 all_degs_infected_notimmune = all_degs_p_05_vac_infected %>%
   anti_join(immunego %>%
               select(genes) %>%
@@ -4021,9 +4022,8 @@ all_degs_vac_infected_immune = all_degs_p_05_vac_infected %>%
 
 all_degs_vac_infected_immune %>% 
   tabyl(condition, bioprocess) 
-```
 
-```{r}
+
 ##### Immune and other
 all_degs_processes_immune_nonimmune = bind_rows(all_degs_vac_infected_immune, 
                                all_degs_infected_notimmune)
@@ -4144,23 +4144,21 @@ go_bp_all_comma = go_bp_all %>%
   arrange(desc(set_size))
 
 write_csv(go_bp_all_comma, file = here("VaxGO gene sets","OtherGOs_Annotated_GOs.csv"))
-
-go_bp_all = OtherGOs_Annotated_Genes
-go_bp_all_comma
 ```
 
 ```{r}
 
+OtherGOs_Annotated_Genes = read_csv(file = here("VaxGO gene sets", "OtherGOs_Annotated_Genes.csv"))
+go_bp_all = OtherGOs_Annotated_Genes
+
+
 # DEGs to Entrez and GO ids --------
 degs_GO = all_degs_p_05_vac_infected %>% 
-  filter(direction != "NEUTRAL") %>% 
   select(condition, genes, direction) %>% 
   left_join(go_bp_all %>% rename(genes = symbol), by = "genes") %>% 
   mutate(go_ancestor = if_else(is.na(go_ancestor), "Not mapped", go_ancestor),
          term_ancestor = if_else(is.na(term_ancestor), "Not mapped", term_ancestor),
          mapped = if_else(term_ancestor == "Not mapped", "Not mapped", "Mapped"))
-
-
 
 # Collapse gene column --------
 degs_GO_comma = degs_GO %>% 
@@ -4288,7 +4286,7 @@ Explore data with interactive plots
 
 ### Barplot by term
 
-```{r fig.height=15, fig.width=20, message=FALSE, warning=FALSE}
+```{r fig.height=30, fig.width=20, message=FALSE, warning=FALSE}
 main_go_2_plot_up_down = main_go_2 %>%
   inner_join(ann_vaccines_conditions, by = "condition") %>% 
   mutate(
@@ -4317,7 +4315,7 @@ mutate(disease_vac = fct_relevel(disease_vac, "I", "V")) %>%
            'I'= "#DC0000FF",
            "H" = "grey95")) +
   theme(
-    legend.position = "right",
+    legend.position = "top",
     panel.grid.major.x = element_blank(),
     plot.title = element_text(size = 25, hjust = 0.5),
     legend.title = element_text(size = 15),
@@ -4401,24 +4399,134 @@ main_go_2_plot_up_down_totals = main_go_2 %>%
    facet_grid(vars(direction),  vars(stat))
 
 patch_maingo = main_go_2_plot_up_down_totals + main_go_2_plot_up_down +
-  plot_layout(widths = c(1, 3)) +
+  plot_layout(widths = c(1, 3),
+              guides = "collect") +
   plot_annotation(title = "Main Gene Ontologies (term ancestor), by condition",
-                  theme = theme(plot.title = element_text(size = 25,
+                  theme = theme(legend.position = "top",
+                                plot.title = element_text(size = 25,
                                                           face = "bold",
                                                      hjust = 0.5)))
 
 patch_maingo
 ggsave(patch_maingo, file = here("Figures", "main_go_2_plot_values_UP_DOWN_regulated.png"), 
                                            width = 20, 
-                                           height = 16)
+                                           height = 30)
 ```
 
 
 
 ######  Immune vs. non-immune genes
-```{r fig.height=7, fig.width=15}
+
+Totals
+```{r fig.height=10, fig.width=10}
 degs_immune = main_go_2 %>% 
-  mutate(direction = if_else(direction == "UP", "Upregulated", "Downregulated"),
+  mutate(direction = case_when(direction == "UP" ~ "Upregulated",
+                               direction == "DOWN" ~ "Downregulated",
+                               direction == "NEUTRAL" ~ "Neutral"),
+         term_ancestor = fct_relevel(term_ancestor, "Immune system", "Cellular", "Metabolism", "Reg. of BP")) %>%
+  filter(term_ancestor %in% c("Immune system")) %>% 
+  rename(n_genes_immune = n_genes) %>% 
+  pivot_longer(names_to = "totals", values_to = "total_number", cols = c(n_genes_immune, n_genes_total)) %>% 
+  select(condition, direction, term_ancestor, n_genes_perc, totals, total_number) %>% 
+  group_by(condition) %>% 
+  mutate(immune_genes = if_else(totals == "n_genes_immune", total_number, NA),
+         total_degs = if_else(totals == "n_genes_total", total_number, NA),
+         totals = fct_rev(factor(totals)),
+         direction = fct_rev(direction)) %>% 
+  fill(total_degs, .direction = "up") %>% 
+  inner_join(ann_vaccines %>% select(condition, disease_vac)) %>% 
+  mutate(disease_vac = if_else(disease_vac == "V", "Vaccination", "Infection")) %>% 
+  ungroup()
+
+#UP
+immune_other_plot_diseaseorvac_I  = degs_immune %>% 
+  filter(disease_vac == "Infection") %>% 
+  mutate(condition = fct_relevel(condition, c(ann_vaccines_conditions_ordered$condition %>% unique() %>% as.character()))) %>%
+  ggplot() +
+ aes(x = fct_rev(factor(condition)), y = total_number, fill = totals) +
+ geom_col() +
+ coord_flip() +
+ theme_minimal() +
+  scale_fill_manual(name = "",
+    values = c("n_genes_total" = "gray90",
+              "n_genes_immune" = "#4DBBD5FF"),
+    labels = c('Other', 'Immune')) +
+  theme(legend.position= "top",
+        panel.grid = element_blank(),
+        legend.title = element_text(size = 10),
+        legend.text = element_text(size= 15),
+        axis.title.x = element_blank(),
+        axis.text.x = element_blank(),
+        axis.text.y = element_text(size = 10, color = "black", angle = 0, hjust = 1),
+        strip.text.x = element_text(size = 15, color = "black", hjust = 0.5),
+        strip.text.y = element_text(size = 15, angle = 0, face = "bold"),
+        strip.background.x = element_blank()) +
+  # geom_text(aes(label = if_else(!is.na(immune_genes),
+  #                               paste0(immune_genes, " (", n_genes_perc, "% of ", total_degs, ")") ,
+  #                               NA),
+  #               y = total_degs + immune_genes),
+  #           hjust = -0.05,
+  #           size = 3,
+  #           angle = 0) +
+  labs(title = "",
+       fill = "Gene type",
+       x = "",
+       y = "Number of genes") +
+  ylim(0, 8000) +
+    facet_grid(~disease_vac~direction, scales = "free_y")
+
+immune_other_plot_diseaseorvac_V  = degs_immune %>% 
+  filter(disease_vac == "Vaccination") %>% 
+    mutate(condition = factor(condition, levels = c(ann_vaccines_conditions_ordered$condition %>% unique() %>% as.character()))) %>%
+  ggplot() +
+ aes(x = fct_rev(factor(condition)), y = total_number, fill = totals) +
+ geom_col() +
+ coord_flip() +
+ theme_minimal() +
+  scale_fill_manual(name = "Type",
+    values = c("n_genes_total" = "gray90",
+              "n_genes_immune" = "#4DBBD5FF"),
+    labels = c('Other', 'Immune')) +
+  theme(legend.position = "none", 
+        panel.grid = element_blank(),
+        legend.title = element_text(size = 10),
+        legend.text = element_text(size=10),
+        axis.title.x = element_text(size = 10, color = "black"),
+        axis.text.x = element_text(size = 10, color = "black", angle = 0, hjust = 1),
+        axis.text.y = element_text(size = 10, color = "black", angle = 0, hjust = 1),
+        strip.text.x = element_blank(),
+        strip.text.y = element_text(size = 15, angle = 0, face = "bold"),
+        strip.background.x = element_blank()) +
+  # geom_text(aes(label = if_else(!is.na(immune_genes),
+  #                               paste0(immune_genes, " (", n_genes_perc, "% of ", total_degs, ")") ,
+  #                               NA),
+  #               y = total_degs + immune_genes),
+  #           hjust = -0.05,
+  #           size = 3,
+  #           angle = 0) +
+  labs(title = "",
+       fill = "Gene type",
+       x = "",
+       y = "Number of genes") +
+  ylim(0, 8000) +
+    facet_grid(~disease_vac~direction, scales = "free_y") 
+
+patch_immune_degs = immune_other_plot_diseaseorvac_I / immune_other_plot_diseaseorvac_V +
+  plot_layout(heights = c(1, 0.7)) +
+  plot_annotation(title = "ImmuneGO genes")  
+
+ggsave(patch_immune_degs, file = here("Figures", "immune_other_plot_diseaseorvac.png"), width = 10, height = 10)
+
+patch_immune_degs
+```
+
+
+######  Relative frequency: Immune vs. non-immune genes
+```{r fig.height=10, fig.width=10}
+degs_immune = main_go_2 %>% 
+  mutate(direction = case_when(direction == "UP" ~ "Upregulated",
+                               direction == "DOWN" ~ "Downregulated",
+                               direction == "NEUTRAL" ~ "Neutral"),
          term_ancestor = fct_relevel(term_ancestor, "Immune system", "Cellular", "Metabolism", "Reg. of BP")) %>%
   filter(term_ancestor %in% c("Immune system")) %>% 
   rename(n_genes_immune = n_genes) %>% 
@@ -4432,24 +4540,20 @@ degs_immune = main_go_2 %>%
   fill(total_degs, .direction = "up") %>% 
   inner_join(ann_vaccines %>% select(condition, disease_vac)) %>% 
   mutate(disease_vac = if_else(disease_vac == "V", "Vaccination", "Infection"))
-```
 
-
-```{r fig.height=10, fig.width=10}
 #UP
 immune_other_plot_diseaseorvac_I  = degs_immune %>% 
   filter(disease_vac == "Infection") %>% 
-    mutate(condition = factor(condition, levels = ann_vaccines_conditions$condition %>% unique())) %>%
+    mutate(condition = factor(condition, levels = ann_vaccines_conditions_ordered$condition %>% unique())) %>%
   ggplot() +
- aes(x = fct_rev(factor(condition)), y = total_number, fill = totals) +
- geom_col() +
- coord_flip() +
- theme_minimal() +
+ aes(x = total_number, y = fct_rev(factor(condition)), fill = totals) +
+  geom_bar(stat = "summary", fun = "sum", position = "fill") +
   scale_fill_manual(name = "",
     values = c("n_genes_total" = "gray90",
               "n_genes_immune" = "#4DBBD5FF"),
-    labels = c('Total', 'Immune')) +
-  theme(legend.position=c(1, 0.1),
+    labels = c('Other', 'Immune')) +
+  theme_minimal() +
+  theme(legend.position= "top",
         panel.grid = element_blank(),
         legend.title = element_text(size = 10),
         legend.text = element_text(size= 15),
@@ -4462,58 +4566,48 @@ immune_other_plot_diseaseorvac_I  = degs_immune %>%
           fill = "black", 
           color = "black", 
           linewidth = 1 )) +
-  geom_text(aes(label = if_else(!is.na(immune_genes),
-                                paste0(immune_genes, " (", n_genes_perc, "% of ", total_degs, ")") ,
-                                NA), 
-                y = total_degs + immune_genes), 
-            hjust = -0.05, 
-            size = 3,
-            angle = 0) +
   labs(title = "",
        fill = "Gene type",
        x = "",
        y = "Number of genes") +
-  ylim(0, 4000) +
-    facet_grid(~disease_vac~direction, scales = "free_y")
+  facet_grid(~disease_vac~direction, scales = "free_x")
 
 immune_other_plot_diseaseorvac_V  = degs_immune %>% 
   filter(disease_vac == "Vaccination") %>% 
+    mutate(condition = factor(condition, levels = ann_vaccines_conditions_ordered$condition %>% unique())) %>%
   ggplot() +
- aes(x = fct_rev(factor(condition)), y = total_number, fill = totals) +
- geom_col() +
- coord_flip() +
- theme_minimal() +
-  scale_fill_manual(name = "Type",
+ aes(x = total_number, y = fct_rev(factor(condition)), fill = totals) +
+  geom_bar(stat = "summary", fun = "sum", position = "fill") +
+  scale_fill_manual(name = "",
     values = c("n_genes_total" = "gray90",
               "n_genes_immune" = "#4DBBD5FF"),
-    labels = c('Total', 'Immune')) +
-  theme(legend.position = "none", 
+    labels = c('Other', 'Immune')) +
+  theme_minimal() +
+  theme(legend.position= "none",
         panel.grid = element_blank(),
         legend.title = element_text(size = 10),
-        legend.text = element_text(size=10),
-        axis.title.x = element_text(size = 10, color = "black"),
-        axis.text.x = element_text(size = 10, color = "black", angle = 0, hjust = 1),
+        legend.text = element_text(size= 15),
+        # axis.title.x = element_blank(),
+        # axis.text.x = element_blank(),
         axis.text.y = element_text(size = 10, color = "black", angle = 0, hjust = 1),
         strip.text.x = element_blank(),
         strip.text.y = element_text(size = 15, angle = 0, face = "bold"),
-        strip.background.x = element_blank()) +
-  geom_text(aes(label = if_else(!is.na(immune_genes),
-                                paste0(immune_genes, " (", n_genes_perc, "% of ", total_degs, ")") ,
-                                NA), 
-                y = total_degs + immune_genes), 
-            hjust = -0.05, 
-            size = 3,
-            angle = 0) +
+        # strip.background.x = element_rect(
+        #   fill = "black", 
+        #   color = "black", 
+        #   linewidth = 1 )
+        ) +
   labs(title = "",
        fill = "Gene type",
-       x = "",
-       y = "Number of genes") +
-  ylim(0, 4000) +
-    facet_grid(~disease_vac~direction, scales = "free_y")
+       x = "%Genes",
+       y = "") +
+  facet_grid(~disease_vac~direction, scales = "free_x")
 
-patch_immune_degs = immune_other_plot_diseaseorvac_I / immune_other_plot_diseaseorvac_V 
+patch_immune_degs = immune_other_plot_diseaseorvac_I / immune_other_plot_diseaseorvac_V +
+  plot_layout(heights = c(1, 0.7)) +
+  plot_annotation(title = "ImmuneGO genes")  
 
-ggsave(patch_immune_degs, file = here("Figures", "immune_other_plot_diseaseorvac.png"), width = 10, height = 10)
+ggsave(patch_immune_degs, file = here("Figures", "immune_other_plot_diseaseorvac_percentage.png"), width = 10, height = 10)
 
 patch_immune_degs
 ```
@@ -4873,7 +4967,7 @@ patch
 ```
 
 
-## BTM genes: Immune and non-immune DEGs 
+## BTM genes
 
 ```{r}
 btm_annotation_table <- read_excel("VaxGO gene sets/btm_annotation_table.xls") %>% 
@@ -4881,8 +4975,189 @@ btm_annotation_table <- read_excel("VaxGO gene sets/btm_annotation_table.xls") %
   rename(genes = module_member_genes) %>% 
   mutate(genes = str_split(genes, ",")) %>% 
   unnest(genes)
-btm_annotation_genes
 
+btm_annotation_genes
+```
+
+
+######  BTM vs. non-BTM 
+
+```{r}
+#### Not immune
+all_degs_infected_notimmune = all_degs_p_05_vac_infected %>%
+  anti_join(btm_annotation_table %>%
+              select(genes) %>%
+              distinct(),
+            by = "genes") %>%
+  distinct() %>% 
+  mutate(bioprocess = "Other")
+
+all_degs_infected_notimmune %>% 
+  tabyl(condition, bioprocess)
+
+btm_annotation_genes  
+
+#### Immune
+all_degs_vac_infected_immune = all_degs_p_05_vac_infected %>% 
+  inner_join(btm_annotation_table %>% 
+              select(genes) %>% 
+              distinct(),
+            by = "genes") %>% 
+  distinct() %>% 
+  mutate(bioprocess = "Immune")
+
+all_degs_vac_infected_immune %>% 
+  tabyl(condition, bioprocess) 
+```
+
+```{r}
+##### Immune and other
+all_degs_processes_immune_nonimmune = bind_rows(all_degs_vac_infected_immune, 
+                               all_degs_infected_notimmune)
+
+all_degs_processes_immune_nonimmune %>%
+  filter(direction == "UP") %>% 
+  tabyl(condition, bioprocess) %>% 
+  adorn_totals("col") %>% 
+  adorn_percentages() %>% 
+  adorn_pct_formatting() %>% 
+  as.data.frame() %>% 
+  select(-Total)
+  
+
+write_csv(all_degs_processes_immune_nonimmune, file = here("DGE analysis", "all_degs_processes_BTM_nonBTM.csv"))
+
+#DEGs annotated by Main GO BPs ------
+
+btm_immune_stats_degs = all_degs_processes_immune_nonimmune %>% 
+  select(condition, genes, direction, bioprocess) %>% 
+  distinct() %>% 
+  group_by(condition, direction, bioprocess) %>% 
+  summarise(n = n()) %>% 
+  mutate(bioprocess = if_else(is.na(bioprocess), "No annotation", bioprocess))
+
+btm_immune_stats_degs_2 = all_degs_processes_immune_nonimmune %>% 
+  select(condition, genes, bioprocess, direction) %>% 
+  distinct() %>% 
+  group_by(condition, direction) %>% 
+  summarise(n_genes_total = n()) %>% 
+  inner_join(btm_immune_stats_degs, by = join_by("condition", direction)) %>% 
+  ungroup() %>% 
+  select(condition, direction, bioprocess, n_genes = n, n_genes_total) %>% 
+  mutate(n_genes_perc = round(n_genes/n_genes_total * 100, 1),
+         bioprocess = fct_relevel(bioprocess, "Not mapped", after = Inf),
+         direction = fct_relevel(direction, "UP", "DOWN"))
+```
+
+```{r fig.height=7, fig.width=15}
+degs_immune = btm_immune_stats_degs_2 %>% 
+  mutate(direction = case_when(direction == "UP" ~ "Upregulated", 
+                               direction == "DOWN" ~"Downregulated",
+                               direction == "NEUTRAL" ~ "Neutral")) %>%
+  rename(n_genes_immune = n_genes) %>% 
+  pivot_longer(names_to = "totals", values_to = "total_number", cols = c(n_genes_immune, n_genes_total)) %>% 
+  select(condition, direction, bioprocess, n_genes_perc, totals, total_number) %>% 
+  group_by(condition) %>% 
+  mutate(immune_genes = if_else(totals == "n_genes_immune", total_number, NA),
+         total_degs = if_else(totals == "n_genes_total", total_number, NA),
+         totals = fct_rev(factor(totals)),
+         direction = fct_rev(direction)) %>% 
+  fill(total_degs, .direction = "up") %>% 
+  inner_join(ann_vaccines %>% select(condition, disease_vac)) %>% 
+  mutate(disease_vac = if_else(disease_vac == "V", "Vaccination", "Infection"))
+```
+
+
+```{r fig.height=10, fig.width=10}
+#UP
+immune_other_plot_diseaseorvac_I = degs_immune %>% 
+  filter(disease_vac == "Infection",
+         bioprocess == "Immune") %>% 
+    mutate(condition = factor(condition, levels = ann_vaccines_conditions_ordered %>% arrange(condition) %>% select(condition) %>% distinct() %>% pull() %>% as.character())) %>%
+  ggplot() +
+ aes(x = fct_rev(factor(condition)), y = total_number, fill = totals) +
+ geom_col() +
+ coord_flip() +
+ theme_minimal() +
+  scale_fill_manual(name = "",
+    values = c("n_genes_total" = "gray90",
+              "n_genes_immune" = "#4DBBD5FF"),
+    labels = c('Total', 'Immune')) +
+  theme(legend.position=c(1, 0.1),
+        panel.grid = element_blank(),
+        legend.title = element_text(size = 10),
+        legend.text = element_text(size= 15),
+        axis.title.x = element_blank(),
+        axis.text.x = element_blank(),
+        axis.text.y = element_text(size = 10, color = "black", angle = 0, hjust = 1),
+        strip.text.x = element_text(size = 15, color = "white", hjust = 0.5),
+        strip.text.y = element_text(size = 15, angle = 0, face = "bold"),
+        strip.background.x = element_rect(
+          fill = "black", 
+          color = "black", 
+          linewidth = 1 )) +
+  geom_text(aes(label = if_else(!is.na(immune_genes),
+                                paste0(immune_genes, " (", n_genes_perc, "% of ", total_degs, ")") ,
+                                NA), 
+                y = total_degs + immune_genes), 
+            hjust = -0.05,
+            size = 3,
+            angle = 0
+            ) +
+  labs(title = "",
+       fill = "Gene type",
+       x = "",
+       y = "Number of genes") +
+  ylim(0, 5000) +
+    facet_grid(~disease_vac~direction, scales = "free_y")
+
+immune_other_plot_diseaseorvac_V  = degs_immune %>% 
+  filter(disease_vac == "Vaccination",
+         bioprocess == "Immune") %>% 
+  mutate(condition = factor(condition, levels = ann_vaccines_conditions_ordered %>% arrange(condition) %>% select(condition) %>% distinct() %>% pull() %>% as.character())) %>%
+  ggplot() +
+ aes(x = fct_rev(factor(condition)), y = total_number, fill = totals) +
+ geom_col() +
+ coord_flip() +
+ theme_minimal() +
+  scale_fill_manual(name = "Type",
+    values = c("n_genes_total" = "gray90",
+              "n_genes_immune" = "#4DBBD5FF"),
+    labels = c('Total', 'Immune')) +
+  theme(legend.position = "none", 
+        panel.grid = element_blank(),
+        legend.title = element_text(size = 10),
+        legend.text = element_text(size=10),
+        axis.title.x = element_text(size = 10, color = "black"),
+        axis.text.x = element_text(size = 10, color = "black", angle = 0, hjust = 1),
+        axis.text.y = element_text(size = 10, color = "black", angle = 0, hjust = 1),
+        strip.text.x = element_blank(),
+        strip.text.y = element_text(size = 15, angle = 0, face = "bold"),
+        strip.background.x = element_blank()) +
+  geom_text(aes(label = if_else(totals == "n_genes_immune",
+                                paste0(immune_genes, " (", n_genes_perc, "% of ", total_degs, ")") ,
+                                NA), 
+                y = total_degs + immune_genes), 
+            hjust = -0.05, 
+            size = 3,
+            angle = 0) +
+  labs(title = "",
+       fill = "Gene type",
+       x = "",
+       y = "Number of genes") +
+  ylim(0, 5000) +
+    facet_grid(~disease_vac~direction, scales = "free_y")
+
+patch_immune_degs = immune_other_plot_diseaseorvac_I / immune_other_plot_diseaseorvac_V 
+
+ggsave(patch_immune_degs, file = here("Figures", "BTM_vs_nonBTM_plot_diseaseorvac.png"), width = 10, height = 10)
+
+patch_immune_degs
+```
+
+###Immune and non-immune DEGs 
+
+```{r}
 #### Not immune
 all_degs_infected_notimmune = all_degs_p_05_vac_infected %>%
   anti_join(btm_annotation_table %>%
@@ -5527,7 +5802,6 @@ go = ora_results_final %>%
 
 ```{r}
 
-# Anotações das amostras/condições (Vacinas)
 ann_vaccines
 
 heatmap_data = go
