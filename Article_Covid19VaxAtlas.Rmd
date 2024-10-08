@@ -2527,7 +2527,6 @@ write_csv(shared_genes_df_mirror,
 #### Shared genes
 
 ```{r}
-filename = paste0(filename, "_Shared") 
 library(maditr)
 matrix_data = shared_genes_df_mirror %>% 
   dcast(Cond1 ~ Cond2, 
@@ -2617,7 +2616,7 @@ rect_gp = gpar(col = "gray1", lwd = 0)
 
 
 
-fileimageheatmap_grouped = paste0(filename, sep ="_", "Heatmap.png")
+fileimageheatmap_grouped = paste0(filename, sep ="_", "Shared_Heatmap.png")
 
 png(
   file = here("Figures", fileimageheatmap_grouped),
@@ -2673,9 +2672,6 @@ dev.off()
 #### Jaccard distance
 
 ```{r}
-filename = "All_covid_BTM_immune_Jaccarddist"
-
-
 matrix_data = shared_genes_df_mirror %>% 
   dcast(Cond1 ~ Cond2, 
         value.var = "jaccard_distance", 
@@ -2761,7 +2757,7 @@ rect_gp = gpar(col = "gray1", lwd = 0)
 
 
 
-fileimageheatmap_grouped = paste0(filename, sep ="_", "Heatmap.png")
+fileimageheatmap_grouped = paste0(filename, sep ="_", "Jaccard_Heatmap.png")
 
 png(
   file = here("Figures", fileimageheatmap_grouped),
@@ -6115,9 +6111,6 @@ result_inf_vac2 <- cluster_by_day(df %>%
                                       dose %in% c("2")), day_column = "day") %>%
   mutate(day = fct_relevel(day, df$day %>% unique() %>% sort() %>% as.character()))
 
-column_order <- c(result_vac$condition, result_inf_vac2$condition, result_inf_vac01$condition) %>% 
-  unique()
-
 result_inf_vac01 <- cluster_by_day(df %>% 
                                filter(disease_vac == "I",
                                       dose %in% c("0", "1")), day_column = "day") %>%
@@ -6150,6 +6143,18 @@ labels_type <- df %>%
   theme(axis.title.y = element_text(size = 10, hjust = 1),
         legend.position = "none") 
 
+labels_dose <- df %>% 
+  filter(id %in% row_clustered$labels) %>% 
+  mutate(condition = factor(condition, levels = column_order)) %>% 
+  ggplot() +
+  aes(x = condition, y = 1, fill = dose) + 
+  geom_tile() + 
+  scale_fill_manual(values = ann_vaxsig_colors$dose) + 
+  theme_void() +
+  labs(y = "Dose") +
+  theme(axis.title.y = element_text(size = 10, hjust = 1),
+        legend.position = "none")
+
 labels_week = df %>% 
   filter(id %in% row_clustered$labels) %>% 
   mutate(condition = factor(condition, column_order)) %>% 
@@ -6159,6 +6164,18 @@ labels_week = df %>%
   scale_fill_manual(values = ann_vaxsig_colors$week) + 
   theme_void() +
   labs(y = "Week") +
+  theme(axis.title.y = element_text(size = 10, hjust = 1),
+        legend.position = "none")
+
+labels_day = df %>% 
+  filter(id %in% row_clustered$labels) %>% 
+  mutate(condition = factor(condition, column_order)) %>% 
+  ggplot() +
+  aes(x = condition, y = 1, fill = day) + 
+  geom_tile() + 
+  scale_fill_manual(values = ann_vaxsig_colors$day) + 
+  theme_void() +
+  labs(y = "Day") +
   theme(axis.title.y = element_text(size = 10, hjust = 1),
         legend.position = "none")
 #Plot
@@ -6196,9 +6213,11 @@ dotplot = df %>%
 patch_immune_main = 
   labels_disease_vac /
   labels_type /
+  labels_dose /
   labels_week/
+  labels_day/
   dotplot +
-  plot_layout(heights = c(0.3, 0.3, 0.3, 5),
+  plot_layout(heights = c(0.3, 0.3, 0.3, 0.3, 0.3, 5),
               guides = 'collect') +
   plot_annotation(title = "GSEA ImmuneGO",
                   subtitle = "Main processes",
@@ -6262,6 +6281,19 @@ result_inf_vac01 <- cluster_by_day(df %>%
 
 column_order <- c(result_vac$condition, result_inf_vac2$condition, result_inf_vac01$condition)
 
+
+labels_disease_vac <- df %>% 
+  filter(id %in% row_clustered$labels) %>% 
+  mutate(condition = factor(condition, levels = column_order)) %>% 
+  ggplot() +
+  aes(x = condition, y = 1, fill = disease_vac) + 
+  geom_tile() + 
+  scale_fill_manual(values = ann_vaxsig_colors$disease_vac) + 
+  theme_void() +
+  labs(y = "Infection/Vac") +
+  theme(axis.title.y = element_text(size = 10),
+        legend.position = "none") 
+
 labels_type <- df %>% 
   filter(id %in% row_clustered$labels) %>% 
   mutate(condition = factor(condition, levels = column_order)) %>% 
@@ -6269,6 +6301,18 @@ labels_type <- df %>%
   aes(x = condition, y = 1, fill = type) + 
   geom_tile() + 
   scale_fill_manual(values = ann_vaxsig_colors$Platform) + 
+  theme_void() +
+  labs(y = "Type") +
+  theme(axis.title.y = element_text(size = 10),
+        legend.position = "none") 
+
+labels_dose <- df %>% 
+  filter(id %in% row_clustered$labels) %>% 
+  mutate(condition = factor(condition, levels = column_order)) %>% 
+  ggplot() +
+  aes(x = condition, y = 1, fill = dose) + 
+  geom_tile() + 
+  scale_fill_manual(values = ann_vaxsig_colors$dose) + 
   theme_void() +
   labs(y = "Type") +
   theme(axis.title.y = element_text(size = 10),
@@ -6283,6 +6327,18 @@ labels_week = df %>%
   scale_fill_manual(values = ann_vaxsig_colors$week) + 
   theme_void() +
   labs(y = "Week") +
+  theme(axis.title.y = element_text(size = 10),
+        legend.position = "none")
+
+labels_day = df %>% 
+  filter(id %in% row_clustered$labels) %>% 
+  mutate(condition = factor(condition, column_order)) %>% 
+  ggplot() +
+  aes(x = condition, y = 1, fill = day) + 
+  geom_tile() + 
+  scale_fill_manual(values = ann_vaxsig_colors$day) + 
+  theme_void() +
+  labs(y = "Day") +
   theme(axis.title.y = element_text(size = 10),
         legend.position = "none")
 #Plot
@@ -6309,10 +6365,14 @@ dotplot_specific = df %>%
   scale_y_discrete(position = "right") 
   
 
-patch_immune_specific = labels_type /
+patch_immune_specific = 
+  labels_disease_vac /
+  labels_type /
+  labels_dose/
   labels_week/
+  labels_day/
   dotplot_specific +
-  plot_layout(heights = c(0.05, 0.05, 5),
+  plot_layout(heights = c(0.05,0.05, 0.05,0.05, 0.05, 5),
               guides = 'collect') +
   plot_annotation(title = "GSEA ImmuneGO",
                   subtitle = "Specific processes",
@@ -6462,7 +6522,7 @@ patch_immune_specific_filtered =  labels_disease_vac/
   labels_week/
   labels_day/
   dotplot_specific +
-  plot_layout(heights = c(0.3, 0.3, 0.3, 0.3, 5),
+  plot_layout(heights = c(0.2, 0.2, 0.2, 0.2, 5),
               guides = 'collect') +
   plot_annotation(title = "GSEA ImmuneGO",
                   subtitle = "Specific processes",
@@ -7111,7 +7171,8 @@ Process data
 
 ```{r}
 # Genes in long table format
-all_degs_p_05_vac_infected = readRDS(here("DGE analysis", "all_studies_degs_weighted.rds"))
+all_degs_p_05_vac_infected = readRDS(here("DGE analysis", "all_studies_degs_weighted.rds")) %>% 
+  filter(fdr <= 0.05)
 
 # Gene set annotation.Used only to merge and filter genes.
 ImmuneGO_Annotated_Genes = readRDS(here("VaxGO gene sets", "ImmuneGO_Annotated_Genes_2024-03-26.rds"))
@@ -7140,17 +7201,18 @@ btm_annotation_genes_immune = btm_annotation_genes %>%
 
 ImmuneGO_Genes = all_degs_p_05_vac_infected %>%
   ungroup() %>% 
-  inner_join(btm_annotation_genes_immune %>% select(genes) %>% distinct(), by = "genes") %>% 
+  # inner_join(btm_annotation_genes_immune %>% select(genes) %>% distinct(), by = "genes") %>% 
+  inner_join(ImmuneGO_Annotated_Genes_all %>% select(genes) %>% distinct(), by = "genes") %>% 
   filter(fdr<0.05)
   
 ```
 
 **Input**
-filtering genes with corr >99% is best
+filtering genes with corr >99% is better
 ```{r}
 #INPUT
 data_genes = ImmuneGO_Genes 
-filename = "COVID_Infec_Vac_BTM"
+filename = "COVID_Infec_Vac_ImmuneGO"
 
 #Convert long to wide table format.
 #Dataframe with sample annotation
@@ -7196,7 +7258,7 @@ var <- get_pca_var(pca_res)
 # corrplot = ggcorrplot(corr_matrix, hc.order = TRUE) + 
 #   theme(axis.text.x = element_text(angle = 90, size = 5), 
 #         axis.text.y = element_text(size = 5))
-# #Salvar
+
 # ggsave(corrplot, file = paste0(filename, "_corrplot.png"), 
 #        width = 20, #Grande 20, pequeno 10
 #        height= 20) #Grande 20, pequeno 10
@@ -7227,7 +7289,7 @@ Loadings plot
 options(ggrepel.max.overlaps = Inf)
 
 circle_contrib= fviz_pca_var(pca_res, col.var = "cos2",
-                              gradient.cols = c("#4DBBD5FF", "#DC0000FF"),
+                              gradient.cols = c("black", "#DC0000FF"),
                               select.var= list(cos2 = 20), 
                               repel = T, 
                               labelsize = 3,
@@ -7281,24 +7343,24 @@ pca_plot_knn_cluster = autoplot(pca_res,
                size = 0.3,
                type = "t") +
   labs(title=paste0(filename, "_bycondition"),
-       x = "PC1 (77.7%)",
-       y = "PC2 (12.2%)") + 
+       x = "PC1 (63.2%)",
+       y = "PC2 (19.6%)") + 
   geom_hline(yintercept = 0, size = 0.3, color = "gray50", linetype = 4) +
   geom_vline(xintercept = 0, size = 0.3, color = "gray50", linetype = 4) +
   geom_point(aes(fill = condition,
                  color = condition),
              stroke = 0.2) +
-   scale_color_manual(values = c("1" = "#DC0000FF", 
-                               "2" = "#4DBBD5FF", 
-                               "3" = "#F5BB00",
+   scale_color_manual(values = c("1" = "#F5BB00", 
+                               "2" = "#DC0000FF", 
+                               "3" = "#4DBBD5FF",
                                "4" = "#8491B4FF",
-                                condition_col), 
+                                ann_vaxsig_colors$condition_col), 
                      guide = "none") +
-  scale_fill_manual(values = c("1" = "#DC0000FF", 
-                               "2" = "#4DBBD5FF", 
-                               "3" = "#F5BB00",
+  scale_fill_manual(values = c("1" = "#F5BB00", 
+                               "2" = "#DC0000FF", 
+                               "3" = "#4DBBD5FF",
                                "4" = "#8491B4FF",
-                               condition_col),
+                               ann_vaxsig_colors$condition_col),
                     guide = "none") + 
   guides(col="none") +
   theme_few() +
@@ -7308,7 +7370,7 @@ pca_plot_knn_cluster = autoplot(pca_res,
         axis.line = element_line(colour = "black")) +
   geom_text_repel(aes(label = condition,
                       segment.colour="gray70"),
-                  box.padding = 0.8,
+                  box.padding = 0.5,
                   size = 3) +
   xlim(-0.4, 0.6)
 pca_plot_knn_cluster
@@ -7334,7 +7396,7 @@ pca_plot_knn_cluster
 #   height = 5
 # )
 
-pca_plot_knn_cluster %>% ggplotly()
+# pca_plot_knn_cluster %>% ggplotly()
 
 
 ```
