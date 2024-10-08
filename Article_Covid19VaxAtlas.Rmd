@@ -2408,7 +2408,8 @@ degs_all_updown = read_rds(file = here("DGE analysis", "all_studies_degs_weighte
   filter(fdr <= 0.05) %>% 
   # filter(direction != "NEUTRAL") %>% 
   # mutate_all(~ replace(., is.na(.), "NA")) %>% 
-  filter(genes %in% btm_annotation_genes$genes)
+  # filter(genes %in% btm_annotation_genes$genes) 
+  filter(genes %in% ImmuneGO_Annotated_Genes$genes)
 
 
 ann_vaccines = read_csv(here("Annotations and metadata", "ann_vaccines_conditions.csv"))
@@ -2417,7 +2418,7 @@ ann_vaccines = read_csv(here("Annotations and metadata", "ann_vaccines_condition
 data = degs_all_updown %>% 
  dplyr::select(process = condition, genes)
 
-filename = "All_covid_BTM_immune"
+filename = "All_covid_ImmuneGO"
 ```
 
 Function
@@ -22133,7 +22134,7 @@ write_tsv(nodes, file = paste0(filename, "Network_Covid_Other_sharedgenes_nodes.
 
 
 
-# 13 Vax Atlas
+# 11. 13 Vax Atlas
 
 ```{r}
 IS2_FDR05_genes <- readRDS(here("13VaxAtlas", "IS2_FDR05_genes.rds"))
