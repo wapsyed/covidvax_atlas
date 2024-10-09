@@ -7837,7 +7837,7 @@ var <- get_pca_var(pca_res)
    theme(axis.text.x = element_text(angle = 90, size = 5),
          axis.text.y = element_text(size = 5))
 
-ggsave(corrplot, file = paste0(filename, "_corrplot.png"),
+ggsave(corrplot, file = here("Figures", paste0(filename, "_corrplot.png")),
         width = 20, 
         height= 20)
  print(corrplot)
@@ -7870,7 +7870,7 @@ circle_contrib= fviz_pca_var(pca_res, col.var = "cos2",
                               gradient.cols = c("black", "#DC0000FF"),
                               select.var= list(cos2 = 20), 
                               repel = T, 
-                              labelsize = 3,
+                              labelsize = 2,
                               col.circle = NA) +
   xlab("PC1") + 
   ylab("PC2") +
@@ -7903,7 +7903,7 @@ fviz_nbclust(pca_scores,
 pcas = "PC1-PC2"
 
 set.seed(666) # Set seed for randomization
-cluster_model <- kmeans(pca_res$x[, 1:2], centers = 4)  #Set the number of clusters
+cluster_model <- kmeans(pca_res$x[, 1:2], centers = 5)  #Set the number of clusters
 
 ann_vaccines_pca_matrix$cluster <- as.factor(cluster_model$cluster)
 ```
@@ -8072,9 +8072,9 @@ col_fun <- colorRamp2(c(-2, 0, 2), c("#9bc1bc", "white", "#ed6a5a"))
 file = filename_2
 mat = matrix_data
 width_image = 35
-height_image = 20
+height_image = 30
 width = unit(20, "cm")
-height = unit(10, "cm")
+height = unit(20, "cm")
 column_names_gp = gpar(fontsize = 10)
 row_names_gp = gpar(fontsize = 10)
 rect_gp = gpar(col = "gray80", lwd = 0.5)
@@ -8215,7 +8215,7 @@ ann_vaccines_pca_matrix_ready = ann_vaccines_pca_matrix %>%
 
 ```
 
-#### 6.4.1. Scree plot
+Scree plot
 ```{r}
 # Delete columns with near 0 variance
 nearZeroVarCols <- nearZeroVar(ann_vaccines_pca_matrix_ready, saveMetrics = TRUE)
@@ -8246,7 +8246,7 @@ print(scree_plot)
 
 ```
 
-#### 6.4.2. Loadings plot
+Loadings plot
 ```{r}
 # Loadings plot ----
 options(ggrepel.max.overlaps = Inf)
@@ -8286,7 +8286,9 @@ circle_contrib
 ggsave(circle_contrib, file = here("Figures",paste0(filename, "_circle_contrib_wide.png")), width = 5, height = 5)
 
 ```
-#### 6.4.3. KNN classification
+
+
+ KNN classification
 ```{r KNN classification}
 #KNN classification -----
 #Use the screeplot generated % of explained variance for each dimension
@@ -8306,7 +8308,7 @@ cluster_model <- kmeans(pca_res$x[, 1:2], centers = 2)  #Set the number of clust
 ann_vaccines_pca_matrix$cluster <- as.factor(cluster_model$cluster)
 ```
 
-#### 6.4.4 Plot
+Plot
 ```{r}
 # Condition with density plot ------
 pca_plot_knn_cluster = autoplot(pca_res, 
@@ -8390,9 +8392,7 @@ ggsave(pca_plot_knn_cluster_interactive, file = here("Figures", paste0(filename,
 pca_plot_knn_cluster_interactive %>% ggplotly()
 ```
 
-#### 6.4.5. Heatmap
-
-##### 6.4.5.1. Get PC1 and PC2 genes
+#### Heatmap of PC1 and PC2 genes
 ```{r}
 ####### INPUT
 PC1 = var$cos2 %>%
@@ -8423,7 +8423,7 @@ ImmuneGO_Annotated_Genes
 ann_vaccines_covid_other
 ```
 
-##### 6.4.5.2. PC1 genes heatmap
+#####  PC1 genes heatmap
 ```{r}
 # INPUT
 
@@ -8583,7 +8583,7 @@ dev.off()
 ```
 
 
-##### 6.4.5.3. PC2 genes heatmap
+##### PC2 genes heatmap
 ```{r}
 # INPUT
 
