@@ -9,13 +9,13 @@ condition,gse_id,samples,vaccine,day,week,dose,infection,type,gmt_nab_wt,gmt_igg
 "BNT (V2, D1)",GSE199750,46,BNT,1,1,2,0,RNA,NA,NA,HO,V,H,None,No,Yes,Australia,2021,DNBSEQ-G400
 "BNT (V3, D1)",GSE199750,25,BNT,1,1,3,0,RNA,NA,NA,HO,V,H,None,No,Yes,Australia,2021,DNBSEQ-G400
 BNT-I (D0),GSE201530,9,BNT,0,1,2,1,RNA,5.2,NA,V-V-I,I,MI,Omicron,No,Yes,Korea,December 2021 and March 2022,Illumina NovaSeq 6000
-BNT-I (D1),GSE201530,2,BNT,1,1,1,1,I,5.2,NA,V-I,I,MI,Omicron,No,Yes,Korea,December 2021 and March 2022,Illumina NovaSeq 6000
+BNT-I (D1),GSE201530,2,BNT,1,1,1,1,RNA,5.2,NA,V-I,I,MI,Omicron,No,Yes,Korea,December 2021 and March 2022,Illumina NovaSeq 6000
 "BNT-I (D10, mild)",GSE189039,1,BNT,10,2,1,1,RNA,NA,NA,V-I,I,MI,Beta,No,Yes,Italy,"January, 2021",Illumina NovaSeq 6000
 "BNT-I (D10, severe)",GSE189039,3,BNT,10,2,1,1,RNA,NA,NA,V-I,I,S,Beta,No,Yes,Italy,"January, 2021",Illumina NovaSeq 6000
-BNT-I (D2),GSE201530,5,BNT,2,1,1,1,I,5.2,NA,V-I,I,MI,Omicron,No,Yes,Korea,December 2021 and March 2022,Illumina NovaSeq 6000
+BNT-I (D2),GSE201530,5,BNT,2,1,1,1,RNA,5.2,NA,V-I,I,MI,Omicron,No,Yes,Korea,December 2021 and March 2022,Illumina NovaSeq 6000
 "BNT-I (D26, mild)",GSE189039,1,BNT,26,4,1,1,RNA,NA,NA,V-I,I,MI,Beta,No,Yes,Italy,"January, 2021",Illumina NovaSeq 6000
 "BNT-I (D26, severe)",GSE189039,2,BNT,26,4,1,1,RNA,NA,NA,V-I,I,S,Beta,No,Yes,Italy,"January, 2021",Illumina NovaSeq 6000
-BNT-I (D3),GSE201530,3,BNT,3,1,1,1,I,5.2,NA,V-I,I,MI,Omicron,No,Yes,Korea,December 2021 and March 2022,Illumina NovaSeq 6000
+BNT-I (D3),GSE201530,3,BNT,3,1,1,1,RNA,5.2,NA,V-I,I,MI,Omicron,No,Yes,Korea,December 2021 and March 2022,Illumina NovaSeq 6000
 "BNT-I (D51, severe)",GSE189039,1,BNT,51,8,1,1,RNA,NA,NA,V-I-V,I,S,Beta,No,Yes,Italy,"January, 2021",Illumina NovaSeq 6000
 "BNT-I-BNT (D51, mild)",GSE189039,1,BNT,51,8,2,1,RNA,NA,NA,V-I-V,I,MI,Beta,No,Yes,Italy,"January, 2021",Illumina NovaSeq 6000
 "BNT-I-BNT (D51, severe)",GSE189039,1,BNT,51,8,2,1,RNA,NA,NA,V-I-V,I,S,Beta,No,Yes,Italy,"January, 2021",Illumina NovaSeq 6000

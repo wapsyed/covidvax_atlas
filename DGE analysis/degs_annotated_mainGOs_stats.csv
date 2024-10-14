@@ -107,24 +107,6 @@ condition,direction,term_ancestor,n_genes,n_genes_total,n_genes_perc
 "BNT (V3, D1)",UP,Metabolism,12,38,31.6
 "BNT (V3, D1)",UP,Not mapped,19,38,50
 "BNT (V3, D1)",UP,Reg. of BP,7,38,18.4
-BNT-I (D0),DOWN,Cellular,443,748,59.2
-BNT-I (D0),DOWN,Immune system,46,748,6.1
-BNT-I (D0),DOWN,Interspecies interaction,34,748,4.5
-BNT-I (D0),DOWN,Metabolism,338,748,45.2
-BNT-I (D0),DOWN,Not mapped,291,748,38.9
-BNT-I (D0),DOWN,Reg. of BP,234,748,31.3
-BNT-I (D0),NEUTRAL,Cellular,4058,5227,77.6
-BNT-I (D0),NEUTRAL,Immune system,612,5227,11.7
-BNT-I (D0),NEUTRAL,Interspecies interaction,406,5227,7.8
-BNT-I (D0),NEUTRAL,Metabolism,3182,5227,60.9
-BNT-I (D0),NEUTRAL,Not mapped,1032,5227,19.7
-BNT-I (D0),NEUTRAL,Reg. of BP,2827,5227,54.1
-BNT-I (D0),UP,Cellular,824,1100,74.9
-BNT-I (D0),UP,Immune system,243,1100,22.1
-BNT-I (D0),UP,Interspecies interaction,192,1100,17.5
-BNT-I (D0),UP,Metabolism,545,1100,49.5
-BNT-I (D0),UP,Not mapped,242,1100,22
-BNT-I (D0),UP,Reg. of BP,662,1100,60.2
 BNT-I (D1),DOWN,Cellular,180,295,61
 BNT-I (D1),DOWN,Immune system,45,295,15.3
 BNT-I (D1),DOWN,Interspecies interaction,20,295,6.8
@@ -485,24 +467,6 @@ BNT-I (D3),UP,Reg. of BP,520,863,60.3
 "ChAd-BNT (V3, D1)",UP,Metabolism,6,25,24
 "ChAd-BNT (V3, D1)",UP,Not mapped,15,25,60
 "ChAd-BNT (V3, D1)",UP,Reg. of BP,6,25,24
-I (D0),DOWN,Cellular,167,268,62.3
-I (D0),DOWN,Immune system,33,268,12.3
-I (D0),DOWN,Interspecies interaction,16,268,6
-I (D0),DOWN,Metabolism,93,268,34.7
-I (D0),DOWN,Not mapped,97,268,36.2
-I (D0),DOWN,Reg. of BP,117,268,43.7
-I (D0),NEUTRAL,Cellular,1030,1351,76.2
-I (D0),NEUTRAL,Immune system,150,1351,11.1
-I (D0),NEUTRAL,Interspecies interaction,106,1351,7.8
-I (D0),NEUTRAL,Metabolism,792,1351,58.6
-I (D0),NEUTRAL,Not mapped,282,1351,20.9
-I (D0),NEUTRAL,Reg. of BP,685,1351,50.7
-I (D0),UP,Cellular,526,698,75.4
-I (D0),UP,Immune system,202,698,28.9
-I (D0),UP,Interspecies interaction,175,698,25.1
-I (D0),UP,Metabolism,344,698,49.3
-I (D0),UP,Not mapped,149,698,21.3
-I (D0),UP,Reg. of BP,416,698,59.6
 I (D1),DOWN,Cellular,419,628,66.7
 I (D1),DOWN,Immune system,58,628,9.2
 I (D1),DOWN,Interspecies interaction,29,628,4.6
@@ -697,24 +661,6 @@ I-BNT (D5),UP,Cellular,3,5,60
 I-BNT (D5),UP,Metabolism,2,5,40
 I-BNT (D5),UP,Not mapped,2,5,40
 I-BNT (D5),UP,Reg. of BP,2,5,40
-I-I (D0),DOWN,Cellular,34,62,54.8
-I-I (D0),DOWN,Immune system,4,62,6.5
-I-I (D0),DOWN,Interspecies interaction,3,62,4.8
-I-I (D0),DOWN,Metabolism,24,62,38.7
-I-I (D0),DOWN,Not mapped,27,62,43.5
-I-I (D0),DOWN,Reg. of BP,21,62,33.9
-I-I (D0),NEUTRAL,Cellular,20,26,76.9
-I-I (D0),NEUTRAL,Immune system,3,26,11.5
-I-I (D0),NEUTRAL,Interspecies interaction,3,26,11.5
-I-I (D0),NEUTRAL,Metabolism,18,26,69.2
-I-I (D0),NEUTRAL,Not mapped,6,26,23.1
-I-I (D0),NEUTRAL,Reg. of BP,13,26,50
-I-I (D0),UP,Cellular,45,60,75
-I-I (D0),UP,Immune system,16,60,26.7
-I-I (D0),UP,Interspecies interaction,19,60,31.7
-I-I (D0),UP,Metabolism,35,60,58.3
-I-I (D0),UP,Not mapped,11,60,18.3
-I-I (D0),UP,Reg. of BP,34,60,56.7
 I-I (D1),DOWN,Cellular,103,138,74.6
 I-I (D1),DOWN,Immune system,12,138,8.7
 I-I (D1),DOWN,Interspecies interaction,9,138,6.5
