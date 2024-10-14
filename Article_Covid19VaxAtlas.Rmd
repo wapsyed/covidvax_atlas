@@ -8330,10 +8330,70 @@ draw(heatmap_plot,
      heatmap_legend_side = "bottom")
 dev.off()
 
-ht_list = draw(heatmap_plot)
-column_order(ht_list)
 ```
 
+```{r}
+## Get row and column orders
+ht_list = draw(heatmap_plot)
+rows_clustered = rownames(mat)[row_order(ht_list)]
+cols_clustered = colnames(mat)[column_order(ht_list)]
+
+mat_2 = mat %>% 
+  as.data.frame() %>% 
+  rownames_to_column("genes") %>% 
+  filter(genes %in% c(rev(rows_clustered))) %>% 
+  select(genes, c(rev(cols_clustered))) %>% 
+  column_to_rownames("genes") %>% 
+  as.matrix()
+
+fileimageheatmap_grouped = paste0(file, sep ="_", "Complexheatmap_ForPCA.png")
+
+png(file = here("Figures", fileimageheatmap_grouped), 
+    width = width_image, 
+    height = height_image, 
+    units="cm", 
+    res=900)
+
+heatmap_plot_2 = Heatmap(mat_2,
+                        # top_annotation = ha,
+                        name = "L2FC",
+                        # left_annotation = row_ha,
+                        show_row_names = TRUE,
+                        row_names_side = "right",
+                        show_heatmap_legend = TRUE,
+                        heatmap_legend_param = list(direction = "horizontal"),
+                        col = col_fun, #color
+                        show_column_names = TRUE,
+                        column_title = fileimageheatmap_grouped,
+                        column_title_gp = gpar(fontsize = 10, fontface = "bold"),
+                        column_names_rot = 90,
+                        column_names_gp = column_names_gp,
+                        rect_gp = rect_gp,
+                        na_col = "white",
+                        cluster_rows = F,
+                        row_names_gp = row_names_gp,
+                        row_dend_width = unit(2, "cm"),
+                        column_split = NULL,
+                        row_split = NULL,
+                        row_gap = unit(2, "mm"),
+                        cluster_columns = F,
+                        column_gap = unit(8, "mm"),
+                        column_names_side = "top",
+                        show_column_dend = F,
+                        show_row_dend = F,
+                        row_dend_side = "left",
+                        column_dend_side = "top",
+                        clustering_distance_rows = "euclidean",
+                        border = TRUE,
+                        width = width,
+                        height = height 
+)
+
+draw(heatmap_plot_2, 
+     annotation_legend_side = "right", 
+     heatmap_legend_side = "bottom")
+dev.off()
+```
 
 
 ### PCA: GSEA of COVID-19 conditions only
