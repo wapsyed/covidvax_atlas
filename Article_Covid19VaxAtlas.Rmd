@@ -769,12 +769,13 @@ GSE201530_metadata = GSE201530 %>%
     sample = "geo_accession", 
     subject_id = "title", 
     age = "age:ch1", 
-    sex = "gender:ch1", 
+    sex = "gender:ch1",
+    geographical = "geographical location:ch1",
     disease_state = "disease state:ch1", 
     timepoint = "days after positive pcr results:ch1",
     group = "group (by covid-19 vaccination, prior infection):ch1",
     variant = "omicron sublineage:ch1") %>% 
-  separate(timepoint, into = c("delete", "day")) %>% 
+  separate(timepoint, into = c("delete", "day")) %>%
   select(-delete) %>% 
   mutate(variant = if_else(variant == "--", "None", variant),
          day = if_else(group == "Healthy control", "0", day),
@@ -1494,6 +1495,7 @@ ann_vaccines_samples_participants = ann_vaccines_samples_2 %>%
   select(-participant_id.y, participant_id = participant_id.x)
   
 write.csv(ann_vaccines_samples_participants, file = "ann_vaccines_samples.csv")
+  
 ```
 
 Conditions annotations
@@ -1549,6 +1551,7 @@ ann_vaccines_conditions %>%
 ### Reorder conditions as factors
 ```{r}
 ann_vaccines_conditions_ordered = ann_vaccines_conditions %>% 
+  ungroup() %>% 
   mutate(condition = as.character(condition)) %>% 
   filter(condition != "BNT-MO (V1, D0)",
          condition != "BNT-MO (V1, D6)") %>% 
@@ -1557,81 +1560,138 @@ ann_vaccines_conditions_ordered = ann_vaccines_conditions %>%
            type = fct_relevel(type, "I", "RNA", "VV", "IN", "SU")) %>% 
   arrange(disease_vac,type, condition) 
 
+
+# ordered_conditions = c("H (D0)",
+#                                  ann_vaccines_conditions_ordered %>%
+#                                    filter(grepl("^I \\(D[0-9]\\)$", condition)) %>%
+#                                    select(condition) %>%
+#                                    arrange(condition) %>%
+#                                    distinct() %>%
+#                                    pull(condition),
+#                                  ann_vaccines_conditions_ordered %>%
+#                                    filter(str_detect(condition, "^I-I")) %>%
+#                                    select(condition) %>%
+#                                    arrange(condition) %>%
+#                                    distinct() %>%
+#                                    pull(condition),
+#                                  ann_vaccines_conditions_ordered %>%
+#                                     filter(str_detect(condition, "^BNT-I \\(D\\d+\\)")) %>%
+#                                     arrange(day, condition) %>%
+#                                    select(condition) %>%
+#                                     distinct() %>%
+#                                     pull(condition),
+#                                  "I-BNT (D5)",
+#                                  ann_vaccines_conditions_ordered %>%
+#                                    filter(!grepl("^I \\(D[0-9]\\)$", condition)) %>%
+#                                    filter(str_detect(condition, "^I")) %>%
+#                                    filter(!str_detect(condition, "^I-I"),
+#                                           condition != "I-BNT (D5)") %>%
+#                                    select(condition) %>%
+#                                    arrange(condition) %>%
+#                                    distinct() %>%
+#                                    pull(condition),
+#                                  ann_vaccines_conditions_ordered %>%
+#                                    filter(disease_vac == "I") %>%
+#                                    filter(str_detect(condition, "^BNT-I")) %>%
+#                                     filter(!str_detect(condition, "^BNT-I \\(D\\d+\\)")) %>%
+#                                     arrange(day, condition) %>%
+#                                    select(condition) %>%
+#                                     distinct() %>%
+#                                     pull(condition),
+#                                  ann_vaccines_conditions_ordered %>%
+#                                    filter(disease_vac == "V",
+#                                           str_detect(condition, "^BNT \\(V1, D\\d+\\)")) %>%
+#                                    arrange(day, condition) %>%
+#                                    select(condition) %>%
+#                                    distinct() %>%
+#                                    pull(condition),
+#                                  ann_vaccines_conditions_ordered %>%
+#                                    filter(disease_vac == "V",
+#                                           !str_detect(condition, "^BNT \\(V1, D\\d+\\)"),
+#                                           !str_detect(condition, "BBIBP"),
+#                                           !str_detect(condition, "ZF2001")) %>%
+#                                    arrange(condition) %>%
+#                                    select(condition) %>%
+#                                    distinct() %>%
+#                                    pull(condition),
+#                                  ann_vaccines_conditions_ordered %>%
+#                                    filter(str_detect(condition, "BBIBP")) %>%
+#                                    select(condition) %>%
+#                                    arrange(condition) %>%
+#                                    distinct() %>%
+#                                    pull(condition),
+#                                  ann_vaccines_conditions_ordered %>%
+#                                    filter(str_detect(condition, "ZF2001")) %>%
+#                                    select(condition) %>%
+#                                    arrange(condition) %>%
+#                                    distinct() %>%
+#                                    pull(condition))
+
+ordered_conditions = c(
+  "H (D0)",
+  "I (D0)",
+  "I (D1)",
+  "I (D2)",
+  "I (D3)",
+  "I (D4)",
+  "I-I (D0)",
+  "I-I (D1)",
+  "I-I (D2)",
+  "I-I (D3)",
+  "I-I (D5)",
+  "BNT-I (D0)",
+  "BNT-I (D1)",
+  "BNT-I (D2)",
+  "BNT-I (D3)",
+  "I-BNT (D5)",
+  "I (D10, moderate)" ,
+  "I (D10, severe)"   ,
+  "BNT-I (D10, mild)"      ,
+  "BNT-I (D10, severe)"    ,
+  "I (D26, moderate)" ,
+  "I (D26, severe)"   ,
+  "BNT-I (D26, mild)"      ,
+  "BNT-I (D26, severe)"    ,
+  "I (D51, moderate)" ,
+  "I (D51, severe)"   ,
+  "BNT-I (D51, severe)"    ,
+  "BNT-I-BNT (D51, mild)"  ,
+  "BNT-I-BNT (D51, severe)",
+  "BNT (V1, D0)",
+  "BNT (V1, D6)",
+  "BNT (V2, D1)",
+  "BNT (V3, D1)",
+  "BNT-MO (V3, D1)",
+  "ChAd (V1, D0)",
+  "ChAd (V1, D3)",
+  "ChAd (V1, D6)",
+  "ChAd (V1, D7)",
+  "ChAd (V2, D1)",
+  "ChAd (V2, D3)",
+  "ChAd (V2, D7)",
+  "ChAd-BNT (V2, D0)" ,
+  "ChAd-BNT (V2, D3)" ,
+  "ChAd-BNT (V2, D7)" ,
+  "ChAd-BNT (V3, D1)" ,
+  "BBIBP (V3, D0)"  ,
+  "BBIBP (V3, D07)" ,
+  "BBIBP (V3, D14)" ,
+  "BBIBP (V3, D28)" ,
+  "ZF2001 (V3, D0)" ,
+  "ZF2001 (V3, D07)",
+  "ZF2001 (V3, D14)",
+  "ZF2001 (V3, D28)"
+)
+
+
 ann_vaccines_conditions_ordered = ann_vaccines_conditions_ordered %>% 
   mutate(condition = fct_relevel(condition, 
-                                 ann_vaccines_conditions_ordered %>% 
-                                   filter(str_detect(condition, "^H \\(D0\\)")) %>% 
-                                   select(condition) %>% 
-                                   distinct() %>% 
-                                   pull(condition), 
-                                 ann_vaccines_conditions_ordered %>% 
-                                   filter(grepl("^I \\(D[0-9]\\)$", condition)) %>% 
-                                   select(condition) %>% 
-                                   arrange(condition) %>% 
-                                   distinct() %>% 
-                                   pull(condition),
-                                 ann_vaccines_conditions_ordered %>% 
-                                   filter(!grepl("^I \\(D[0-9]\\)$", condition)) %>% 
-                                   filter(str_detect(condition, "^I")) %>% 
-                                   filter(!str_detect(condition, "^I-I")) %>% 
-                                   select(condition) %>% 
-                                   arrange(condition) %>% 
-                                   distinct() %>% 
-                                   pull(condition),
-                                 ann_vaccines_conditions_ordered %>% 
-                                   filter(str_detect(condition, "^I-I")) %>% 
-                                   select(condition) %>% 
-                                   arrange(condition) %>% 
-                                   distinct() %>% 
-                                   pull(condition),
-                                 ann_vaccines_conditions_ordered %>% 
-                                   filter(disease_vac == "I") %>% 
-                                   filter(str_detect(condition, "^BNT-I")) %>% 
-                                    filter(!str_detect(condition, "^BNT-I \\(D\\d+\\)")) %>% 
-                                    arrange(day, condition) %>%
-                                   select(condition) %>% 
-                                    distinct() %>% 
-                                    pull(condition),
-                                 ann_vaccines_conditions_ordered %>% 
-                                    filter(str_detect(condition, "^BNT-I \\(D\\d+\\)")) %>% 
-                                    arrange(day, condition) %>%
-                                   select(condition) %>% 
-                                    distinct() %>% 
-                                    pull(condition),
-                                 ann_vaccines_conditions_ordered %>% 
-                                   filter(disease_vac == "V",
-                                          str_detect(condition, "^BNT \\(V1, D\\d+\\)")) %>% 
-                                   arrange(day, condition) %>% 
-                                   select(condition) %>% 
-                                   distinct() %>% 
-                                   pull(condition),
-                                 ann_vaccines_conditions_ordered %>% 
-                                   filter(disease_vac == "V",
-                                          !str_detect(condition, "^BNT \\(V1, D\\d+\\)"),
-                                          !str_detect(condition, "BBIBP"),
-                                          !str_detect(condition, "ZF2001")) %>% 
-                                   arrange(condition) %>% 
-                                   select(condition) %>% 
-                                   distinct() %>% 
-                                   pull(condition),
-                                 ann_vaccines_conditions_ordered %>% 
-                                   filter(str_detect(condition, "BBIBP")) %>% 
-                                   select(condition) %>% 
-                                   arrange(condition) %>% 
-                                   distinct() %>% 
-                                   pull(condition), 
-                                 ann_vaccines_conditions_ordered %>% 
-                                   filter(str_detect(condition, "ZF2001")) %>% 
-                                   select(condition) %>% 
-                                   arrange(condition) %>% 
-                                   distinct() %>% 
-                                   pull(condition))) %>%
+                                 ordered_conditions)) %>%
   mutate(type = if_else(type == "H", "I", type),
-         disease_vac = if_else(disease_vac == "H", "I", disease_vac)) 
-
+         disease_vac = if_else(disease_vac == "H", "I", disease_vac)) %>% 
+  arrange(condition)
 
 ann_vaccines_conditions_ordered %>%
-  arrange(condition) %>% 
   saveRDS(file = here("Annotations and metadata", "ann_vaccines_conditions_ordered.rds"))
 ```
 
@@ -1656,11 +1716,14 @@ samples_by_condition  = ann_vaccines %>%
   distinct() %>% 
   group_by(condition) %>% 
   summarise(samples = sum(samples)) %>% 
-  inner_join(ann_vaccines %>% select(vaccine, condition) %>% distinct(), by = "condition")
+  inner_join(ann_vaccines %>% select(vaccine, condition) %>% distinct(), by = "condition") %>% 
+  mutate(condition = fct_relevel(condition, c(ann_vaccines_conditions_ordered$condition %>% 
+                                                as.character() %>% 
+                                                unique())))
 
 
 samples_by_condition_plot = samples_by_condition %>% 
-  ggplot(aes(x = fct_reorder(condition, -samples), weight = samples, fill = vaccine)) +
+  ggplot(aes(x = condition, weight = samples, fill = vaccine)) +
   geom_bar() +
   scale_fill_manual(name = "Vaccine or infection", labels = c("BBIBP", 
                                                                 "BNT", 
@@ -1702,6 +1765,49 @@ ggsave(samples_by_condition_plot, file = here("Figures", "demographics_samples-b
 
 samples_by_condition_plot
 ```
+
+### Samples by study
+```{r fig.height=8, fig.width=10}
+#### SAMPLES BY CONDITION -----
+samples_by_study  = ann_vaccines %>% 
+  select(samples, condition, gse_id) %>% 
+  distinct() %>% 
+  group_by(gse_id) %>% 
+  summarise(samples = sum(samples))
+
+samples_by_study_plot = samples_by_study %>% 
+  ggplot(aes(x = fct_reorder(gse_id, -samples), weight = samples, fill = gse_id)) +
+  geom_bar() +
+  scale_fill_manual(name = "GSE ID", 
+        values = c("GSE199750" = "#80ed99",
+               "GSE201533" = "#5e60ce", 
+               "GSE201530" = "#7400b8",
+               "GSE206023" = "#4361ee",
+               "GSE189039" = "#48bfe3")) +
+  theme_minimal() +
+  theme(legend.position = "none",
+        axis.text.x = element_text(size = 15, color = "black", angle = 0),
+        axis.text.y = element_blank(), 
+        legend.text = element_text(size = 15),
+        legend.title = element_text(size = 20),
+        plot.title = element_text(size = 25),
+        axis.title.y = element_text(angle = 180, color = "white"),
+        panel.grid.major = element_blank(), 
+        panel.grid.minor = element_blank(),
+        plot.margin = margin(2, 2, 2, 2, "cm")) +
+  guides(fill=guide_legend(nrow=1,byrow=TRUE)) +
+  geom_text(aes(label = samples, y = samples),
+            position = position_dodge(width = 0), 
+            vjust = -0.2, 
+            size = 6,
+            angle = 0) +
+  ggtitle("Samples by GSE ID") +
+  labs(x = "")
+ggsave(samples_by_study_plot, file = here("Figures", "demographics_samples-by-study.png"), width = 10, height = 8)
+
+samples_by_study_plot
+```
+
 
 ### Age by GSE
 
@@ -1910,12 +2016,14 @@ demographics_days_samples_doses = ann_vaccines_conditions %>%
 
 
 
-demographics_plot_days_samples_doses = demographics_days_samples_doses %>% 
-  mutate(condition_2 = fct_relevel(condition_2, as.character(unique(demographics_days_samples_doses$condition_2))),
+demographics_plot_days_samples_doses = 
+  demographics_days_samples_doses %>% 
+  mutate(condition_2 = fct_relevel(condition_2,
+                                   as.character(unique(demographics_days_samples_doses$condition_2))),
          condition_2 = fct_rev(condition_2)) %>% 
   group_by(gse_id, dose_f) %>% 
   ggplot(.) +
-  aes(x = day_f,
+  aes(x = fct_reorder(day_f, day),
       y = condition_2, 
       fill = dose_f,
       size = samples,
@@ -2232,7 +2340,10 @@ colData <- infection_metadata
 
 dds <- DESeqDataSetFromMatrix(countData = countData, 
                               colData = colData, 
-                              design = ~ age + sex + condition)
+                              design = ~ age + 
+                                sex + 
+                                #variant + 
+                                condition)
 
 keep <- rowSums(counts(dds)) >= 10
 dds <- dds[keep,]
@@ -2358,6 +2469,7 @@ all_degs = all_degs_p_05_vac_infected %>%
 
 all_degs_total = all_degs %>% 
   pivot_wider(names_from = "direction", values_from = "n_degs") %>% 
+  group_by(condition) %>% 
   mutate(TOTAL = sum(DOWN + NEUTRAL + UP)) %>% 
   select(condition, DOWN:TOTAL)
 
@@ -2429,8 +2541,6 @@ ggsave(ggplot_degs_bars, file = here("Figures", "DEGs_up_down_barplot_pvalue05_1
 
 ggplot_degs_bars
 
-# ggplot_degs_bars %>% 
-#   ggplotly()
 ```
 Horizontal (all)
 ```{r fig.height=10, fig.width=10}
@@ -2459,8 +2569,10 @@ ggplot_degs_bars_directions = all_degs %>%
   theme(legend.position = "none",
             plot.title = element_text(size = 15, hjust = 0.5),
         strip.text.x = element_text(color = "black", size = 12), 
-        axis.text.x = element_blank(),
-        axis.text.y = element_text(vjust = 0.5, size = 10, color = "black")) +
+        axis.text.x = element_text(vjust = 0.5, size = 10, color = "black"),
+        axis.text.y = element_text(vjust = 0.5, size = 10, color = "black"),
+        panel.grid.minor.x = element_blank(),
+        panel.spacing.x = unit(2, "lines")) +
   labs(x = "Total",
        y = "",
        fill = "Direction",
@@ -2471,6 +2583,50 @@ ggplot_degs_bars_directions %>%
   ggsave(file = here("Figures", "DEGs_L2FC_directions_vertical.png"), width = 10, height = 10)
 
 ggplot_degs_bars_directions
+```
+
+Horizontal (Up and down)
+```{r fig.height=10, fig.width=10}
+
+ggplot_degs_bars_directions_up_down = all_degs %>%
+      mutate(condition = fct_relevel(condition, c(ann_vaccines_conditions_ordered$condition %>% as.character() %>% unique()))) %>% 
+  mutate(direction = case_when(direction == "UP" ~ "Up-regulated",
+                               direction == "DOWN" ~ "Down-regulated",
+                               TRUE ~ "Neutral")) %>% 
+  filter(direction != "Neutral") %>% 
+ ggplot() +
+  aes(y = fct_rev(condition), fill = type, x = n_degs) +
+  geom_col(position = "dodge") +
+  scale_fill_manual(values = ann_vaxsig_colors$type)+
+  # scale_fill_manual(
+  #   values = c("Down-regulated" = "#4DBBD5FF",
+  #   "Neutral" = "gray80",
+  #   "Up-regulated" = "#d90429")) +
+  theme_minimal() +
+  geom_text(aes(label = n_degs, x = n_degs), 
+            position = position_dodge(width = 0.9), 
+            angle = 0,
+            vjust = 0.5, 
+            hjust = -0.2, 
+            size = 3) +
+  scale_x_continuous(expand = c(0,0), limits = c(0, 4000))+
+  theme(legend.position = "none",
+            plot.title = element_text(size = 15, hjust = 0.5),
+        strip.text.x = element_text(color = "black", size = 12), 
+        axis.text.x = element_text(vjust = 0.5, size = 10, color = "black"),
+        axis.text.y = element_text(vjust = 0.5, size = 10, color = "black"),
+        panel.grid.minor.x = element_blank(),
+        panel.spacing.x = unit(2, "lines")) +
+  labs(x = "Total",
+       y = "",
+       fill = "Direction",
+       title = "Total DEGs, by direction. Threshold = |l2fc| > 1") +
+  facet_wrap(~direction)
+
+ggplot_degs_bars_directions_up_down %>% 
+  ggsave(file = here("Figures", "DEGs_L2FC_directions_up_down_vertical.png"), width = 10, height = 10)
+
+ggplot_degs_bars_directions_up_down
 ```
 Stacked
 ```{r fig.height=10, fig.width=10}
@@ -2544,8 +2700,8 @@ ggplot_degs_bars_2
 # library("biomaRt")
 # mart <- useMart("ensembl")
 # mart <- useDataset("hsapiens_gene_ensembl", mart)
-# gene_info <- getBM(attributes = c("entrezgene_id", "hgnc_symbol", "ensembl_gene_id", "gene_biotype", "start_position", "end_position"), 
-#                    mart = mart) 
+# gene_info <- getBM(attributes = c("entrezgene_id", "hgnc_symbol", "ensembl_gene_id", "gene_biotype", "start_position", "end_position"),
+#                    mart = mart)
 
 all_degs_totals = all_degs_p_05_vac_infected %>%
   group_by(condition) %>% 
@@ -2622,9 +2778,8 @@ all_degs_biotypes_plot_perc = all_degs_biotypes %>%
   scale_fill_bmj() +
   theme(legend.position = "right",
         plot.title = element_text(size = 15, color = "black", hjust = 0.5),
-
         strip.text.x = element_text(color = "black", size = 12), 
-        axis.text.x = element_text(angle = 0, vjust = 1, hjust=1, size = 10, color = "black"),
+        axis.text.x = element_text(angle = 0, vjust = 1, hjust=0.5, size = 10, color = "black"),
         axis.text.y = element_text(vjust = 0.5, size = 10, color = "black")) +
   labs(x = "%",
        y = "",
@@ -4801,9 +4956,9 @@ mutate(disease_vac = fct_relevel(disease_vac, "I", "V")) %>%
         axis.text.y = element_text(vjust = 0.5, size = 10, color = "black"),
     panel.grid.major.x = element_blank(),
     plot.title = element_text(size = 15, hjust = 0.5),
-    legend.title = element_text(size = 15),
-    legend.text = element_text(size = 15),
-    axis.title.x = element_text(size = 15,
+    legend.title = element_text(size = 10),
+    legend.text = element_text(size = 10),
+    axis.title.x = element_text(size = 10,
                                 color = "black"),
     strip.text.y = element_text(
       size = 15,
@@ -4861,10 +5016,10 @@ inner_join(ann_vaccines_conditions, by = "condition") %>%
         axis.text.x = element_text(angle = 0, vjust = 1, hjust=1, size = 10, color = "black"),
         axis.text.y = element_text(vjust = 0.5, size = 10, color = "black"),
     panel.grid.major.x = element_blank(),
-    plot.title = element_text(size = 15, hjust = 0.5),
-    legend.title = element_text(size = 15),
-    legend.text = element_text(size = 15),
-    axis.title.x = element_text(size = 15,
+    plot.title = element_text(size = 10, hjust = 0.5),
+    legend.title = element_text(size = 10),
+    legend.text = element_text(size = 10),
+    axis.title.x = element_text(size = 10,
                                 color = "black"),
     strip.text.y = element_text(
       size = 15,
@@ -4904,15 +5059,15 @@ ggsave(patch_maingo, file = here("Figures", "main_go_2_plot_values_AllDirections
 ```{r fig.height=10, fig.width=20}
 ggplot_degs_bars_directions_biotype_bps = 
   all_degs_biotypes_plot_totals + 
-  ggplot_degs_bars_directions +
+  ggplot_degs_bars_directions_up_down +
   # all_degs_biotypes_plot_perc_immune + 
   # all_degs_biotypes_plot_totals_immune + 
   # all_degs_biotypes_plot_perc + 
   main_go_2_plot_alldirections + 
-  plot_layout(guides = "collect", axes = "collect", nrow = 1, widths = c(1, 3, 3)) 
+  plot_layout(guides = "collect", axes = "collect", nrow = 1, widths = c(1, 2, 3)) 
 
 ggplot_degs_bars_directions_biotype_bps %>% 
-  ggsave(filename = here("Figures", "DEGs_Directions_Biotype_BioProcesses.png"),
+  ggsave(filename = here("Figures", "DEGs_Directions_Biotype_BioProcesses_Up_Down.png"),
          width = 20,
          height = 10)
 
