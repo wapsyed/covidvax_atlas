@@ -126,7 +126,7 @@ Read the recent version here:
 # install.packages("ggstatsplot")
 # install.packages("chorddiag")
 # devtools::install_github("cmartin/ggConvexHull")
-
+library(maditr)
 library(ggConvexHull)
 library(randomForest)
 library(ranger)
@@ -2912,8 +2912,7 @@ Input
 ```{r}
 # DEGs table
 degs_all_updown = read_rds(file = here("DGE analysis", "all_studies_degs_weighted.rds")) %>% 
-  filter(fdr <= 0.05,
-         !str_detect(condition, "\\(D0\\)$")) %>% 
+  filter(fdr <= 0.05) %>% 
   # filter(direction != "NEUTRAL") %>% 
   # mutate_all(~ replace(., is.na(.), "NA")) %>% 
   # filter(genes %in% btm_annotation_genes$genes) 
@@ -3035,7 +3034,6 @@ write_csv(shared_genes_df_mirror,
 #### Shared genes
 
 ```{r}
-library(maditr)
 matrix_data = shared_genes_df_mirror %>% 
   dcast(Cond1 ~ Cond2, 
         value.var = "Shared", 
@@ -3313,6 +3311,438 @@ draw(heatmap_plot_all, annotation_legend_side = "left")
 
 dev.off()
 ```
+
+
+Ordered by day
+```{r}
+# INPUT ------
+
+matrix_data = shared_genes_df_mirror %>% 
+  dcast(Cond1 ~ Cond2, 
+        value.var = "jaccard_distance", 
+        fun.aggregate = mean) %>% 
+  column_to_rownames("Cond1") %>%
+  mutate_if(is.character, as.numeric) %>% 
+  as.matrix() 
+
+ann_vaccines_complex = matrix_data %>% 
+  as.data.frame() %>%
+  rownames_to_column("condition") %>% 
+  select(condition) %>% 
+  inner_join(ann_vaccines, by = "condition") %>%
+  select(condition, vaccine:regimen, day, week) %>% 
+  distinct() 
+
+
+ann_vaccines_heatmap = matrix_data %>% 
+  colnames() %>% 
+  data.frame() %>% 
+  filter(. != "process") %>% 
+  rename(condition = '.') %>% 
+  merge(ann_vaccines_complex, by = "condition", all.x = TRUE) %>% 
+  arrange(condition) %>% 
+  relocate(dose, .before=vaccine) %>% 
+  column_to_rownames(var= "condition")  %>% 
+  mutate(dose = ifelse(is.na(dose), "NA", dose)) %>% 
+  arrange(day)
+
+matrix_data_ordered = matrix_data %>% 
+  t() %>% 
+  as.data.frame() %>% 
+  rownames_to_column(var= "condition") %>% 
+  merge(ann_vaccines_complex, by.y = "condition", all.x=TRUE) %>% 
+  arrange(day) %>% 
+  select(!c(vaccine:regimen, day, week)) %>% 
+  column_to_rownames("condition") %>% 
+  t() %>% 
+  as.data.frame() %>% 
+  mutate_if(is.character, as.numeric) %>% 
+  as.matrix()
+
+matrix_data_ordered_rows = matrix_data_ordered %>% 
+  as.data.frame() %>% 
+  rownames_to_column("condition") %>% 
+  filter(condition %in% c(matrix_data_ordered %>% colnames())) %>% 
+  arrange(match(condition, c(matrix_data_ordered %>% colnames()))) %>% 
+  column_to_rownames(var= "condition") %>% 
+  as.matrix()
+
+
+
+dim(matrix_data_ordered)
+dim(ann_vaccines_heatmap)
+
+col_fun <- colorRamp2(c(0, 0.70), c("white", "#d90429")) #Immune
+
+
+
+######## HEATMAP ANNOTATION
+ann_vaccines_heatmap = ann_vaccines_heatmap %>% 
+  select(type, vaccine, day) %>% 
+  mutate(day = as_factor(day),
+         day = fct_reorder(day, as.numeric(day)))
+
+ha = HeatmapAnnotation(df = ann_vaccines_heatmap, 
+                       col = ann_vaxsig_colors, 
+                       annotation_name_side = "left",
+                       show_legend = F)
+
+row_ha = rowAnnotation(df = ann_vaccines_heatmap, 
+                       col = ann_vaxsig_colors)
+
+
+
+mat = matrix_data_ordered_rows
+width_image = 40
+height_image = 40
+width = unit(20, "cm")
+height = unit(20, "cm")
+column_names_gp = gpar(fontsize = 10)
+row_names_gp = gpar(fontsize = 10)
+gp = gpar(fontsize = 5)
+rect_gp = gpar(col = "gray1", lwd = 0)
+
+
+
+fileimageheatmap_grouped = paste0(filename, sep ="_", "Jaccard_Heatmap_ByDay.png")
+
+png(
+  file = here("Figures", fileimageheatmap_grouped),
+  width = width_image,
+  height = height_image,
+  units = "cm",
+  res = 900
+)
+
+heatmap_plot_all = Heatmap(mat,
+                        top_annotation = ha,
+                        left_annotation = row_ha,
+                        show_row_names = TRUE,
+                        show_heatmap_legend = TRUE,
+                        heatmap_legend_param = list(direction = "horizontal"),
+                        name = "Shared DEGs", #Legend
+                        col = col_fun, #color
+                         cell_fun = function(j, i, x, y, width, height, fill) {
+  if (!is.na(mat[i, j]) && mat[i, j] > 0.01) {
+    grid.text(sprintf("%.2f", mat[i, j]), x, y, gp = gpar(fontsize = 5))
+  }
+},
+                        column_title = fileimageheatmap_grouped,
+                        column_title_gp = gpar(fontsize = 15, fontface = "bold"),
+                        column_names_rot = 90,
+                        column_names_gp = column_names_gp,
+                        cluster_rows = F,
+                        rect_gp = rect_gp,
+                        row_names_gp = row_names_gp,
+                        # row_split = 2, #Split row clusters
+                        row_gap = unit(2, "mm"),
+                        cluster_columns = F,
+                        na_col = "black",
+                        column_split = NULL, #Split group clusters
+                        #column_km = 3,
+                        column_gap = unit(8, "mm"),
+                        show_column_dend = F,
+                        show_row_dend = F,
+                        row_dend_side = "left",
+                        column_dend_side = "top",
+                        clustering_distance_rows = "euclidean",
+                        border = TRUE,
+                        column_dend_reorder = TRUE,
+                        width = width, 
+                        height = height
+)
+
+draw(heatmap_plot_all, annotation_legend_side = "left")
+
+dev.off()
+
+```
+
+Ordered by condition
+```{r}
+# INPUT ------
+
+matrix_data = shared_genes_df_mirror %>% 
+  dcast(Cond1 ~ Cond2, 
+        value.var = "jaccard_distance", 
+        fun.aggregate = mean) %>% 
+  column_to_rownames("Cond1") %>%
+  mutate_if(is.character, as.numeric) %>% 
+  as.matrix() 
+
+ann_vaccines_complex = matrix_data %>% 
+  as.data.frame() %>%
+  rownames_to_column("condition") %>% 
+  select(condition) %>% 
+  inner_join(ann_vaccines, by = "condition") %>%
+  select(condition, vaccine:regimen, day, week) %>% 
+  distinct() 
+
+
+ann_vaccines_heatmap = matrix_data %>% 
+  colnames() %>% 
+  data.frame() %>% 
+  filter(. != "process") %>% 
+  rename(condition = '.') %>% 
+  merge(ann_vaccines_complex, by = "condition", all.x = TRUE) %>% 
+  arrange(match(condition, c(ann_vaccines_conditions_ordered$condition %>% as.character()))) %>% 
+  relocate(dose, .before=vaccine) %>% 
+  column_to_rownames(var= "condition")  %>% 
+  mutate(dose = ifelse(is.na(dose), "NA", dose)) 
+
+matrix_data_ordered = matrix_data %>% 
+  t() %>% 
+  as.data.frame() %>% 
+  rownames_to_column(var= "condition") %>% 
+  merge(ann_vaccines_complex, by.y = "condition", all.x=TRUE) %>% 
+  arrange(match(condition, c(ann_vaccines_conditions_ordered$condition %>% as.character()))) %>% 
+  select(!c(vaccine:regimen, day, week)) %>% 
+  column_to_rownames("condition") %>% 
+  t() %>% 
+  as.data.frame() %>% 
+  mutate_if(is.character, as.numeric) %>% 
+  as.matrix()
+
+matrix_data_ordered_rows = matrix_data_ordered %>% 
+  as.data.frame() %>% 
+  rownames_to_column("condition") %>% 
+  arrange(match(condition, c(ann_vaccines_conditions_ordered$condition %>% as.character()))) %>% 
+  column_to_rownames(var= "condition") %>% 
+  as.matrix()
+
+
+
+dim(matrix_data_ordered)
+dim(ann_vaccines_heatmap)
+
+col_fun <- colorRamp2(c(0, 0.70), c("white", "#d90429")) #Immune
+
+
+
+######## HEATMAP ANNOTATION
+ann_vaccines_heatmap = ann_vaccines_heatmap %>% 
+  select(type, vaccine, day) %>% 
+  mutate(day = as_factor(day),
+         day = fct_reorder(day, as.numeric(day)))
+
+ha = HeatmapAnnotation(df = ann_vaccines_heatmap, 
+                       col = ann_vaxsig_colors, 
+                       annotation_name_side = "left",
+                       show_legend = F)
+
+row_ha = rowAnnotation(df = ann_vaccines_heatmap, 
+                       col = ann_vaxsig_colors)
+
+
+
+mat = matrix_data_ordered_rows
+width_image = 40
+height_image = 40
+width = unit(20, "cm")
+height = unit(20, "cm")
+column_names_gp = gpar(fontsize = 10)
+row_names_gp = gpar(fontsize = 10)
+gp = gpar(fontsize = 5)
+rect_gp = gpar(col = "gray1", lwd = 0)
+
+
+
+fileimageheatmap_grouped = paste0(filename, sep ="_", "Jaccard_Heatmap_ByCondition.png")
+
+png(
+  file = here("Figures", fileimageheatmap_grouped),
+  width = width_image,
+  height = height_image,
+  units = "cm",
+  res = 900
+)
+
+heatmap_plot_all = Heatmap(mat,
+                        top_annotation = ha,
+                        left_annotation = row_ha,
+                        show_row_names = TRUE,
+                        show_heatmap_legend = TRUE,
+                        heatmap_legend_param = list(direction = "horizontal"),
+                        name = "Shared DEGs", #Legend
+                        col = col_fun, #color
+                         cell_fun = function(j, i, x, y, width, height, fill) {
+  if (!is.na(mat[i, j]) && mat[i, j] > 0.01) {
+    grid.text(sprintf("%.2f", mat[i, j]), x, y, gp = gpar(fontsize = 5))
+  }
+},
+                        column_title = fileimageheatmap_grouped,
+                        column_title_gp = gpar(fontsize = 15, fontface = "bold"),
+                        column_names_rot = 90,
+                        column_names_gp = column_names_gp,
+                        cluster_rows = F,
+                        rect_gp = rect_gp,
+                        row_names_gp = row_names_gp,
+                        # row_split = 2, #Split row clusters
+                        row_gap = unit(2, "mm"),
+                        cluster_columns = F,
+                        na_col = "black",
+                        column_split = NULL, #Split group clusters
+                        #column_km = 3,
+                        column_gap = unit(8, "mm"),
+                        show_column_dend = F,
+                        show_row_dend = F,
+                        row_dend_side = "left",
+                        column_dend_side = "top",
+                        clustering_distance_rows = "euclidean",
+                        border = TRUE,
+                        column_dend_reorder = TRUE,
+                        width = width, 
+                        height = height
+)
+
+draw(heatmap_plot_all, annotation_legend_side = "left")
+
+dev.off()
+
+```
+Ordered by condition and clustered by cols
+```{r}
+# INPUT ------
+
+matrix_data = shared_genes_df_mirror %>% 
+  dcast(Cond1 ~ Cond2, 
+        value.var = "jaccard_distance", 
+        fun.aggregate = mean) %>% 
+  column_to_rownames("Cond1") %>%
+  mutate_if(is.character, as.numeric) %>% 
+  as.matrix() 
+
+ann_vaccines_complex = matrix_data %>% 
+  as.data.frame() %>%
+  rownames_to_column("condition") %>% 
+  select(condition) %>% 
+  inner_join(ann_vaccines, by = "condition") %>%
+  select(condition, vaccine:regimen, day, week) %>% 
+  distinct() 
+
+
+ann_vaccines_heatmap = matrix_data %>% 
+  colnames() %>% 
+  data.frame() %>% 
+  filter(. != "process") %>% 
+  rename(condition = '.') %>% 
+  merge(ann_vaccines_complex, by = "condition", all.x = TRUE) %>% 
+  arrange(match(condition, c(ann_vaccines_conditions_ordered$condition %>% as.character()))) %>% 
+  relocate(dose, .before=vaccine) %>% 
+  column_to_rownames(var= "condition")  %>% 
+  mutate(dose = ifelse(is.na(dose), "NA", dose)) 
+
+matrix_data_ordered = matrix_data %>% 
+  t() %>% 
+  as.data.frame() %>% 
+  rownames_to_column(var= "condition") %>% 
+  merge(ann_vaccines_complex, by.y = "condition", all.x=TRUE) %>% 
+  arrange(match(condition, c(ann_vaccines_conditions_ordered$condition %>% as.character()))) %>% 
+  select(!c(vaccine:regimen, day, week)) %>% 
+  column_to_rownames("condition") %>% 
+  t() %>% 
+  as.data.frame() %>% 
+  mutate_if(is.character, as.numeric) %>% 
+  as.matrix()
+
+matrix_data_ordered_rows = matrix_data_ordered %>% 
+  as.data.frame() %>% 
+  rownames_to_column("condition") %>% 
+  arrange(match(condition, c(ann_vaccines_conditions_ordered$condition %>% as.character()))) %>% 
+  column_to_rownames(var= "condition") %>% 
+  as.matrix()
+
+
+
+dim(matrix_data_ordered)
+dim(ann_vaccines_heatmap)
+
+col_fun <- colorRamp2(c(0, 0.70), c("white", "#d90429")) #Immune
+
+
+
+######## HEATMAP ANNOTATION
+ann_vaccines_heatmap = ann_vaccines_heatmap %>% 
+  select(type, vaccine, day) %>% 
+  mutate(day = as_factor(day),
+         day = fct_reorder(day, as.numeric(day)))
+
+ha = HeatmapAnnotation(df = ann_vaccines_heatmap, 
+                       col = ann_vaxsig_colors, 
+                       annotation_name_side = "left",
+                       show_legend = F)
+
+row_ha = rowAnnotation(df = ann_vaccines_heatmap, 
+                       col = ann_vaxsig_colors)
+
+
+
+mat = matrix_data_ordered_rows
+width_image = 40
+height_image = 40
+width = unit(20, "cm")
+height = unit(20, "cm")
+column_names_gp = gpar(fontsize = 10)
+row_names_gp = gpar(fontsize = 10)
+gp = gpar(fontsize = 5)
+rect_gp = gpar(col = "gray1", lwd = 0)
+
+
+
+fileimageheatmap_grouped = paste0(filename, sep ="_", "Jaccard_Heatmap_ByCondition_Colclustered.png")
+
+png(
+  file = here("Figures", fileimageheatmap_grouped),
+  width = width_image,
+  height = height_image,
+  units = "cm",
+  res = 900
+)
+
+heatmap_plot_all = Heatmap(mat,
+                        top_annotation = ha,
+                        left_annotation = row_ha,
+                        show_row_names = TRUE,
+                        show_heatmap_legend = TRUE,
+                        heatmap_legend_param = list(direction = "horizontal"),
+                        name = "Jaccard distance", #Legend
+                        col = col_fun, #color
+                         cell_fun = function(j, i, x, y, width, height, fill) {
+  if (!is.na(mat[i, j]) && mat[i, j] > 0.01) {
+    grid.text(sprintf("%.2f", mat[i, j]), x, y, gp = gpar(fontsize = 5))
+  }
+},
+                        column_title = fileimageheatmap_grouped,
+                        column_title_gp = gpar(fontsize = 15, fontface = "bold"),
+                        column_names_rot = 90,
+                        column_names_gp = column_names_gp,
+                        cluster_rows = F,
+                        rect_gp = rect_gp,
+                        row_names_gp = row_names_gp,
+                        # row_split = 2, #Split row clusters
+                        row_gap = unit(2, "mm"),
+                        cluster_columns = T,
+                        na_col = "black",
+                        column_split = NULL, #Split group clusters
+                        #column_km = 3,
+                        column_gap = unit(8, "mm"),
+                        show_column_dend = F,
+                        show_row_dend = F,
+                        row_dend_side = "left",
+                        column_dend_side = "top",
+                        clustering_distance_rows = "euclidean",
+                        border = TRUE,
+                        column_dend_reorder = TRUE,
+                        width = width, 
+                        height = height
+)
+
+draw(heatmap_plot_all, annotation_legend_side = "left")
+
+dev.off()
+
+```
+
 
 ### Chord diagram
 
@@ -5077,7 +5507,7 @@ ggplot_degs_bars_directions_biotype_bps
 
 
 
-w######  Immune vs. non-immune genes
+######  Immune vs. non-immune genes
 
 Totals
 ```{r fig.height=10, fig.width=10}
