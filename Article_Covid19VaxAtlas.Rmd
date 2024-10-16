@@ -1541,7 +1541,8 @@ ann_vaccines_conditions = ann_vaccines_samples %>%
          week = if_else(str_detect(condition, "D0\\)"), 0, week),
          disease_vac = if_else(disease_vac == "Healthy", "H", disease_vac)) %>% 
   distinct() %>% 
-  ungroup()
+  ungroup() %>% 
+  mutate(week = ceiling(day / 7)) %>% 
 
 ann_vaccines_conditions %>% 
   write_csv(here("Annotations and metadata", "ann_vaccines_conditions.csv"))
@@ -5881,7 +5882,7 @@ immune_other_plot_diseaseorvac_V  = degs_immune %>%
   facet_grid(~disease_vac~direction, scales = "free_x")
 
 patch_immune_degs = immune_other_plot_diseaseorvac_I / immune_other_plot_diseaseorvac_V +
-  plot_layout(heights = c(1, 0.7)) +
+  plot_layout(heights = c(0.5, 1)) +
   plot_annotation(title = "ImmuneGO genes")  
 
 ggsave(patch_immune_degs, file = here("Figures", "immune_other_plot_diseaseorvac_percentage.png"), width = 10, height = 10)
@@ -5899,7 +5900,6 @@ patch_immune_degs
 ```{r}
 
 degs_all_updown = all_degs_p_05_vac_infected %>% 
-  filter(direction != "NEUTRAL") %>% 
   distinct()
 
 ImmuneGO_Annotated_Genes = readRDS(here("VaxGO gene sets", "ImmuneGO_Annotated_Genes_2024-03-26.rds"))
@@ -6083,7 +6083,6 @@ patch
 
 ```{r}
 degs_all_updown = all_degs_p_05_vac_infected %>% 
-  # filter(direction != "NEUTRAL") %>% 
   distinct()
 
 ImmuneGO_Annotated_Genes = ImmuneGO_Annotated_Genes
@@ -6981,8 +6980,8 @@ Input
 ```{r}
 #Gene sets
 
-all_degs_p_05_vac_infected = readRDS(here("DGE analysis","all_studies_degs_weighted.rds"))
-
+all_degs_p_05_vac_infected = readRDS(here("DGE analysis","all_studies_degs_weighted.rds")) %>% 
+  filter(if_else(n >= 6, fdr <= 0.05, fdr <= (0.05 * 6/n))) 
 
 ImmuneGO_Annotated_Genes = readRDS(here("VaxGO gene sets", "ImmuneGO_Annotated_Genes_2024-03-26.rds"))
 
@@ -7361,6 +7360,8 @@ Main processes
 ```{r fig.height=8, fig.width=12}
 library(ggdendro)
 library(cowplot)
+
+
 
 all_degs_p_05_vac_infected_Immune_GO_T2G_general_GSEA_ALL <- read_csv("Gene set enrichment analysis/all_degs_p_05_vac_infected_Immune_GO_T2G_general_GSEA_ALL.csv")
 
@@ -7924,6 +7925,8 @@ patch_immune_specific = labels_type /
                                 legend.direction = "horizontal", 
                                 legend.box = "horizontal"))
 patch_immune_specific
+  
+  
 
 patch_immune_specific %>% 
   ggsave(filename = here("Figures", "GSEA_ImmuneGO_Specific_Bubbleplot.png"),
@@ -7942,6 +7945,7 @@ patch_immune_specific %>%
 
 
 
+
 ### ssGSEA: CellMarker
 ```{r}
 library(corto)
@@ -7957,7 +7961,10 @@ all_samples_l2fc <- readRDS(here("DGE analysis", "all_samples_l2fc.rds")) %>%
            pull(condition)))
 
 head(all_samples_l2fc)
+```
 
+
+```{r}
 ######## CELL MARKER IMMUNE ---------
 
 CellMarker_ImmuneCells = read_csv(here("VaxGO gene sets", "CellMarker_ImmuneCells.csv"))
@@ -7971,7 +7978,7 @@ CellMarker_genes = CellMarker_ImmuneCells %>%
 
 ############## Inputs
 
-ssgsea_gene = normalized_counts 
+ssgsea_gene = all_samples_l2fc 
 metadata = ann_vaccines_samples 
 filename = "covid_all"
 go_dataset = "CellMarkerImmune"
@@ -8029,7 +8036,10 @@ library(immunedeconv)
 library(tidyverse)
 
 all_matrices_counts <- readRDS(here("DGE analysis", "all_matrices_counts.rds"))
-all_matrices_counts_matrix = all_matrices_counts %>% 
+all_matrices_counts_l2fc = all_samples_l2fc %>% 
+  select(genes, sample, log2fc) %>% 
+  pivot_wider(names_from = "sample",
+              values_from = "log2fc") %>% 
   column_to_rownames("genes") %>% 
   as.matrix()
 
@@ -8040,7 +8050,7 @@ all_matrices_counts_tpm_normalized <- readRDS(here("DGE analysis", "all_matrices
 #### XCell ssGSEA
 ```{r fig.height=6, fig.width=12}
 #XCell (ssGSEA) ----
-xcell_results = immunedeconv::deconvolute(all_matrices_counts_matrix, "xcell") 
+xcell_results = immunedeconv::deconvolute(all_matrices_counts_l2fc, "xcell") 
 
 xcell_results %>% 
   write_csv(file = here("Cell populations", "all_covid_degs_xcell_results.csv"))
@@ -8056,21 +8066,27 @@ xcell_results_annotated = xcell_results %>%
   mutate(disease_vac = if_else(disease_vac == "Healthy", "H", disease_vac)) %>% 
   mutate(disease_vac = fct_relevel(disease_vac, "H", "I", "V"),
            type = fct_relevel(type, "I", "RNA", "VV", "IN", "SU")) %>% 
-  arrange(disease_vac,type, condition) %>% 
-  inner_join(ann_vaccines_conditions %>% select(condition, samples), by = "condition")
+  inner_join(ann_vaccines_conditions %>% select(condition_grouped = condition), by = join_by("condition_grouped")) %>% 
+  select(-condition) %>% 
+  rename(condition = condition_grouped) %>% 
+  mutate(condition = fct_relevel(condition, 
+                                 ann_vaccines_conditions_ordered$condition_grouped %>% as.character()%>% unique())) %>% 
+  mutate(type = if_else(condition == "BNT-I (D0-5)", "RNA", type))
+
+```
 
 
-
+```{r fig.height=6, fig.width=12}
 #boxplot
 xcell_results_annotated_2_plot =  xcell_results_annotated %>% 
-  mutate(condition = fct_relevel(condition, 
-                                 ann_vaccines_conditions_ordered$condition %>% unique())) %>% 
   filter(cell_type == "B cell") %>% 
   ggplot() +
-  aes(x = condition, y = value, fill = if_else(day == 0, "Day 0", type)) +  
+  aes(x = condition, y = value, 
+      fill = if_else(day == 0 & disease_vac != "I", "Day 0", type)
+      ) +  
   geom_hline(yintercept = 0, linetype = 2) +
   geom_jitter(aes(color = if_else(day == 0, "Day 0", type)),
-              alpha = 0.3, size = 0.1) +
+              alpha = 0.3, size = 0.5) +
   geom_boxplot(outliers = F) +
   theme_few() +
   scale_fill_manual(values = c("Day 0" = "white", 
@@ -8089,9 +8105,10 @@ xcell_results_annotated_2_plot =  xcell_results_annotated %>%
        x="",
        subtitle = "By week",
        fill = "Type") +
-  guides(color = "none") +
-  facet_wrap(~disease_vac, scales = "free_x")
+  guides(color = "none") 
 
+
+xcell_results_annotated_2_plot
 ```
 
 
@@ -8105,9 +8122,9 @@ create_boxplots <- function(result_df) {
     cellmarker_boxplot <- result_df %>% 
       filter(cell_type == process_name) %>% 
   ggplot() +
-  aes(x = condition, y = value, fill = if_else(day == 0, "Day 0", type)) +  
+  aes(x = condition, y = value, fill = type) +  
   geom_hline(yintercept = 0, linetype = 2) +
-  geom_jitter(aes(color = if_else(day == 0, "Day 0", type)),
+  geom_jitter(aes(color = type),
               alpha = 0.3, size = 0.1) +
   geom_boxplot(outliers = F) +
   theme_few() +
@@ -8125,8 +8142,7 @@ create_boxplots <- function(result_df) {
        x="",
        subtitle = "By week",
        fill = "Type") +
-  guides(color = "none") +
-  facet_wrap(~disease_vac, scales = "free_x")
+  guides(color = "none")
 
     ggsave(cellmarker_boxplot, 
            file = here("Figures", "XCell", paste0("ssgsea_xcell_boxplot_", process_name, ".png")),
@@ -8135,7 +8151,7 @@ create_boxplots <- function(result_df) {
 }
 
 # Apply to all processes
-create_boxplots(xcell_results_annotated_2_plot)
+create_boxplots(xcell_results_annotated)
 ```
 
 
