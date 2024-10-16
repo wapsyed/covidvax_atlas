@@ -2393,7 +2393,7 @@ gse199750_metadata = ann_vaccines_samples %>%
   filter(gse_id == "GSE199750")
 
 countData <- gse199750_counts_ready %>% 
-  select(gse199750_metadata$sample)
+  select(c(gse199750_metadata$sample))
 
 colData <- gse199750_metadata %>% 
   select(sample, everything()) %>% 
@@ -2581,7 +2581,7 @@ all_degs = bind_rows(gse199750_DEGs,
                      gse201533_DEGs,
                      gse206023_DEGs,
                      infection_DEGs) %>% 
-  rename(condition_grouped = condition) 
+  mutate(condition = if_else(condition == "ChAd (V3, D1)", "BNT (V3, D1)", condition))
 
 #Save
 all_degs %>% 
@@ -2596,31 +2596,35 @@ all_degs
 
 all_degs_annotated = all_degs %>%
   inner_join(ann_vaccines_conditions %>% 
-               select(condition_grouped, n = samples) %>% 
+               select(condition, n = samples) %>% 
                distinct(),
-             by = "condition_grouped") %>%
+             by = "condition") %>%
   mutate(pvalue = if_else(is.na(pvalue), 1, pvalue)) %>% 
-  select(-padj)
+  select(-padj) %>% 
+  clean_names()
+
+all_degs_annotated$condition %>% unique()
 
 all_studies_degs_weighted = all_degs_annotated %>%
-  group_by(genes, condition_grouped) %>%
+  group_by(genes, condition) %>%
   arrange(genes) %>% 
   summarise(
-    meta_p = pvalue/sqrt(n)
+    n = sum(n),
+    meta_p = pvalue/sqrt(n),
+    log2fold_change = log2fold_change
   ) %>% 
-  inner_join(all_degs_annotated, by = join_by("genes", "condition_grouped"))  %>% 
-  mutate(fdr = p.adjust(meta_p, method = "BH"),
-         direction = case_when(log2FoldChange >= 1 ~ "UP",
-                               log2FoldChange <= -1 ~ "DOWN",
-                               .default = "NEUTRAL")) %>% 
-  clean_names() %>% 
-  select(genes, condition_grouped, log2fold_change, direction, meta_p, fdr, n)
+  distinct() %>% 
+  ungroup()
 
-all_studies_degs_weighted
+all_studies_degs_weighted = all_studies_degs_weighted %>% 
+  mutate(fdr = p.adjust(meta_p, method = "BH"),
+         direction = case_when(log2fold_change >= 1 ~ "UP",
+                               log2fold_change <= -1 ~ "DOWN",
+                               .default = "NEUTRAL"))
+
 
 all_studies_degs_weighted %>% 
   saveRDS(file = here("DGE analysis", "all_studies_degs_weighted.rds"))
-
 ```
 
 
@@ -2631,12 +2635,12 @@ all_studies_degs_weighted %>%
 ```{r}
 #Required files
 all_degs_p_05_vac_infected = read_rds(file = here("DGE analysis", "all_studies_degs_weighted.rds")) %>%
-  filter(if_else(n >= 5, fdr <= 0.05, fdr <= (0.05 * 5/n)))
+  filter(if_else(n >= 5, fdr <= 0.05, fdr <= (0.05 * 6/n))) 
+
+ann_vaccines_conditions = read_csv(here("Annotations and metadata", "ann_vaccines_conditions.csv"))
 
 
-ann_vaccines = read_csv(here("Annotations and metadata", "ann_vaccines_conditions.csv")) %>% 
-  mutate()
-
+ann_vaccines = ann_vaccines_conditions
 all_degs = all_degs_p_05_vac_infected %>% 
   group_by(condition, direction) %>% 
   summarise(n_degs = n()) %>% 
@@ -2647,17 +2651,18 @@ all_degs_total = all_degs %>%
   pivot_wider(names_from = "direction", values_from = "n_degs") %>% 
   group_by(condition) %>% 
   mutate(TOTAL = sum(DOWN + NEUTRAL + UP)) %>% 
-  select(condition, DOWN:TOTAL)
+  select(condition, DOWN:TOTAL) %>% 
+  distinct()
 
 all_degs_total
 ```
 
 By vaccination or disease
 
-```{r fig.height=6, fig.width=10}
+```{r fig.height=6, fig.width=6}
 # Plot 1
 ggplot_degs_bars_I = all_degs %>%
-    mutate(condition = fct_relevel(condition, c(ann_vaccines_conditions_ordered$condition %>% as.character() %>% unique()))) %>% 
+    mutate(condition = fct_relevel(condition, c(ann_vaccines_conditions_ordered$condition_grouped %>% as.character() %>% unique()))) %>% 
  filter(disease_vac == "I") %>% 
  ggplot() +
   aes(x = condition, fill = direction, weight = n_degs) +
@@ -2667,7 +2672,7 @@ ggplot_degs_bars_I = all_degs %>%
     NEUTRAL = "gray80",
     UP = "#d90429")) +
   theme_few() +
-  ylim(0, 6000) +
+  # ylim(0, 6000) +
   geom_text(aes(label = n_degs, y = n_degs), 
             position = position_dodge(width = 0.9), 
             angle = 90,
@@ -2682,9 +2687,10 @@ ggplot_degs_bars_I = all_degs %>%
        fill = "",
        title = "Infection")
 
+ggplot_degs_bars_I
 
 ggplot_degs_bars_V = all_degs %>%
-      mutate(condition = fct_relevel(condition, c(ann_vaccines_conditions_ordered$condition %>% as.character() %>% unique()))) %>% 
+      mutate(condition = fct_relevel(condition, c(ann_vaccines_conditions_ordered$condition_grouped %>% as.character() %>% unique()))) %>% 
  filter(disease_vac == "V") %>% 
  ggplot() +
   aes(x = condition, fill = direction, weight = n_degs) +
@@ -2722,7 +2728,7 @@ Horizontal (all)
 ```{r fig.height=10, fig.width=10}
 
 ggplot_degs_bars_directions = all_degs %>%
-      mutate(condition = fct_relevel(condition, c(ann_vaccines_conditions_ordered$condition %>% as.character() %>% unique()))) %>% 
+      mutate(condition = fct_relevel(condition, c(ann_vaccines_conditions_ordered$condition_grouped %>% as.character() %>% unique()))) %>% 
   mutate(direction = case_when(direction == "UP" ~ "Up-regulated",
                                direction == "DOWN" ~ "Down-regulated",
                                TRUE ~ "Neutral")) %>% 
@@ -2765,7 +2771,7 @@ Horizontal (Up and down)
 ```{r fig.height=10, fig.width=10}
 
 ggplot_degs_bars_directions_up_down = all_degs %>%
-      mutate(condition = fct_relevel(condition, c(ann_vaccines_conditions_ordered$condition %>% as.character() %>% unique()))) %>% 
+      mutate(condition = fct_relevel(condition, c(ann_vaccines_conditions_ordered$condition_grouped %>% as.character() %>% unique()))) %>% 
   mutate(direction = case_when(direction == "UP" ~ "Up-regulated",
                                direction == "DOWN" ~ "Down-regulated",
                                TRUE ~ "Neutral")) %>% 
@@ -2785,7 +2791,7 @@ ggplot_degs_bars_directions_up_down = all_degs %>%
             vjust = 0.5, 
             hjust = -0.2, 
             size = 3) +
-  scale_x_continuous(expand = c(0,0), limits = c(0, 4000))+
+  scale_x_continuous(expand = c(0,0), limits = c(0, 3500))+
   theme(legend.position = "none",
             plot.title = element_text(size = 15, hjust = 0.5),
         strip.text.x = element_text(color = "black", size = 12), 
@@ -2808,7 +2814,7 @@ Stacked
 ```{r fig.height=10, fig.width=10}
 
 all_degs %>%
-      mutate(condition = fct_relevel(condition, c(ann_vaccines_conditions_ordered$condition %>% as.character() %>% unique()))) %>% 
+      mutate(condition = fct_relevel(condition, c(ann_vaccines_conditions_ordered$condition_grouped %>% as.character() %>% unique()))) %>% 
   mutate(direction = case_when(direction == "UP" ~ "Up-regulated",
                                direction == "DOWN" ~ "Down-regulated",
                                TRUE ~ "Neutral"),
@@ -2914,7 +2920,7 @@ all_degs_biotypes_plot_totals = all_degs_biotypes %>%
                                             "To be Experimentally Confirmed"
                                             ),
          title = "Total DEGs by biotype",
-         condition = fct_relevel(condition, c(ann_vaccines_conditions_ordered$condition %>% 
+         condition = fct_relevel(condition, c(ann_vaccines_conditions_ordered$condition_grouped %>% 
                                                 as.character() %>% 
                                                 unique()))) %>% 
   ggplot(.) +
@@ -2944,7 +2950,7 @@ all_degs_biotypes_plot_perc = all_degs_biotypes %>%
                                             "To be Experimentally Confirmed"
                                             ),
          title = "%DEGs by biotype",
-         condition = fct_relevel(condition, c(ann_vaccines_conditions_ordered$condition %>% 
+         condition = fct_relevel(condition, c(ann_vaccines_conditions_ordered$condition_grouped %>% 
                                                 as.character() %>% 
                                                 unique()))) %>% 
   ggplot(.) +
@@ -3012,7 +3018,7 @@ all_degs_biotypes_plot_totals_immune = all_degs_biotypes_immune %>%
                                             "To be Experimentally Confirmed"
                                             ),
          title = "Total Immune DEGs by biotype",
-         condition = fct_relevel(condition, c(ann_vaccines_conditions_ordered$condition %>% 
+         condition = fct_relevel(condition, c(ann_vaccines_conditions_ordered$condition_grouped %>% 
                                                 as.character() %>% 
                                                 unique()))) %>% 
   ggplot(.) +
@@ -3041,7 +3047,7 @@ all_degs_biotypes_plot_perc_immune = all_degs_biotypes_immune %>%
                                             "To be Experimentally Confirmed"
                                             ),
          title = "%Immune DEGs by biotype",
-         condition = fct_relevel(condition, c(ann_vaccines_conditions_ordered$condition %>% 
+         condition = fct_relevel(condition, c(ann_vaccines_conditions_ordered$condition_grouped %>% 
                                                 as.character() %>% 
                                                 unique()))) %>% 
   ggplot(.) +
@@ -3088,7 +3094,7 @@ Input
 ```{r}
 # DEGs table
 degs_all_updown = read_rds(file = here("DGE analysis", "all_studies_degs_weighted.rds")) %>% 
-  filter(fdr <= 0.05) %>% 
+  filter(if_else(n >= 5, fdr <= 0.05, fdr <= (0.05 * 6/n))) %>% 
   # filter(direction != "NEUTRAL") %>% 
   # mutate_all(~ replace(., is.na(.), "NA")) %>% 
   # filter(genes %in% btm_annotation_genes$genes) 
@@ -3661,7 +3667,7 @@ ann_vaccines_heatmap = matrix_data %>%
   filter(. != "process") %>% 
   rename(condition = '.') %>% 
   merge(ann_vaccines_complex, by = "condition", all.x = TRUE) %>% 
-  arrange(match(condition, c(ann_vaccines_conditions_ordered$condition %>% as.character()))) %>% 
+  arrange(match(condition, c(ann_vaccines_conditions_ordered$condition_grouped %>% as.character()))) %>% 
   relocate(dose, .before=vaccine) %>% 
   column_to_rownames(var= "condition")  %>% 
   mutate(dose = ifelse(is.na(dose), "NA", dose)) 
@@ -3671,7 +3677,7 @@ matrix_data_ordered = matrix_data %>%
   as.data.frame() %>% 
   rownames_to_column(var= "condition") %>% 
   merge(ann_vaccines_complex, by.y = "condition", all.x=TRUE) %>% 
-  arrange(match(condition, c(ann_vaccines_conditions_ordered$condition %>% as.character()))) %>% 
+  arrange(match(condition, c(ann_vaccines_conditions_ordered$condition_grouped %>% as.character()))) %>% 
   select(!c(vaccine:regimen, day, week)) %>% 
   column_to_rownames("condition") %>% 
   t() %>% 
@@ -3682,7 +3688,7 @@ matrix_data_ordered = matrix_data %>%
 matrix_data_ordered_rows = matrix_data_ordered %>% 
   as.data.frame() %>% 
   rownames_to_column("condition") %>% 
-  arrange(match(condition, c(ann_vaccines_conditions_ordered$condition %>% as.character()))) %>% 
+  arrange(match(condition, c(ann_vaccines_conditions_ordered$condition_grouped %>% as.character()))) %>% 
   column_to_rownames(var= "condition") %>% 
   as.matrix()
 
@@ -3803,7 +3809,7 @@ ann_vaccines_heatmap = matrix_data %>%
   filter(. != "process") %>% 
   rename(condition = '.') %>% 
   merge(ann_vaccines_complex, by = "condition", all.x = TRUE) %>% 
-  arrange(match(condition, c(ann_vaccines_conditions_ordered$condition %>% as.character()))) %>% 
+  arrange(match(condition, c(ann_vaccines_conditions_ordered$condition_grouped %>% as.character()))) %>% 
   relocate(dose, .before=vaccine) %>% 
   column_to_rownames(var= "condition")  %>% 
   mutate(dose = ifelse(is.na(dose), "NA", dose)) 
@@ -3813,7 +3819,7 @@ matrix_data_ordered = matrix_data %>%
   as.data.frame() %>% 
   rownames_to_column(var= "condition") %>% 
   merge(ann_vaccines_complex, by.y = "condition", all.x=TRUE) %>% 
-  arrange(match(condition, c(ann_vaccines_conditions_ordered$condition %>% as.character()))) %>% 
+  arrange(match(condition, c(ann_vaccines_conditions_ordered$condition_grouped %>% as.character()))) %>% 
   select(!c(vaccine:regimen, day, week)) %>% 
   column_to_rownames("condition") %>% 
   t() %>% 
@@ -3824,7 +3830,7 @@ matrix_data_ordered = matrix_data %>%
 matrix_data_ordered_rows = matrix_data_ordered %>% 
   as.data.frame() %>% 
   rownames_to_column("condition") %>% 
-  arrange(match(condition, c(ann_vaccines_conditions_ordered$condition %>% as.character()))) %>% 
+  arrange(match(condition, c(ann_vaccines_conditions_ordered$condition_grouped %>% as.character()))) %>% 
   column_to_rownames(var= "condition") %>% 
   as.matrix()
 
@@ -5409,7 +5415,7 @@ main_go_2_plot_up_down = main_go_2 %>%
 filter(term_ancestor %in% c("Immune system", "Cellular", "Metabolism")) %>% 
 mutate(disease_vac = fct_relevel(disease_vac, "I", "V")) %>% 
   arrange(disease_vac) %>% 
-  mutate(condition = factor(condition, levels = ann_vaccines_conditions_ordered$condition %>% as.character() %>% unique())) %>% 
+  mutate(condition = factor(condition, levels = ann_vaccines_conditions_ordered$condition_grouped %>% as.character() %>% unique())) %>% 
   ggplot() +
  aes(x = fct_rev(factor(condition)), y = n_genes_perc, fill = type) +
  geom_col() +
@@ -5461,7 +5467,7 @@ main_go_2_plot_up_down_totals = main_go_2 %>%
   mutate(disease_vac = fct_relevel(disease_vac, "I", "V")) %>% 
   mutate(stat = "Total genes") %>% 
   arrange(disease_vac) %>% 
-  mutate(condition = factor(condition, levels = ann_vaccines_conditions_ordered$condition %>% as.character() %>% unique())) %>%   
+  mutate(condition = factor(condition, levels = ann_vaccines_conditions_ordered$condition_grouped %>% as.character() %>% unique())) %>%   
   ggplot() +
  aes(x = fct_rev(factor(condition)), y = n_genes_total, fill = type) +
  geom_col() +
@@ -5542,7 +5548,7 @@ inner_join(ann_vaccines_conditions, by = "condition") %>%
 filter(term_ancestor %in% c("Immune system", "Cellular", "Metabolism")) %>% 
 mutate(disease_vac = fct_relevel(disease_vac, "I", "V")) %>% 
   arrange(disease_vac) %>% 
-  mutate(condition = factor(condition, levels = ann_vaccines_conditions_ordered$condition %>% as.character() %>% unique())) %>% 
+  mutate(condition = factor(condition, levels = ann_vaccines_conditions_ordered$condition_grouped %>% as.character() %>% unique())) %>% 
   ggplot() +
  aes(x = fct_rev(factor(condition)), y = n_genes_perc, fill = type) +
  geom_col() +
@@ -5603,7 +5609,7 @@ inner_join(ann_vaccines_conditions, by = "condition") %>%
   mutate(disease_vac = fct_relevel(disease_vac, "I", "V")) %>% 
   mutate(stat = "Total genes") %>% 
   arrange(disease_vac) %>% 
-  mutate(condition = factor(condition, levels = ann_vaccines_conditions_ordered$condition %>% as.character() %>% unique())) %>%   
+  mutate(condition = factor(condition, levels = ann_vaccines_conditions_ordered$condition_grouped %>% as.character() %>% unique())) %>%   
   ggplot() +
  aes(x = fct_rev(factor(condition)), y = n_genes_total, fill = type) +
  geom_col() +
@@ -5640,7 +5646,7 @@ inner_join(ann_vaccines_conditions, by = "condition") %>%
   labs(title = "",
        x = "",
        y = "Total number of genes") +
-  ylim(0, 8000) +
+  ylim(0, 10000) +
   facet_wrap(~stat)
 
 patch_maingo = main_go_2_plot_alldirections_totals + main_go_2_plot_alldirections +
@@ -5709,7 +5715,7 @@ degs_immune = main_go_2 %>%
 #UP
 immune_other_plot_diseaseorvac_I  = degs_immune %>% 
   filter(disease_vac == "Infection") %>% 
-  mutate(condition = fct_relevel(condition, c(ann_vaccines_conditions_ordered$condition %>% unique() %>% as.character()))) %>%
+  mutate(condition = fct_relevel(condition, c(ann_vaccines_conditions_ordered$condition_grouped %>% unique() %>% as.character()))) %>%
   ggplot() +
  aes(x = fct_rev(factor(condition)), y = total_number, fill = totals) +
  geom_col() +
@@ -5745,7 +5751,7 @@ immune_other_plot_diseaseorvac_I  = degs_immune %>%
 
 immune_other_plot_diseaseorvac_V  = degs_immune %>% 
   filter(disease_vac == "Vaccination") %>% 
-    mutate(condition = factor(condition, levels = c(ann_vaccines_conditions_ordered$condition %>% unique() %>% as.character()))) %>%
+    mutate(condition = factor(condition, levels = c(ann_vaccines_conditions_ordered$condition_grouped %>% unique() %>% as.character()))) %>%
   ggplot() +
  aes(x = fct_rev(factor(condition)), y = total_number, fill = totals) +
  geom_col() +
@@ -5815,7 +5821,7 @@ degs_immune = main_go_2 %>%
 #UP
 immune_other_plot_diseaseorvac_I  = degs_immune %>% 
   filter(disease_vac == "Infection") %>% 
-    mutate(condition = factor(condition, levels = ann_vaccines_conditions_ordered$condition %>% unique())) %>%
+    mutate(condition = factor(condition, levels = ann_vaccines_conditions_ordered$condition_grouped %>% unique())) %>%
   ggplot() +
  aes(x = total_number, y = fct_rev(factor(condition)), fill = totals) +
   geom_bar(stat = "summary", fun = "sum", position = "fill") +
