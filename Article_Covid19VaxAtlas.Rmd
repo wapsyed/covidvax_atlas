@@ -30315,9 +30315,9 @@ col_fun <- colorRamp2(c(-1, 0, 1),
 #Parameters
 mat = matrix_data_ordered
 width_image = 50
-height_image = 30
+height_image = 60
 width = unit(40, "cm")
-height = unit(20, "cm")
+height = unit(50, "cm")
 column_names_gp = gpar(fontsize = 10)
 row_names_gp = gpar(fontsize = 10)
 
@@ -30460,7 +30460,7 @@ matrix_data_ordered = matrix_data %>%
   as.data.frame() %>% 
   rownames_to_column(var= "condition") %>% 
   merge(ann_vaccines_complex, by.y = "condition", all.x=TRUE) %>% 
-  arrange(type, condition) %>% 
+  arrange(day) %>% 
   select(!c(set, disease_vac, type, week, day)) %>% 
   column_to_rownames("condition") %>% 
   t() %>% 
@@ -30495,7 +30495,7 @@ row_ha = HeatmapAnnotation(df = ann_rows_immune,
                        which= "row",
                        simple_anno_size = unit(2, "mm"),
                        show_annotation_name = F,
-                       show_legend = F)
+                       show_legend = T)
 
 col_fun <- colorRamp2(c(-1, 0, 1), 
                       c("#9bc1bc", "white", "#ed6a5a"))
@@ -30511,7 +30511,7 @@ row_names_gp = gpar(fontsize = 10)
 
 
 #Plot and save
-fileimageheatmap_ungrouped= here("Figures", paste0(file, sep ="_", "Cluster1__BYDAY_Complexheatmap.png"))
+fileimageheatmap_ungrouped= here("Figures", paste0(file, sep ="_", "Cluster1_BYDAY_Complexheatmap.png"))
 
 png(file = fileimageheatmap_ungrouped, width=width_image, height=height_image,units="cm",res=800)
 
@@ -30653,7 +30653,7 @@ row_names_gp = gpar(fontsize = 10)
 
 
 #Plot and save
-fileimageheatmap_ungrouped= here("Figures", paste0(file, sep ="_", "Cluster1__BYDAY_Complexheatmap.png"))
+fileimageheatmap_ungrouped= here("Figures", paste0(file, sep ="_", "Cluster1__BYType_Complexheatmap.png"))
 
 png(file = fileimageheatmap_ungrouped, width=width_image, height=height_image,units="cm",res=800)
 
