@@ -3105,22 +3105,39 @@ ggplot_degs_bars_directions + all_degs_biotypes_plot_totals + all_degs_biotypes_
 Input
 
 ```{r}
+# Gene set data.
+ImmuneGO_Annotated_Genes_all = ImmuneGO_Annotated_Genes
+ImmuneGO_Annotated_Genes = ImmuneGO_Annotated_Genes_all %>% 
+  filter(!process %in% c("TCR REPERTOIRE", "BCR REPERTOIRE"))
+
+btm_annotation_genes = readRDS(here("VaxGO gene sets", "btm_annotation_genes.rds"))
+
+btm_annotation_genes_immune = btm_annotation_genes %>% 
+  filter(module_category == "immune") %>% 
+  select(genes) %>% distinct()
+
+ImmuneGO_BTM_genes = btm_annotation_genes_immune %>% 
+  bind_rows(ImmuneGO_Annotated_Genes_all %>% select(genes) %>% distinct())
+
+
+
+
+
 # DEGs table
 degs_all_updown = read_rds(file = here("DGE analysis", "all_studies_degs_weighted.rds")) %>% 
   filter(if_else(n >= 5, fdr <= 0.05, fdr <= (0.05 * 6/n))) %>% 
   # filter(direction != "NEUTRAL") %>% 
   # mutate_all(~ replace(., is.na(.), "NA")) %>% 
   # filter(genes %in% btm_annotation_genes$genes) 
-  filter(genes %in% ImmuneGO_Annotated_Genes$genes)
+  filter(genes %in% ImmuneGO_BTM_genes$genes)
 
 
 ann_vaccines = read_csv(here("Annotations and metadata", "ann_vaccines_conditions.csv"))
 
-# Only up and down
 data = degs_all_updown %>% 
  dplyr::select(process = condition, genes)
 
-filename = "All_covid_ImmuneGO"
+filename = "All_covid_ImmuneGO_BTM"
 ```
 
 Function
@@ -9231,6 +9248,663 @@ draw(heatmap_plot_2,
      heatmap_legend_side = "bottom")
 dev.off()
 ```
+
+
+### PCA: COVID-19 conditions only (ImmuneGO + BTM)
+
+**Required files**
+
+```{r}
+# Genes in long table format
+all_degs_p_05_vac_infected = readRDS(here("DGE analysis", "all_studies_degs_weighted.rds")) %>% 
+  filter(if_else(n >= 5, fdr <= 0.05, fdr <= (0.05 * 6/n))) 
+
+# Gene set annotation.Used only to merge and filter genes.
+ImmuneGO_Annotated_Genes = readRDS(here("VaxGO gene sets", "ImmuneGO_Annotated_Genes_2024-03-26.rds"))
+
+# Sample or condition annotation
+ann_vaccines <- read_csv(here("Annotations and metadata", "ann_vaccines_conditions.csv"))
+
+data_annotation = ann_vaccines %>%
+  mutate(day = as.factor(day),
+         dose = as.factor(dose)) 
+```
+
+**Filtering data**
+
+```{r}
+# Gene set data.
+ImmuneGO_Annotated_Genes_all = ImmuneGO_Annotated_Genes
+ImmuneGO_Annotated_Genes = ImmuneGO_Annotated_Genes_all %>% 
+  filter(!process %in% c("TCR REPERTOIRE", "BCR REPERTOIRE"))
+
+btm_annotation_genes = readRDS(here("VaxGO gene sets", "btm_annotation_genes.rds"))
+
+btm_annotation_genes_immune = btm_annotation_genes %>% 
+  filter(module_category == "immune") %>% 
+  select(genes) %>% distinct()
+
+ImmuneGO_BTM_genes = btm_annotation_genes_immune %>% 
+  bind_rows(ImmuneGO_Annotated_Genes_all %>% select(genes) %>% distinct())
+
+ImmuneGO_Genes = all_degs_p_05_vac_infected %>%
+  ungroup() %>% 
+  inner_join(ImmuneGO_BTM_genes %>% select(genes) %>% distinct(), by = "genes") %>% 
+  filter(if_else(n >= 5, fdr <= 0.05, fdr <= (0.05 * 6/n))) 
+  
+```
+
+**Input**
+filtering genes with corr >99% is better
+```{r}
+#INPUT
+data_genes = ImmuneGO_Genes 
+filename = "COVID_Infec_Vac_ImmuneGO_BTM"
+
+#Convert long to wide table format.
+#Dataframe with sample annotation
+
+ann_vaccines_pca_matrix = data_genes %>% 
+  select(condition, genes, log2fold_change) %>% 
+  distinct() %>% 
+  pivot_wider(names_from = "condition", 
+              values_from = "log2fold_change") %>% 
+  replace(is.na(.), 0) %>%
+  column_to_rownames("genes") %>% 
+  t() %>% 
+  as.data.frame() %>% 
+  rownames_to_column("condition") %>% 
+  inner_join(data_annotation %>% 
+               select(condition, disease_vac, vaccine, day, week, dose, infection, type), by = "condition") 
+dim(ann_vaccines_pca_matrix) #796 genes
+
+
+# Convert dataframe to matrix without annotation columns
+ann_vaccines_pca_matrix_ready = ann_vaccines_pca_matrix %>% 
+  column_to_rownames("condition") %>% 
+  select(!disease_vac:type) %>% 
+  as.matrix()
+
+dim(ann_vaccines_pca_matrix_ready) #788 genes
+
+```
+
+
+```{r cache = TRUE}
+# Delete columns with near 0 variance
+nearZeroVarCols <- nearZeroVar(ann_vaccines_pca_matrix_ready, saveMetrics = TRUE)
+ann_vaccines_pca_matrix_ready <- ann_vaccines_pca_matrix_ready[, !nearZeroVarCols$nzv]
+dim(ann_vaccines_pca_matrix_ready)
+pca_res <- prcomp(ann_vaccines_pca_matrix_ready, scale. = T)
+
+# Correlation plot ----
+corr_matrix = cor(ann_vaccines_pca_matrix_ready %>% scale()) 
+var <- get_pca_var(pca_res)
+
+# corrplot = ggcorrplot(corr_matrix, hc.order = TRUE) + 
+#   theme(axis.text.x = element_text(angle = 90, size = 5), 
+#         axis.text.y = element_text(size = 5))
+
+# ggsave(corrplot, file = paste0(filename, "_corrplot.png"), 
+#        width = 20, #Grande 20, pequeno 10
+#        height= 20) #Grande 20, pequeno 10
+# print(corrplot)
+
+#PCA ----
+data.pca = prcomp(corr_matrix) #PCA
+
+#Scree plot ----
+
+scree_plot = fviz_eig(data.pca, 
+                      addlabels = TRUE, main = "", ylab = "Explained variances (%)",
+                      ylim = c(0, 100)) +
+  theme_few() +
+  scale_fill_npg()
+
+
+#Save
+ggsave(scree_plot, file = here("Figures", paste0(filename, "_screeplot.png")), width = 5, height = 3) 
+scree_plot
+
+```
+
+Loadings plot
+
+```{r}
+# Loadings plot ----
+options(ggrepel.max.overlaps = Inf)
+
+circle_contrib= fviz_pca_var(pca_res, col.var = "cos2",
+                              gradient.cols = c("black", "#4DBBD5FF"),
+                              select.var= list(cos2 = 20), 
+                              repel = T, 
+                              labelsize = 3,
+                              col.circle = NA) +
+  xlab("PC1") + 
+  ylab("PC2") +
+  theme_classic() +
+theme(panel.grid = element_blank(),
+        axis.text = element_blank(),
+        axis.ticks = element_blank()) 
+
+#Save
+ggsave(circle_contrib, file = here("Figures", paste0(filename, "_circle_contrib_wide.png")), width = 10, height = 5)
+
+circle_contrib
+```
+
+KNN
+
+```{r}
+#KNN classification -----
+#Use the screeplot generated % of explained variance for each dimension
+scree_plot #Dim 1 = 68.2%, Dim 2 = 15.9%
+
+
+# PC1-PC2 ------
+#Determine the number of clusters
+pca_scores <- data.frame(pca_res$x[, 1:2])
+fviz_nbclust(pca_scores,  
+                     FUNcluster = kmeans,
+                     method = "wss")
+
+pcas = "PC1-PC2"
+
+set.seed(666) # Set seed for randomization
+cluster_model <- kmeans(pca_res$x[, 1:2], centers = 3)  #Set the number of clusters
+
+ann_vaccines_pca_matrix$cluster <- as.factor(cluster_model$cluster)
+```
+
+
+#### Plot PC1-2
+```{r fig.height=7, fig.width=7, paged.print=FALSE, cache=TRUE}
+
+# Condition with density plot ------
+pca_plot_knn_cluster = autoplot(pca_res, 
+        data = ann_vaccines_pca_matrix)  +
+  # stat_ellipse(aes(color = cluster, fill = cluster),
+  #              geom = "polygon",
+  #              alpha = 0.2,
+  #              linetype = 1,
+  #              size = 0.3,
+  #              type = "t") +
+  geom_convexhull(aes(fill = cluster, colour = cluster), alpha = 0.2) +
+  labs(title=paste0(filename, "_bycondition"),
+       x = "PC1 (69.7%)",
+       y = "PC2 (13.3%)") + 
+  geom_hline(yintercept = 0, size = 0.3, color = "gray50", linetype = 4) +
+  geom_vline(xintercept = 0, size = 0.3, color = "gray50", linetype = 4) +
+  geom_point(aes(fill = condition,
+                 color = condition),
+             stroke = 0.2) +
+   scale_color_manual(values = c("1" = "#4DBBD5FF", 
+                               "2" = "#DC0000FF", 
+                               "3" = "#F5BB00",
+                               "4" = "#8491B4FF",
+                                ann_vaxsig_colors$condition_col), 
+                     guide = "none") +
+  scale_fill_manual(values = c("1" = "#4DBBD5FF", 
+                               "2" = "#DC0000FF", 
+                               "3" = "#F5BB00",
+                               "4" = "#8491B4FF",
+                               ann_vaxsig_colors$condition_col),
+                    guide = "none") + 
+  guides(col="none") +
+  theme_few() +
+  theme(panel.grid.minor = element_blank(),
+        text = element_text(color = "black"),
+        panel.border = element_blank(),
+        axis.line = element_line(colour = "black")) +
+  geom_text_repel(aes(label = condition,
+                      segment.colour="gray70"),
+                  box.padding = 0.2,
+                  size = 3)
+  # xlim(-0.4, 0.6)
+pca_plot_knn_cluster
+
+ggsave(pca_plot_knn_cluster, 
+       file = here(file = "Figures", paste0(filename, pcas, "_KNN_Clustered_labels.png")), width = 7, height = 7)
+
+# Condition without labels
+pca_plot_knn_cluster = autoplot(pca_res, 
+        data = ann_vaccines_pca_matrix)  +
+  stat_ellipse(aes(color = cluster, fill = cluster),
+               geom = "polygon",
+               alpha = 0.2,
+               linetype = 1,
+               size = 0.3,
+               type = "t") +
+  # geom_convexhull(aes(fill = cluster, colour = cluster), alpha = 0.2) +
+  labs(title=paste0(filename, "_bycondition"),
+       x = "PC1 (67.8%)",
+       y = "PC2 (15.2%)") + 
+  geom_hline(yintercept = 0, size = 0.3, color = "gray50", linetype = 4) +
+  geom_vline(xintercept = 0, size = 0.3, color = "gray50", linetype = 4) +
+  geom_point(aes(fill = condition,
+                 color = condition),
+             stroke = 0.8) +
+   scale_color_manual(values = c("1" = "#4DBBD5FF", 
+                               "2" = "#DC0000FF", 
+                               "3" = "#F5BB00",
+                               "4" = "#8491B4FF",
+                                ann_vaxsig_colors$condition_col), 
+                     guide = "none") +
+  scale_fill_manual(values = c("1" = "#4DBBD5FF", 
+                               "2" = "#DC0000FF", 
+                               "3" = "#F5BB00",
+                               "4" = "#8491B4FF",
+                               ann_vaxsig_colors$condition_col),
+                    guide = "none") + 
+  guides(col="none") +
+  theme_few() +
+  theme(panel.grid.minor = element_blank(),
+        text = element_text(color = "black"),
+        panel.border = element_blank(),
+        axis.line = element_line(colour = "black")) 
+
+ggsave(pca_plot_knn_cluster, 
+       file = here(file = "Figures", paste0(filename, pcas, "_KNN_Clustered_nolabels.png")), width = 7, height = 7)
+pca_plot_knn_cluster
+
+
+
+```
+
+
+
+
+
+
+
+
+#### Heatmap of PC1 and PC2 genes
+
+Inputs
+```{r}
+####### INPUT
+PC1 = var$cos2 %>%
+  as.data.frame() %>%
+  arrange(desc(Dim.1)) %>%
+  filter(Dim.1 >= 0.5) %>% 
+  #slice_head(n=20) %>% 
+  rownames_to_column("genes") %>% 
+  distinct() %>% 
+  select(genes, cos2 = Dim.1) %>% 
+    mutate(dimension = "PC1")
+
+PC2 = var$cos2 %>%
+  as.data.frame() %>%
+  filter(Dim.2 >= 0.5) %>% 
+  #slice_head(n=20) %>% 
+  rownames_to_column("genes") %>% 
+  distinct() %>% 
+  select(genes, cos2 = Dim.2) %>% 
+  mutate(dimension = "PC2")
+
+PC1_2 = bind_rows(PC1, PC2) 
+PC1_2 %>% 
+  select(genes) %>% distinct()
+
+PC1_2 %>% write_csv(file = paste0(filename, "_PC_1_2_cos2.csv"))
+
+```
+
+
+#### PC1 genes heatmap
+
+Horizontal
+```{r}
+# INPUT
+ann_genes = ImmuneGO_Annotated_Genes
+pc = "PC1"
+data_2 =  PC1 %>% 
+  slice_max(order_by = cos2, n = 10) %>% 
+  inner_join(data_genes, by = "genes")
+filename_2 = paste0(filename, "_PCA_",pc, "_COVID")
+
+######## Matrix
+matrix = data_2 %>% 
+  select(genes, condition, log2fold_change) %>%
+  pivot_wider(names_from = "condition", 
+              values_from = "log2fold_change", 
+              values_fn = mean) %>% 
+  replace(is.na(.), 0) %>%
+  arrange(genes) %>% 
+  column_to_rownames(var="genes") %>% 
+  as.matrix()
+
+######## Annotations
+ann_vaccines_covid = data_2 %>% 
+  select(condition) %>% 
+  distinct() %>% 
+  inner_join(ann_vaccines, by = "condition") %>% 
+  select(condition, disease_vac, type, day) %>% 
+  distinct()
+
+#Columns
+ann_cols_heatmap = matrix %>% 
+  colnames() %>% 
+  data.frame() %>% 
+  filter(. != "genes") %>% 
+  rename(condition = '.') %>% 
+  inner_join(ann_vaccines_covid, by = "condition") %>% 
+  distinct() %>% 
+  arrange(condition) %>% 
+  column_to_rownames("condition")
+
+matrix_data = matrix %>% 
+  t() %>% 
+  as.data.frame() %>% 
+  rownames_to_column(var= "condition") %>% 
+  inner_join(ann_cols_heatmap %>% rownames_to_column("condition"), by = "condition") %>% 
+  select(!c(disease_vac:day)) %>% 
+  arrange(condition) %>% 
+  column_to_rownames("condition") %>% 
+  t() %>% 
+  as.data.frame() %>% 
+  mutate_if(is.character, as.numeric) %>%
+  as.matrix()
+
+#Rows Immune ----
+ann_rows_immune = matrix_data %>%
+  as.data.frame() %>%
+  rownames_to_column("genes") %>%
+  left_join(ImmuneGO_Annotated_Genes %>% select(genes) %>% distinct() %>% mutate(set = "ImmuneGO"), by = "genes") %>%
+  left_join(btm_annotation_genes_immune %>% select(genes) %>% distinct() %>% mutate(set2 = "BTM"), by = "genes") %>%
+  select(genes, set, set2) %>%
+  distinct() %>%
+  group_by(genes) %>%
+  arrange(genes, factor(set, levels = c("ImmuneGO", "BTM")), .by_group = TRUE) %>%
+  column_to_rownames("genes") %>%
+  as.data.frame() %>%
+  mutate(set = if_else(is.na(set), set2, set),
+         set2 = if_else(set == set2, NA, set2)) %>% 
+  replace(is.na(.), "None")
+
+# Reorder columns (same order as lines in the annotation table)
+matrix_data_ordered = matrix_data %>% 
+  t() %>% 
+  as.data.frame() %>% 
+  rownames_to_column(var= "condition") %>% 
+  merge(ann_vaccines_complex, by.y = "condition", all.x=TRUE) %>% 
+  arrange(type, condition) %>% 
+  select(!c(set, disease_vac, type, week, day)) %>% 
+  column_to_rownames("condition") %>% 
+  t() %>% 
+  as.data.frame() %>% 
+  mutate_if(is.character, as.numeric) %>% 
+  replace(is.na(.), 0) %>% 
+  as.matrix() 
+
+
+#Check dimensions
+dim(matrix_data_ordered) 
+dim(ann_vaccines_heatmap) 
+dim(ann_rows_immune)
+
+
+col_immune_sets = list(
+  "set" = c("BTM" = "#F5BB00",
+          "ImmuneGO" = "#7E6148FF",
+          "None"="white"),
+  "set2" = c("BTM" = "#F5BB00",
+          "ImmuneGO" = "#7E6148FF",
+          "None"="white"))
+
+
+#Heatmap annotation -----
+ha = HeatmapAnnotation(df = ann_cols_heatmap, 
+                       col = ann_vaxsig_colors,
+                       annotation_name_side = "right")
+
+row_ha = HeatmapAnnotation(df = ann_rows_immune,
+                            which = "row",
+                       col = col_immune_sets, #col_process_immune / col_process_notimmune
+                       show_annotation_name = F,
+                       show_legend = T,
+                       simple_anno_size = unit(2, "mm"))
+
+# Values colors -----
+col_fun <- colorRamp2(c(-2, 0, 2), c("#9bc1bc", "white", "#ed6a5a"))
+
+
+# Parameters -----
+file = filename_2
+mat = matrix_data
+width_image = 35
+height_image = 30
+width = unit(20, "cm")
+height = unit(5, "cm")
+column_names_gp = gpar(fontsize = 10)
+row_names_gp = gpar(fontsize = 10)
+rect_gp = gpar(col = "gray80", lwd = 0.5)
+
+fileimageheatmap_grouped = paste0(file, sep ="_", "Complexheatmap.png")
+
+png(file = here("Figures", fileimageheatmap_grouped), 
+    width = width_image, 
+    height = height_image, 
+    units="cm", 
+    res=900)
+
+heatmap_plot = Heatmap(mat,
+                        top_annotation = ha,
+                        name = "L2FC",
+                        left_annotation = row_ha,
+                        show_row_names = TRUE,
+                        row_names_side = "right",
+                        show_heatmap_legend = TRUE,
+                        heatmap_legend_param = list(direction = "horizontal"),
+                        col = col_fun, #color
+                        show_column_names = TRUE,
+                        column_title = fileimageheatmap_grouped,
+                        column_title_gp = gpar(fontsize = 10, fontface = "bold"),
+                        column_names_rot = 45,
+                        column_names_gp = column_names_gp,
+                        rect_gp = rect_gp,
+                        na_col = "white",
+                        cluster_rows = TRUE,
+                        row_names_gp = row_names_gp,
+                        row_dend_width = unit(2, "cm"),
+                        column_split = NULL,
+                        row_split = NULL,
+                        row_gap = unit(2, "mm"),
+                        cluster_columns = TRUE,
+                        column_gap = unit(8, "mm"),
+                        show_column_dend = F,
+                        show_row_dend = F,
+                        row_dend_side = "left",
+                        column_dend_side = "top",
+                        clustering_distance_rows = "euclidean",
+                        border = TRUE,
+                        width = width,
+                        height = height 
+)
+
+draw(heatmap_plot, 
+     annotation_legend_side = "right", 
+     heatmap_legend_side = "bottom")
+dev.off()
+```
+
+
+#### PC2 genes heatmap
+```{r}
+# INPUT
+ann_genes = ImmuneGO_Annotated_Genes
+pc = "PC2"
+data_2 =  PC2 %>% 
+  slice_max(order_by = cos2, n = 10) %>% 
+  inner_join(data_genes, by = "genes")
+filename_2 = paste0(filename, "_PCA_",pc, "_COVID")
+
+######## Matrix
+matrix = data_2 %>% 
+  select(genes, condition, log2fold_change) %>%
+  pivot_wider(names_from = "condition", 
+              values_from = "log2fold_change", 
+              values_fn = mean) %>% 
+  replace(is.na(.), 0) %>%
+  arrange(genes) %>% 
+  column_to_rownames(var="genes") %>% 
+  as.matrix()
+
+######## Annotations
+ann_vaccines_covid = data_2 %>% 
+  select(condition) %>% 
+  distinct() %>% 
+  inner_join(ann_vaccines, by = "condition") %>% 
+  select(condition, disease_vac, type, day) %>% 
+  distinct()
+
+#Columns
+ann_cols_heatmap = matrix %>% 
+  colnames() %>% 
+  data.frame() %>% 
+  filter(. != "genes") %>% 
+  rename(condition = '.') %>% 
+  inner_join(ann_vaccines_covid, by = "condition") %>% 
+  distinct() %>% 
+  arrange(condition) %>% 
+  column_to_rownames("condition")
+
+matrix_data = matrix %>% 
+  t() %>% 
+  as.data.frame() %>% 
+  rownames_to_column(var= "condition") %>% 
+  inner_join(ann_cols_heatmap %>% rownames_to_column("condition"), by = "condition") %>% 
+  select(!c(disease_vac:day)) %>% 
+  arrange(condition) %>% 
+  column_to_rownames("condition") %>% 
+  t() %>% 
+  as.data.frame() %>% 
+  mutate_if(is.character, as.numeric) %>%
+  as.matrix()
+
+#Rows Immune ----
+ann_rows_immune = matrix_data %>%
+  as.data.frame() %>%
+  rownames_to_column("genes") %>%
+  left_join(ImmuneGO_Annotated_Genes %>% select(genes) %>% distinct() %>% mutate(set = "ImmuneGO"), by = "genes") %>%
+  left_join(btm_annotation_genes_immune %>% select(genes) %>% distinct() %>% mutate(set2 = "BTM"), by = "genes") %>%
+  select(genes, set, set2) %>%
+  distinct() %>%
+  group_by(genes) %>%
+  arrange(genes, factor(set, levels = c("ImmuneGO", "BTM")), .by_group = TRUE) %>%
+  column_to_rownames("genes") %>%
+  as.data.frame() %>%
+  mutate(set = if_else(is.na(set), set2, set),
+         set2 = if_else(set == set2, NA, set2)) %>% 
+  replace(is.na(.), "None")
+
+# Reorder columns (same order as lines in the annotation table)
+matrix_data_ordered = matrix_data %>% 
+  t() %>% 
+  as.data.frame() %>% 
+  rownames_to_column(var= "condition") %>% 
+  merge(ann_vaccines_complex, by.y = "condition", all.x=TRUE) %>% 
+  arrange(type, condition) %>% 
+  select(!c(set, disease_vac, type, week, day)) %>% 
+  column_to_rownames("condition") %>% 
+  t() %>% 
+  as.data.frame() %>% 
+  mutate_if(is.character, as.numeric) %>% 
+  replace(is.na(.), 0) %>% 
+  as.matrix() 
+
+
+#Check dimensions
+dim(matrix_data_ordered) 
+dim(ann_vaccines_heatmap) 
+dim(ann_rows_immune)
+
+
+col_immune_sets = list(
+  "set" = c("BTM" = "#F5BB00",
+          "ImmuneGO" = "#7E6148FF",
+          "None"="white"),
+  "set2" = c("BTM" = "#F5BB00",
+          "ImmuneGO" = "#7E6148FF",
+          "None"="white"))
+
+
+#Heatmap annotation -----
+ha = HeatmapAnnotation(df = ann_cols_heatmap, 
+                       col = ann_vaxsig_colors,
+                       annotation_name_side = "right")
+
+row_ha = HeatmapAnnotation(df = ann_rows_immune,
+                            which = "row",
+                       col = col_immune_sets, #col_process_immune / col_process_notimmune
+                       show_annotation_name = F,
+                       show_legend = T,
+                       simple_anno_size = unit(2, "mm"))
+
+# Values colors -----
+col_fun <- colorRamp2(c(-2, 0, 2), c("#9bc1bc", "white", "#ed6a5a"))
+
+
+# Parameters -----
+file = filename_2
+mat = matrix_data
+width_image = 35
+height_image = 30
+width = unit(20, "cm")
+height = unit(5, "cm")
+column_names_gp = gpar(fontsize = 10)
+row_names_gp = gpar(fontsize = 10)
+rect_gp = gpar(col = "gray80", lwd = 0.5)
+
+fileimageheatmap_grouped = paste0(file, sep ="_", "Complexheatmap.png")
+
+png(file = here("Figures", fileimageheatmap_grouped), 
+    width = width_image, 
+    height = height_image, 
+    units="cm", 
+    res=900)
+
+heatmap_plot = Heatmap(mat,
+                        top_annotation = ha,
+                       name = "L2FC",
+                        left_annotation = row_ha,
+                        show_row_names = TRUE,
+                        row_names_side = "right",
+                        show_heatmap_legend = TRUE,
+                        heatmap_legend_param = list(direction = "horizontal"),
+                        col = col_fun, #color
+                        show_column_names = TRUE,
+                        column_title = fileimageheatmap_grouped,
+                        column_title_gp = gpar(fontsize = 10, fontface = "bold"),
+                        column_names_rot = 45,
+                        column_names_gp = column_names_gp,
+                        rect_gp = rect_gp,
+                        na_col = "white",
+                        cluster_rows = TRUE,
+                        row_names_gp = row_names_gp,
+                        row_dend_width = unit(2, "cm"),
+                        column_split = NULL,
+                        row_split = NULL,
+                        row_gap = unit(2, "mm"),
+                        cluster_columns = TRUE,
+                        column_gap = unit(8, "mm"),
+                        show_column_dend = F,
+                        show_row_dend = F,
+                        row_dend_side = "left",
+                        column_dend_side = "top",
+                        clustering_distance_rows = "euclidean",
+                        border = TRUE,
+                        width = width,
+                        height = height 
+)
+
+draw(heatmap_plot, 
+     annotation_legend_side = "left", 
+     heatmap_legend_side = "bottom")
+dev.off()
+
+```
+
 
 
 ### PCA: GSEA of COVID-19 conditions only
@@ -17096,6 +17770,13 @@ Process data
 ############## Process data
 
 # All gene sets
+Immune_GO_BTMgenes_All = data.immunego %>% 
+  inner_join(ImmuneGO_BTM_genes, by = "genes") %>% 
+  inner_joiun(ann_vaccines, by = "condition") %>% 
+  clean_names()
+
+
+# All gene sets
 Immune_GO_genes_All = data.immunego %>% 
   merge(immunego_genes, by = "genes", all.x = F, all.y=F) %>% 
   merge(ann_vaccines, by = "condition", all.y=F) %>% 
@@ -17161,7 +17842,7 @@ library(maditr)
 
 ####### Input
 heatmap_data = Immune_GO_genes_All
-file = "Immune_GO_genes_All"
+file = "Immune_GO_BTM_genes_All"
 
 ###### Process data
 
