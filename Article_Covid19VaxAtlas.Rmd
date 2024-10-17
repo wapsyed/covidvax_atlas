@@ -303,6 +303,17 @@ ann_vaxsig_colors = list(
                                 "BNT (V1, D6)" = "#4DBBD5FF",
                                 "BNT (V2, D1)" = "#4DBBD5FF",
                                 "BNT (V3, D1)" = "#4DBBD5FF",
+                                "BNT-I (D0-5)"= "#DC0000FF",
+                                "BNT-I (D10, hospital)"= "#DC0000FF",
+                                "BNT-I (D26, hospital)"= "#DC0000FF",
+                                "BNT-I (D51, hospital)"= "#DC0000FF",
+                                "BNT-I-BNT (D51, hospital)"= "#DC0000FF",
+                                "I (D0-4)"= "#DC0000FF",
+                                "I (D10, hospital)"= "#DC0000FF",
+                                "I (D26, hospital)"= "#DC0000FF",
+                                "I (D51, hospital)"= "#DC0000FF",
+                                "I-BNT (D5)"= "#4DBBD5FF", 
+                                "I-I (D0-5)" = "#DC0000FF",
                                 "BNT-I (D1)"= "#DC0000FF",
                                 "BNT-I (D10, mild)"= "#DC0000FF",
                                 "BNT-I (D10, severe)"= "#DC0000FF",
@@ -8474,8 +8485,7 @@ Process data
 ```{r}
 # Genes in long table format
 all_degs_p_05_vac_infected = readRDS(here("DGE analysis", "all_studies_degs_weighted.rds")) %>% 
-  filter(fdr <= 0.05,
-         !str_detect(condition, "\\(D0\\)$"))
+  filter(if_else(n >= 5, fdr <= 0.05, fdr <= (0.05 * 6/n))) 
 
 # Gene set annotation.Used only to merge and filter genes.
 ImmuneGO_Annotated_Genes = readRDS(here("VaxGO gene sets", "ImmuneGO_Annotated_Genes_2024-03-26.rds"))
@@ -8506,7 +8516,7 @@ ImmuneGO_Genes = all_degs_p_05_vac_infected %>%
   ungroup() %>% 
   # inner_join(btm_annotation_genes_immune %>% select(genes) %>% distinct(), by = "genes") %>% 
   inner_join(ImmuneGO_Annotated_Genes_all %>% select(genes) %>% distinct(), by = "genes") %>% 
-  filter(fdr<0.05)
+  filter(if_else(n >= 5, fdr <= 0.05, fdr <= (0.05 * 6/n))) 
   
 ```
 
@@ -8635,21 +8645,21 @@ ann_vaccines_pca_matrix$cluster <- as.factor(cluster_model$cluster)
 
 
 #### Plot PC1-2
-```{r fig.height=7, fig.width=10, paged.print=FALSE, cache=TRUE}
+```{r fig.height=7, fig.width=7, paged.print=FALSE, cache=TRUE}
 
 # Condition with density plot ------
 pca_plot_knn_cluster = autoplot(pca_res, 
         data = ann_vaccines_pca_matrix)  +
-  stat_ellipse(aes(color = cluster, fill = cluster),
-               geom = "polygon",
-               alpha = 0.2,
-               linetype = 1,
-               size = 0.3,
-               type = "t") +
-  # geom_convexhull(aes(fill = cluster, colour = cluster), alpha = 0.2) +
+  # stat_ellipse(aes(color = cluster, fill = cluster),
+  #              geom = "polygon",
+  #              alpha = 0.2,
+  #              linetype = 1,
+  #              size = 0.3,
+  #              type = "t") +
+  geom_convexhull(aes(fill = cluster, colour = cluster), alpha = 0.2) +
   labs(title=paste0(filename, "_bycondition"),
-       x = "PC1 (67.8%)",
-       y = "PC2 (15.2%)") + 
+       x = "PC1 (66.1%)",
+       y = "PC2 (15.4%)") + 
   geom_hline(yintercept = 0, size = 0.3, color = "gray50", linetype = 4) +
   geom_vline(xintercept = 0, size = 0.3, color = "gray50", linetype = 4) +
   geom_point(aes(fill = condition,
@@ -8675,13 +8685,53 @@ pca_plot_knn_cluster = autoplot(pca_res,
         axis.line = element_line(colour = "black")) +
   geom_text_repel(aes(label = condition,
                       segment.colour="gray70"),
-                  box.padding = 0.5,
-                  size = 3) +
-  xlim(-0.4, 0.6)
+                  box.padding = 0.2,
+                  size = 3)
+  # xlim(-0.4, 0.6)
 pca_plot_knn_cluster
 
 ggsave(pca_plot_knn_cluster, 
-       file = here(file = "Figures", paste0(filename, pcas, "_KNN_Clustered_labels.png")), width = 10, height = 7)
+       file = here(file = "Figures", paste0(filename, pcas, "_KNN_Clustered_labels.png")), width = 7, height = 7)
+
+# Condition without labels
+pca_plot_knn_cluster = autoplot(pca_res, 
+        data = ann_vaccines_pca_matrix)  +
+  # stat_ellipse(aes(color = cluster, fill = cluster),
+  #              # geom = "polygon", 
+  #              alpha = 0.2,
+  #              linetype = 1,
+  #              size = 0.3,
+  #              type = "t") +
+  geom_convexhull(aes(fill = cluster, colour = cluster), alpha = 0.2) +
+  labs(title=paste0(filename, "_bycondition"),
+       x = "PC1 (67.8%)",
+       y = "PC2 (15.2%)") + 
+  geom_hline(yintercept = 0, size = 0.3, color = "gray50", linetype = 4) +
+  geom_vline(xintercept = 0, size = 0.3, color = "gray50", linetype = 4) +
+  geom_point(aes(fill = condition,
+                 color = condition),
+             stroke = 0.8) +
+   scale_color_manual(values = c("1" = "#4DBBD5FF", 
+                               "2" = "#DC0000FF", 
+                               "3" = "#F5BB00",
+                               "4" = "#8491B4FF",
+                                ann_vaxsig_colors$condition_col), 
+                     guide = "none") +
+  scale_fill_manual(values = c("1" = "#4DBBD5FF", 
+                               "2" = "#DC0000FF", 
+                               "3" = "#F5BB00",
+                               "4" = "#8491B4FF",
+                               ann_vaxsig_colors$condition_col),
+                    guide = "none") + 
+  guides(col="none") +
+  theme_few() +
+  theme(panel.grid.minor = element_blank(),
+        text = element_text(color = "black"),
+        panel.border = element_blank(),
+        axis.line = element_line(colour = "black")) 
+
+ggsave(pca_plot_knn_cluster, 
+       file = here(file = "Figures", paste0(filename, pcas, "_KNN_Clustered_nolabels.png")), width = 7, height = 7)
 pca_plot_knn_cluster
 
 
@@ -9339,8 +9389,8 @@ pca_plot_knn_cluster = autoplot(pca_res,
                size = 0.3,
                type = "t") +
   labs(title=paste0(filename, "_bycondition"),
-       x = "PC1 (50%)",
-       y = "PC2 (20.7%)") + 
+       x = "PC1 (49.1%)",
+       y = "PC2 (25.2%)") + 
   geom_hline(yintercept = 0, size = 0.3, color = "gray50", linetype = 4) +
   geom_vline(xintercept = 0, size = 0.3, color = "gray50", linetype = 4) +
   geom_point(aes(fill = condition,
@@ -9367,8 +9417,8 @@ pca_plot_knn_cluster = autoplot(pca_res,
   geom_text_repel(aes(label = condition,
                       segment.colour="gray70"),
                   box.padding = 0.5,
-                  size = 3) +
-  xlim(-0.4, 0.6)
+                  size = 3)
+  # xlim(-0.4, 0.6)
 pca_plot_knn_cluster
 
 ggsave(pca_plot_knn_cluster, 
@@ -9386,32 +9436,6 @@ pca_plot_knn_cluster
 
 
 #### Heatmap of PC1 and PC2 genes
-
-Inputs
-```{r}
-####### INPUT
-PC1 = var$cos2 %>%
-  as.data.frame() %>%
-  arrange(desc(Dim.1)) %>%
-  rownames_to_column("id") %>% 
-  distinct() %>% 
-  select(id, cos2 = Dim.1) %>% 
-    mutate(dimension = "PC1")
-
-PC2 = var$cos2 %>%
-  as.data.frame() %>%
-  rownames_to_column("id") %>% 
-  distinct() %>% 
-  select(id, cos2 = Dim.2) %>% 
-  mutate(dimension = "PC2")
-
-PC1_2 = bind_rows(PC1, PC2) 
-PC1_2 %>% 
-  select(id) %>% distinct()
-
-PC1_2 %>% write_csv(file = paste0(filename, "_PC_1_2_cos2.csv"))
-
-```
 
 
 ### PCA: COVID-19 and others
@@ -23678,12 +23702,12 @@ hagan_vaxatlas_annotation = hagan_vaxatlas %>%
 
 
 all_degs_p_05_vac_infected = readRDS(here("DGE analysis", "all_studies_degs_weighted.rds")) %>% 
-  filter(fdr <= 0.05,
-         !str_detect(condition, "\\(D0\\)$"))
+  filter(if_else(n >= 5, fdr <= 0.05, fdr <= (0.05 * 6/n))) 
 
 degs_all_updown = all_degs_p_05_vac_infected
 
 ann_vaccines = read_csv(here("Annotations and metadata", "ann_vaccines_conditions.csv"))
+
 ann_vaccines_conditions = ann_vaccines
 
 ann_vaccines_covid_other_conditions = ann_vaccines_conditions %>%
@@ -23701,6 +23725,7 @@ filename = "All_covid_13Vax"
 
 degs_covid = degs_all_updown %>% 
   select(condition, genes, log2fold_change)
+
 degs_hagan = hagan_vaxatlas %>%
   filter(fdr <= 0.05) %>% 
   select(condition, genes, log2fold_change)
@@ -23830,8 +23855,7 @@ write_csv(shared_genes_df_mirror,
 Clustered
 ```{r}
 # INPUT ------
-
-degs_all_updown_covid_other_immune_shared = read_csv(here("VaxGO gene sets", "degs_covid_vaxhagan_immune_sharedgenes_Fisher_Jaccard.csv"))
+degs_all_updown_covid_other_immune_shared = read_csv(here("VaxGO gene sets", "ImmuneGO_Genes_JaccardDistance_Hagan_sharedgenes_Fisher_Jaccard.csv"))
 
 table = degs_all_updown_covid_other_immune_shared
 filename = "ImmuneGO_Genes_JaccardDistance_Hagan" 
@@ -23990,8 +24014,7 @@ dev.off()
 Ordered by day
 ```{r}
 # INPUT ------
-
-degs_all_updown_covid_other_immune_shared = read_csv(here("VaxGO gene sets", "degs_covid_vaxhagan_immune_sharedgenes_Fisher_Jaccard.csv"))
+degs_all_updown_covid_other_immune_shared = read_csv(here("VaxGO gene sets", "ImmuneGO_Genes_JaccardDistance_Hagan_sharedgenes_Fisher_Jaccard.csv"))
 
 table = degs_all_updown_covid_other_immune_shared
 filename = "ImmuneGO_Genes_JaccardDistance_Hagan" 
@@ -24151,7 +24174,169 @@ draw(heatmap_plot,
 dev.off()
 
 ```
+Ordered by condition
+```{r}
+# INPUT ------
+degs_all_updown_covid_other_immune_shared = read_csv(here("VaxGO gene sets", "ImmuneGO_Genes_JaccardDistance_Hagan_sharedgenes_Fisher_Jaccard.csv"))
 
+table = degs_all_updown_covid_other_immune_shared
+filename = "ImmuneGO_Genes_JaccardDistance_Hagan" 
+
+data = table %>% 
+  filter(pvalue <0.25) %>% 
+  inner_join(hagan_vaxatlas_annotation %>% 
+               select(Cond1 = condition, everything()), by = "Cond1") %>% 
+  inner_join(ann_vaccines_conditions %>% 
+               select(Cond2 = condition, everything()), by = "Cond2") %>% 
+  clean_names() %>% 
+  rename(vac_ref = cond1, vac_condition = cond2)
+
+# Matrix ------
+matrix = data %>%
+  filter(pvalue <= 0.10) %>% 
+  select(vac_condition, vac_ref, jaccard_distance) %>% 
+  pivot_wider(names_from = vac_condition, values_from = jaccard_distance, values_fn = mean) %>% 
+  replace(is.na(.), 0) %>%
+  column_to_rownames(var="vac_ref") %>%
+  as.matrix()
+
+matrix = matrix*100
+
+# Annotations -------
+ann_vaccines_covid = ann_vaccines_conditions 
+ann_vaccines_other = hagan_vaxatlas_annotation 
+
+# Columns
+ann_cols_heatmap = matrix %>% 
+  colnames() %>% 
+  data.frame() %>% 
+  filter(. != "process") %>% 
+  rename(vac_condition = '.') %>% 
+  merge(ann_vaccines_covid, by.x = "vac_condition", by.y = "condition", all.y = F) %>% 
+ arrange(match(vac_condition, c(ann_vaccines_conditions_ordered$condition_grouped %>% as.character()))) %>%   
+  distinct() %>% 
+  column_to_rownames(var = "vac_condition") %>% 
+  mutate_all(as.factor)  %>% 
+  select(disease_vac, type, dose, week, day)
+
+# Rows
+ann_rows_heatmap = matrix %>%  
+  as.data.frame() %>% 
+  rownames_to_column("condition") %>% 
+  distinct() %>% 
+  inner_join(ann_vaccines_other, by = "condition") %>% 
+  mutate_all(as.factor) %>%
+  arrange(condition) %>%
+  distinct() %>% 
+  column_to_rownames(var= "condition") %>% 
+  select(type, week, day) %>% 
+  arrange(day)
+
+# Arrange cols and rows in matrix
+matrix_data = matrix %>% 
+  t() %>% 
+  as.data.frame() %>% 
+  rownames_to_column(var= "condition") %>% 
+  inner_join(ann_cols_heatmap %>% rownames_to_column("condition") %>% select(condition, day), by = "condition") %>% 
+  arrange(match(condition, c(ann_vaccines_conditions_ordered$condition_grouped %>% as.character()))) %>% 
+  select(-day) %>% 
+  column_to_rownames("condition") %>% 
+  t() %>% 
+  as.data.frame() %>%
+  rownames_to_column("condition") %>% 
+  inner_join(ann_rows_heatmap %>% 
+               rownames_to_column("condition") %>% 
+               select(condition, day),
+             by = "condition") %>% 
+  arrange(day) %>% 
+    select(-day) %>% 
+  column_to_rownames("condition") %>% 
+  mutate_if(is.character, as.numeric) %>%
+  replace(is.na(.), 0) %>% 
+  as.matrix()
+
+#Check dimensions
+dim(matrix_data)
+dim(ann_rows_heatmap)
+dim(ann_cols_heatmap)
+
+#Heatmap annotation
+ha = HeatmapAnnotation(df = ann_cols_heatmap, 
+                       col = ann_vaxsig_colors,
+                       annotation_name_side = "left")
+
+row_ha = HeatmapAnnotation(df = ann_rows_heatmap,
+                       col = ann_vaxsig_colors,
+                       which= "row",
+                       show_annotation_name = F,
+                       show_legend = T)
+
+# Values colors
+col_fun <- colorRamp2(c(0, max(matrix_data)), c("white", "#ed6a5a"))
+
+
+mat = matrix_data
+width_image = 30
+height_image = 40
+width = unit(20, "cm")
+height = unit(25, "cm")
+column_names_gp = gpar(fontsize = 10)
+row_names_gp = gpar(fontsize = 10)
+file = paste0("Hagan_", filename)
+
+fileimageheatmap_grouped = paste0(filename, sep ="_", "Complexheatmap_Condition.png")
+
+png(file = here("Figures", fileimageheatmap_grouped), 
+    width = width_image, 
+    height = height_image,
+    units="cm", res=900)
+
+heatmap_plot = Heatmap(mat,
+                        top_annotation = ha,
+                        left_annotation = row_ha,
+                        show_row_names = TRUE,
+                        row_names_side = "left",
+                        show_heatmap_legend = TRUE,
+                        heatmap_legend_param = list(title = "Jaccard distance", direction = "vertical"),
+                        col = col_fun, #color
+                        cell_fun = function(j, i, x, y, width, height, fill) {
+                                            if(mat[i, j] > 0)
+                                            grid.text(sprintf("%.f", mat[i, j]), 
+                                                      x, y, 
+                                                      gp = gpar(fontsize = 8))},
+                        row_title = "",
+                        show_column_names = TRUE,
+                        column_title = fileimageheatmap_grouped,
+                        column_title_gp = gpar(fontsize = 10, fontface = "bold"),
+                        column_names_rot = 45,
+                        column_names_gp = column_names_gp,
+                        rect_gp = gpar(col = "gray90", lwd = 1),
+                        cluster_rows = F,
+                        row_names_gp = row_names_gp, #Grande = 6, Pequeno 15
+                        row_dend_width = unit(5, "cm"), #Altura do dendrograma
+                        column_split = NULL, #Split column clusters 
+                        row_split = NULL, #Split row clusters
+                        row_gap = unit(2, "mm"),
+                        cluster_columns = F,
+                        column_gap = unit(8, "mm"),
+                        show_column_dend = F,
+                        show_row_dend = F,
+                        row_dend_side = "left",
+                        column_dend_side = "top",
+                        clustering_distance_rows = "euclidean",
+                        border = TRUE,
+                        column_dend_reorder = TRUE,
+                        width = width, # 20 para pequeno e grande
+                        height = height # 20 para pequeno, 60 para grande
+)
+
+draw(heatmap_plot,
+     merge_legend = TRUE,
+     annotation_legend_side = "right", 
+     heatmap_legend_side = "right")
+dev.off()
+
+```
 
 
 ## Gene set enrichment analysis
@@ -24230,7 +24415,6 @@ autoGSEA <- function(df, TERM2GENE, geneset_name) {
   }
   
 
-  # Combinar todos os resultados em um único dataframe
   resultado_final <- bind_rows(resultados)
 
   return(resultado_final)
@@ -24351,7 +24535,7 @@ cluster_by_day <- function(df, day_column = "day", condition_column = "condition
 
 
 ```{r fig.height=12, fig.width=25}
-df = All_covid_13VaxImmune_GO_T2G_specfic_GSEA_ALL %>% 
+df = All_covid_13VaxImmune_GO_T2G_general_GSEA_ALL %>% 
   # filter(qvalue<= 0.25) %>% 
   inner_join(ann_vaccines_covid_other_conditions, by = "condition") %>% 
     mutate(logq = -log10(qvalue)) 
@@ -26733,7 +26917,7 @@ xcell_results_annotated_2_plot
 ```
 
 Heatmap
-```{r fig.height=15, fig.width=30}
+```{r fig.height=25, fig.width=30}
 hagan_vaxatlas_annotation = hagan_vaxatlas_annotation %>% 
   mutate(week = as.factor(week))
 
@@ -26760,14 +26944,14 @@ df = xcell_results_annotated %>%
                names_to = "cell_type",
                values_to = "value") %>% 
   inner_join(ann_vaccines_covid_other_conditions, by = "condition") %>% 
-  filter(day != "0") %>% 
-    filter(cell_type %in% c("T cell CD8+",
-                          "T cell CD4+ (non-regulatory)",
-                          "T cell regulatory (Tregs)",
-                          "Neutrophil",
-                          "Macrophage",
-                          "Monocyte", 
-                          "B cell"))
+  filter(day != "0")
+    # filter(cell_type %in% c("T cell CD8+",
+    #                       "T cell CD4+ (non-regulatory)",
+    #                       "T cell regulatory (Tregs)",
+    #                       "Neutrophil",
+    #                       "Macrophage",
+    #                       "Monocyte", 
+    #                       "B cell"))
 
 df = df %>% mutate(day = fct_relevel(day, df %>% 
                                select(day) %>% 
@@ -26899,7 +27083,7 @@ dotplot = df %>%
                         mid = "white",
                         midpoint = 0, 
                         name = "NES", 
-                       limits = c(-2, 2),     # Definir os limites
+                       limits = c(-1, 1),     # Definir os limites
     oob = scales::squish,
                       high = "#DC0000FF") +
   scale_y_discrete(position = "right")
@@ -26913,7 +27097,7 @@ patch_xcell_vac =
   labels_week/
   labels_day/
   dotplot +
-  plot_layout(heights = c(0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 5),
+  plot_layout(heights = c(0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 5),
               guides = 'collect') +
   plot_annotation(title = "Top 20 genes shared",
                   subtitle = "At least one vaccine dose",
@@ -26927,7 +27111,7 @@ patch_xcell_vac
 patch_xcell_vac %>%
   ggsave(filename = here("Figures", paste0(filename, "_ssGSEA_XCell_1dose_Heatmap.png")),
          width = 25,
-         height = 18)
+         height = 25)
 ```
 
 
@@ -27010,7 +27194,7 @@ xcell_results_annotated = xcell_results %>%
 Heatmap
 
 SELECTED CELLS
-```{r fig.height=15, fig.width=15}
+```{r fig.height=25, fig.width=15}
 hagan_vaxatlas_annotation = hagan_vaxatlas_annotation %>% 
   mutate(week = as.factor(week))
 
@@ -27030,7 +27214,7 @@ df = xcell_results_annotated %>%
               values_from = "value") %>% 
   column_to_rownames("condition") %>% 
   as.matrix() %>%
-  scale() %>% 
+  # scale() %>% 
   as.data.frame() %>% 
   rownames_to_column("condition") %>% 
   pivot_longer(cols = -condition, 
@@ -27038,13 +27222,14 @@ df = xcell_results_annotated %>%
                values_to = "value") %>% 
   inner_join(ann_vaccines_covid_other_conditions, by = "condition") %>% 
   filter(day != "0") %>% 
-    filter(cell_type %in% c("T cell CD8+",
-                          "T cell CD4+ (non-regulatory)",
-                          "T cell regulatory (Tregs)",
-                          "Neutrophil",
-                          "Macrophage",
-                          "Monocyte", 
-                          "B cell"))
+  filter(!cell_type %in% c("stroma score", "microenvironment score"))
+    # filter(cell_type %in% c("T cell CD8+",
+    #                       "T cell CD4+ (non-regulatory)",
+    #                       "T cell regulatory (Tregs)",
+    #                       "Neutrophil",
+    #                       "Macrophage",
+    #                       "Monocyte", 
+    #                       "B cell"))
 
 df = df %>% mutate(day = fct_relevel(day, df %>% 
                                select(day) %>% 
@@ -27163,8 +27348,8 @@ dotplot = df %>%
   scale_fill_gradient2(low = "#4DBBD5FF",
                         mid = "white",
                         midpoint = 0, 
-                        name = "NES", 
-                       limits = c(-2, 2),     # Definir os limites
+                        name = "XCell score", 
+                       limits = c(0, 1),     # Definir os limites
     oob = scales::squish,
                       high = "#DC0000FF") +
   scale_y_discrete(position = "right")
@@ -27178,7 +27363,7 @@ patch_xcell_vac =
   labels_week/
   labels_day/
   dotplot +
-  plot_layout(heights = c(0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 5),
+  plot_layout(heights = c(0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 5),
               guides = 'collect') +
   plot_annotation(title = "XCell immune cells population in PBMCs",
                   subtitle = "",
@@ -27192,7 +27377,7 @@ patch_xcell_vac
 patch_xcell_vac %>%
   ggsave(filename = here("Figures", paste0(filename, "_ssGSEA_XCell_1dose_Heatmap.png")),
          width = 15,
-         height = 15)
+         height = 30)
 ```
 
 
@@ -27350,7 +27535,7 @@ dotplot = df %>%
                         mid = "white",
                         midpoint = 0, 
                         name = "NES", 
-                       limits = c(-2, 2),     # Definir os limites
+                       limits = c(-1, 1),     # Definir os limites
     oob = scales::squish,
                       high = "#DC0000FF") +
   scale_y_discrete(position = "right")
