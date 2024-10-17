@@ -26944,7 +26944,8 @@ df = xcell_results_annotated %>%
                names_to = "cell_type",
                values_to = "value") %>% 
   inner_join(ann_vaccines_covid_other_conditions, by = "condition") %>% 
-  filter(day != "0")
+  # filter(day != "0")
+    filter(!cell_type %in% c("stroma score", "microenvironment score"))
     # filter(cell_type %in% c("T cell CD8+",
     #                       "T cell CD4+ (non-regulatory)",
     #                       "T cell regulatory (Tregs)",
@@ -27079,7 +27080,9 @@ dotplot = df %>%
         legend.position = "bottom") +
   labs(x = "",
        y = "") +
-  scale_fill_gradient2(low = "#4DBBD5FF",
+  scale_fill_gradient2(
+    low = "#4DBBD5FF",
+                       # low = "white",
                         mid = "white",
                         midpoint = 0, 
                         name = "NES", 
@@ -27144,7 +27147,7 @@ create_colplots <- function(result_df) {
         panel.grid.major = element_line(size = 0.05),
         panel.grid.minor = element_line(size = 0.05)) +
   labs(y = "Score",
-       title = "T cell CD8+",
+       title = process_name,
        x="",
        subtitle = "By week",
        fill = "Type") +
@@ -27152,14 +27155,13 @@ create_colplots <- function(result_df) {
   ggforce::facet_row(~type, scales = "free_x", space = "free")
 
     ggsave(cellmarker_boxplot, 
-           file = here("Figures", paste0("ssgsea_xcell_barplot_", process_name, ".png")),
+           file = here("Figures","XCell", paste0("ssgsea_xcell_barplot_AllCovid13Vax_", process_name, ".png")),
            width = 25, height = 6)
   })
 }
 
 # Apply to all processes
 create_colplots(xcell_results_annotated %>% 
-  filter(day != "0") %>% 
   mutate(condition = fct_relevel(condition, c(ann_vaccines_covid_other_conditions %>%
                                                 mutate(day = as.character(day),
                                                        day = as.integer(day)) %>% 
@@ -27221,7 +27223,7 @@ df = xcell_results_annotated %>%
                names_to = "cell_type",
                values_to = "value") %>% 
   inner_join(ann_vaccines_covid_other_conditions, by = "condition") %>% 
-  filter(day != "0") %>% 
+  # filter(day != "0") %>% 
   filter(!cell_type %in% c("stroma score", "microenvironment score"))
     # filter(cell_type %in% c("T cell CD8+",
     #                       "T cell CD4+ (non-regulatory)",
