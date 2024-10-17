@@ -5825,6 +5825,109 @@ patch_immune_degs
 ```
 
 
+
+###### BTM + ImmuneGO
+
+Totals
+```{r fig.height=10, fig.width=10}
+degs_immune = all_degs_p_05_vac_infected %>% 
+  left_join(ImmuneGO_BTM_genes %>% mutate(set = "ImmuneGO + BTM"), 
+            by = "genes") %>% 
+    filter(if_else(n >= 5, fdr <= 0.05, fdr <= (0.05 * 6/n))) %>% 
+  mutate(set = if_else(is.na(set), "Not ImmuneGO and BTM", set)) %>% 
+  group_by(condition, direction, set) %>% 
+  summarize(n_set = n()) %>% 
+    mutate(condition = fct_relevel(condition, c(ann_vaccines_conditions_ordered$condition_grouped %>% unique() %>% as.character()))) 
+
+```
+
+
+```{r fig.height=10, fig.width=10}
+#UP
+immune_other_plot_btm_immunego  = degs_immune %>% 
+  ggplot() +
+ aes(x = fct_rev(factor(condition)), y = n_set, fill = fct_rev(set)) +
+ geom_col() +
+ coord_flip() +
+ theme_minimal() +
+  scale_fill_manual(name = "",
+    values = c("Not ImmuneGO and BTM" = "gray90",
+              "ImmuneGO + BTM" = "#4DBBD5FF"),
+    labels = c('Other', 'Immune')) +
+  theme(legend.position= "top",
+        panel.grid = element_blank(),
+        legend.title = element_text(size = 10),
+        legend.text = element_text(size= 15),
+        axis.title.x = element_blank(),
+        axis.text.x = element_blank(),
+        axis.text.y = element_text(size = 10, color = "black", angle = 0, hjust = 1),
+        strip.text.x = element_text(size = 15, color = "black", hjust = 0.5),
+        strip.text.y = element_text(size = 15, angle = 0, face = "bold"),
+        strip.background.x = element_blank()) +
+  geom_text_repel(aes(label = n_set,
+                y = n_set ),
+            hjust = -0.05,
+            size = 3,
+            angle = 0) +
+  labs(title = "",
+       fill = "Gene type",
+       x = "",
+       y = "Number of genes") +
+  ylim(0, 8000) +
+  facet_grid(~direction, scales = "free_x")
+
+
+ggsave(immune_other_plot_btm_immunego, file = here("Figures", "immune_other_plot_diseaseorvac_BTM_ImmuneGO.png"), width = 10, height = 10)
+
+immune_other_plot_btm_immunego
+```
+
+
+```{r fig.height=10, fig.width=10}
+degs_immune = all_degs_p_05_vac_infected %>% 
+  left_join(ImmuneGO_BTM_genes %>% mutate(set = "ImmuneGO + BTM"), 
+            by = "genes") %>% 
+    filter(if_else(n >= 5, fdr <= 0.05, fdr <= (0.05 * 6/n))) %>% 
+  mutate(set = if_else(is.na(set), "Not ImmuneGO and BTM", set)) %>% 
+  group_by(condition, set) %>% 
+  summarize(n_set = n()) %>% 
+    mutate(condition = fct_relevel(condition, c(ann_vaccines_conditions_ordered$condition_grouped %>% unique() %>% as.character())))
+
+
+immune_other_plot_btm_immunego  = degs_immune %>% 
+  ggplot() +
+ aes(x = fct_rev(factor(condition)), y = n_set, fill = fct_rev(set)) +
+  geom_bar(stat = "summary", fun = "sum", position = "fill") +
+ coord_flip() +
+ theme_minimal() +
+  scale_fill_manual(name = "",
+    values = c("Not ImmuneGO and BTM" = "gray90",
+              "ImmuneGO + BTM" = "#4DBBD5FF"),
+    labels = c('Other', 'Immune')) +
+  theme(legend.position= "top",
+        panel.grid = element_blank(),
+        legend.title = element_text(size = 10),
+        legend.text = element_text(size= 15),
+        # axis.title.x = element_blank(),
+        # axis.text.x = element_blank(),
+        axis.text.y = element_text(size = 10, color = "black", angle = 0, hjust = 1),
+        strip.text.x = element_text(size = 15, color = "black", hjust = 0.5),
+        strip.text.y = element_text(size = 15, angle = 0, face = "bold"),
+        strip.background.x = element_blank()) +
+
+  labs(title = "ImmuneGO + BTM genes",
+       fill = "Gene type",
+       x = "",
+       y = "Relative frequency (%)") 
+
+
+
+```
+
+
+
+
+
 ######  Relative frequency: Immune vs. non-immune genes
 
 
@@ -6378,9 +6481,8 @@ degs_immune = btm_immune_stats_degs_2 %>%
 ```{r fig.height=10, fig.width=10}
 #UP
 immune_other_plot_diseaseorvac_I = degs_immune %>% 
-  filter(disease_vac == "Infection",
-         bioprocess == "Immune") %>% 
-    mutate(condition = factor(condition, levels = ann_vaccines_conditions_ordered %>% arrange(condition) %>% select(condition) %>% distinct() %>% pull() %>% as.character())) %>%
+  filter(bioprocess == "Immune") %>% 
+    mutate(condition = factor(condition, levels = ann_vaccines_conditions_ordered %>% arrange(condition_grouped) %>% select(condition_grouped) %>% distinct() %>% pull() %>% as.character())) %>%
   ggplot() +
  aes(x = fct_rev(factor(condition)), y = total_number, fill = totals) +
  geom_col() +
@@ -6416,50 +6518,10 @@ immune_other_plot_diseaseorvac_I = degs_immune %>%
        x = "",
        y = "Number of genes") +
   ylim(0, 5000) +
-    facet_grid(~disease_vac~direction, scales = "free_y")
+    facet_grid(~direction, scales = "free_y")
 
-immune_other_plot_diseaseorvac_V  = degs_immune %>% 
-  filter(disease_vac == "Vaccination",
-         bioprocess == "Immune") %>% 
-  mutate(condition = factor(condition, levels = ann_vaccines_conditions_ordered %>% arrange(condition) %>% select(condition) %>% distinct() %>% pull() %>% as.character())) %>%
-  ggplot() +
- aes(x = fct_rev(factor(condition)), y = total_number, fill = totals) +
- geom_col() +
- coord_flip() +
- theme_minimal() +
-  scale_fill_manual(name = "Type",
-    values = c("n_genes_total" = "gray90",
-              "n_genes_immune" = "#4DBBD5FF"),
-    labels = c('Total', 'Immune')) +
-  theme(legend.position = "none", 
-        panel.grid = element_blank(),
-        legend.title = element_text(size = 10),
-        legend.text = element_text(size=10),
-        axis.title.x = element_text(size = 10, color = "black"),
-        axis.text.x = element_text(size = 10, color = "black", angle = 0, hjust = 1),
-        axis.text.y = element_text(size = 10, color = "black", angle = 0, hjust = 1),
-        strip.text.x = element_blank(),
-        strip.text.y = element_text(size = 15, angle = 0, face = "bold"),
-        strip.background.x = element_blank()) +
-  geom_text(aes(label = if_else(totals == "n_genes_immune",
-                                paste0(immune_genes, " (", n_genes_perc, "% of ", total_degs, ")") ,
-                                NA), 
-                y = total_degs + immune_genes), 
-            hjust = -0.05, 
-            size = 3,
-            angle = 0) +
-  labs(title = "",
-       fill = "Gene type",
-       x = "",
-       y = "Number of genes") +
-  ylim(0, 5000) +
-    facet_grid(~disease_vac~direction, scales = "free_y")
+ggsave(immune_other_plot_diseaseorvac_I, file = here("Figures", "BTM_vs_nonBTM_plot_diseaseorvac.png"), width = 10, height = 10)
 
-patch_immune_degs = immune_other_plot_diseaseorvac_I / immune_other_plot_diseaseorvac_V 
-
-ggsave(patch_immune_degs, file = here("Figures", "BTM_vs_nonBTM_plot_diseaseorvac.png"), width = 10, height = 10)
-
-patch_immune_degs
 ```
 
 ###Immune and non-immune DEGs 
@@ -6557,9 +6619,8 @@ degs_immune = btm_immune_stats_degs_2 %>%
 ```{r fig.height=10, fig.width=10}
 #UP
 immune_other_plot_diseaseorvac_I = degs_immune %>% 
-  filter(disease_vac == "Infection",
-         bioprocess == "Immune") %>% 
-    mutate(condition = factor(condition, levels = ann_vaccines_conditions_ordered %>% arrange(condition) %>% select(condition) %>% distinct() %>% pull() %>% as.character())) %>%
+  filter(bioprocess == "Immune") %>% 
+    mutate(condition = factor(condition, levels = ann_vaccines_conditions_ordered %>% arrange(condition_grouped) %>% select(condition_grouped) %>% distinct() %>% pull() %>% as.character())) %>%
   ggplot() +
  aes(x = fct_rev(factor(condition)), y = total_number, fill = totals) +
  geom_col() +
@@ -6595,50 +6656,12 @@ immune_other_plot_diseaseorvac_I = degs_immune %>%
        x = "",
        y = "Number of genes") +
   ylim(0, 5000) +
-    facet_grid(~disease_vac~direction, scales = "free_y")
+    facet_grid(~direction, scales = "free_y")
 
-immune_other_plot_diseaseorvac_V  = degs_immune %>% 
-  filter(disease_vac == "Vaccination",
-         bioprocess == "Immune") %>% 
-  mutate(condition = factor(condition, levels = ann_vaccines_conditions_ordered %>% arrange(condition) %>% select(condition) %>% distinct() %>% pull() %>% as.character())) %>%
-  ggplot() +
- aes(x = fct_rev(factor(condition)), y = total_number, fill = totals) +
- geom_col() +
- coord_flip() +
- theme_minimal() +
-  scale_fill_manual(name = "Type",
-    values = c("n_genes_total" = "gray90",
-              "n_genes_immune" = "#4DBBD5FF"),
-    labels = c('Total', 'Immune')) +
-  theme(legend.position = "none", 
-        panel.grid = element_blank(),
-        legend.title = element_text(size = 10),
-        legend.text = element_text(size=10),
-        axis.title.x = element_text(size = 10, color = "black"),
-        axis.text.x = element_text(size = 10, color = "black", angle = 0, hjust = 1),
-        axis.text.y = element_text(size = 10, color = "black", angle = 0, hjust = 1),
-        strip.text.x = element_blank(),
-        strip.text.y = element_text(size = 15, angle = 0, face = "bold"),
-        strip.background.x = element_blank()) +
-  geom_text(aes(label = if_else(totals == "n_genes_immune",
-                                paste0(immune_genes, " (", n_genes_perc, "% of ", total_degs, ")") ,
-                                NA), 
-                y = total_degs + immune_genes), 
-            hjust = -0.05, 
-            size = 3,
-            angle = 0) +
-  labs(title = "",
-       fill = "Gene type",
-       x = "",
-       y = "Number of genes") +
-  ylim(0, 5000) +
-    facet_grid(~disease_vac~direction, scales = "free_y")
 
-patch_immune_degs = immune_other_plot_diseaseorvac_I / immune_other_plot_diseaseorvac_V 
+ggsave(immune_other_plot_diseaseorvac_I, file = here("Figures", "immune_other_BTM_plot_diseaseorvac.png"), width = 10, height = 10)
 
-ggsave(patch_immune_degs, file = here("Figures", "immune_other_BTM_plot_diseaseorvac.png"), width = 10, height = 10)
-
-patch_immune_degs
+immune_other_plot_diseaseorvac_I
 ```
 
 
