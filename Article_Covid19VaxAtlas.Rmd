@@ -17758,7 +17758,7 @@ ann_vaccines = read_csv(here("Annotations and metadata", "ann_vaccines_condition
 
 # DEGs table
 data.immunego = readRDS(here("DGE analysis", "all_studies_degs_weighted.rds")) %>% 
-  filter(fdr <= 0.05)
+  filter(if_else(n >= 5, fdr <= 0.05, fdr <= (0.05 * 6/n))) 
 
 #Colors
 ann_colors = ann_vaxsig_colors 
@@ -17772,7 +17772,7 @@ Process data
 # All gene sets
 Immune_GO_BTMgenes_All = data.immunego %>% 
   inner_join(ImmuneGO_BTM_genes, by = "genes") %>% 
-  inner_joiun(ann_vaccines, by = "condition") %>% 
+  inner_join(ann_vaccines, by = "condition") %>% 
   clean_names()
 
 
@@ -17841,14 +17841,13 @@ library(InteractiveComplexHeatmap)
 library(maditr)
 
 ####### Input
-heatmap_data = Immune_GO_genes_All
+heatmap_data = Immune_GO_BTMgenes_All
 file = "Immune_GO_BTM_genes_All"
 
 ###### Process data
 
 heatmap_data_l2fc= heatmap_data %>% 
-  filter(condition != "NA", 
-         process != "NA") %>% 
+  filter(condition != "NA") %>% 
   select(genes, condition, log2fold_change)
 
 # Convert to wide table
@@ -17934,6 +17933,7 @@ ha = HeatmapAnnotation(df = ann_vaccines_heatmap,
                        annotation_name_side = "left")
 
 row_ha = HeatmapAnnotation(df = ann_rows_immune,
+                           col = col_immune_sets,
                        col = col_process_immune,
                        which= "row",
                        simple_anno_size = unit(2, "mm"),
