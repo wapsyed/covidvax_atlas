@@ -3135,22 +3135,28 @@ all_degs_biotypes_plot_immune
 How many are in?
 
 ```{r}
-all_degs_immuneGO = all_degs_p_05_vac_infected %>% 
+
+btm_annotation_genes = readRDS(here("VaxGO gene sets", "btm_annotation_genes.rds"))
+
+immunego_btm_genes = ImmuneGO_Annotated_Genes %>% 
+              select(genes) %>% 
+              distinct() %>% 
+              mutate(set = "ImmuneGO") %>% 
+  bind_rows(btm_annotation_genes %>% 
+              select(genes) %>% 
+              distinct() %>% 
+              mutate(set = "BTM")) %>% 
+  arrange(genes)
+
+immunego_btm_genes_joined = immunego_btm_genes %>% 
+  bind_rows(immunego_btm_genes %>% mutate(set = "BTM and ImmuneGO")) %>% 
+  distinct()
+
+
+all_degs_immuneGO_BTM_totals = all_degs_p_05_vac_infected %>% 
   select(genes, condition) %>% 
-  left_join(ImmuneGO_Annotated_Genes %>% 
-              select(genes) %>% 
-              distinct() %>% 
-              mutate(set_immunego = "ImmuneGO"),
+  left_join(immunego_btm_genes_joined,
             by = "genes") %>% 
-  left_join(btm_annotation_genes %>% 
-              select(genes) %>% 
-              distinct() %>% 
-              mutate(set_btm = "BTM"),
-            by = "genes") %>% 
-  pivot_longer(cols = c("set.x", "set.y"),
-               names_to = "set",
-               valuesfrom
-               )
   mutate(set = if_else(is.na(set), "Other", set)) %>% 
   group_by(condition, set) %>% 
   summarise(n = n()) %>%
@@ -3162,10 +3168,124 @@ all_degs_immuneGO = all_degs_p_05_vac_infected %>%
   distinct() %>% 
     ungroup() %>% 
   mutate(n_perc = round(100*(n/ntotal), 1)) %>% 
-  inner_join(ann_vaccines, by="condition") %>% 
+  inner_join(ann_vaccines, by="condition")
+
+all_degs_immuneGO_BTM_reg = all_degs_p_05_vac_infected %>% 
+  select(genes, direction, condition) %>% 
+  left_join(immunego_btm_genes_joined,
+            by = "genes") %>% 
+  mutate(set = if_else(is.na(set), "Other", set)) %>% 
+  group_by(condition, direction, set) %>% 
+  summarise(n = n()) %>%
+  ungroup() %>% 
+  group_by(condition) %>% 
+  summarize(ntotal = sum(n),
+            direction = direction,
+            n = n,
+            set = set) %>% 
+  distinct() %>% 
+    ungroup() %>% 
+  inner_join(ann_vaccines, by="condition")
+
+
+all_degs_immuneGO_BTM %>% 
   group_by(set) %>% 
   summarize(n_median = median(n_perc))
 ```
+
+
+```{r fig.height=10, fig.width=10}
+
+#Percentage total DEGs
+all_degs_immuneGO_BTM_plot = all_degs_immuneGO_BTM %>% 
+  mutate(condition = fct_relevel(condition, c(ann_vaccines_conditions_ordered$condition_grouped %>% 
+                                                as.character() %>% 
+                                                unique()))) %>% 
+  ggplot(.) +
+  aes(x = n_perc, y = fct_rev(condition), fill = fct_relevel(set, "Other", "BTM and ImmuneGO", "BTM", "ImmuneGO")) +
+  geom_bar(stat = "summary", fun = "sum", position = "fill") +
+  scale_fill_manual(values = c("BTM and ImmuneGO" = "#4DBBD5FF",
+    "Other" = "gray95",
+    "BTM" = "#5e60ce",
+    "ImmuneGO" = "#00A087FF")) +
+    theme_minimal() +
+  theme(legend.position = "right",
+        strip.text.x = element_text(color = "black", size = 12), 
+        axis.text.x = element_text(angle = 0, vjust = 1, hjust=1, size = 10, color = "black"),
+        axis.text.y = element_text(vjust = 0.5, size = 10, color = "black")) +
+  labs(x = "%Coverage",
+       y = "",
+       fill = "",
+       title = "DEGs by Immune role") +
+  scale_x_continuous(expand = c(0,0)) +
+  geom_text(aes(label = paste0(n_perc)), 
+            position = position_fill(vjust = 0.5), 
+            size = 3, 
+            color = "black")
+
+all_degs_immuneGO_BTM_plot %>% 
+  ggsave(file = here("Figures", "all_degs_immuneGO_BTM_percentage_plot.png"),
+         width = 10,
+         height = 10)
+  
+
+
+#Totals by direction
+all_degs_immuneGO_BTM_reg_plot = all_degs_immuneGO_BTM_reg %>% 
+  mutate(condition = fct_relevel(condition, c(ann_vaccines_conditions_ordered$condition_grouped %>% 
+                                                as.character() %>% 
+                                                unique()))) %>% 
+  filter(set %in% c("BTM and ImmuneGO", "Other"),
+         direction != "NEUTRAL") %>% 
+  ggplot(.) +
+  aes(x = n, y = fct_rev(condition), fill = fct_relevel(set, "Other", "BTM and ImmuneGO", "BTM", "ImmuneGO")) +
+  geom_bar(stat = "summary", fun = "sum") +  
+    scale_fill_manual(values = c("BTM and ImmuneGO" = "#4DBBD5FF",
+    "Other" = "gray95",
+    "BTM" = "#5e60ce",
+    "ImmuneGO" = "#00A087FF")) +
+    theme_minimal() +
+  theme(
+    legend.position = "top",
+    # panel.grid.major.x = element_blank(),
+    plot.title = element_text(size = 25, hjust = 0.5),
+    legend.title = element_text(size = 15),
+    legend.text = element_text(size = 15),
+    axis.text.x = element_text(size = 12,
+                                color = "black",
+                                angle = 0,
+                                hjust = 0.5),
+    axis.title.x = element_text(size = 15,
+                                color = "black"),
+    axis.text.y = element_text(size = 12,
+                                color = "black",
+                                angle = 0,
+                                hjust = 1),
+    strip.text.x = element_text(size = 15, 
+                                face = "bold"),
+    strip.text.y = element_text(
+      size = 15,
+      angle = 0,
+      hjust = 0,
+      face = "bold"),
+  ) +
+  labs(x = "%Coverage",
+       y = "",
+       fill = "",
+       title = "DEGs by Immune role") +
+  scale_x_continuous(expand = c(0,0)) +
+  facet_grid(~direction, scales="free")
+
+all_degs_immuneGO_BTM_reg_plot %>% 
+  ggsave(file = here("Figures", "all_degs_immuneGO_BTM_totals_direction_plot.png"),
+         width = 10,
+         height = 10)
+
+all_degs_immuneGO_BTM_reg_plot
+```
+
+
+
 
 
 ```{r}
@@ -3242,10 +3362,6 @@ all_degs_biotypes_plot_immune
 
 BTM genes
 ```{r}
-
-
-btm_annotation_genes = readRDS(here("VaxGO gene sets", "btm_annotation_genes.rds"))
-
 
 #ImmuneGO
 all_degs_biotypes_immuneBTM = all_degs_p_05_vac_infected %>% 
@@ -3367,10 +3483,6 @@ btm_annotation_genes_immune = btm_annotation_genes %>%
 
 ImmuneGO_BTM_genes = btm_annotation_genes_immune %>% 
   bind_rows(ImmuneGO_Annotated_Genes_all %>% select(genes) %>% distinct())
-
-
-
-
 
 # DEGs table
 degs_all_updown = read_rds(file = here("DGE analysis", "all_studies_degs_weighted.rds")) %>% 
