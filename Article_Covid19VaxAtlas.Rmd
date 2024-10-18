@@ -3136,19 +3136,21 @@ How many are in?
 
 ```{r}
 all_degs_immuneGO = all_degs_p_05_vac_infected %>% 
-  select(genes, condition, direction) %>% 
+  select(genes, condition) %>% 
   left_join(ImmuneGO_Annotated_Genes %>% 
               select(genes) %>% 
               distinct() %>% 
-              mutate(set = "ImmuneGO"),
+              mutate(set_immunego = "ImmuneGO"),
             by = "genes") %>% 
   left_join(btm_annotation_genes %>% 
               select(genes) %>% 
               distinct() %>% 
-              mutate(set = "BTM"),
+              mutate(set_btm = "BTM"),
             by = "genes") %>% 
-  mutate(set = case_when(is.na(set.x) & is.na(set.y) ~ "Other", 
-                         ))
+  pivot_longer(cols = c("set.x", "set.y"),
+               names_to = "set",
+               valuesfrom
+               )
   mutate(set = if_else(is.na(set), "Other", set)) %>% 
   group_by(condition, set) %>% 
   summarise(n = n()) %>%
