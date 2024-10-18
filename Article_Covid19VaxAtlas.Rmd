@@ -1439,7 +1439,7 @@ ggsave(normalizedcounts_pca_plot_sex, file = here("Figures", "covid_vax_pca_samp
 
 ### Annotate metadata
 
-Conditions
+Standardize conditions
 
 ```{r eval=FALSE, echo = TRUE, cache = TRUE}
 #Metadata ------
@@ -1480,7 +1480,7 @@ gse201533_metadata_2 = GSE201533_metadata %>%
   rownames_to_column("sample")
 ```
 
-Samples
+Unite samples
 
 ```{r eval=FALSE, include=TRUE, cache = TRUE}
 ann_vaccines_samples_2.1 = ann_vaccines_samples_2 %>% 
@@ -1543,7 +1543,6 @@ ann_vaccines_2 = ann_vaccines %>%
 write.csv(ann_vaccines_3, file = "ann_vaccines_19-1-24.csv")
 
 
-
 ann_vaccines_conditions = ann_vaccines_samples %>% 
   select(condition, disease_vac, gse_id) %>% 
   group_by(condition, gse_id) %>% 
@@ -1563,6 +1562,9 @@ ann_vaccines_conditions %>%
 
 ### Reorder conditions as factors
 ```{r}
+
+
+#Group conditions
 ann_vaccines_conditions_grouped = ann_vaccines_conditions %>% 
   mutate(condition_grouped = condition) %>% 
   select(condition, condition_grouped, everything()) %>% 
@@ -1581,18 +1583,17 @@ ann_vaccines_conditions_grouped = ann_vaccines_conditions %>%
                                        TRUE ~ condition_grouped)) %>% 
   arrange(condition_grouped)
 
-```
 
-
-```{r}
 ann_vaccines_conditions_grouped %>% 
   write_csv(file = here("Annotations and metadata", "ann_vaccines_conditions_grouped.csv"))
   
 ann_vaccines_conditions = ann_vaccines_conditions_grouped
 
-# ann_vaccines_conditions %>%
-#   write_csv(file = here("Annotations and metadata", "ann_vaccines_conditions.csv"))
+ann_vaccines_conditions %>%
+  write_csv(file = here("Annotations and metadata", "ann_vaccines_conditions.csv"))
   
+
+#Reorder factors
 ann_vaccines_conditions_ordered = ann_vaccines_conditions %>% 
   ungroup() %>% 
   mutate(condition = as.character(condition)) %>% 
@@ -1601,6 +1602,8 @@ ann_vaccines_conditions_ordered = ann_vaccines_conditions %>%
            type = fct_relevel(type, "I", "RNA", "VV", "IN", "SU")) %>% 
   arrange(disease_vac,type, condition)
 
+
+#Reorder conditions
 # ordered_conditions = c("H (D0)",
 #                                  ann_vaccines_conditions_ordered %>%
 #                                    filter(grepl("^I \\(D[0-9]\\)$", condition)) %>%
@@ -1667,6 +1670,7 @@ ann_vaccines_conditions_ordered = ann_vaccines_conditions %>%
 #                                    distinct() %>%
 #                                    pull(condition))
 
+#Order conditions manually
 ordered_conditions = c(
   "H (D0)",
   "I (D0)",
@@ -1723,7 +1727,6 @@ ordered_conditions = c(
   "ZF2001 (V3, D28)"
 )
 
-
 ann_vaccines_conditions_ordered = ann_vaccines_conditions_ordered %>% 
   mutate(condition = fct_relevel(condition, 
                                  ordered_conditions)) %>%
@@ -1744,6 +1747,8 @@ ann_vaccines_conditions_ordered %>%
 
 ### Samples by condition
 
+
+Original conditions
 ```{r fig.height=10, fig.width=20, cache = TRUE}
 ann_vaccines_conditions = read_csv(here("Annotations and metadata", "ann_vaccines_conditions.csv"))
 
@@ -1811,27 +1816,28 @@ ggsave(samples_by_condition_plot, file = here("Figures", "demographics_samples-b
 samples_by_condition_plot
 ```
 
-
-```{r fig.height=10, fig.width=20, cache = TRUE}
+Grouped conditions
+```{r fig.height=10, fig.width=15, cache = TRUE}
 #### SAMPLES BY CONDITION GROUPED -----
 
 ann_vaccines = ann_vaccines_conditions
 
 samples_by_condition_grouped = ann_vaccines_conditions %>% 
   ungroup() %>% 
-  select(samples, condition_grouped) %>% 
-  group_by(condition_grouped) %>% 
+  select(samples, condition) %>% 
+  group_by(condition) %>% 
   summarise(samples = sum(samples)) %>% 
-  inner_join(ann_vaccines %>% select(vaccine, condition_grouped) %>% distinct(), by = "condition_grouped") %>% 
-  mutate(condition_grouped = fct_relevel(condition_grouped, c(ann_vaccines_conditions_ordered$condition_grouped %>% 
+  inner_join(ann_vaccines %>% select(vaccine, condition) %>% distinct(), by = "condition") %>% 
+  mutate(condition = fct_relevel(condition, c(ann_vaccines_conditions_ordered$condition_grouped %>% 
                                                 as.character() %>% 
                                                 unique()))) %>% 
-  select(condition_grouped, samples, vaccine) %>% 
+  select(condition, samples, vaccine) %>% 
   distinct() %>% 
-  arrange(condition_grouped)
+  arrange(condition)
 
 samples_by_conditiongrouped_plot = samples_by_condition_grouped %>% 
-  ggplot(aes(x = condition_grouped, weight = samples, fill = vaccine)) +
+  drop_na() %>% 
+  ggplot(aes(x = condition, weight = samples, fill = vaccine)) +
   geom_bar() +
   scale_fill_manual(name = "Vaccine or infection", labels = c("BBIBP", 
                                                                 "BNT", 
@@ -1859,8 +1865,7 @@ samples_by_conditiongrouped_plot = samples_by_condition_grouped %>%
         panel.grid.minor = element_blank(),
         plot.margin = margin(2, 2, 2, 2, "cm")) +
   guides(fill=guide_legend(nrow=1,byrow=TRUE)) +
-  geom_label(aes(label = samples, y = samples),
-             fill = "white",
+  geom_text(aes(label = samples, y = samples),
             position = position_dodge(width = 0), 
             vjust = -0.5, 
             size = 4,
@@ -1869,7 +1874,7 @@ samples_by_conditiongrouped_plot = samples_by_condition_grouped %>%
   labs(x = "") +
   ylim(0, 80)
 
-ggsave(samples_by_conditiongrouped_plot, file = here("Figures", "demographics_samples-by-condition_grouped.png"), width = 20, height = 10)
+ggsave(samples_by_conditiongrouped_plot, file = here("Figures", "demographics_samples-by-condition_grouped.png"), width = 15, height = 10)
 
 samples_by_conditiongrouped_plot
 ```
@@ -1911,7 +1916,7 @@ samples_by_study_plot = samples_by_study %>%
             angle = 0) +
   ggtitle("Samples by GSE ID") +
   labs(x = "")
-ggsave(samples_by_study_plot, file = here("Figures", "demographics_samples-by-study.png"), width = 10, height = 8)
+# ggsave(samples_by_study_plot, file = here("Figures", "demographics_samples-by-study.png"), width = 10, height = 8)
 
 samples_by_study_plot
 ```
@@ -1920,6 +1925,9 @@ samples_by_study_plot
 ### Age by GSE
 
 ```{r fig.height=5, fig.width=6, cache = TRUE}
+
+library(ggstatsplot)
+
 #### AGE BY GSE -------------
 age = ann_vaccines_samples %>% 
   select(age, participant_id, gse_id) %>% 
@@ -2036,13 +2044,13 @@ sex_stats_nonumb = sex_stats %>%
           "Female" = "#E64B35FF",
           "M/F" = "#8491B4FF"))
 
-ggsave(sex_stats_annotated, 
-       file = here("Figures", "Demographics_Sex_annotated.png") , 
-       width = 10, height = 10)
-
-ggsave(sex_stats_nonumb, 
-       file = here("Figures", "Demographics_Sex_nonumbers.png") , 
-       width = 10, height = 10)
+# ggsave(sex_stats_annotated, 
+#        file = here("Figures", "Demographics_Sex_annotated.png") , 
+#        width = 10, height = 10)
+# 
+# ggsave(sex_stats_nonumb, 
+#        file = here("Figures", "Demographics_Sex_nonumbers.png") , 
+#        width = 10, height = 10)
 
 sex_stats_annotated
 ```
@@ -2054,7 +2062,7 @@ sex_stats_annotated
 #### Participants by condition ------
 
 participants = ann_vaccines_conditions %>% 
-  select(condition_grouped, samples, gse_id) %>% 
+  select(condition, samples, gse_id) %>% 
   distinct() %>% 
   group_by(gse_id) %>% 
   select(samples, gse_id) %>% 
@@ -2091,9 +2099,9 @@ demographics_time = ann_vaccines_samples %>%
   ) +
   scale_fill_manual(values = ann_vaxsig_colors$Platform)
 
-demographics_time %>% 
-  ggsave(file = here("Figures", "Demographics_Time.png"),
-         width = 8, height = 5)
+# demographics_time %>% 
+#   ggsave(file = here("Figures", "Demographics_Time.png"),
+#          width = 8, height = 5)
 
 demographics_time
 ```
@@ -2102,8 +2110,8 @@ demographics_time
 ```{r fig.height=5, fig.width=8, cache = TRUE}
 #Conditions grouped
 demographics_time_grouped = ann_vaccines_conditions %>% 
-  select(condition_grouped, samples, day, type) %>% 
-  group_by(condition_grouped) %>% 
+  select(condition, samples, day, type) %>% 
+  group_by(condition) %>% 
   summarize(mean_day = mean(day) %>% round(., 0),
             samples = sum(samples),
             type = type) %>% 
@@ -2125,9 +2133,9 @@ demographics_time_grouped = ann_vaccines_conditions %>%
   ) +
   scale_fill_manual(values = ann_vaxsig_colors$Platform)
 
-demographics_time_grouped %>% 
-  ggsave(file = here("Figures", "Demographics_Time_Grouped.png"),
-         width = 8, height = 5)
+# demographics_time_grouped %>% 
+#   ggsave(file = here("Figures", "Demographics_Time_Grouped.png"),
+#          width = 8, height = 5)
 
 demographics_time_grouped
 
@@ -2138,17 +2146,9 @@ demographics_time_grouped
 
 ### Studies designs
 
-
-```{r}
-ann_vaccines_conditions %>% 
-  mutate(dose)
-```
-
-
-
+Ungrouped
 ```{r fig.height=6, fig.width=6}
 library(ggforce)
-
 
 demographics_days_samples_doses = ann_vaccines_conditions %>% 
   ungroup() %>% 
@@ -2203,13 +2203,78 @@ group_by(gse_id, dose_f) %>%
 
 demographics_plot_days_samples_doses
 
-demographics_plot_days_samples_doses %>% 
-  ggsave(filename = here("Figures", "Demographics_studies_design.png"),
-         width = 6,
-         height = 6)
+# demographics_plot_days_samples_doses %>% 
+#   ggsave(filename = here("Figures", "Demographics_studies_design.png"),
+#          width = 6,
+#          height = 6)
 
 
 ```
+
+Grouped conditions
+
+```{r fig.height=6, fig.width=6}
+demographics_days_samples_doses = ann_vaccines_conditions %>% 
+  ungroup() %>% 
+  mutate(condition = as.factor(condition),
+         condition = fct_relevel(condition, as.character(unique(ann_vaccines_conditions_ordered$condition_grouped))),
+         day_f = as.factor(day),
+         day_f = fct_reorder(day_f, day),
+         dose_f = as.factor(dose),
+         dose_f = fct_reorder(dose_f, dose),
+         condition = if_else(condition == "BNT (V1, D0)" & 
+                               gse_id == "GSE189039", "H (D0)", 
+                             condition)) %>%
+  separate(condition, into = c("condition_2"), sep = " \\(", remove = F) %>%
+  mutate(
+    # dose_f = if_else(day_f == "0", "0", dose_f),
+         # condition_2 = if_else(severity != "H", 
+         #                     paste0(condition_2, " (", severity, ")"),
+         #                     condition_2)),
+         condition = fct_relevel(condition, as.character(unique(ann_vaccines_conditions_ordered$condition_grouped))),
+         dose_f = if_else(dose == "0" & infection != "0", "Infection", dose_f)) %>% 
+  arrange(condition)
+
+demographics_plot_days_samples_doses = 
+  demographics_days_samples_doses %>% 
+  mutate(condition_2 = fct_relevel(condition_2,
+                                   as.character(unique(demographics_days_samples_doses$condition_2)))) %>%
+group_by(gse_id, dose_f) %>% 
+  ggplot(.) +
+  aes(x = fct_reorder(day_f, day),
+      y = fct_rev(condition_2), 
+      fill = dose_f,
+      size = samples,
+      group = dose_f) +
+  geom_point(position = position_dodge(width = 0.8),
+             pch = 21,
+             # size = 3, 
+             color = "black") +
+  scale_fill_manual(values =  c(ann_vaxsig_colors$dose, "Infection" = "red")) +
+  scale_size_binned(breaks = c(1, 10, 50),
+                    range = c(2, 5)) +
+  theme_minimal() +
+  theme(legend.position = "right", legend.direction = "vertical",
+        axis.text = element_text(color = "black"),
+        strip.text.y = element_text(angle = 0, color = "black")) +
+  labs(x = "Days",
+       y = "",
+       title = "Studies design - Grouped conditions",
+       shape = "Disease or vaccination",
+       size = "Samples",
+       fill = "Dose") +
+  ggforce::facet_col(~fct_relevel(gse_id, "GSE201530", "GSE189039", "GSE199750", "GSE201533"), scales = "free_y", space = "free")
+
+demographics_plot_days_samples_doses
+
+# demographics_plot_days_samples_doses %>%
+#   ggsave(filename = here("Figures", "Demographics_studies_design_Grouped.png"),
+#          width = 6,
+#          height = 6)
+```
+
+
+
 
 ### Immunological endpoints
 
@@ -2507,7 +2572,7 @@ dds <- DESeqDataSetFromMatrix(countData = countData,
                               colData = colData, 
                               design = ~ age + 
                                 sex +
-                                # severity +
+                                severity +
                                 # variant + 
                                 condition_grouped)
 
@@ -2618,6 +2683,7 @@ all_degs_annotated = all_degs %>%
 
 all_degs_annotated$condition %>% unique()
 
+#Weight p values by sample size
 all_studies_degs_weighted = all_degs_annotated %>%
   group_by(genes, condition) %>%
   arrange(genes) %>% 
@@ -2647,6 +2713,8 @@ all_studies_degs_weighted %>%
 
 ```{r}
 #Required files
+
+#Filter fdr by sample size minimum
 all_degs_p_05_vac_infected = read_rds(file = here("DGE analysis", "all_studies_degs_weighted.rds")) %>%
   filter(if_else(n >= 5, fdr <= 0.05, fdr <= (0.05 * 6/n))) 
 
@@ -2672,11 +2740,11 @@ all_degs_total
 
 By vaccination or disease
 
-```{r fig.height=6, fig.width=6}
+```{r fig.height=6, fig.width=12}
 # Plot 1
-ggplot_degs_bars_I = all_degs %>%
+ggplot_degs_bars = all_degs %>%
     mutate(condition = fct_relevel(condition, c(ann_vaccines_conditions_ordered$condition_grouped %>% as.character() %>% unique()))) %>% 
- filter(disease_vac == "I") %>% 
+  filter(direction != "NEUTRAL") %>% 
  ggplot() +
   aes(x = condition, fill = direction, weight = n_degs) +
   geom_bar(position = "dodge") +
@@ -2685,9 +2753,9 @@ ggplot_degs_bars_I = all_degs %>%
     NEUTRAL = "gray80",
     UP = "#d90429")) +
   theme_few() +
-  # ylim(0, 6000) +
+   ylim(0, 3000) +
   geom_text(aes(label = n_degs, y = n_degs), 
-            position = position_dodge(width = 0.9), 
+            position = position_dodge(width = 1), 
             angle = 90,
             vjust = 0.5, 
             hjust = -0.2, 
@@ -2698,41 +2766,10 @@ ggplot_degs_bars_I = all_degs %>%
   labs(x = "",
        y = "Total",
        fill = "",
-       title = "Infection")
+       title = "DEGs barplot")
 
-ggplot_degs_bars_I
 
-ggplot_degs_bars_V = all_degs %>%
-      mutate(condition = fct_relevel(condition, c(ann_vaccines_conditions_ordered$condition_grouped %>% as.character() %>% unique()))) %>% 
- filter(disease_vac == "V") %>% 
- ggplot() +
-  aes(x = condition, fill = direction, weight = n_degs) +
-  geom_bar(position = "dodge") +
-  scale_fill_manual(
-    values = c(DOWN = "#4DBBD5FF",
-    NEUTRAL = "gray80",
-    UP = "#d90429")) +
-  theme_few() +
-  ylim(0, 8000) +
-  geom_text(aes(label = n_degs, y = n_degs), 
-            position = position_dodge(width = 0.9), 
-            angle = 90,
-            vjust = 0.5, 
-            hjust = -0.2, 
-            size = 2) +
-  theme(legend.position = "right",
-        axis.text.x = element_text(angle = 45, vjust = 1, hjust=1, size = 7),
-        axis.text.y = element_text(vjust = 0.5)) +
-  labs(x = "",
-       y = "Total",
-       fill = "",
-       title = "Vaccination")
-
-ggplot_degs_bars = ggplot_degs_bars_V /
-  ggplot_degs_bars_I +
-  plot_layout(guides = "collect", axes = "collect")
-
-ggsave(ggplot_degs_bars, file = here("Figures", "DEGs_up_down_barplot_pvalue05_1.png"),  width = 10, height = 6)
+# ggsave(ggplot_degs_bars, file = here("Figures", "DEGs_up_down_barplot_pvalue05_1.png"),  width = 12, height = 6)
 
 ggplot_degs_bars
 
@@ -2774,8 +2811,8 @@ ggplot_degs_bars_directions = all_degs %>%
        title = "Total DEGs, by direction. Threshold = |l2fc| > 1") +
   facet_wrap(~direction)
 
-ggplot_degs_bars_directions %>% 
-  ggsave(file = here("Figures", "DEGs_L2FC_directions_vertical.png"), width = 10, height = 10)
+# ggplot_degs_bars_directions %>% 
+#   ggsave(file = here("Figures", "DEGs_L2FC_directions_vertical.png"), width = 10, height = 10)
 
 ggplot_degs_bars_directions
 ```
@@ -2818,11 +2855,16 @@ ggplot_degs_bars_directions_up_down = all_degs %>%
        title = "Total DEGs, by direction. Threshold = |l2fc| > 1") +
   facet_wrap(~direction)
 
-ggplot_degs_bars_directions_up_down %>% 
-  ggsave(file = here("Figures", "DEGs_L2FC_directions_up_down_vertical.png"), width = 10, height = 10)
+# ggplot_degs_bars_directions_up_down %>% 
+  # ggsave(file = here("Figures", "DEGs_L2FC_directions_up_down_vertical.png"), width = 10, height = 10)
 
 ggplot_degs_bars_directions_up_down
 ```
+
+
+
+
+
 Stacked
 ```{r fig.height=10, fig.width=10}
 
@@ -2877,9 +2919,10 @@ ggplot_degs_bars_2 = all_degs %>%
   theme(legend.position = "top",
         axis.text.x = element_text(angle = 45, vjust = 1, hjust=1, size = 7),
         axis.text.y = element_text(vjust = 0.5)) +
-  ggtitle("DEGs - all studies, p<0.05")
+  ggtitle("DEGs - all studies, p<0.05") +
+  labs(x = "", y = "")
 
-ggsave(ggplot_degs_bars_2, file = here("Figures", "DEGs_up_down_barplot_pvalue05_2.png"),  width = 10, height = 6)
+# ggsave(ggplot_degs_bars_2, file = here("Figures", "DEGs_up_down_barplot_pvalue05_2.png"),  width = 10, height = 6)
 
 ggplot_degs_bars_2
 
@@ -2986,19 +3029,19 @@ all_degs_biotypes_plot_perc = all_degs_biotypes %>%
 all_degs_biotypes_plot_all = all_degs_biotypes_plot_totals + all_degs_biotypes_plot_perc + 
   plot_layout(axes = "collect", guides = "collect")
 
-all_degs_biotypes_plot_all %>%
-  ggsave(file = here("Figures", "DEGs_by_biotype.png"),
-         width = 10,
-         height = 10)
+# all_degs_biotypes_plot_all %>%
+#   ggsave(file = here("Figures", "DEGs_by_biotype.png"),
+#          width = 10,
+#          height = 10)
 
 all_degs_biotypes_plot_all
 ```
 
 #### Immune genes
 
-Most of immune genes in ImmuneGO are protein-coding
+Most of immune genes in ImmuneGO are protein-coding.
 ```{r}
-
+#ImmuneGO
 all_degs_biotypes_immune = all_degs_p_05_vac_infected %>% 
   inner_join(all_degs_totals, by = "condition") %>% 
   filter(genes %in% ImmuneGO_Annotated_Genes$genes) %>% 
@@ -3083,13 +3126,217 @@ all_degs_biotypes_plot_perc_immune = all_degs_biotypes_immune %>%
 all_degs_biotypes_plot_immune = all_degs_biotypes_plot_perc_immune + all_degs_biotypes_plot_totals_immune + 
    plot_layout(axes = "collect", guides = "collect")
 
-all_degs_biotypes_plot_immune %>% 
-  ggsave(file = here("Figures", "all_degs_biotypes_plot_immune.png"), width = 10, height = 10)
+# all_degs_biotypes_plot_immune %>% 
+#   ggsave(file = here("Figures", "all_degs_biotypes_plot_immune.png"), width = 10, height = 10)
 
+all_degs_biotypes_plot_immune
+```
 
+How many are in?
+
+```{r}
+all_degs_immuneGO = all_degs_p_05_vac_infected %>% 
+  select(genes, condition, direction) %>% 
+  left_join(ImmuneGO_Annotated_Genes %>% 
+              select(genes) %>% 
+              distinct() %>% 
+              mutate(set = "ImmuneGO"),
+            by = "genes") %>% 
+  left_join(btm_annotation_genes %>% 
+              select(genes) %>% 
+              distinct() %>% 
+              mutate(set = "BTM"),
+            by = "genes") %>% 
+  mutate(set = case_when(is.na(set.x) & is.na(set.y) ~ "Other", 
+                         ))
+  mutate(set = if_else(is.na(set), "Other", set)) %>% 
+  group_by(condition, set) %>% 
+  summarise(n = n()) %>%
+  ungroup() %>% 
+  group_by(condition) %>% 
+  summarize(ntotal = sum(n),
+            n = n,
+            set = set) %>% 
+  distinct() %>% 
+    ungroup() %>% 
+  mutate(n_perc = round(100*(n/ntotal), 1)) %>% 
+  inner_join(ann_vaccines, by="condition") %>% 
+  group_by(set) %>% 
+  summarize(n_median = median(n_perc))
 ```
 
 
+```{r}
+all_degs_biotypes_plot_totals_immune = all_degs_biotypes_immune %>% 
+  mutate(gene_biotype_grouped = fct_relevel(gene_biotype_grouped, 
+                                            "Protein coding", 
+                                            "Non-coding RNAs",
+                                            "Ribozyme",
+                                            "Mithochondrial RNA",
+                                            "Pseudogene",
+                                            "To be Experimentally Confirmed"
+                                            ),
+         title = "Total Immune DEGs by biotype",
+         condition = fct_relevel(condition, c(ann_vaccines_conditions_ordered$condition_grouped %>% 
+                                                as.character() %>% 
+                                                unique()))) %>% 
+  ggplot(.) +
+  aes(x = n_biotypes, y = fct_rev(condition), fill = gene_biotype_grouped) +
+  geom_bar(stat = "summary", fun = "sum") +
+  theme_minimal() +
+  scale_fill_simpsons() +
+  theme(legend.position = "right",
+        strip.text.x = element_text(color = "black", size = 12), 
+        axis.text.x = element_text(angle = 0, vjust = 1, hjust=1, size = 10, color = "black"),
+        axis.text.y = element_text(vjust = 0.5, size = 10, color = "black")) +
+  labs(x = "Total",
+       y = "",
+       fill = "Gene biotype",
+       title = "DEGs by biotype") +
+  scale_x_continuous(expand = c(0,0)) +
+    facet_wrap(~title, scales= "free", ncol = 1)
+
+all_degs_biotypes_plot_perc_immune = all_degs_biotypes_immune %>% 
+  mutate(gene_biotype_grouped = fct_relevel(gene_biotype_grouped, 
+                                            "Protein coding", 
+                                            "Non-coding RNAs",
+                                            "Ribozyme",
+                                            "Mithochondrial RNA",
+                                            "Pseudogene",
+                                            "To be Experimentally Confirmed"
+                                            ),
+         title = "%Immune DEGs by biotype",
+         condition = fct_relevel(condition, c(ann_vaccines_conditions_ordered$condition_grouped %>% 
+                                                as.character() %>% 
+                                                unique()))) %>% 
+  ggplot(.) +
+  aes(x = n_biotypes, y = fct_rev(condition), fill = gene_biotype_grouped) +
+  geom_bar(stat = "summary", fun = "sum", position = "fill") +
+  theme_minimal() +
+  scale_fill_simpsons() +
+  theme(legend.position = "right",
+        strip.text.x = element_text(color = "black", size = 12), 
+        axis.text.x = element_text(angle = 0, vjust = 1, hjust=1, size = 10, color = "black"),
+        axis.text.y = element_text(vjust = 0.5, size = 10, color = "black")) +
+  labs(x = "%",
+       y = "",
+       fill = "Gene biotype",
+       title = "Percentage of DEGs by biotype") +
+  scale_x_continuous(expand = c(0,0)) +
+  facet_wrap(~title, scales= "free", ncol = 1)
+
+
+all_degs_biotypes_plot_immune = all_degs_biotypes_plot_perc_immune + all_degs_biotypes_plot_totals_immune + 
+   plot_layout(axes = "collect", guides = "collect")
+
+# all_degs_biotypes_plot_immune %>% 
+#   ggsave(file = here("Figures", "all_degs_biotypes_plot_immune.png"), width = 10, height = 10)
+
+all_degs_biotypes_plot_immune
+```
+
+
+
+
+BTM genes
+```{r}
+
+
+btm_annotation_genes = readRDS(here("VaxGO gene sets", "btm_annotation_genes.rds"))
+
+
+#ImmuneGO
+all_degs_biotypes_immuneBTM = all_degs_p_05_vac_infected %>% 
+  inner_join(all_degs_totals, by = "condition") %>% 
+  filter(genes %in%  btm_annotation_genes$genes) %>% 
+  inner_join(gene_info %>% select(genes = hgnc_symbol, gene_biotype), by = "genes") %>% 
+  mutate(gene_biotype_grouped = case_when(str_detect(gene_biotype, "IG_") ~ "Protein coding",
+                                          str_detect(gene_biotype, "TR_") ~ "Protein coding",
+                                          str_detect(gene_biotype, "pseudogene") ~ "Pseudogene",
+                                          str_detect(gene_biotype, "protein_coding") ~ "Protein coding",
+                                          str_detect(gene_biotype, "Mt") ~ "Mithochondrial RNA",
+                                          str_detect(gene_biotype, "ribozyme") ~ "Ribozyme",
+                                          str_detect(gene_biotype, "RNA") ~ "Non-coding RNAs",
+                                          str_detect(gene_biotype, "TEC") ~ "To be Experimentally Confirmed",
+                                          TRUE ~ gene_biotype)) %>% 
+  group_by(condition, gene_biotype_grouped) %>% 
+  summarise(n_biotypes = n(),
+            n_total = n_total) %>%
+  distinct() %>% 
+  mutate(n_perc = 100*(n_biotypes/n_total)) %>% 
+  inner_join(ann_vaccines, by="condition") %>% 
+  ungroup()
+
+
+all_degs_biotypes_plot_totals_immuneBTM = all_degs_biotypes_immuneBTM %>% 
+  mutate(gene_biotype_grouped = fct_relevel(gene_biotype_grouped, 
+                                            "Protein coding", 
+                                            "Non-coding RNAs",
+                                            "Ribozyme",
+                                            "Mithochondrial RNA",
+                                            "Pseudogene",
+                                            "To be Experimentally Confirmed"
+                                            ),
+         title = "Total Immune (ImmuneGO) DEGs by biotype",
+         condition = fct_relevel(condition, c(ann_vaccines_conditions_ordered$condition_grouped %>% 
+                                                as.character() %>% 
+                                                unique()))) %>% 
+  ggplot(.) +
+  aes(x = n_biotypes, y = fct_rev(condition), fill = gene_biotype_grouped) +
+  geom_bar(stat = "summary", fun = "sum") +
+  theme_minimal() +
+  scale_fill_simpsons() +
+  theme(legend.position = "right",
+        strip.text.x = element_text(color = "black", size = 12), 
+        axis.text.x = element_text(angle = 0, vjust = 1, hjust=1, size = 10, color = "black"),
+        axis.text.y = element_text(vjust = 0.5, size = 10, color = "black")) +
+  labs(x = "Total",
+       y = "",
+       fill = "Gene biotype",
+       title = "DEGs by biotype") +
+  scale_x_continuous(expand = c(0,0)) +
+    facet_wrap(~title, scales= "free", ncol = 1)
+
+all_degs_biotypes_plot_perc_immuneBTM = all_degs_biotypes_immuneBTM %>% 
+  mutate(gene_biotype_grouped = fct_relevel(gene_biotype_grouped, 
+                                            "Protein coding", 
+                                            "Non-coding RNAs",
+                                            "Ribozyme",
+                                            "Mithochondrial RNA",
+                                            "Pseudogene",
+                                            "To be Experimentally Confirmed"
+                                            ),
+         title = "%Immune DEGs by biotype",
+         condition = fct_relevel(condition, c(ann_vaccines_conditions_ordered$condition_grouped %>% 
+                                                as.character() %>% 
+                                                unique()))) %>% 
+  ggplot(.) +
+  aes(x = n_biotypes, y = fct_rev(condition), fill = gene_biotype_grouped) +
+  geom_bar(stat = "summary", fun = "sum", position = "fill") +
+  theme_minimal() +
+  scale_fill_simpsons() +
+  theme(legend.position = "right",
+        strip.text.x = element_text(color = "black", size = 12), 
+        axis.text.x = element_text(angle = 0, vjust = 1, hjust=1, size = 10, color = "black"),
+        axis.text.y = element_text(vjust = 0.5, size = 10, color = "black")) +
+  labs(x = "%",
+       y = "",
+       fill = "Gene biotype",
+       title = "Percentage of Immune DEGs (BTM) by biotype") +
+  scale_x_continuous(expand = c(0,0)) +
+  facet_wrap(~title, scales= "free", ncol = 1)
+
+
+all_degs_biotypes_plot_immuneBTM = all_degs_biotypes_plot_perc_immuneBTM + all_degs_biotypes_plot_totals_immuneBTM + 
+   plot_layout(axes = "collect", guides = "collect")
+
+# all_degs_biotypes_plot_immuneBTM %>% 
+#   ggsave(file = here("Figures", "all_degs_biotypes_plot_immune_BTM.png"), width = 10, height = 10)
+
+all_degs_biotypes_plot_immuneBTM
+
+ 
+```
 
 ### Unite all
 
