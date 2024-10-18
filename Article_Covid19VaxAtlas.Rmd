@@ -11780,6 +11780,42 @@ ggsave(ImmuneGO_top10_barplot, file="ImmuneGO_top10_barplot.png", width = 10, he
 head(ImmuneGO_top10_barplot)
 ```
 
+
+
+### ImmuneGO + BTM
+
+```{r}
+btm_annotation_genes = readRDS(here("VaxGO gene sets", "btm_annotation_genes.rds"))
+
+
+#Unite genes
+immunego_btm_genes = ImmuneGO_Annotated_Genes %>% 
+              select(genes) %>% 
+              distinct() %>% 
+              mutate(set = "ImmuneGO") %>% 
+  bind_rows(btm_annotation_genes %>% 
+              select(genes) %>% 
+              distinct() %>% 
+              mutate(set = "BTM")) %>% 
+  arrange(genes)
+
+immunego_btm_genes_joined = immunego_btm_genes %>% 
+  bind_rows(immunego_btm_genes %>% mutate(set = "BTM and ImmuneGO")) %>% 
+  distinct()
+
+
+#Unite subsets
+
+btm_annotation_genes %>% 
+  select(immune_system:complete_name, module_size, genes) %>% 
+  group_by(immune_sub)
+  summarize(process_general = )
+
+
+ImmuneGO_Annotated_Genes %>% 
+  
+```
+
 ### VAX MSigDB
 
 
