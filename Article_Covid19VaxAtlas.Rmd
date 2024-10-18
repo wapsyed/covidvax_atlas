@@ -295,6 +295,11 @@ ann_vaxsig_colors = list(
   disease_vac = c("I" = "#DC0000FF",
                   "V" = "#4DBBD5FF",
                   "H" = "white"),
+  gse_id = c("GSE199750" = "#EFC000FF",
+               "GSE201533" = "#CD534CFF",
+               "GSE201530" = "#868686FF",
+               "GSE206023" = "#7AA6DCFF",
+               "GSE189039" = "#0073C2FF"),
   correct = c("Correct" = "#00A087FF",
               "Incorrect" = "#DC0000FF"),
   condition_col = c(
@@ -1880,7 +1885,7 @@ samples_by_conditiongrouped_plot
 ```
 
 ### Samples by study
-```{r fig.height=8, fig.width=10}
+```{r fig.height=7, fig.width=10}
 #### SAMPLES BY CONDITION -----
 samples_by_study = ann_vaccines %>% 
   select(samples, condition, gse_id) %>% 
@@ -1892,18 +1897,14 @@ samples_by_study_plot = samples_by_study %>%
   ggplot(aes(x = fct_reorder(gse_id, -samples), weight = samples, fill = gse_id)) +
   geom_bar() +
   scale_fill_manual(name = "GSE ID", 
-        values = c("GSE199750" = "#80ed99",
-               "GSE201533" = "#5e60ce", 
-               "GSE201530" = "#7400b8",
-               "GSE206023" = "#4361ee",
-               "GSE189039" = "#48bfe3")) +
+        values = ann_vaxsig_colors$gse_id) +
   theme_minimal() +
   theme(legend.position = "none",
         axis.text.x = element_text(size = 15, color = "black", angle = 0),
         axis.text.y = element_blank(), 
         legend.text = element_text(size = 15),
         legend.title = element_text(size = 20),
-        plot.title = element_text(size = 25),
+        plot.title = element_text(size = 15),
         axis.title.y = element_text(angle = 180, color = "white"),
         panel.grid.major = element_blank(), 
         panel.grid.minor = element_blank(),
@@ -1915,8 +1916,9 @@ samples_by_study_plot = samples_by_study %>%
             size = 6,
             angle = 0) +
   ggtitle("Samples by GSE ID") +
-  labs(x = "")
-# ggsave(samples_by_study_plot, file = here("Figures", "demographics_samples-by-study.png"), width = 10, height = 8)
+  labs(x = "") +
+  ylim(0, 300)
+ggsave(samples_by_study_plot, file = here("Figures", "demographics_samples-by-study.png"), width = 10, height =7)
 
 samples_by_study_plot
 ```
@@ -1941,12 +1943,9 @@ age_stats = ggbetweenstats(
   point.args = list(alpha = 1),
   type = "np", ggsignif.args = list(textsize = 2, tip_length = 0.0)
 ) +
-  ggplot2::scale_color_manual(
-    values = c("GSE199750" = "#80ed99",
-               "GSE201533" = "#5e60ce", 
-               "GSE201530" = "#7400b8",
-               "GSE206023" = "#4361ee",
-               "GSE189039" = "#48bfe3")) +
+  # scale_color_jco()+
+  scale_color_manual(
+    values = ann_vaxsig_colors$gse_id) +
   theme_few() +
   ylim(0, 110) +
   theme(legend.position = "none",
@@ -1960,7 +1959,6 @@ age_stats = ggbetweenstats(
        title = "Study by age")
 
 ggsave(age_stats, file = here("Figures", "Demographics_age.png") , width = 6, height = 5)
-
 age_stats
 ```
 
@@ -2150,7 +2148,7 @@ Ungrouped
 ```{r fig.height=6, fig.width=6}
 library(ggforce)
 
-demographics_days_samples_doses = ann_vaccines_conditions %>% 
+demographics_days_samples_doses = ann_vaccines_conditions_ordered %>% 
   ungroup() %>% 
   mutate(condition = as.factor(condition),
          condition = fct_relevel(condition, as.character(unique(ann_vaccines_conditions_ordered$condition))),
@@ -2175,38 +2173,48 @@ demographics_plot_days_samples_doses =
   demographics_days_samples_doses %>% 
   mutate(condition_2 = fct_relevel(condition_2,
                                    as.character(unique(demographics_days_samples_doses$condition_2)))) %>%
-group_by(gse_id, dose_f) %>% 
-  ggplot(.) +
+  ggplot() +
   aes(x = fct_reorder(day_f, day),
       y = fct_rev(condition_2), 
       fill = dose_f,
       size = samples,
       group = dose_f) +
-  geom_point(position = position_dodge(width = 0.8),
-             pch = 21,
-             # size = 3, 
-             color = "black") +
-  scale_fill_manual(values =  c(ann_vaxsig_colors$dose, "Infection" = "red")) +
+  geom_point(
+    position = position_dodge(width = 0.5),
+    pch = 21,
+    color = "black",
+    data = ~ filter(.x, gse_id %in% c("GSE199750", "GSE201533"))
+  ) +
+  geom_point(
+    position = position_identity(),
+    pch = 21,
+    color = "black",
+    data = ~ filter(.x, !gse_id %in% c("GSE199750", "GSE201533"))
+  ) +
+  scale_fill_manual(values = c(ann_vaxsig_colors$dose, "Infection" = "red")) +
   scale_size_binned(breaks = c(1, 10, 50),
                     range = c(2, 5)) +
   theme_minimal() +
   theme(legend.position = "top",
         axis.text = element_text(color = "black"),
-        strip.text.y = element_text(angle = 0, color = "black")) +
+        strip.text.y = element_text(angle = 0, color = "black"), 
+        plot.margin = margin(0, 2, 0, 0, unit = "cm")) +
   labs(x = "Days",
        y = "",
        title = "Studies design",
        shape = "Disease or vaccination",
        size = "Samples",
        fill = "Dose") +
-  ggforce::facet_col(~fct_relevel(gse_id, "GSE201530", "GSE189039", "GSE199750", "GSE201533"), scales = "free_y", space = "free")
+  ggforce::facet_col(~fct_relevel(gse_id, "GSE201530", "GSE189039", "GSE199750", "GSE201533"),
+                     scales = "free_y", space = "free")
+
 
 demographics_plot_days_samples_doses
 
-# demographics_plot_days_samples_doses %>% 
-#   ggsave(filename = here("Figures", "Demographics_studies_design.png"),
-#          width = 6,
-#          height = 6)
+demographics_plot_days_samples_doses %>%
+  ggsave(filename = here("Figures", "Demographics_studies_design.png"),
+         width = 6,
+         height = 6)
 
 
 ```
@@ -3188,19 +3196,20 @@ all_degs_immuneGO_BTM_reg = all_degs_p_05_vac_infected %>%
   inner_join(ann_vaccines, by="condition")
 
 
-all_degs_immuneGO_BTM %>% 
+all_degs_immuneGO_BTM_totals %>% 
   group_by(set) %>% 
   summarize(n_median = median(n_perc))
 ```
 
 
-```{r fig.height=10, fig.width=10}
-
+```{r fig.height=10, fig.width=5}
 #Percentage total DEGs
-all_degs_immuneGO_BTM_plot = all_degs_immuneGO_BTM %>% 
+all_degs_immuneGO_BTM_plot = all_degs_immuneGO_BTM_totals %>% 
+  filter(set != "Other") %>% 
   mutate(condition = fct_relevel(condition, c(ann_vaccines_conditions_ordered$condition_grouped %>% 
                                                 as.character() %>% 
-                                                unique()))) %>% 
+                                                unique())),
+         title = "Immune sets") %>% 
   ggplot(.) +
   aes(x = n_perc, y = fct_rev(condition), fill = fct_relevel(set, "Other", "BTM and ImmuneGO", "BTM", "ImmuneGO")) +
   geom_bar(stat = "summary", fun = "sum", position = "fill") +
@@ -3211,25 +3220,69 @@ all_degs_immuneGO_BTM_plot = all_degs_immuneGO_BTM %>%
     theme_minimal() +
   theme(legend.position = "right",
         strip.text.x = element_text(color = "black", size = 12), 
-        axis.text.x = element_text(angle = 0, vjust = 1, hjust=1, size = 10, color = "black"),
+        axis.text.x = element_blank(),
         axis.text.y = element_text(vjust = 0.5, size = 10, color = "black")) +
   labs(x = "%Coverage",
        y = "",
        fill = "",
-       title = "DEGs by Immune role") +
+       title = "") +
   scale_x_continuous(expand = c(0,0)) +
   geom_text(aes(label = paste0(n_perc)), 
             position = position_fill(vjust = 0.5), 
             size = 3, 
-            color = "black")
+            color = "white") +
+  facet_wrap(~title)
 
 all_degs_immuneGO_BTM_plot %>% 
   ggsave(file = here("Figures", "all_degs_immuneGO_BTM_percentage_plot.png"),
+         width = 5,
+         height = 10)
+  
+all_degs_immuneGO_BTM_plot
+```
+
+
+```{r fig.height=10, fig.width=10}
+#Percentage total DEGs only united
+all_degs_immuneGO_BTM_united_plot = all_degs_immuneGO_BTM_totals %>% 
+  filter(set %in% c("BTM and ImmuneGO", "Other")) %>% 
+  mutate(condition = fct_relevel(condition, c(ann_vaccines_conditions_ordered$condition_grouped %>% 
+                                                as.character() %>% 
+                                                unique())),
+         title = "BTM + ImmuneGO sets") %>% 
+  ggplot(.) +
+  aes(x = n_perc, y = fct_rev(condition), fill = fct_relevel(set, "Other", "BTM and ImmuneGO", "BTM", "ImmuneGO")) +
+  geom_bar(stat = "summary", fun = "sum", position = "fill") +
+  scale_fill_manual(values = c("BTM and ImmuneGO" = "#4DBBD5FF",
+    "Other" = "gray95",
+    "BTM" = "#5e60ce",
+    "ImmuneGO" = "#00A087FF")) +
+    theme_minimal() +
+  theme(legend.position = "right",
+        strip.text.x = element_text(color = "black", size = 12), 
+        axis.text.x = element_blank(),
+        axis.text.y = element_text(vjust = 0.5, size = 10, color = "black")) +
+  labs(x = "%Coverage",
+       y = "",
+       fill = "",
+       title = "") +
+  scale_x_continuous(expand = c(0,0)) +
+  geom_text(aes(label = paste0(n_perc)), 
+            position = position_fill(vjust = 0.5), 
+            size = 3, 
+            color = "black") +
+  facet_wrap(~title)
+
+all_degs_immuneGO_BTM_united_plot %>% 
+  ggsave(file = here("Figures", "all_degs_immuneGO_BTM_united_plot.png"),
          width = 10,
          height = 10)
   
+all_degs_immuneGO_BTM_united_plot
+```
 
 
+```{r fig.height=10, fig.width=10}
 #Totals by direction
 all_degs_immuneGO_BTM_reg_plot = all_degs_immuneGO_BTM_reg %>% 
   mutate(condition = fct_relevel(condition, c(ann_vaccines_conditions_ordered$condition_grouped %>% 
@@ -3246,29 +3299,10 @@ all_degs_immuneGO_BTM_reg_plot = all_degs_immuneGO_BTM_reg %>%
     "ImmuneGO" = "#00A087FF")) +
     theme_minimal() +
   theme(
-    legend.position = "top",
-    # panel.grid.major.x = element_blank(),
-    plot.title = element_text(size = 25, hjust = 0.5),
-    legend.title = element_text(size = 15),
-    legend.text = element_text(size = 15),
-    axis.text.x = element_text(size = 12,
-                                color = "black",
-                                angle = 0,
-                                hjust = 0.5),
-    axis.title.x = element_text(size = 15,
-                                color = "black"),
-    axis.text.y = element_text(size = 12,
-                                color = "black",
-                                angle = 0,
-                                hjust = 1),
-    strip.text.x = element_text(size = 15, 
-                                face = "bold"),
-    strip.text.y = element_text(
-      size = 15,
-      angle = 0,
-      hjust = 0,
-      face = "bold"),
-  ) +
+    legend.position = "right",
+        strip.text.x = element_text(color = "black", size = 12), 
+        axis.text.x = element_blank(),
+        axis.text.y = element_text(vjust = 0.5, size = 10, color = "black")) +
   labs(x = "%Coverage",
        y = "",
        fill = "",
@@ -3283,6 +3317,13 @@ all_degs_immuneGO_BTM_reg_plot %>%
 
 all_degs_immuneGO_BTM_reg_plot
 ```
+
+Unite plots
+```{r fig.height=10, fig.width=10}
+all_degs_immuneGO_BTM_plot + all_degs_immuneGO_BTM_united_plot + all_degs_immuneGO_BTM_reg_plot +
+  plot_layout(guides = "collect", axes = "collect", widths = c(1, 2, 2))
+```
+
 
 
 
