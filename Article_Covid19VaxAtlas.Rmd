@@ -11039,9 +11039,14 @@ immunego_btm_manual_grouped = btm_manual %>%
                               process == "INNATE" ~ "INNATE IMMUNE SYSTEM",
                               process == "INTERFERON" ~ "ANTIVIRAL & IFN",
                               process == "NK" ~ "NK CELL",
+                              process == "B CELL, PLASMA CELL" ~ "B CELL",
                               process == "PLASMA CELL" ~ "B CELL",
                               process == "PRR" ~ "ARPP",
                               process == "SIGNALING" ~ "SIGNALING",
+                              process == "TH2" ~ "T CELL",
+                              process == "TH1" ~ "T CELL",
+                             process == "T HELPER CELLS" ~ "T CELL",
+
                               TRUE ~ process
                               )) %>% 
   distinct()
@@ -11065,8 +11070,7 @@ immunego_btm_manual_grouped_genes %>%
   
 ```
 Plot relative frequency of genes by main process
-```{r fig.height=3, fig.width=10}
-
+```{r fig.height=5, fig.width=10}
 
 #Get exclusive genes
 immunego_only_genes = immunego_btm_manual_grouped_genes %>% 
@@ -11110,23 +11114,25 @@ btm_immune_joined_stats = immunego_only_genes %>%
   mutate(n_perc = (n/ntotal) * 100)
 
 btm_immune_joined_stats_plot = btm_immune_joined_stats %>% 
-  filter(process %in% c("LEUKOCYTES",
-                        "ADAPTIVE IMMUNE SYSTEM",
-                                    "INNATE IMMUNE SYSTEM",
-                                    "COMPLEMENT"	,
-                                    "CELLULAR ADAPTIVE IMMUNE SYSTEM",
-                                    "HUMORAL ADAPTIVE IMMUNE SYSTEM")) %>% 
-  mutate(process = fct_relevel(process, "LEUKOCYTES",
-                        "ADAPTIVE IMMUNE SYSTEM",
-                                    "INNATE IMMUNE SYSTEM",
-                                    "COMPLEMENT"	,
-                                    "CELLULAR ADAPTIVE IMMUNE SYSTEM",
-                                    "HUMORAL ADAPTIVE IMMUNE SYSTEM")) %>% 
+  filter(!process %in% c("LYMPHOCYTE", 
+                         "IMMUNOGLOBULIN MEDIATED RESPONSE",
+                         "MYELOID CELL", 
+                         "SIGNALING", 
+                         "IMMUNE SYSTEM")) %>%
+  mutate(process = str_to_title(process),
+         process = fct_relevel(process, 
+                               "Leukocytes",
+                               "Adaptive Immune System",
+                               "Innate Immune System",
+                               "Complement"	,
+                               "Cellular Adaptive Immune System",
+                               "Humoral Adaptive Immune System",
+                               )) %>% 
  ggplot() +
   aes(x = n_perc, y = fct_rev(process), fill = immune_set) +
   geom_bar(stat = "summary", fun = "sum", position = "fill") +
-  scale_fill_manual(values = c("BTM only" = "#7AA6DCFF",
-                               "ImmuneGO only" = "#4DBBD5FF")) +
+  scale_fill_manual(values = c("BTM only" = "#5e60ce",
+                               "ImmuneGO only" = "#00A087FF")) +
   theme_minimal() +
   theme(legend.position = "right",
         strip.text.x = element_text(color = "black", size = 12), 
