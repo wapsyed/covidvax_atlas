@@ -3917,12 +3917,12 @@ ggplot_degs_bars_directions_biotype_bps =
   # ggplot_degs_bars_directions_up_down +
   # all_degs_immuneGO_BTM_plot +
   all_degs_immuneGO_BTM_reg_plot +
-  all_degs_immuneGO_BTM_united_plot + 
+  # all_degs_immuneGO_BTM_united_plot + 
   # all_degs_biotypes_plot_perc_immune + 
   # all_degs_biotypes_plot_totals_immune + 
   # all_degs_biotypes_plot_perc + 
   main_go_2_plot_alldirections + 
-  plot_layout(guides = "collect", axes = "collect", nrow = 1, widths = c(1, 2,  1, 2)) 
+  plot_layout(guides = "collect", axes = "collect", nrow = 1, widths = c(1, 2, 2)) 
 
 ggplot_degs_bars_directions_biotype_bps %>% 
   ggsave(filename = here("Figures", "DEGs_Directions_Biotype_BioProcesses_Up_Down.png"),
@@ -10934,14 +10934,157 @@ immunego_btm_genes_joined = immunego_btm_genes %>%
 
 
 #Unite subsets
+btm_annotation_grouped = btm_annotation_genes %>% 
+  group_by(complete_name) %>% 
+  rename(process = complete_name) %>% 
+  mutate(genes = paste0(genes, collapse = ",")) %>% 
+  distinct() %>% 
+  mutate(genes = paste0(genes, collapse = ","),
+            set_size = n(),
+            # id = process,
+            immune_system = process,
+            immune_subsystem = process,
+            cells = process,
+            complete_name = process,
+            annotation_level = annotation_level,
+            immune_set = "BTM by Modules")
 
-btm_annotation_genes %>% 
-  select(immune_system:complete_name, module_size, genes) %>% 
-  group_by(immune_sub)
-  summarize(process_general = )
+#By immune system
+btm_immunesystem = btm_annotation_genes %>% 
+  select(immune_system, genes) %>% 
+  rename(process = immune_system) %>% 
+  group_by(process) %>% 
+  summarize(genes = paste0(genes, collapse = ","),
+            set_size = n(),
+            process = str_to_upper(process),
+            # id = process,
+            immune_system = process,
+            immune_subsystem = process,
+            cells = process,
+            complete_name = process,
+            annotation_level = "Manual",
+            immune_set = "BTM by Immune System") %>% 
+  distinct()
+
+#By immune subsystem
+btm_immunesubsystem = btm_annotation_genes %>% 
+  select(immune_subsystem, genes) %>% 
+  rename(process = immune_subsystem) %>% 
+  group_by(process) %>% 
+  summarize(genes = paste0(genes, collapse = ","),
+            process = str_to_upper(process),
+            set_size = n(),
+            # id = process,
+            immune_system = process,
+            immune_subsystem = process,
+            cells = process,
+            complete_name = process,
+            annotation_level = "Manual",
+            immune_set = "BTM by Immune Sub-System") %>% 
+  distinct() 
+#By cell
+btm_cells = btm_annotation_genes %>% 
+  select(cells, genes) %>%
+  rename(process = cells) %>% 
+  group_by(process) %>% 
+  summarize(genes = paste0(genes, collapse = ","),
+            set_size = n(),
+            process = str_to_upper(process),
+            # id = process,
+            immune_system = process,
+            immune_subsystem = process,
+            cells = process,
+            annotation_level = "Manual",
+            complete_name = process,
+            immune_set = "BTM by Immune Cell") %>% 
+  distinct() 
+#Merge
+btm_manual = bind_rows(btm_immunesystem,
+          btm_immunesubsystem,
+          btm_cells) %>% 
+  arrange(complete_name) %>% 
+  select(complete_name, everything()) %>% 
+  distinct()
+
+btm_manual_grouped = bind_rows(btm_manual,
+                               btm_annotation_grouped) %>% 
+  distinct()
 
 
-ImmuneGO_Annotated_Genes %>% 
+#Merge ImmuneGO and BTM main processes
+immunego_btm_manual_grouped = btm_manual %>% 
+  select(process, genes, immune_set) %>% 
+  mutate(immune_set = "BTM") %>% 
+  bind_rows(ImmuneGO_Annotated_GO %>% 
+              filter(go_term == "Manual") %>% 
+              select(process, genes) %>% 
+              mutate(immune_set = "ImmuneGO Manual")) %>% 
+  arrange(process) %>% 
+  mutate(process = case_when( process == "ADAPTIVE" ~ "ADAPTIVE IMMUNE SYSTEM",
+                              process == "ALL" ~ "IMMUNE SYSTEM",
+                              process == "GENERAL" ~ "LEUKOCYTES",
+                              process == "CELLS" ~ "LEUKOCYTES",
+                              process == "DCS" ~ "DENDRITIC CELLS",
+                              process == "APP" ~ "ARPP",
+                              process == "CELLULAR" ~ "CELLULAR ADAPTIVE IMMUNE SYSTEM",
+                              process == "DCS, MYELOID" ~ "DENDRITIC CELLS",
+                              process == "GENERIC" ~ "LEUKOCYTES",
+                              process == "HUMORAL" ~ "HUMORAL ADAPTIVE IMMUNE SYSTEM",
+                              process == "INNATE" ~ "INNATE IMMUNE SYSTEM",
+                              process == "INTERFERON" ~ "ANTIVIRAL & IFN",
+                              process == "NK" ~ "NK CELL",
+                              process == "PLASMA CELL" ~ "B CELL",
+                              process == "PRR" ~ "ARPP",
+                              process == "SIGNALING" ~ "SIGNALING",
+                              TRUE ~ process
+                              ))
+
+immunego_btm_manual_grouped_genes = immunego_btm_manual_grouped %>%
+  separate_rows(genes, sep = ",") %>% 
+  distinct()
+
+immunego_btm_manual_grouped_genes = immunego_btm_manual_grouped_genes %>% 
+  bind_rows(
+    immunego_btm_manual_grouped_genes %>% 
+      mutate(immune_set = "BTM and ImmuneGO") %>% 
+      distinct()
+  )
+  
+immunego_btm_manual_grouped %>% 
+  write_csv(file = here("VaxGO gene sets", "ImmuneGO_BTM_grouped_genesets.csv"))
+
+immunego_btm_manual_grouped_genes %>% 
+  write_csv(file = here("VaxGO gene sets", "ImmuneGO_BTM_grouped_genes.csv"))
+ 
+
+
+
+immunego_btm_manual_grouped_stats = immunego_btm_manual_grouped_genes %>%
+  filter(immune_set == "BTM and ImmuneGO") %>% 
+  group_by(process) %>% 
+  distinct() %>% 
+  mutate(ntotal=n()) %>% 
+  ungroup() %>% 
+  select(process, ntotal) %>% 
+  distinct() %>% 
+  inner_join(immunego_btm_manual_grouped_genes, by = "process") %>% 
+  group_by(process, immune_set) %>% 
+  mutate(n = n(),
+         genes = paste0(genes, collapse = ",")) %>% 
+  select(-genes) %>% 
+  distinct() %>% 
+  ungroup() %>% 
+  mutate(n_perc = (n/ntotal) * 100)
+
+
+immunego_btm_manual_grouped_stats %>% 
+ filter(!(immune_set %in% "BTM and ImmuneGO")) %>%
+ ggplot() +
+  aes(x = n_perc, y = fct_reorder(process, n_perc), fill = immune_set) +
+  geom_bar(stat = "summary", fun = "sum", position = "fill") +
+  scale_fill_hue(direction = 1) +
+  scale_x_continuous(trans = "reverse") +
+  theme_minimal()
   
 ```
 
