@@ -1760,17 +1760,18 @@ samples_by_condition %>%
 ```
 
 
-```{r fig.height=10, fig.width=10, cache = TRUE}
+```{r fig.height=5, fig.width=10, cache = TRUE}
 samples_by_condition_plot = samples_by_condition %>% 
   ggplot(aes(x = condition, weight = samples, fill = type)) +
-  geom_bar() +
+  geom_bar(color = "black", 
+           size = 0.2) +
   scale_fill_manual(values = ann_vaxsig_colors$type) +
   theme_minimal() +
   theme(legend.position = "top",
-        axis.text.x = element_text(size = 10, color = "black", angle = 45, hjust = 1, vjust = 0.95),
+        axis.text.x = element_text(size = 10, color = "black", angle = 45, hjust = 1, vjust = 1),
         axis.text.y = element_blank(), 
         legend.text = element_text(size = 10),
-        legend.title = element_text(size = 15),
+        legend.title = element_text(size = 10),
         plot.title = element_text(size = 15),
         axis.title.y = element_text(angle = 180, color = "white"),
         panel.grid.major = element_blank(), 
@@ -1778,34 +1779,35 @@ samples_by_condition_plot = samples_by_condition %>%
         axis.line.y = element_blank(),
         axis.line.x = element_line(size = 0.5, colour = "black", linetype=1),
         axis.ticks.x = element_line(size = 1, color = "black"),
-        plot.margin = margin(1, 1, 1, 1, "cm")) +
+        plot.margin = margin(0, 1, 1, 1, "cm")) +
   guides(fill=guide_legend(nrow=1,byrow=TRUE)) +
   geom_text(aes(label = samples, y = samples),
              fill = "white",
             position = position_dodge(width = 0), 
             vjust = -0.5, 
-            size = 5,
+            size = 3,
             angle = 0) +
   ggtitle("Samples by condition") +
   labs(x = "") +
-  scale_y_continuous(expand = c(0,0), limits = c(0, 160))
+  scale_y_continuous(expand = c(0,0), limits = c(0, 100))
 
 samples_by_condition_plot
-ggsave(samples_by_condition_plot, file = here("Figures", "demographics_samples-by-condition.png"), width = 10, height = 10)
+ggsave(samples_by_condition_plot, file = here("Figures", "demographics_samples-by-condition.png"), width = 10, height = 5)
 ```
 
 
 ```{r fig.height=10, fig.width=10, cache = TRUE}
 samples_by_condition_plot_vertical = samples_by_condition %>% 
   ggplot(aes(y = fct_rev(condition), x = samples, fill = type)) +
-  geom_col() +
+  geom_col(color = "black", 
+           size = 0.2) +
   scale_fill_manual(values = ann_vaxsig_colors$type) +
   theme_minimal() +
-  theme(legend.position = "top",
+  theme(legend.position = "right",
         axis.text.x = element_blank(),
         axis.text.y = element_text(size = 10, color = "black", hjust = 1), 
         legend.text = element_text(size = 10),
-        legend.title = element_text(size = 15),
+        legend.title = element_text(size = 12),
         plot.title = element_text(size = 15),
         axis.title.y = element_text(angle = 180, color = "white"),
         panel.grid.major = element_blank(), 
@@ -1813,8 +1815,8 @@ samples_by_condition_plot_vertical = samples_by_condition %>%
         axis.line.y = element_line(size = 0.5, colour = "black", linetype=1),
         axis.line.x = element_blank(),
         axis.ticks.y = element_line(size = 1, color = "black"),
-        plot.margin = margin(2, 2, 2, 2, "cm")) +
-  guides(fill=guide_legend(nrow=1,byrow=TRUE)) +
+        plot.margin = margin(0, 0, 0, 0, "cm")) +
+  guides(fill=guide_legend(ncol=1,byrow=TRUE)) +
   geom_text(aes(label = samples, x = samples),
              fill = "white",
             position = position_dodge(width = 0), 
@@ -1832,7 +1834,7 @@ samples_by_condition_plot_vertical
 ```
 
 ### Samples by study
-```{r fig.height=7, fig.width=10}
+```{r fig.height=3, fig.width=5}
 #### SAMPLES BY CONDITION -----
 samples_by_study = ann_vaccines_samples %>% 
   select(gse_id) %>% 
@@ -1842,35 +1844,35 @@ samples_by_study = ann_vaccines_samples %>%
 
 samples_by_study_plot = samples_by_study %>% 
   ggplot(aes(x = fct_reorder(gse_id, -samples), weight = samples, fill = gse_id)) +
-  geom_bar() +
+  geom_bar(color = "black", size = 0.2) +
   scale_fill_manual(name = "GSE ID", 
         values = ann_vaxsig_colors$gse_id) +
   theme_minimal() +
   theme(legend.position = "none",
-        axis.text.x = element_text(size = 15, color = "black", angle = 0),
+        axis.text.x = element_text(size = 10, color = "black", angle = 0),
         axis.text.y = element_blank(), 
-        legend.text = element_text(size = 15),
-        legend.title = element_text(size = 20),
+        legend.text = element_text(size = 10),
+        legend.title = element_text(size = 12),
         plot.title = element_text(size = 15),
         axis.title.y = element_text(angle = 180, color = "white"),
         panel.grid.major = element_blank(), 
-        axis.line.x = element_line(size = 0.5, colour = "black", linetype=1),
+        axis.line.x = element_line(size = 1, colour = "black", linetype=1),
         axis.line.y = element_blank(),
         axis.ticks.x = element_line(size = 1, color = "black"),
         panel.grid.minor = element_blank(),
-        plot.margin = margin(2, 2, 2, 2, "cm")) +
+        plot.margin = margin(0, 0, 0, 0, "cm")) +
   guides(fill=guide_legend(nrow=1,byrow=TRUE)) +
   geom_text(aes(label = samples, y = samples),
             position = position_dodge(width = 0), 
             vjust = -0.2, 
-            size = 6,
+            size = 4,
             angle = 0) +
   ggtitle("Samples by GSE ID") +
   labs(x = "") +
   # ylim(0, 310) +
-  scale_y_continuous(expand = c(0,0), limits = c(0, 320))
+  scale_y_continuous(expand = c(0,0), limits = c(0, 330))
 
-ggsave(samples_by_study_plot, file = here("Figures", "demographics_samples-by-study.png"), width = 10, height =7)
+ggsave(samples_by_study_plot, file = here("Figures", "demographics_samples-by-study.png"), width = 5, height =3)
 
 samples_by_study_plot
 ```
@@ -1892,6 +1894,7 @@ age_stats = ggbetweenstats(
   x = gse_id,
   y = age,
   p.adjust.method = "BH", 
+  centrality.plotting = F,
   centrality.point.args = list(size = 1, color = "red"),
   centrality.label.args = list(size = 2, 
                                nudge_x = 0.5, nudge_y = 1, 
@@ -1911,17 +1914,40 @@ age_stats = ggbetweenstats(
                                 GSE201530= "black",
                                 GSE206023 = "black",
                                 GSE189039 = "black")) +
-  theme_few() +
-  ylim(0, 110) +
+  theme_minimal() +
   theme(legend.position = "none",
-        plot.title = element_text(size = 20),
-        text = element_text(size = 10),
-        axis.text.x = element_text(size = 10, color = "black", angle = 0),
-        axis.text.y = element_text(size = 10, color = "black", angle = 0)) +
+        axis.text.x = element_text(size = 10,
+                                   color = "black",
+                                   angle = 0),
+        axis.text.y = element_text(size = 10,
+                                   color = "black",
+                                   angle = 0),
+        # legend.text = element_text(size = 10),
+        # legend.title = element_text(size = 15),
+        plot.title = element_text(size = 12),
+        plot.subtitle = element_text(size = 10),
+        axis.title.y = element_text(color = "black"),
+        panel.grid.major.y = element_line(size = 0.5,
+                                          linetype = 2,
+                                          color = "gray75"),
+        panel.grid.major.x = element_line(size = 0,
+                                          linetype = 2,
+                                          color = "gray75"),
+        axis.line.x = element_line(size = 1,
+                                   colour = "black",
+                                   linetype = 1),
+        axis.line.y = element_line(size = 0 ,
+                                   colour = "black",
+                                   linetype = 1),
+        axis.ticks.x = element_line(size = 1, color = "black"),
+        axis.ticks.y = element_line(size = 0, color = "black"),
+        panel.grid.minor = element_blank(),
+        plot.margin = margin(0, 0, 0, 0, unit = "cm")) +
   labs(y = "Age",
        x = "",
        color = "GSE ID",
-       title = "Participants by age")
+       title = "Participants by age") +
+  scale_y_continuous(expand = c(0,0), limits = c(0, 100))
 
 extract_stats(age_stats)
 
@@ -1931,7 +1957,7 @@ age_stats
 
 ### Sex by GSE
 This figure's text was manipulated further in a design software.
-```{r fig.height=8, fig.width=10, cache = TRUE}
+```{r fig.height=5, fig.width=5, cache = TRUE}
 #### AGE BY GSE -------------
 
 sex_stats = ann_vaccines_samples %>% 
@@ -1962,18 +1988,18 @@ sex_stats_annotated = sex_stats %>%
     weight = value,
     label = value
   ) +
-  geom_col() +
-  geom_text(vjust = -3, size = 5) +
+  geom_col(color = "black") +
+  geom_text(vjust = -1, size = 4, color = "white") +
   coord_polar(theta = "y") +
   theme_minimal() +
   labs(title = "Sex by study",
        fill = "Sex") +
   theme(axis.title = element_blank(),
         axis.text = element_blank(),
-        plot.title = element_text(size = 25, hjust = 0.5),
-        strip.text = element_text(size = 15),
-        legend.text = element_text(size = 15),
-        legend.title = element_text(size = 20),
+        plot.title = element_text(size = 15, hjust = 0.5),
+        strip.text = element_text(size = 12),
+        legend.text = element_text(size = 10),
+        legend.title = element_text(size = 10),
         legend.position = "top") +
   facet_wrap(vars(gse_id), scales = "free") +
   scale_fill_manual(values = c("Male" = "#4DBBD5FF",
@@ -1990,18 +2016,17 @@ sex_stats_nonumb = sex_stats %>%
     weight = value,
     label = value
   ) +
-  geom_col() +
-  scale_fill_hue(direction = 1) +
+  geom_col(color = "black") +
   coord_polar(theta = "y") +
   theme_minimal() +
   labs(title = "Sex by study",
        fill = "Sex") +
   theme(axis.title = element_blank(),
         axis.text = element_blank(),
-        plot.title = element_text(size = 25, hjust = 0.5),
-        strip.text = element_text(size = 15),
-        legend.text = element_text(size = 15),
-        legend.title = element_text(size = 20),
+        plot.title = element_text(size = 15, hjust = 0.5),
+        strip.text = element_text(size = 12),
+        legend.text = element_text(size = 10),
+        legend.title = element_text(size = 10),
         legend.position = "top") +
   facet_wrap(vars(gse_id), scales = "free") +
   scale_fill_manual(values = c("Male" = "#4DBBD5FF",
@@ -2010,11 +2035,11 @@ sex_stats_nonumb = sex_stats %>%
 
 ggsave(sex_stats_annotated,
        file = here("Figures", "Demographics_Sex_annotated.png") ,
-       width = 10, height = 10)
+       width = 5, height = 5)
 
 ggsave(sex_stats_nonumb,
        file = here("Figures", "Demographics_Sex_nonumbers.png") ,
-       width = 10, height = 10)
+       width = 5, height = 5)
 
 sex_stats_annotated
 sex_stats_nonumb
@@ -2095,7 +2120,7 @@ demographics_time_plot = demographics_time %>%
   ) +
   theme_minimal() +
   theme(
-    legend.position = c(0.8, 0.6),
+    legend.position = c(0.95,0.5),
     axis.text.x = element_text(size = 10,
                                color = "black",
                                angle = 0),
@@ -2103,7 +2128,7 @@ demographics_time_plot = demographics_time %>%
                                color = "black",
                                angle = 0),
     legend.text = element_text(size = 10),
-    legend.title = element_text(size = 15),
+    legend.title = element_text(size = 12),
     plot.title = element_text(size = 15),
     axis.title.y = element_text(color = "black"),
     panel.grid.major.y = element_line(size = 0.5, 
@@ -2193,6 +2218,7 @@ demographics_plot_days_samples_doses =
                     range = c(2, 5)) +
   theme_minimal() +
   theme(legend.position = "top",
+        strip.text.x = element_text(size = 10, color = "black"),
     axis.text.x = element_text(size = 10,
                                color = "black",
                                angle = 0),
@@ -2212,7 +2238,7 @@ demographics_plot_days_samples_doses =
     axis.line.x = element_line(size = 1,
                                colour = "black",
                                linetype = 1),
-    axis.line.y = element_line(size = 0 ,
+    axis.line.y = element_line(size = 1 ,
                                colour = "black",
                                linetype = 1),
     axis.ticks.x = element_line(size = 1, color = "black"),
@@ -2221,8 +2247,8 @@ demographics_plot_days_samples_doses =
     plot.margin = margin(0, 2, 0, 0, unit = "cm")) +
   labs(x = "Days",
        y = "",
-       title = "Studies design",
-       shape = "Disease or vaccination",
+       # title = "Studies design",
+       # shape = "Disease or vaccination",
        size = "Samples",
        fill = "Dose") +
   ggforce::facet_col(~fct_relevel(gse_id, "GSE201530", "GSE189039", "GSE199750", "GSE201533"),
@@ -2238,6 +2264,8 @@ demographics_plot_days_samples_doses
 
 
 ```
+
+
 
 Grouped conditions
 
@@ -2295,12 +2323,13 @@ demographics_plot_days_samples_doses =
     axis.text.x = element_text(size = 10,
                                color = "black",
                                angle = 0),
+    strip.text.x = element_text(size = 12, color = "black"),
     axis.text.y = element_text(size = 10,
                                color = "black",
                                angle = 0),
     legend.text = element_text(size = 10),
-    legend.title = element_text(size = 15),
-    plot.title = element_text(size = 15),
+    legend.title = element_text(size = 10),
+    plot.title = element_text(size = 10),
     axis.title.y = element_text(color = "black"),
     panel.grid.major.y = element_line(size = 0.5, 
                                     linetype = 2,
@@ -2321,11 +2350,12 @@ demographics_plot_days_samples_doses =
   scale_x_discrete(limits = c(demographics_time$day_f %>% unique())) +
   labs(x = "Days",
        y = "",
-       title = "Studies design - Grouped conditions",
-       shape = "Disease or vaccination",
+       # title = "Studies design - Grouped conditions",
+       # shape = "Disease or vaccination",
        size = "Samples",
        fill = "Dose") +
-  ggforce::facet_col(~fct_relevel(gse_id, "GSE201530", "GSE189039", "GSE199750", "GSE201533"), scales = "free_y", space = "free")
+  ggforce::facet_col(~fct_relevel(gse_id, "GSE201530", "GSE189039", "GSE199750", "GSE201533"), scales = "free_y", space = "free") +
+  guides(fill = guide_legend(override.aes = list(size=4)))
 
 demographics_plot_days_samples_doses
 
@@ -2334,6 +2364,130 @@ demographics_plot_days_samples_doses %>%
          width = 6,
          height = 6)
 ```
+
+```{r fig.height=10, fig.width=7}
+
+#Conditions
+demographics_time_plot_2 = demographics_time %>% 
+  mutate(day_f = fct_relevel(day_f, c(demographics_time$day_f %>% unique()))) %>% 
+  ggplot(.) +
+  aes(x = day_f, fill = fct_relevel(type, "H", "I", "RNA", "VV", "SU", "IN")) +
+  geom_bar(size = 0.2, color = "black") +
+  labs(
+    x = "",
+    y = "Samples",
+    title = "Samples by day",
+    fill = "Type"
+  ) +
+  theme_minimal() +
+  theme(
+    legend.position = c(0.95,0.5),
+    axis.text.x = element_text(size = 10,
+                               color = "black",
+                               angle = 0),
+    axis.text.y = element_text(size = 10,
+                               color = "black",
+                               angle = 0),
+    legend.text = element_text(size = 10),
+    legend.title = element_text(size = 10),
+    plot.title = element_text(size = 10),
+    axis.title.y = element_text(color = "black"),
+    panel.grid.major.y = element_line(size = 0.5, 
+                                    linetype = 2,
+                                    color = "gray75"),
+    panel.grid.major.x = element_line(size = 0, 
+                                    linetype = 2,
+                                    color = "gray75"),
+    axis.line.x = element_line(size = 1,
+                               colour = "black",
+                               linetype = 1),
+    axis.line.y = element_line(size = 1 ,
+                               colour = "black",
+                               linetype = 1),
+    axis.ticks.x = element_line(size = 1, color = "black"),
+    axis.ticks.y = element_line(size = 0, color = "black"),
+    panel.grid.minor = element_blank(),
+    plot.margin = margin(1, 0, 0, 0, "cm")
+  ) +
+  scale_fill_manual(values = ann_vaxsig_colors$Platform) +
+  scale_y_continuous(expand = c(0,0), 
+                     breaks = seq(0, 350, by = 50))
+
+
+demographics_plot_days_samples_doses_2 = 
+  demographics_days_samples_doses %>%
+  ungroup() %>% 
+  mutate(condition_2 = fct_relevel(condition_2,
+                                   as.character(unique(demographics_days_samples_doses$condition_2)))) %>% 
+    mutate(day_f = fct_relevel(day_f, c(demographics_time$day_f %>% unique()))) %>% 
+  # group_by(gse_id, dose_f) %>% 
+  ggplot(.) +
+  aes(x = day_f,
+      y = fct_rev(condition_2), 
+      fill = dose_f,
+      size = samples,
+      group = dose_f) +
+  geom_point(
+    position = position_dodge(width = 0.5),
+    pch = 21,
+    color = "black",
+    data = ~ filter(.x, gse_id %in% c("GSE199750", "GSE201533"))
+  ) +
+  geom_point(
+    position = position_identity(),
+    pch = 21,
+    color = "black",
+    data = ~ filter(.x, !gse_id %in% c("GSE199750", "GSE201533"))
+  ) +
+  scale_fill_manual(values =  c(ann_vaxsig_colors$dose, "Infection" = "red")) +
+  scale_size_binned(breaks = c(1, 10, 50),
+                    range = c(2, 5)) +
+  theme_minimal() +
+    theme(legend.position = "right",
+    axis.text.x = element_text(size = 10,
+                               color = "black",
+                               angle = 0),
+    strip.text.x = element_text(size = 10, color = "black"),
+    axis.text.y = element_text(size = 10,
+                               color = "black",
+                               angle = 0),
+    legend.text = element_text(size = 10),
+    legend.title = element_text(size = 10),
+    plot.title = element_text(size = 10),
+    axis.title.y = element_text(color = "black"),
+    panel.grid.major.y = element_line(size = 0.5, 
+                                    linetype = 2,
+                                    color = "gray75"),
+    panel.grid.major.x = element_line(size = 0.5, 
+                                    linetype = 2,
+                                    color = "gray75"),
+    axis.line.x = element_line(size = 1,
+                               colour = "black",
+                               linetype = 1),
+    axis.line.y = element_line(size = 1 ,
+                               colour = "black",
+                               linetype = 1),
+    axis.ticks.x = element_line(size = 1, color = "black"),
+    axis.ticks.y = element_line(size = 0, color = "black"),
+    panel.grid.minor = element_blank(),
+    plot.margin = margin(0, 2, 0, 0, unit = "cm")) +
+  scale_x_discrete(limits = c(demographics_time$day_f %>% unique())) +
+  labs(x = "Days",
+       y = "",
+       # title = "Studies design - Grouped conditions",
+       # shape = "Disease or vaccination",
+       size = "Samples",
+       fill = "Dose") +
+  ggforce::facet_col(~fct_relevel(gse_id, "GSE201530", "GSE189039", "GSE199750", "GSE201533"), scales = "free_y", space = "free")  + 
+  guides(fill = guide_legend(override.aes = list(size=4)))
+
+
+ (samples_by_study_plot/ age_stats) 
+
+(demographics_time_plot_2 / demographics_plot_days_samples_doses_2) +
+  plot_layout(axes = "collect", guides = "collect", heights = c(1, 2))
+```
+
 
 
 
