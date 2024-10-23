@@ -2962,7 +2962,7 @@ ggplot_degs_bars = all_degs %>%
   filter(direction != "NEUTRAL") %>% 
  ggplot() +
   aes(x = condition, fill = direction, weight = n_degs) +
-  geom_bar(position = "dodge") +
+  geom_bar(position = "dodge", size = 0.2, color = "black") +
   scale_fill_manual(
     values = c(DOWN = "#4DBBD5FF",
     NEUTRAL = "gray80",
@@ -2976,12 +2976,32 @@ ggplot_degs_bars = all_degs %>%
             hjust = -0.2, 
             size = 3) +
     theme(legend.position = "right",
-        strip.text.x = element_text(color = "black", size = 12), 
-        axis.text.x = element_text(angle = 45, vjust = 1, hjust=1, size = 10),
-        axis.text.y = element_text(vjust = 0.5, size = 10),
-        axis.line = element_line(size = 0.5, colour = "black", linetype=1),
-        axis.ticks = element_line(size = 0.5, color = "black"),
-        panel.grid.minor.x = element_blank()) +
+    strip.text.x = element_text(size = 12, color = "black"),
+    legend.text = element_text(size = 10),
+    legend.title = element_text(size = 10),
+    plot.title = element_text(size = 10),
+    axis.title.y = element_text(color = "black"),
+    panel.grid.major.y = element_line(size = 0.5, 
+                                    linetype = 2,
+                                    color = "gray75"),
+    panel.grid.major.x = element_line(size = 0, 
+                                    linetype = 2,
+                                    color = "gray75"),
+    axis.line.x = element_line(size = 1,
+                               colour = "black",
+                               linetype = 1),
+    axis.ticks.x = element_line(size = 1, color = "black"),
+    axis.line.y = element_line(size = 0 ,
+                               colour = "black",
+                               linetype = 1),
+    axis.ticks.y = element_line(size = 0, color = "black"),
+    panel.grid.minor.y = element_line(size = 0.5, 
+                                    linetype = 2,
+                                    color = "gray75"),
+    plot.margin = margin(0, 2, 0, 0, unit = "cm"),
+    axis.text.x = element_text(angle = 45, vjust = 1, hjust=1, size = 10),
+    axis.text.y = element_text(vjust = 0.5, size = 10)) +
+  scale_y_continuous(expand = c(0,0), limits = c(0, 3100)) +
   labs(x = "",
        y = "Total",
        fill = "",
@@ -3003,7 +3023,9 @@ ggplot_degs_bars_directions = all_degs %>%
                                TRUE ~ "Neutral")) %>% 
  ggplot() +
   aes(y = fct_rev(condition), fill = type, x = n_degs) +
-  geom_col(position = "dodge") +
+  geom_col(position = "dodge",
+           color = "black",
+           size = 0.2) +
   scale_fill_manual(values = ann_vaxsig_colors$type)+
   # scale_fill_manual(
   #   values = c("Down-regulated" = "#4DBBD5FF",
@@ -3021,13 +3043,19 @@ ggplot_degs_bars_directions = all_degs %>%
         strip.text.x = element_text(color = "black", size = 12), 
         axis.text.x = element_text(color = "black", size = 10),
         axis.text.y = element_text(vjust = 0.5, size = 10, color = "black"),
-        axis.line = element_line(size = 0.5, colour = "black", linetype=1),
-        axis.ticks = element_line(size = 0.5, color = "black"),
-        panel.grid.minor.x = element_blank(),
+        axis.line = element_line(size = 1, colour = "black", linetype=1),
+        axis.ticks.y = element_line(size = 0.5, color = "black"),
+        axis.ticks.x = element_line(size = 0, color = "black"),
+        panel.grid.major.y = element_line(size = 0, 
+                                    linetype = 2,
+                                    color = "gray75"),
+        panel.grid.major.x = element_line(size = 0.5, 
+                                    linetype = 2,
+                                    color = "gray75"),
         panel.spacing.x = unit(2, "lines")) +
   labs(x = "Total",
        y = "",
-       fill = "Direction",
+       fill = "Type",
        title = "Total DEGs, by direction. Threshold = |l2fc| > 1") +
   facet_wrap(~direction)
 
@@ -3048,7 +3076,7 @@ ggplot_degs_bars_directions_up_down = all_degs %>%
   filter(direction != "Neutral") %>% 
  ggplot() +
   aes(y = fct_rev(condition), fill = type, x = n_degs) +
-  geom_col(position = "dodge") +
+  geom_col(position = "dodge", size = 0.2, color = "black") +
   scale_fill_manual(values = ann_vaxsig_colors$type)+
   # scale_fill_manual(
   #   values = c("Down-regulated" = "#4DBBD5FF",
@@ -3066,7 +3094,7 @@ ggplot_degs_bars_directions_up_down = all_degs %>%
         strip.text.x = element_text(color = "black", size = 12), 
         axis.text.x = element_text(color = "black", size = 10),
         axis.text.y = element_text(vjust = 0.5, size = 10, color = "black"),
-        axis.line = element_line(size = 0.5, colour = "black", linetype=1),
+        axis.line = element_line(size = 1, colour = "black", linetype=1),
         axis.ticks = element_line(size = 0.5, color = "black"),
         panel.grid.minor.x = element_blank(),
         panel.spacing.x = unit(2, "lines")) +
@@ -3094,10 +3122,12 @@ all_degs %>%
          direction = fct_relevel(direction, "Down-regulated", "Up-regulated")) %>% 
   ggplot() +
   aes(y = fct_rev(condition), fill = fct_rev(direction), x = n_degs) +
-  geom_bar(stat = "summary", fun = "sum") +
+  geom_bar(stat = "summary", fun = "sum",
+           color = "black",
+           size = 0.2) +
   scale_fill_manual(
     values = c("Down-regulated" = "#4DBBD5FF",
-    "Neutral" = "gray80",
+    "Neutral" = "gray90",
     "Up-regulated" = "#d90429")) +
   theme_minimal() +
   # geom_text(aes(label = n_degs, x = n_degs), 
@@ -3111,8 +3141,16 @@ all_degs %>%
         strip.text.x = element_text(color = "black", size = 12), 
         axis.text.x = element_text(color = "black", size = 10),
         axis.text.y = element_text(vjust = 0.5, size = 10, color = "black"),
-        axis.line = element_line(size = 0.5, colour = "black", linetype=1),
-        axis.ticks = element_line(size = 0.5, color = "black")) +
+        axis.line.y = element_line(size = 1, colour = "black", linetype=1),
+        axis.ticks.y = element_line(size = 0.5, color = "black"),
+        axis.ticks.x = element_line(size = 0, color = "black"),
+        panel.grid.major.y = element_line(size = 0, 
+                                    linetype = 2,
+                                    color = "gray75"),
+        panel.grid.major.x = element_line(size = 0.5, 
+                                    linetype = 2,
+                                    color = "gray75"),
+        panel.spacing.x = unit(2, "lines")) +
   labs(x = "Total",
        y = "",
        fill = "Direction",
@@ -3173,14 +3211,16 @@ all_degs_biotypes_plot_totals = all_degs_biotypes %>%
                                                 unique()))) %>% 
   ggplot(.) +
   aes(x = n_biotypes, y = fct_rev(condition), fill = gene_biotype_grouped) +
-  geom_bar(stat = "summary", fun = "sum") +
+  geom_bar(stat = "summary", fun = "sum",
+           color ="black",
+           size = 0.2) +
   theme_minimal() +
   scale_fill_jco() +
   theme(legend.position = "right",
         strip.text.x = element_text(color = "black", size = 12), 
         axis.text.x = element_text(color = "black", size = 10),
         axis.text.y = element_text(vjust = 0.5, size = 10, color = "black"),
-        axis.line = element_line(size = 0.5, colour = "black", linetype=1),
+        axis.line = element_line(size = 1, colour = "black", linetype=1),
         axis.ticks = element_line(size = 0.5, color = "black")) +
   labs(x = "Total",
        y = "",
@@ -3204,14 +3244,16 @@ all_degs_biotypes_plot_perc = all_degs_biotypes %>%
                                                 unique()))) %>% 
   ggplot(.) +
   aes(x = n_biotypes, y = fct_rev(condition), fill = gene_biotype_grouped) +
-  geom_bar(stat = "summary", fun = "sum", position = "fill") +
+  geom_bar(stat = "summary", fun = "sum", position = "fill",
+           color = "black",
+           size = 0.2) +
   theme_minimal() +
   scale_fill_jco() +
   theme(legend.position = "right",
         strip.text.x = element_text(color = "black", size = 12), 
         axis.text.x = element_text(color = "black", size = 10),
         axis.text.y = element_text(vjust = 0.5, size = 10, color = "black"),
-        axis.line = element_line(size = 0.5, colour = "black", linetype=1),
+        axis.line = element_line(size = 1, colour = "black", linetype=1),
         axis.ticks = element_line(size = 0.5, color = "black")) + 
   labs(x = "%",
        y = "",
@@ -3280,7 +3322,7 @@ all_degs_biotypes_plot_totals_immune = all_degs_biotypes_immune %>%
         strip.text.x = element_text(color = "black", size = 12), 
         axis.text.x = element_text(color = "black", size = 10),
         axis.text.y = element_text(vjust = 0.5, size = 10, color = "black"),
-        axis.line = element_line(size = 0.5, colour = "black", linetype=1),
+        axis.line = element_line(size = 1, colour = "black", linetype=1),
         axis.ticks = element_line(size = 0.5, color = "black")) +
   labs(x = "Total",
        y = "",
@@ -3311,7 +3353,7 @@ all_degs_biotypes_plot_perc_immune = all_degs_biotypes_immune %>%
         strip.text.x = element_text(color = "black", size = 12), 
         axis.text.x = element_text(color = "black", size = 10),
         axis.text.y = element_text(vjust = 0.5, size = 10, color = "black"),
-        axis.line = element_line(size = 0.5, colour = "black", linetype=1),
+        axis.line = element_line(size = 1, colour = "black", linetype=1),
         axis.ticks = element_line(size = 0.5, color = "black")) +
   labs(x = "%",
        y = "",
@@ -3402,7 +3444,9 @@ all_degs_immuneGO_BTM_plot = all_degs_immuneGO_BTM_totals %>%
          title = "Immune sets") %>% 
   ggplot(.) +
   aes(x = n_perc, y = fct_rev(condition), fill = fct_relevel(set, "Other", "BTM and ImmuneGO", "BTM", "ImmuneGO")) +
-  geom_bar(stat = "summary", fun = "sum", position = "fill") +
+  geom_bar(stat = "summary", fun = "sum", position = "fill",
+           color ="black",
+           size = 0.2) +
   scale_fill_manual(values = c("BTM and ImmuneGO" = "#4DBBD5FF",
     "Other" = "gray95",
     "BTM" = "#5e60ce",
@@ -3412,7 +3456,7 @@ all_degs_immuneGO_BTM_plot = all_degs_immuneGO_BTM_totals %>%
         strip.text.x = element_text(color = "black", size = 12), 
         axis.text.x = element_text(color = "black", size = 10),
         axis.text.y = element_text(vjust = 0.5, size = 10, color = "black"),
-        axis.line = element_line(size = 0.5, colour = "black", linetype=1),
+        axis.line = element_line(size = 1, colour = "black", linetype=1),
         axis.ticks = element_line(size = 0.5, color = "black")) +
   labs(x = "%Coverage",
        y = "",
@@ -3444,9 +3488,11 @@ all_degs_immuneGO_BTM_united_plot = all_degs_immuneGO_BTM_totals %>%
          title = "BTM + ImmuneGO sets") %>% 
   ggplot(.) +
   aes(x = n_perc, y = fct_rev(condition), fill = fct_relevel(set, "Other", "BTM and ImmuneGO", "BTM", "ImmuneGO")) +
-  geom_bar(stat = "summary", fun = "sum", position = "fill") +
+  geom_bar(stat = "summary", fun = "sum", position = "fill",
+           color = "black",
+           size = 0.2) +
   scale_fill_manual(values = c("BTM and ImmuneGO" = "#4DBBD5FF",
-    "Other" = "gray90",
+    "Other" = "gray95",
     "BTM" = "#5e60ce",
     "ImmuneGO" = "#00A087FF")) +
     theme_minimal() +
@@ -3454,7 +3500,7 @@ all_degs_immuneGO_BTM_united_plot = all_degs_immuneGO_BTM_totals %>%
         strip.text.x = element_text(color = "black", size = 12), 
         axis.text.x = element_text(color = "black", size = 10),
         axis.text.y = element_text(vjust = 0.5, size = 10, color = "black"),
-        axis.line = element_line(size = 0.5, colour = "black", linetype=1),
+        axis.line = element_line(size = 1, colour = "black", linetype=1),
         axis.ticks = element_line(size = 0.5, color = "black")) +
   labs(x = "%Coverage",
        y = "",
@@ -3497,9 +3543,11 @@ all_degs_immuneGO_BTM_reg_plot = all_degs_immuneGO_BTM_reg %>%
          direction != "Neutral") %>% 
   ggplot(.) +
   aes(x = n, y = fct_rev(condition), fill = fct_relevel(set, "Other", "BTM and ImmuneGO", "BTM", "ImmuneGO")) +
-  geom_bar(stat = "summary", fun = "sum") +  
+  geom_bar(stat = "summary", fun = "sum",
+           size = 0.2,
+           color ="black") +  
     scale_fill_manual(values = c("BTM and ImmuneGO" = "#4DBBD5FF",
-    "Other" = "gray90",
+    "Other" = "gray95",
     "BTM" = "#5e60ce",
     "ImmuneGO" = "#00A087FF")) +
     theme_minimal() +
@@ -3507,8 +3555,15 @@ all_degs_immuneGO_BTM_reg_plot = all_degs_immuneGO_BTM_reg %>%
         strip.text.x = element_text(color = "black", size = 12), 
         axis.text.x = element_text(color = "black", size = 10),
         axis.text.y = element_text(vjust = 0.5, size = 10, color = "black"),
-        axis.line = element_line(size = 0.5, colour = "black", linetype=1),
-        axis.ticks = element_line(size = 0.5, color = "black")) +
+        axis.line = element_line(size = 1, colour = "black", linetype=1),
+        axis.ticks = element_line(size = 0.5, color = "black"),
+        panel.grid.major.y = element_line(size = 0, 
+                                    linetype = 2,
+                                    color = "gray75"),
+        panel.grid.major.x = element_line(size = 0.5, 
+                                    linetype = 2,
+                                    color = "gray75"),
+        panel.spacing.x = unit(2, "lines")) +
   labs(x = "Total",
        y = "",
        fill = "",
@@ -3586,7 +3641,7 @@ all_degs_biotypes_plot_totals_immuneBTM = all_degs_biotypes_immuneBTM %>%
         strip.text.x = element_text(color = "black", size = 12), 
         axis.text.x = element_text(color = "black", size = 10),
         axis.text.y = element_text(vjust = 0.5, size = 10, color = "black"),
-        axis.line = element_line(size = 0.5, colour = "black", linetype=1),
+        axis.line = element_line(size = 1, colour = "black", linetype=1),
         axis.ticks = element_line(size = 0.5, color = "black")) +
   labs(x = "Total",
        y = "",
@@ -3617,7 +3672,7 @@ all_degs_biotypes_plot_perc_immuneBTM = all_degs_biotypes_immuneBTM %>%
         strip.text.x = element_text(color = "black", size = 12), 
         axis.text.x = element_text(color = "black", size = 10),
         axis.text.y = element_text(vjust = 0.5, size = 10, color = "black"),
-        axis.line = element_line(size = 0.5, colour = "black", linetype=1),
+        axis.line = element_line(size = 1, colour = "black", linetype=1),
         axis.ticks = element_line(size = 0.5, color = "black")) +
   labs(x = "%",
        y = "",
@@ -3930,7 +3985,7 @@ mutate(disease_vac = fct_relevel(disease_vac, "I", "V")) %>%
         strip.text.x = element_text(color = "black", size = 12), 
         axis.text.x = element_text(color = "black", size = 10),
         axis.text.y = element_text(vjust = 0.5, size = 10, color = "black"),
-        axis.line = element_line(size = 0.5, colour = "black", linetype=1),
+        axis.line = element_line(size = 1, colour = "black", linetype=1),
         axis.ticks = element_line(size = 0.5, color = "black")) +
   geom_text(aes(label = paste0(n_genes_perc, "% (", n_genes, ")"), 
                 y = n_genes_perc), 
@@ -3967,7 +4022,7 @@ main_go_2_plot_up_down_totals = main_go_2 %>%
         strip.text.x = element_text(color = "black", size = 12), 
         axis.text.x = element_text(color = "black", size = 10),
         axis.text.y = element_text(vjust = 0.5, size = 10, color = "black"),
-        axis.line = element_line(size = 0.5, colour = "black", linetype=1),
+        axis.line = element_line(size = 1, colour = "black", linetype=1),
         axis.ticks = element_line(size = 0.5, color = "black")) +
   
   geom_text(aes(label = n_genes_total, y = n_genes_total),
@@ -4022,7 +4077,7 @@ filter(term_ancestor %in% c(
   mutate(condition = factor(condition, levels = ann_vaccines_conditions_ordered$condition_grouped %>% as.character() %>% unique())) %>% 
   ggplot() +
  aes(x = fct_rev(factor(condition)), y = n_genes_perc, fill = type) +
- geom_col() +
+ geom_col(size = 0.2, color = "black") +
  coord_flip() +
  theme_minimal() +
    scale_fill_manual(name = "Type",
@@ -4036,7 +4091,7 @@ filter(term_ancestor %in% c(
         strip.text.x = element_text(color = "black", size = 12), 
         axis.text.x = element_text(color = "black", size = 10),
         axis.text.y = element_text(vjust = 0.5, size = 10, color = "black"),
-        axis.line = element_line(size = 0.5, colour = "black", linetype=1),
+        axis.line = element_line(size = 1, colour = "black", linetype=1),
         axis.ticks = element_line(size = 0.5, color = "black")) +
   geom_text(aes(label = paste0(n_genes_perc, "% (", n_genes, ")"), 
                 y = n_genes_perc), 
@@ -4046,9 +4101,8 @@ filter(term_ancestor %in% c(
   labs(title = "Biological processes",
        x = "",
        y = "Number of genes (%)") +
-  ylim(0,120) +
   facet_wrap(~term_ancestor, ncol = 3) +
-  scale_y_continuous(expand = c(0,0))
+  scale_y_continuous(expand = c(0,0), limits = c(0,100))
 
 main_go_2_plot_alldirections_totals = main_go_2 %>%
   group_by(condition, term_ancestor) %>% 
@@ -4073,7 +4127,7 @@ inner_join(ann_vaccines_conditions, by = "condition") %>%
   mutate(condition = factor(condition, levels = ann_vaccines_conditions_ordered$condition_grouped %>% as.character() %>% unique())) %>%   
   ggplot() +
  aes(x = fct_rev(factor(condition)), y = n_genes_total, fill = type) +
- geom_col() +
+ geom_col(size = 0.2, color = "black") +
  coord_flip() +
  theme_minimal() +
    scale_fill_manual(name = "Type",
@@ -4087,7 +4141,7 @@ inner_join(ann_vaccines_conditions, by = "condition") %>%
         strip.text.x = element_text(color = "black", size = 12), 
         axis.text.x = element_text(color = "black", size = 10),
         axis.text.y = element_text(vjust = 0.5, size = 10, color = "black"),
-        axis.line = element_line(size = 0.5, colour = "black", linetype=1),
+        axis.line = element_line(size = 1, colour = "black", linetype=1),
         axis.ticks = element_line(size = 0.5, color = "black")) +
   geom_text(aes(label = n_genes_total, y = n_genes_total),
             hjust = 0, 
@@ -4139,205 +4193,6 @@ ggplot_degs_bars_directions_biotype_bps %>%
 
 ggplot_degs_bars_directions_biotype_bps
 ```
-
-
-
-###### BTM + ImmuneGO
-
-Totals
-```{r fig.height=10, fig.width=10}
-degs_immune = all_degs_p_05_vac_infected %>% 
-  left_join(ImmuneGO_BTM_genes %>% mutate(set = "ImmuneGO + BTM"), 
-            by = "genes") %>% 
-    filter(if_else(n >= 5, fdr <= 0.05, fdr <= (0.05 * 6/n))) %>% 
-  mutate(set = if_else(is.na(set), "Not ImmuneGO and BTM", set)) %>% 
-  group_by(condition, direction, set) %>% 
-  summarize(n_set = n()) %>% 
-    mutate(condition = fct_relevel(condition, c(ann_vaccines_conditions_ordered$condition_grouped %>% unique() %>% as.character()))) 
-
-```
-
-
-```{r fig.height=10, fig.width=10}
-#UP
-immune_other_plot_btm_immunego  = degs_immune %>% 
-  ggplot() +
- aes(x = fct_rev(factor(condition)), y = n_set, fill = fct_rev(set)) +
- geom_col() +
- coord_flip() +
- theme_minimal() +
-  scale_fill_manual(name = "",
-    values = c("Not ImmuneGO and BTM" = "gray90",
-              "ImmuneGO + BTM" = "#4DBBD5FF"),
-    labels = c('Other', 'Immune')) +
-  theme(legend.position= "top",
-        panel.grid = element_blank(),
-        legend.title = element_text(size = 10),
-        legend.text = element_text(size= 15),
-        axis.title.x = element_blank(),
-        axis.text.x = element_blank(),
-        axis.text.y = element_text(size = 10, color = "black", angle = 0, hjust = 1),
-        strip.text.x = element_text(size = 15, color = "black", hjust = 0.5),
-        strip.text.y = element_text(size = 15, angle = 0, face = "bold"),
-        strip.background.x = element_blank()) +
-  # geom_text_repel(aes(label = n_set,
-  #               y = n_set ),
-  #           hjust = -0.05,
-  #           size = 3,
-  #           angle = 0) +
-  labs(title = "",
-       fill = "Gene type",
-       x = "",
-       y = "Number of genes") +
-  ylim(0, 8000) +
-  facet_grid(~direction, scales = "free_x")
-
-
-ggsave(immune_other_plot_btm_immunego, file = here("Figures", "immune_other_plot_diseaseorvac_BTM_ImmuneGO.png"), width = 10, height = 10)
-
-immune_other_plot_btm_immunego
-```
-
-
-```{r fig.height=10, fig.width=10}
-degs_immune = all_degs_p_05_vac_infected %>% 
-  left_join(ImmuneGO_BTM_genes %>% mutate(set = "ImmuneGO + BTM"), 
-            by = "genes") %>% 
-    filter(if_else(n >= 5, fdr <= 0.05, fdr <= (0.05 * 6/n))) %>% 
-  mutate(set = if_else(is.na(set), "Not ImmuneGO and BTM", set)) %>% 
-  group_by(condition, set) %>% 
-  summarize(n_set = n()) %>% 
-    mutate(condition = fct_relevel(condition, c(ann_vaccines_conditions_ordered$condition_grouped %>% unique() %>% as.character())))
-
-
-immune_other_plot_btm_immunego  = degs_immune %>% 
-  ggplot() +
- aes(x = fct_rev(factor(condition)), y = n_set, fill = fct_rev(set)) +
-  geom_bar(stat = "summary", fun = "sum", position = "fill") +
- coord_flip() +
- theme_minimal() +
-  scale_fill_manual(name = "",
-    values = c("Not ImmuneGO and BTM" = "gray90",
-              "ImmuneGO + BTM" = "#4DBBD5FF"),
-    labels = c('Other', 'Immune')) +
-  theme(legend.position= "top",
-        panel.grid = element_blank(),
-        legend.title = element_text(size = 10),
-        legend.text = element_text(size= 15),
-        # axis.title.x = element_blank(),
-        # axis.text.x = element_blank(),
-        axis.text.y = element_text(size = 10, color = "black", angle = 0, hjust = 1),
-        strip.text.x = element_text(size = 15, color = "black", hjust = 0.5),
-        strip.text.y = element_text(size = 15, angle = 0, face = "bold"),
-        strip.background.x = element_blank()) +
-
-  labs(title = "ImmuneGO + BTM genes",
-       fill = "Gene type",
-       x = "",
-       y = "Relative frequency (%)") 
-
-
-
-```
-
-
-
-
-
-######  Relative frequency: Immune vs. non-immune genes
-
-
-UP and Down
-```{r fig.height=10, fig.width=10}
-degs_immune = main_go_2 %>% 
-  mutate(direction = case_when(direction == "UP" ~ "Upregulated",
-                               direction == "DOWN" ~ "Downregulated",
-                               direction == "NEUTRAL" ~ "Neutral"),
-         term_ancestor = fct_relevel(term_ancestor, "Immune system", "Cellular", "Metabolism", "Reg. of BP")) %>%
-  filter(term_ancestor %in% c("Immune system")) %>% 
-  rename(n_genes_immune = n_genes) %>% 
-  pivot_longer(names_to = "totals", values_to = "total_number", cols = c(n_genes_immune, n_genes_total)) %>% 
-  select(condition, direction, term_ancestor, n_genes_perc, totals, total_number) %>% 
-  group_by(condition) %>% 
-  mutate(immune_genes = if_else(totals == "n_genes_immune", total_number, NA),
-         total_degs = if_else(totals == "n_genes_total", total_number, NA),
-         totals = fct_rev(factor(totals)),
-         direction = fct_rev(direction)) %>% 
-  fill(total_degs, .direction = "up") %>% 
-  inner_join(ann_vaccines %>% select(condition, disease_vac)) %>% 
-  mutate(disease_vac = if_else(disease_vac == "V", "Vaccination", "Infection"))
-
-#UP
-immune_other_plot_diseaseorvac_I  = degs_immune %>% 
-  filter(disease_vac == "Infection") %>% 
-    mutate(condition = factor(condition, levels = ann_vaccines_conditions_ordered$condition_grouped %>% unique())) %>%
-  ggplot() +
- aes(x = total_number, y = fct_rev(factor(condition)), fill = totals) +
-  geom_bar(stat = "summary", fun = "sum", position = "fill") +
-  scale_fill_manual(name = "",
-    values = c("n_genes_total" = "gray90",
-              "n_genes_immune" = "#4DBBD5FF"),
-    labels = c('Other', 'Immune')) +
-  theme_minimal() +
-  theme(legend.position= "top",
-        panel.grid = element_blank(),
-        legend.title = element_text(size = 10),
-        legend.text = element_text(size= 15),
-        axis.title.x = element_blank(),
-        axis.text.x = element_blank(),
-        axis.text.y = element_text(size = 10, color = "black", angle = 0, hjust = 1),
-        strip.text.x = element_text(size = 15, color = "white", hjust = 0.5),
-        strip.text.y = element_text(size = 15, angle = 0, face = "bold"),
-        strip.background.x = element_rect(
-          fill = "black", 
-          color = "black", 
-          linewidth = 1 )) +
-  labs(title = "",
-       fill = "Gene type",
-       x = "",
-       y = "") +
-  facet_grid(~disease_vac~direction, scales = "free_x")
-
-immune_other_plot_diseaseorvac_V  = degs_immune %>% 
-  filter(disease_vac == "Vaccination") %>% 
-    mutate(condition = factor(condition, levels = ann_vaccines_conditions_ordered$condition %>% unique())) %>%
-  ggplot() +
- aes(x = total_number, y = fct_rev(factor(condition)), fill = totals) +
-  geom_bar(stat = "summary", fun = "sum", position = "fill") +
-  scale_fill_manual(name = "",
-    values = c("n_genes_total" = "gray90",
-              "n_genes_immune" = "#4DBBD5FF"),
-    labels = c('Other', 'Immune')) +
-  theme_minimal() +
-  theme(legend.position= "none",
-        panel.grid = element_blank(),
-        legend.title = element_text(size = 10),
-        legend.text = element_text(size= 15),
-        # axis.title.x = element_blank(),
-        # axis.text.x = element_blank(),
-        axis.text.y = element_text(size = 10, color = "black", angle = 0, hjust = 1),
-        strip.text.x = element_blank(),
-        strip.text.y = element_text(size = 15, angle = 0, face = "bold"),
-        # strip.background.x = element_rect(
-        #   fill = "black", 
-        #   color = "black", 
-        #   linewidth = 1 )
-        ) +
-  labs(title = "",
-       fill = "Gene type",
-       x = "%Genes",
-       y = "") +
-  facet_grid(~disease_vac~direction, scales = "free_x")
-
-patch_immune_degs = immune_other_plot_diseaseorvac_I / immune_other_plot_diseaseorvac_V +
-  plot_layout(heights = c(0.5, 1)) +
-  plot_annotation(title = "ImmuneGO genes")  
-
-ggsave(patch_immune_degs, file = here("Figures", "immune_other_plot_diseaseorvac_percentage.png"), width = 10, height = 10)
-
-patch_immune_degs
-```
-
 
 
 
@@ -24399,7 +24254,7 @@ degs_covid_vax %>%
 ```{r}
 #Input
 data = degs_covid_vax %>%
-  filter(genes %in% ImmuneGO_Annotated_Genes$genes) %>% 
+  filter(genes %in% immunego_btm_genes_joined$genes) %>% 
   rename(process = condition) %>% 
   select(process, genes)
   
@@ -24637,7 +24492,7 @@ heatmap_plot = Heatmap(mat,
                         column_title_gp = gpar(fontsize = 10, fontface = "bold"),
                         column_names_rot = 45,
                         column_names_gp = column_names_gp,
-                        rect_gp = gpar(col = "gray90", lwd = 1),
+                        rect_gp = gpar(col = "white", lwd = 1.5),
                         cluster_rows = TRUE,
                         row_names_gp = row_names_gp, #Grande = 6, Pequeno 15
                         row_dend_width = unit(5, "cm"), #Altura do dendrograma
@@ -24801,7 +24656,7 @@ heatmap_plot = Heatmap(mat,
                         column_title_gp = gpar(fontsize = 10, fontface = "bold"),
                         column_names_rot = 45,
                         column_names_gp = column_names_gp,
-                        rect_gp = gpar(col = "gray90", lwd = 1),
+                        rect_gp = gpar(col = "white", lwd = 1.5),
                         cluster_rows = F,
                         row_names_gp = row_names_gp, #Grande = 6, Pequeno 15
                         row_dend_width = unit(5, "cm"), #Altura do dendrograma
@@ -24964,7 +24819,7 @@ heatmap_plot = Heatmap(mat,
                         column_title_gp = gpar(fontsize = 10, fontface = "bold"),
                         column_names_rot = 45,
                         column_names_gp = column_names_gp,
-                        rect_gp = gpar(col = "gray90", lwd = 1),
+                        rect_gp = gpar(col = "white", lwd = 2),
                         cluster_rows = F,
                         row_names_gp = row_names_gp, #Grande = 6, Pequeno 15
                         row_dend_width = unit(5, "cm"), #Altura do dendrograma
@@ -25000,8 +24855,9 @@ Input
 ```{r}
 #Gene sets
 
-Immune_GO_T2G_general = ImmuneGO_Annotated_Genes %>% 
-  filter(go_term == "Manual",
+ImmuneGO_BTM_T2G_general = immunego_btm_manual_grouped_genes %>% 
+  filter( 
+         # go_term == "Manual",
          !process %in% c("ADAPTIVE IMMUNE SYSTEM",
                          "INNATE IMMUNE SYSTEM",
                          "BCR REPERTOIRE",
@@ -25009,16 +24865,16 @@ Immune_GO_T2G_general = ImmuneGO_Annotated_Genes %>%
   select(process, genes)
 
 
-Immune_GO_T2G_specfic = ImmuneGO_Annotated_Genes %>% 
-  filter(!process %in% c("ADAPTIVE IMMUNE SYSTEM",
-                         "INNATE IMMUNE SYSTEM",
-                         "BCR REPERTOIRE",
-                         "TCR REPERTOIRE")) %>% 
-  select(process=gene_set_short, genes) 
+# ImmuneGO_BTM_T2G_specific = immunegobtm %>% 
+#   filter(!process %in% c("ADAPTIVE IMMUNE SYSTEM",
+#                          "INNATE IMMUNE SYSTEM",
+#                          "BCR REPERTOIRE",
+#                          "TCR REPERTOIRE")) %>% 
+#   select(process, genes) 
 
 
-TERM2GENE = Immune_GO_T2G_general
-geneset_name = "Immune_GO_T2G_general"
+TERM2GENE = ImmuneGO_BTM_T2G_general
+geneset_name = "ImmuneGO_BTM_T2G_general"
 
 filename = "All_covid_13Vax"
 ```
@@ -25078,13 +24934,13 @@ autoGSEA <- function(df, TERM2GENE, geneset_name) {
 ```{r}
 # Perform GSEA
 
-TERM2GENE = Immune_GO_T2G_general
-geneset_name = "Immune_GO_T2G_general"
+TERM2GENE = ImmuneGO_BTM_T2G_general
+geneset_name = "ImmuneGO_BTM_T2G_general"
 
 degs_covid_vax_GSEA_ALL <- degs_covid_vax %>%
   select(condition, genes, log2fold_change) %>% 
   autoGSEA(TERM2GENE = Immune_GO_T2G_general, 
-           geneset_name = "Immune_GO_T2G_general") 
+           geneset_name = ImmuneGO_BTM_T2G_general) 
 
 degs_covid_vax_GSEA = degs_covid_vax_GSEA_ALL %>% 
   rownames_to_column("delete") %>% 
@@ -25097,24 +24953,25 @@ write_csv(degs_covid_vax_GSEA,
 
 # Perform GSEA
 
-TERM2GENE = Immune_GO_T2G_specfic
-geneset_name = "Immune_GO_T2G_specfic"
-
-degs_covid_vax_GSEA_ALL <- degs_covid_vax %>%
-  select(condition, genes, log2fold_change) %>% 
-  autoGSEA(TERM2GENE = Immune_GO_T2G_specfic, 
-           geneset_name = "Immune_GO_T2G_specfic") 
-
-degs_covid_vax_GSEA = degs_covid_vax_GSEA_ALL %>% 
-  rownames_to_column("delete") %>% 
-  clean_names() %>% 
-    select(condition, id, everything()) 
-
-#Save
-write_csv(degs_covid_vax_GSEA, 
-          file = here("Gene set enrichment analysis", paste0(filename, geneset_name, "_GSEA_ALL", ".csv")))
+# TERM2GENE = ImmuneGO_BTM_T2G_specific
+# geneset_name = "ImmuneGO_BTM_T2G_specific"
+# 
+# degs_covid_vax_GSEA_ALL <- degs_covid_vax %>%
+#   select(condition, genes, log2fold_change) %>% 
+#   autoGSEA(TERM2GENE = Immune_GO_T2G_specfic, 
+#            geneset_name = "Immune_GO_T2G_specfic") 
+# 
+# degs_covid_vax_GSEA = degs_covid_vax_GSEA_ALL %>% 
+#   rownames_to_column("delete") %>% 
+#   clean_names() %>% 
+#     select(condition, id, everything()) 
+# 
+# #Save
+# write_csv(degs_covid_vax_GSEA, 
+#           file = here("Gene set enrichment analysis", paste0(filename, geneset_name, "_GSEA_ALL", ".csv")))
 
 degs_covid_vax_GSEA 
+
 ```
 
 
