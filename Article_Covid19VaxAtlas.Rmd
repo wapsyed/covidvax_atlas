@@ -127,6 +127,7 @@ Read the recent version here:
 # install.packages("chorddiag")
 # devtools::install_github("cmartin/ggConvexHull")
 library(maditr)
+library(readxl)
 library(ggConvexHull)
 library(randomForest)
 library(ranger)
@@ -817,7 +818,10 @@ counts_gse201530 <- list_data_GSE201530 %>%
 colnames(counts_gse201530)[-1] <- gsub("^[^_]+_(.*)", "\\1", colnames(counts_gse201530)[-1])
 
 saveRDS(counts_gse201530, file = here("raw_data", "gse201530_counts.rds"))
-write_csv(counts_gse201530, file = here("raw_data", "gse201530_counts.csv"))
+
+counts_gse201530 = read_rds(file = here("raw_data", "gse201530_counts.rds"))
+
+
 ```
 
 GSE199750
@@ -885,9 +889,9 @@ gene_info <- getBM(attributes = c("entrezgene_id", "hgnc_symbol", "ensembl_gene_
 
 raw_RNASeq_counts_ann <- raw_RNASeq_counts %>% 
   rownames_to_column("ensembl_gene_id") %>% 
-  inner_join(gene_info, by = "ensembl_gene_id") %>% 
-  # mutate(hgnc_symbol = if_else(hgnc_symbol == "", ensembl_gene_id, hgnc_symbol))
-  filter(hgnc_symbol != "") %>% 
+  left_join(gene_info, by = "ensembl_gene_id") %>% 
+  mutate(hgnc_symbol = if_else(hgnc_symbol == "", ensembl_gene_id, hgnc_symbol)) %>% 
+  filter(hgnc_symbol != "") %>%
   distinct() %>%
   select(sort(names(.))) %>% 
   select(genes = hgnc_symbol, ensembl_gene_id, everything()) %>% 
@@ -897,7 +901,6 @@ raw_RNASeq_counts_ann <- raw_RNASeq_counts %>%
 write_csv(raw_RNASeq_counts_ann, file= here("raw_data", "raw_RNASeq_counts_annGenes.csv"))
 
 #Filter duplicated genes. Get only the older ensembl ids
-
 not_interes = raw_RNASeq_counts_ann %>% 
   get_dupes(genes) %>% 
   group_by(genes) %>% 
@@ -986,8 +989,7 @@ all_matrices_counts = gse189039 %>%
   full_join(gse199750, by = "genes") %>% 
   full_join(gse206023, by = "genes")
 
-write_csv(all_matrices_counts, file = "all_matrices_counts.csv")
-
+saveRDS(all_matrices_counts, file = here("DGE analysis", "all_matrices_counts.rds"))
 
 ```
 
@@ -997,6 +999,7 @@ write_csv(all_matrices_counts, file = "all_matrices_counts.csv")
 
 
 ```{r cache = TRUE}
+all_matrices_counts = read_rds(file = here("DGE analysis", "all_matrices_counts.rds"))
 all_matrices_counts_long = all_matrices_counts %>% 
   pivot_longer(cols = -genes,
                names_to = "sample",
@@ -1520,54 +1523,36 @@ Conditions annotations
 ```{r eval=FALSE, include=TRUE, cache = TRUE}
 library(tidyverse)
 
-demographics = ann_vaccines_samples_4_12_23 %>%
-  select(vaccine, gse_id, condition, sample) %>% 
+ann_vaccines_conditions
+
+
+demographics = ann_vaccines_samples %>%
+  select(vaccine, gse_id, condition_grouped, sample) %>% 
   distinct() %>% 
-  group_by(vaccine, gse_id, condition) %>% 
+  group_by(vaccine, gse_id, condition_grouped) %>% 
   summarise(samples = n()) %>% 
   ungroup()
 
-ann_vaccines = demographics %>% 
-  select(condition, samples) %>% 
-  inner_join(ann_vaccines_18_1_24, by = "condition") %>% 
+demographics %>% 
+  summarize(total = sum(samples))
+
+ann_vaccines_conditions_1 = demographics %>% 
+  select(condition = condition_grouped, samples) %>% 
+  inner_join(ann_vaccines_conditions %>% 
+               select(-samples), 
+             by = join_by("condition")) %>% 
   distinct() %>% 
-  mutate(week = as.factor(week))
+  mutate(week = ceiling(day / 7),
+         week = as.factor(week))
 
-ann_vaccines_2 = ann_vaccines %>% 
-  group_by(vaccine) %>% 
-  summarise(samples_byvaccine = sum(samples)) %>% 
-  ungroup() %>% 
-  inner_join(ann_vaccines, by = "vaccine") 
-
- ann_vaccines_3 = ann_vaccines_2 %>% 
-  group_by(gse_id) %>% 
-  summarise(samples_bygse = sum(samples)) %>% 
-  ungroup() %>% 
-  inner_join(ann_vaccines_2, by = "gse_id") 
-
-write.csv(ann_vaccines_3, file = "ann_vaccines_19-1-24.csv")
+write.csv(ann_vaccines_conditions_1, file = here("Annotations and metadata", "ann_vaccines_conditions_23-10-24.csv"))
 
 
-ann_vaccines_conditions = ann_vaccines_samples %>% 
-  select(condition, disease_vac, gse_id) %>% 
-  group_by(condition, gse_id) %>% 
-  summarise(samples = n()) %>% 
-  inner_join(ann_vaccines %>% select(-samples), by = join_by("condition", "gse_id")) %>% 
-  mutate(day = if_else(str_detect(condition, "D0\\)"), 0, day),
-         week = if_else(str_detect(condition, "D0\\)"), 0, week),
-         disease_vac = if_else(disease_vac == "Healthy", "H", disease_vac)) %>% 
-  distinct() %>% 
-  ungroup() %>% 
-  mutate(week = ceiling(day / 7)) %>% 
-
-ann_vaccines_conditions %>% 
-  write_csv(here("Annotations and metadata", "ann_vaccines_conditions.csv"))
-
+ann_vaccines_conditions = ann_vaccines_conditions_1
 ```
 
 ### Reorder conditions as factors
 ```{r}
-
 
 #Group conditions
 ann_vaccines_conditions_grouped = ann_vaccines_conditions %>% 
@@ -1755,70 +1740,95 @@ ann_vaccines_conditions_ordered %>%
 
 Original conditions
 ```{r fig.height=10, fig.width=20, cache = TRUE}
-ann_vaccines_conditions = read_csv(here("Annotations and metadata", "ann_vaccines_conditions.csv"))
-
+ann_vaccines_conditions = read_csv(here("Annotations and metadata", "ann_vaccines_conditions_23-10-24.csv"))
 ann_vaccines_samples <- read_csv(here("Annotations and metadata","ann_vaccines_samples.csv"))
-
-ann_vaccines_conditions = ann_vaccines_samples %>% 
-  group_by(condition, gse_id) %>% 
-  summarize(samples = n()) %>% 
-  inner_join(ann_vaccines_conditions %>% select(-samples), by = join_by("condition", "gse_id"))
-
+ann_vaccines_conditions_ordered <- readRDS(here("Annotations and metadata", "ann_vaccines_conditions_ordered.rds"))
 #### SAMPLES BY CONDITION -----
-samples_by_condition  = ann_vaccines_conditions %>% 
-  select(samples, condition, vaccine) %>% 
+samples_by_condition  = ann_vaccines_samples %>% 
+  select(samples, condition = condition_grouped) %>% 
   distinct() %>% 
   group_by(condition) %>% 
   summarise(samples = sum(samples)) %>% 
-  inner_join(ann_vaccines %>% select(vaccine, condition) %>% distinct(), by = "condition") %>% 
-  mutate(condition = fct_relevel(condition, c(ann_vaccines_conditions_ordered$condition %>% 
+  inner_join(ann_vaccines_conditions %>% select(vaccine, condition, type) %>% distinct(), by = "condition") %>% 
+  mutate(condition = fct_relevel(condition, c(ann_vaccines_conditions_ordered$condition_grouped %>% 
                                                 as.character() %>% 
                                                 unique()))) %>% 
   arrange(condition)
 
+samples_by_condition %>% 
+  summarize(ntotal = sum(samples))
+```
 
+
+```{r fig.height=10, fig.width=10, cache = TRUE}
 samples_by_condition_plot = samples_by_condition %>% 
-  ggplot(aes(x = condition, weight = samples, fill = vaccine)) +
+  ggplot(aes(x = condition, weight = samples, fill = type)) +
   geom_bar() +
-  scale_fill_manual(name = "Vaccine or infection", labels = c("BBIBP", 
-                                                                "BNT", 
-                                                                "ChAd",
-                                                                "Healthy",
-                                                                "Infection",
-                                                                "MO",
-                                                                "ZF2001"),
-    values = c("BBIBP" = "#00A087FF",
-                "ZF2001" = "#8491B4FF",
-                "BNT" = "#4DBBD5FF",
-                "MO" = "#72ddf7",
-                "ChAd" = "#3C5488FF",
-                "I" = "#DC0000FF",
-                "H" = "grey80")) +
+  scale_fill_manual(values = ann_vaxsig_colors$type) +
   theme_minimal() +
   theme(legend.position = "top",
-        axis.text.x = element_text(size = 15, color = "black", angle = 45, hjust = 1, vjust = 1.1),
+        axis.text.x = element_text(size = 10, color = "black", angle = 45, hjust = 1, vjust = 0.95),
         axis.text.y = element_blank(), 
-        legend.text = element_text(size = 15),
-        legend.title = element_text(size = 20),
-        plot.title = element_text(size = 25),
+        legend.text = element_text(size = 10),
+        legend.title = element_text(size = 15),
+        plot.title = element_text(size = 15),
         axis.title.y = element_text(angle = 180, color = "white"),
         panel.grid.major = element_blank(), 
         panel.grid.minor = element_blank(),
-        plot.margin = margin(2, 2, 2, 2, "cm")) +
+        axis.line.y = element_blank(),
+        axis.line.x = element_line(size = 0.5, colour = "black", linetype=1),
+        axis.ticks.x = element_line(size = 1, color = "black"),
+        plot.margin = margin(1, 1, 1, 1, "cm")) +
   guides(fill=guide_legend(nrow=1,byrow=TRUE)) +
-  geom_label(aes(label = samples, y = samples),
+  geom_text(aes(label = samples, y = samples),
              fill = "white",
             position = position_dodge(width = 0), 
             vjust = -0.5, 
-            size = 4,
+            size = 5,
             angle = 0) +
   ggtitle("Samples by condition") +
   labs(x = "") +
-  ylim(0, 80)
-
-ggsave(samples_by_condition_plot, file = here("Figures", "demographics_samples-by-condition.png"), width = 20, height = 10)
+  scale_y_continuous(expand = c(0,0), limits = c(0, 160))
 
 samples_by_condition_plot
+ggsave(samples_by_condition_plot, file = here("Figures", "demographics_samples-by-condition.png"), width = 10, height = 10)
+```
+
+
+```{r fig.height=10, fig.width=10, cache = TRUE}
+samples_by_condition_plot_vertical = samples_by_condition %>% 
+  ggplot(aes(y = fct_rev(condition), x = samples, fill = type)) +
+  geom_col() +
+  scale_fill_manual(values = ann_vaxsig_colors$type) +
+  theme_minimal() +
+  theme(legend.position = "top",
+        axis.text.x = element_blank(),
+        axis.text.y = element_text(size = 10, color = "black", hjust = 1), 
+        legend.text = element_text(size = 10),
+        legend.title = element_text(size = 15),
+        plot.title = element_text(size = 15),
+        axis.title.y = element_text(angle = 180, color = "white"),
+        panel.grid.major = element_blank(), 
+        panel.grid.minor = element_blank(),
+        axis.line.y = element_line(size = 0.5, colour = "black", linetype=1),
+        axis.line.x = element_blank(),
+        axis.ticks.y = element_line(size = 1, color = "black"),
+        plot.margin = margin(2, 2, 2, 2, "cm")) +
+  guides(fill=guide_legend(nrow=1,byrow=TRUE)) +
+  geom_text(aes(label = samples, x = samples),
+             fill = "white",
+            position = position_dodge(width = 0), 
+            hjust = -0.2,
+            vjust = 0.5, 
+            size = 5,
+            angle = 0) +
+  ggtitle("Samples by condition") +
+  labs(x = "") +
+  scale_x_continuous(expand = c(0,0), limits = c(0, 170))
+
+# ggsave(samples_by_condition_plot_vertical, file = here("Figures", "demographics_samples-by-condition_vertical.png"), width = 20, height = 10)
+
+samples_by_condition_plot_vertical
 ```
 
 Grouped conditions
@@ -1891,7 +1901,8 @@ samples_by_study = ann_vaccines %>%
   select(samples, condition, gse_id) %>% 
   distinct() %>% 
   group_by(gse_id) %>% 
-  summarise(samples = sum(samples))
+  summarise(samples = sum(samples)) %>% 
+  ungroup() 
 
 samples_by_study_plot = samples_by_study %>% 
   ggplot(aes(x = fct_reorder(gse_id, -samples), weight = samples, fill = gse_id)) +
@@ -1940,12 +1951,25 @@ age_stats = ggbetweenstats(
   x = gse_id,
   y = age,
   p.adjust.method = "BH", 
-  point.args = list(alpha = 1),
-  type = "np", ggsignif.args = list(textsize = 2, tip_length = 0.0)
-) +
+  centrality.point.args = list(size = 1, color = "red"),
+  centrality.label.args = list(size = 2, 
+                               nudge_x = 0.5, nudge_y = 1, 
+                               segment.linetype = 4,
+                               min.segment.length = 0),
+  point.args = list(position = ggplot2::position_jitterdodge(dodge.width = 0.6, seed = 123),
+                    alpha = 0.3, size = 2, stroke = 0, na.rm = TRUE),
+  boxplot.args = list(alpha = 1, width = 0.2, mapping = aes(fill = gse_id)),
+  violin.args = list(alpha = 0, width = 1),
+  type = "np", 
+  ggsignif.args = list(textsize = 5, tip_length = 0.0)) +
   # scale_color_jco()+
-  scale_color_manual(
+  scale_fill_manual(
     values = ann_vaxsig_colors$gse_id) +
+  scale_color_manual(values = c(GSE199750 = "black",
+                                GSE201533= "black",
+                                GSE201530= "black",
+                                GSE206023 = "black",
+                                GSE189039 = "black")) +
   theme_few() +
   ylim(0, 110) +
   theme(legend.position = "none",
@@ -1956,7 +1980,9 @@ age_stats = ggbetweenstats(
   labs(y = "Age",
        x = "",
        color = "GSE ID",
-       title = "Study by age")
+       title = "Participants by age")
+
+extract_stats(age_stats)
 
 ggsave(age_stats, file = here("Figures", "Demographics_age.png") , width = 6, height = 5)
 age_stats
