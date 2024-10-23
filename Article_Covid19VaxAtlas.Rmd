@@ -1545,7 +1545,7 @@ ann_vaccines_conditions_1 = demographics %>%
   mutate(week = ceiling(day / 7),
          week = as.factor(week))
 
-write.csv(ann_vaccines_conditions_1, file = here("Annotations and metadata", "ann_vaccines_conditions_23-10-24.csv"))
+write_csv(ann_vaccines_conditions_1, file = here("Annotations and metadata", "ann_vaccines_conditions_23-10-24.csv"))
 
 
 ann_vaccines_conditions = ann_vaccines_conditions_1
@@ -1831,77 +1831,13 @@ samples_by_condition_plot_vertical = samples_by_condition %>%
 samples_by_condition_plot_vertical
 ```
 
-Grouped conditions
-```{r fig.height=10, fig.width=15, cache = TRUE}
-#### SAMPLES BY CONDITION GROUPED -----
-
-ann_vaccines = ann_vaccines_conditions
-
-samples_by_condition_grouped = ann_vaccines_conditions %>% 
-  ungroup() %>% 
-  select(samples, condition) %>% 
-  group_by(condition) %>% 
-  summarise(samples = sum(samples)) %>% 
-  inner_join(ann_vaccines %>% select(vaccine, condition) %>% distinct(), by = "condition") %>% 
-  mutate(condition = fct_relevel(condition, c(ann_vaccines_conditions_ordered$condition_grouped %>% 
-                                                as.character() %>% 
-                                                unique()))) %>% 
-  select(condition, samples, vaccine) %>% 
-  distinct() %>% 
-  arrange(condition)
-
-samples_by_conditiongrouped_plot = samples_by_condition_grouped %>% 
-  drop_na() %>% 
-  ggplot(aes(x = condition, weight = samples, fill = vaccine)) +
-  geom_bar() +
-  scale_fill_manual(name = "Vaccine or infection", labels = c("BBIBP", 
-                                                                "BNT", 
-                                                                "ChAd",
-                                                                "Healthy",
-                                                                "Infection",
-                                                                "MO",
-                                                                "ZF2001"),
-    values = c("BBIBP" = "#00A087FF",
-                "ZF2001" = "#8491B4FF",
-                "BNT" = "#4DBBD5FF",
-                "MO" = "#72ddf7",
-                "ChAd" = "#3C5488FF",
-                "I" = "#DC0000FF",
-                "H" = "grey80")) +
-  theme_minimal() +
-  theme(legend.position = "top",
-        axis.text.x = element_text(size = 15, color = "black", angle = 45, hjust = 1, vjust = 1.1),
-        axis.text.y = element_blank(), 
-        legend.text = element_text(size = 15),
-        legend.title = element_text(size = 20),
-        plot.title = element_text(size = 25),
-        axis.title.y = element_text(angle = 180, color = "white"),
-        panel.grid.major = element_blank(), 
-        panel.grid.minor = element_blank(),
-        plot.margin = margin(2, 2, 2, 2, "cm")) +
-  guides(fill=guide_legend(nrow=1,byrow=TRUE)) +
-  geom_text(aes(label = samples, y = samples),
-            position = position_dodge(width = 0), 
-            vjust = -0.5, 
-            size = 4,
-            angle = 0) +
-  ggtitle("Samples by grouped conditions") +
-  labs(x = "") +
-  ylim(0, 80)
-
-ggsave(samples_by_conditiongrouped_plot, file = here("Figures", "demographics_samples-by-condition_grouped.png"), width = 15, height = 10)
-
-samples_by_conditiongrouped_plot
-```
-
 ### Samples by study
 ```{r fig.height=7, fig.width=10}
 #### SAMPLES BY CONDITION -----
-samples_by_study = ann_vaccines %>% 
-  select(samples, condition, gse_id) %>% 
-  distinct() %>% 
+samples_by_study = ann_vaccines_samples %>% 
+  select(gse_id) %>% 
   group_by(gse_id) %>% 
-  summarise(samples = sum(samples)) %>% 
+  summarise(samples = n()) %>% 
   ungroup() 
 
 samples_by_study_plot = samples_by_study %>% 
@@ -1918,6 +1854,9 @@ samples_by_study_plot = samples_by_study %>%
         plot.title = element_text(size = 15),
         axis.title.y = element_text(angle = 180, color = "white"),
         panel.grid.major = element_blank(), 
+        axis.line.x = element_line(size = 0.5, colour = "black", linetype=1),
+        axis.line.y = element_blank(),
+        axis.ticks.x = element_line(size = 1, color = "black"),
         panel.grid.minor = element_blank(),
         plot.margin = margin(2, 2, 2, 2, "cm")) +
   guides(fill=guide_legend(nrow=1,byrow=TRUE)) +
@@ -1928,7 +1867,9 @@ samples_by_study_plot = samples_by_study %>%
             angle = 0) +
   ggtitle("Samples by GSE ID") +
   labs(x = "") +
-  ylim(0, 300)
+  # ylim(0, 310) +
+  scale_y_continuous(expand = c(0,0), limits = c(0, 320))
+
 ggsave(samples_by_study_plot, file = here("Figures", "demographics_samples-by-study.png"), width = 10, height =7)
 
 samples_by_study_plot
@@ -2023,7 +1964,6 @@ sex_stats_annotated = sex_stats %>%
   ) +
   geom_col() +
   geom_text(vjust = -3, size = 5) +
-  scale_fill_hue(direction = 1) +
   coord_polar(theta = "y") +
   theme_minimal() +
   labs(title = "Sex by study",
@@ -2068,100 +2008,131 @@ sex_stats_nonumb = sex_stats %>%
           "Female" = "#E64B35FF",
           "M/F" = "#8491B4FF"))
 
-# ggsave(sex_stats_annotated, 
-#        file = here("Figures", "Demographics_Sex_annotated.png") , 
-#        width = 10, height = 10)
-# 
-# ggsave(sex_stats_nonumb, 
-#        file = here("Figures", "Demographics_Sex_nonumbers.png") , 
-#        width = 10, height = 10)
+ggsave(sex_stats_annotated,
+       file = here("Figures", "Demographics_Sex_annotated.png") ,
+       width = 10, height = 10)
+
+ggsave(sex_stats_nonumb,
+       file = here("Figures", "Demographics_Sex_nonumbers.png") ,
+       width = 10, height = 10)
 
 sex_stats_annotated
+sex_stats_nonumb
+
 ```
-
-
-### Participants by condition
-
-```{r cache = TRUE}
-#### Participants by condition ------
-
-participants = ann_vaccines_conditions %>% 
-  select(condition, samples, gse_id) %>% 
-  distinct() %>% 
-  group_by(gse_id) %>% 
-  select(samples, gse_id) %>% 
-  distinct() %>% 
-  summarise(n_participants_study = sum(samples)) %>% 
-  inner_join(ann_vaccines_conditions, by = "gse_id") %>% 
-  relocate(.after = week, gse_id, n_participants_study)
-
-participants
-```
-
 
 ### Participants by day
+```{r cache = TRUE}
+
+#Participants by condition
+participants_condition = ann_vaccines_samples %>% 
+  select(participant_id, condition = condition_grouped, gse_id) %>% 
+  group_by(condition, gse_id) %>% 
+  summarize(n_participants_condition = n()) %>% 
+  ungroup() %>% 
+  inner_join(ann_vaccines_conditions, by = join_by("gse_id", "condition")) %>% 
+  relocate(.after = week, gse_id)
+
+#Participants by study
+participants_study = ann_vaccines_samples %>% 
+  select(participant_id, gse_id) %>% 
+  group_by(gse_id) %>% 
+  summarize(n_participants_study = n()) %>% 
+  ungroup() %>% 
+  inner_join(ann_vaccines_conditions, by = join_by("gse_id")) %>% 
+  relocate(.after = week, gse_id)
+
+#Samples by GSE
+samples_by_gse = ann_vaccines_samples %>% 
+  ungroup() %>% 
+  select(sample, gse_id) %>% 
+  distinct() %>% 
+  group_by(gse_id) %>% 
+  summarise(gse_sample_total = n()) %>% 
+  inner_join(ann_vaccines_conditions %>% select(vaccine, condition) %>% distinct(), by = "condition") %>% 
+  mutate(condition = fct_relevel(condition, c(ann_vaccines_conditions_ordered$condition_grouped %>% 
+                                                as.character() %>% 
+                                                unique()))) %>% 
+  select(condition, samples, vaccine) %>% 
+  distinct() %>% 
+  arrange(condition)
+
+#Samples by day
+demographics_time = participants_condition %>%
+  distinct() %>% 
+  select(condition_grouped, day, type) %>% 
+  group_by(condition_grouped) %>% 
+  summarise(day = median(day) %>% round(., 0),
+            type = type) %>% 
+  ungroup() %>% 
+  arrange(day) %>% 
+  mutate(day_f = as.character(day)) 
+
+#Participants by day
+participants_condition_day = ann_vaccines_samples %>% 
+  select(participant_id, condition = condition_grouped, gse_id, day) %>% 
+  group_by(condition, day) %>% 
+  summarize(day= median(day),
+            n_participants_day = n()) %>% 
+  ungroup() %>% 
+  inner_join(ann_vaccines_conditions %>% 
+               select(-day), by = join_by("condition")) %>% 
+  relocate(.after = week, gse_id)
+```
 
 ```{r fig.height=5, fig.width=8, cache = TRUE}
 #Conditions
-demographics_time = ann_vaccines_samples %>% 
-  mutate(day_f = as.factor(day),
-         day_f = fct_reorder(day_f, day),
-         type = fct_rev(fct_relevel(type, "H", "I", "RNA", "VV", "SU", "IN"))) %>% 
+demographics_time_plot = demographics_time %>% 
+  mutate(day_f = fct_relevel(day_f, c(demographics_time$day_f %>% unique()))) %>% 
   ggplot(.) +
-  aes(x = day_f, fill = type) +
-  geom_bar() +
+  aes(x = day_f, fill = fct_relevel(type, "H", "I", "RNA", "VV", "SU", "IN")) +
+  geom_bar(size = 0.3, color = "black") +
   labs(
     x = "Day",
-    y = "Participants",
-    title = "Participants by day",
+    y = "Samples",
+    title = "Samples by day",
     fill = "Type"
   ) +
-  ggthemes::theme_few() +
+  theme_minimal() +
   theme(
     legend.position = c(0.8, 0.6),
-    plot.title = element_text(size = 15)
+    axis.text.x = element_text(size = 10,
+                               color = "black",
+                               angle = 0),
+    axis.text.y = element_text(size = 10,
+                               color = "black",
+                               angle = 0),
+    legend.text = element_text(size = 10),
+    legend.title = element_text(size = 15),
+    plot.title = element_text(size = 15),
+    axis.title.y = element_text(color = "black"),
+    panel.grid.major.y = element_line(size = 0.5, 
+                                    linetype = 2,
+                                    color = "gray75"),
+    panel.grid.major.x = element_line(size = 0, 
+                                    linetype = 2,
+                                    color = "gray75"),
+    axis.line.x = element_line(size = 1,
+                               colour = "black",
+                               linetype = 1),
+    axis.line.y = element_line(size = 0 ,
+                               colour = "black",
+                               linetype = 1),
+    axis.ticks.x = element_line(size = 1, color = "black"),
+    axis.ticks.y = element_line(size = 0, color = "black"),
+    panel.grid.minor = element_blank(),
+    plot.margin = margin(1, 0, 0, 0, "cm")
   ) +
-  scale_fill_manual(values = ann_vaxsig_colors$Platform)
+  scale_fill_manual(values = ann_vaxsig_colors$Platform) +
+  scale_y_continuous(expand = c(0,0), 
+                     breaks = seq(0, 350, by = 50))
 
-# demographics_time %>% 
-#   ggsave(file = here("Figures", "Demographics_Time.png"),
-#          width = 8, height = 5)
+demographics_time_plot %>%
+  ggsave(file = here("Figures", "Demographics_Time.png"),
+         width = 8, height = 5)
 
-demographics_time
-```
+demographics_time_plot
 
-
-```{r fig.height=5, fig.width=8, cache = TRUE}
-#Conditions grouped
-demographics_time_grouped = ann_vaccines_conditions %>% 
-  select(condition, samples, day, type) %>% 
-  group_by(condition) %>% 
-  summarize(mean_day = mean(day) %>% round(., 0),
-            samples = sum(samples),
-            type = type) %>% 
-  mutate(day_f = as.factor(mean_day),
-         type = fct_relevel(type, "H", "I", "RNA", "VV", "SU", "IN")) %>% 
-  ggplot(.) +
-  aes(x = fct_reorder(day_f, mean_day), y = samples, fill = fct_relevel(type, "H", "I", "RNA", "VV", "SU", "IN")) +
-  geom_col() +
-  labs(
-    x = "Day",
-    y = "Participants",
-    title = "Participants by day, grouped conditions",
-    fill = "Type"
-  ) +
-  ggthemes::theme_few() +
-  theme(
-    legend.position = c(0.8, 0.6),
-    plot.title = element_text(size = 15)
-  ) +
-  scale_fill_manual(values = ann_vaxsig_colors$Platform)
-
-# demographics_time_grouped %>% 
-#   ggsave(file = here("Figures", "Demographics_Time_Grouped.png"),
-#          width = 8, height = 5)
-
-demographics_time_grouped
 
 ```
 
@@ -2222,9 +2193,32 @@ demographics_plot_days_samples_doses =
                     range = c(2, 5)) +
   theme_minimal() +
   theme(legend.position = "top",
-        axis.text = element_text(color = "black"),
-        strip.text.y = element_text(angle = 0, color = "black"), 
-        plot.margin = margin(0, 2, 0, 0, unit = "cm")) +
+    axis.text.x = element_text(size = 10,
+                               color = "black",
+                               angle = 0),
+    axis.text.y = element_text(size = 10,
+                               color = "black",
+                               angle = 0),
+    legend.text = element_text(size = 10),
+    legend.title = element_text(size = 15),
+    plot.title = element_text(size = 15),
+    axis.title.y = element_text(color = "black"),
+    panel.grid.major.y = element_line(size = 0.5, 
+                                    linetype = 2,
+                                    color = "gray75"),
+    panel.grid.major.x = element_line(size = 0, 
+                                    linetype = 2,
+                                    color = "gray75"),
+    axis.line.x = element_line(size = 1,
+                               colour = "black",
+                               linetype = 1),
+    axis.line.y = element_line(size = 0 ,
+                               colour = "black",
+                               linetype = 1),
+    axis.ticks.x = element_line(size = 1, color = "black"),
+    axis.ticks.y = element_line(size = 0, color = "black"),
+    panel.grid.minor = element_blank(),
+    plot.margin = margin(0, 2, 0, 0, unit = "cm")) +
   labs(x = "Days",
        y = "",
        title = "Studies design",
@@ -2237,10 +2231,10 @@ demographics_plot_days_samples_doses =
 
 demographics_plot_days_samples_doses
 
-demographics_plot_days_samples_doses %>%
-  ggsave(filename = here("Figures", "Demographics_studies_design.png"),
-         width = 6,
-         height = 6)
+# demographics_plot_days_samples_doses %>%
+#   ggsave(filename = here("Figures", "Demographics_studies_design.png"),
+#          width = 6,
+#          height = 6)
 
 
 ```
@@ -2252,8 +2246,7 @@ demographics_days_samples_doses = ann_vaccines_conditions %>%
   ungroup() %>% 
   mutate(condition = as.factor(condition),
          condition = fct_relevel(condition, as.character(unique(ann_vaccines_conditions_ordered$condition_grouped))),
-         day_f = as.factor(day),
-         day_f = fct_reorder(day_f, day),
+         day_f = as.character(day),
          dose_f = as.factor(dose),
          dose_f = fct_reorder(dose_f, dose),
          condition = if_else(condition == "BNT (V1, D0)" & 
@@ -2270,27 +2263,62 @@ demographics_days_samples_doses = ann_vaccines_conditions %>%
   arrange(condition)
 
 demographics_plot_days_samples_doses = 
-  demographics_days_samples_doses %>% 
+  demographics_days_samples_doses %>%
+  ungroup() %>% 
   mutate(condition_2 = fct_relevel(condition_2,
-                                   as.character(unique(demographics_days_samples_doses$condition_2)))) %>%
-group_by(gse_id, dose_f) %>% 
+                                   as.character(unique(demographics_days_samples_doses$condition_2)))) %>% 
+    mutate(day_f = fct_relevel(day_f, c(demographics_time$day_f %>% unique()))) %>% 
+  # group_by(gse_id, dose_f) %>% 
   ggplot(.) +
-  aes(x = fct_reorder(day_f, day),
+  aes(x = day_f,
       y = fct_rev(condition_2), 
       fill = dose_f,
       size = samples,
       group = dose_f) +
-  geom_point(position = position_dodge(width = 0.8),
-             pch = 21,
-             # size = 3, 
-             color = "black") +
+  geom_point(
+    position = position_dodge(width = 0.5),
+    pch = 21,
+    color = "black",
+    data = ~ filter(.x, gse_id %in% c("GSE199750", "GSE201533"))
+  ) +
+  geom_point(
+    position = position_identity(),
+    pch = 21,
+    color = "black",
+    data = ~ filter(.x, !gse_id %in% c("GSE199750", "GSE201533"))
+  ) +
   scale_fill_manual(values =  c(ann_vaxsig_colors$dose, "Infection" = "red")) +
   scale_size_binned(breaks = c(1, 10, 50),
                     range = c(2, 5)) +
   theme_minimal() +
-  theme(legend.position = "right", legend.direction = "vertical",
-        axis.text = element_text(color = "black"),
-        strip.text.y = element_text(angle = 0, color = "black")) +
+    theme(legend.position = "top",
+    axis.text.x = element_text(size = 10,
+                               color = "black",
+                               angle = 0),
+    axis.text.y = element_text(size = 10,
+                               color = "black",
+                               angle = 0),
+    legend.text = element_text(size = 10),
+    legend.title = element_text(size = 15),
+    plot.title = element_text(size = 15),
+    axis.title.y = element_text(color = "black"),
+    panel.grid.major.y = element_line(size = 0.5, 
+                                    linetype = 2,
+                                    color = "gray75"),
+    panel.grid.major.x = element_line(size = 0.5, 
+                                    linetype = 2,
+                                    color = "gray75"),
+    axis.line.x = element_line(size = 1,
+                               colour = "black",
+                               linetype = 1),
+    axis.line.y = element_line(size = 1 ,
+                               colour = "black",
+                               linetype = 1),
+    axis.ticks.x = element_line(size = 1, color = "black"),
+    axis.ticks.y = element_line(size = 0, color = "black"),
+    panel.grid.minor = element_blank(),
+    plot.margin = margin(0, 2, 0, 0, unit = "cm")) +
+  scale_x_discrete(limits = c(demographics_time$day_f %>% unique())) +
   labs(x = "Days",
        y = "",
        title = "Studies design - Grouped conditions",
@@ -2301,10 +2329,10 @@ group_by(gse_id, dose_f) %>%
 
 demographics_plot_days_samples_doses
 
-# demographics_plot_days_samples_doses %>%
-#   ggsave(filename = here("Figures", "Demographics_studies_design_Grouped.png"),
-#          width = 6,
-#          height = 6)
+demographics_plot_days_samples_doses %>%
+  ggsave(filename = here("Figures", "Demographics_studies_design_Grouped.png"),
+         width = 6,
+         height = 6)
 ```
 
 
