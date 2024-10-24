@@ -664,7 +664,1096 @@ col_process_immune = list(
 
 ```
 
-# 2. Select studies and retrieve data
+# 2. Gene sets
+
+## Gene sets construction
+
+```{r eval=FALSE, echo=TRUE}
+library(readr)
+library(explore)
+library(maditr)
+library(GEOquery)
+library(Matrix)
+library(circlize)
+library(RColorBrewer)
+library(celldex)
+library(biomaRt)
+library(org.Hs.eg.db)
+library(plotly)
+library(DESeq2)
+library(msigdbr)
+library(ape)
+library(GSVA)
+library(sva)
+library(clusterProfiler)
+library(pheatmap)
+library(EnhancedVolcano)
+library(ggbeeswarm)
+library(tidyverse)
+library(corrr)
+library(ggcorrplot)
+library(FactoMineR)
+library(factoextra)
+library(esquisse)
+library(corto)
+library(factoextra)
+library(reshape2)
+library(ComplexHeatmap)
+library(janitor)
+```
+
+
+### Blood transcription modules <https://www.nature.com/articles/ni.2789>
+
+```{r}
+#Converter ítens de "Module member genes" em linhas em uma tabela longa
+btm_annotation_table_long_immune <- BTM_modules %>%
+  separate_rows(`Module member genes`, sep = ",") %>% 
+  filter(`Module category` == "immune")
+
+#Salvar
+write.csv(btm_annotation_table_long_immune, file = "btm_annotation_table_long_immune.csv")
+
+#Display
+head(btm_annotation_table_long_immune)
+
+#Calculate Set size
+btm_annotation_nested <- btm_annotation_table_long_immune %>%
+  group_by(`Module title`) %>% #Somar e agrupar
+  mutate(SetSize = n())
+
+#Convert gene symbol column to aggregated rows
+btm_annotation_nested <- btm_annotation_nested %>%
+  group_by(`Module title`) %>%
+  summarize(Genes = paste(`Module member genes`, collapse = ", "), .groups = "drop") %>% 
+  left_join(btm_annotation_nested, by = "Module title") %>% 
+  filter(Genes != "NA") %>% 
+  relocate(Genes, .after="SetSize")
+
+#Salvar
+write.csv(btm_annotation_nested, file = "btm_annotation_genes.csv")
+
+#Convert to unique values table
+btm_annotation_unique = btm_annotation_nested %>% 
+  select(-`Module member genes`)
+
+btm_annotation_unique = btm_annotation_unique %>% 
+  distinct() %>% 
+  relocate(Genes, .after="SetSize") %>% 
+  filter(Genes != "NA")
+
+#salvar
+write.csv(btm_annotation_unique, file = "btm_annotation_unique.csv")
+
+#Display
+head(btm_annotation_unique)
+
+btm_annotation_table_long_immune
+```
+
+### CellMarker
+
+Download database from
+"<http://117.50.127.228/CellMarker/CellMarker_download_files/file/Cell_marker_Human.xlsx>"
+
+```{r}
+##################### Baixar tabela de marcadores celulares
+
+url <- "http://117.50.127.228/CellMarker/CellMarker_download_files/file/Cell_marker_Human.xlsx" 
+f <- tempfile(fileext = ".xlsx")
+download.file(url, f)
+cell_marker_data <- readxl::read_excel(f, 1)
+
+##################### Sub-agrupar células por sistema imunológico
+
+#Filtrar marcadores e células por tecido (Blood)
+cells <- cell_marker_data %>%
+    filter(tissue_class == "Blood") %>%
+    select(cell_name, marker)
+
+##################### Filtrar células
+# Acessar todos os tipos de células no dataset de Blood
+cellmarker_celltypes <- unique(cells$cell_name)
+
+# Filtrar apenas os tipos que contêm "B cell" e plasmacell
+Bcells_no = cellmarker_celltypes[grep("B cell", cellmarker_celltypes)] #44 outputs
+Plasmacells_no = cellmarker_celltypes[grep("plasma", cellmarker_celltypes)] #5 outputs
+
+# Filtrar apenas os tipos que contêm "T cell" e seus subtipos "CD4" e "CD8"
+Tcells_no = cellmarker_celltypes[grep("T cell", cellmarker_celltypes)] #93 outputs
+TCD4_no = cellmarker_celltypes[grep("CD4", cellmarker_celltypes)] #35 outputs
+TCD8_no = cellmarker_celltypes[grep("CD8", cellmarker_celltypes)] #34 outputs
+Treg_no = cellmarker_celltypes[grep("Treg", cellmarker_celltypes)] #7 outputs
+Thelper_no = cellmarker_celltypes[grep("helper", cellmarker_celltypes)] #17 outputs
+
+# Filtrar outros tipos celulares da resposta imune
+Neutrophils_no = cellmarker_celltypes[grep("neutrophil", cellmarker_celltypes)] #7 outputs
+Monocyte_no = cellmarker_celltypes[grep("monocyte", cellmarker_celltypes)] #14 outputs
+DCells_no = cellmarker_celltypes[grep("dendritic", cellmarker_celltypes)] #25 outputs
+Macrophages_no = cellmarker_celltypes[grep("macrophage", cellmarker_celltypes)] #7 outputs
+NKcells_no = cellmarker_celltypes[grep("killer", cellmarker_celltypes)] # 11 outputs
+Neutrophils_no = cellmarker_celltypes[grep("mastcell", cellmarker_celltypes)] #7 outputs
+
+# Criar variáveis para cada célula para enriquecimento
+
+# Filtrar apenas as células da resposta imune adaptativa
+Bcells <- filter(cells, str_detect(cell_name, regex("B cell|plasma cell|plasmablast", ignore_case = TRUE)))
+TCD4 <- filter(cells, str_detect(cell_name, regex("CD4", ignore_case = TRUE)))
+TCD8 <- filter(cells, str_detect(cell_name, regex("CD8", ignore_case = TRUE)))
+Treg <- filter(cells, str_detect(cell_name, regex("Treg", ignore_case = TRUE)))
+Thelper <- filter(cells, str_detect(cell_name, regex("helper", ignore_case = TRUE)))
+
+
+# Filtrar células da resposta imune inata
+Neutrophils <- filter(cells, str_detect(cell_name, regex("neutrophil", ignore_case = TRUE)))
+Monocyte <- filter(cells, str_detect(cell_name, regex("monocyte", ignore_case = TRUE)))
+DCells <- filter(cells, str_detect(cell_name, regex("dendritic", ignore_case = TRUE)))
+Macrophages <- filter(cells, str_detect(cell_name, regex("macrophage", ignore_case = TRUE)))
+Mastcells <- filter(cells, str_detect(cell_name, regex("mast cell", ignore_case = TRUE)))
+NKcells <- filter(cells, str_detect(cell_name, regex("killer", ignore_case = TRUE)))
+Platelets <- filter(cells, str_detect(cell_name, regex("Platelet", ignore_case = TRUE)))
+Eosinophil <- filter(cells, str_detect(cell_name, regex("Eosinophil", ignore_case = TRUE)))
+Basophil <- filter(cells, str_detect(cell_name, regex("Basophil", ignore_case = TRUE)))
+Granulocyte <- filter(cells, str_detect(cell_name, regex("Granulocyte", ignore_case = TRUE)))
+
+#Agrupar todos os resultados em Immune cells
+Immune_adap = rbind(Bcells, TCD4, TCD8, Treg, Thelper)
+Immune_adap$Type = "Adaptive"
+
+Immune_innate = rbind(Neutrophils, Monocyte, DCells, Macrophages, Mastcells, NKcells, Platelets, Eosinophil, Basophil, Granulocyte)
+Immune_innate$Type = "Innate"
+
+#Unir tabelas
+Immune_cells = rbind(Immune_adap, Immune_innate) 
+
+#Salvar
+write.csv(Immune_cells, file = "CellMarker_ImmuneCells.csv")
+
+esquisser(Immune_cells_markersbycells)
+```
+
+Top 20 cells by #markers
+
+```{r}
+
+Immune_cells_markersbycells = Immune_cells %>% 
+  group_by(cell_name, Type) %>% 
+  summarise(n_markers = n()) %>% 
+  arrange(desc(n_markers))
+Immune_cells_markersbycells_top = Immune_cells_markersbycells[1:20, ]
+
+ggImmune_cells_cellsbyimmune = ggplot(Immune_cells_markersbycells_top) +
+  aes(x = reorder(cell_name, n_markers), y = n_markers, fill = Type) +
+  scale_fill_manual(values = c('Innate' = "#989898",
+                               'Adaptive' = "#6DF8DF")) +
+  geom_col() +
+  labs(
+    x = "#Markers",
+    y = "Cells",
+    title = "Top 20 cells by #markers"
+  ) +
+  coord_flip() +
+  theme_minimal() +
+  geom_text(aes(label = n_markers, y = n_markers), 
+            position = position_dodge(width = 0.9), 
+            vjust = -0.2, 
+            hjust = -0.2, 
+            size = 3)
+
+ggsave(ggImmune_cells_cellsbyimmune, file= "CellMarker_Top10_cellsbyn_markers.png", width = 10, height = 5)
+
+print(ggImmune_cells_cellsbyimmune)
+
+```
+
+Number of Cells by immune system
+
+```{r}
+Immune_cells_cellsbyimmune = Immune_cells %>% 
+  group_by(Type, cell_name) %>% 
+  summarise(n_cells = n()) %>% 
+  group_by(Type) %>% 
+  summarise(n_cells = n())
+
+ggImmune_cells_cellsbyimmune = ggplot(Immune_cells_cellsbyimmune) +
+  aes(x = reorder(Type, n_cells), y = n_cells, fill = Type) +
+  geom_col() +
+  scale_fill_manual(values = c('Innate' = "#989898",
+                               'Adaptive' = "#6DF8DF")) +
+  labs(
+    x = "#Cells",
+    y = "Immune system",
+    title = "#Cells by immune system"
+  ) +
+  coord_flip() +
+  theme_minimal() +
+  geom_text(aes(label = n_cells, y = n_cells), 
+            position = position_dodge(width = 0.9), 
+            vjust = -0.2, 
+            hjust = -0.2, 
+            size = 3)
+ggsave(ggImmune_cells_cellsbyimmune, file= "CellMarker_nCellsbyimmunesystem.png", width = 10, height = 2)
+
+print(ggImmune_cells_cellsbyimmune)
+```
+
+### ImmuneGO
+
+```{r}
+organism = "org.Hs.eg.db"
+install.packages("GO.db")
+BiocManager::install(organism, character.only = TRUE)
+library(organism, character.only = TRUE)
+library(clusterProfiler)
+library(GO.db)
+
+#HGNC symbol to Entrez
+x <- org.Hs.egSYMBOL
+mapped_genes <- mappedkeys(x)
+symbols_entrez <- as.data.frame(x[mapped_genes])
+
+## Entrez to GO
+x <- org.Hs.egGO
+mapped_genes <- mappedkeys(x)
+entrez_geneontology <- as.data.frame(x[mapped_genes])
+
+## GO BP ancestors
+go_bp_ancestor = GOBPANCESTOR %>% 
+  as.data.frame()
+colnames(go_bp_ancestor)[1] <- "go_id"
+colnames(go_bp_ancestor)[2] <- "go_ancestor"
+
+## GO ID to terms
+go_bp = AnnotationDbi::select(GO.db, columns=c("GOID","TERM"), keys= "BP", keytype= "ONTOLOGY") %>% 
+  clean_names() %>% 
+  select(go_id = goid, term)
+
+## GO child and ancestor
+go_bp_ancestor = go_bp_ancestor %>% 
+  inner_join(go_bp %>% rename(go_ancestor = go_id), by = "go_ancestor") %>% 
+  rename(term_ancestor = term)
+
+#GO ids to terms
+go_bp = AnnotationDbi::select(GO.db, columns=c("GOID","TERM"), keys="BP", keytype="ONTOLOGY") %>% 
+  clean_names() %>% 
+  rename(go_id = goid) %>% 
+  select(-ontology) %>% 
+  right_join(entrez_geneontology, by = "go_id") %>% 
+  right_join(symbols_entrez, by = "gene_id") %>% 
+  clean_names() %>% 
+  left_join(go_bp_ancestor, by = "go_id") %>% 
+  distinct()
+
+#GO immune process
+
+immunego_go.bp = go_bp %>% 
+  filter(term_ancestor == "immune system process") %>% 
+  mutate(term = toupper(term))
+
+ImmuneGO_Annotated_Genes_26_2_24 = ImmuneGO_Annotated_GO_8_2_24 %>% 
+  select(-"...1") %>% 
+  mutate(genes = str_replace_all(genes, "\\s+", "")) %>% 
+  separate_rows(genes, sep = ",") %>% 
+  full_join(immunego_go.bp %>% select(genes = symbol, process = term), by = join_by("process", "genes")) %>% 
+  distinct()
+
+ImmuneGO_Annotated_GO_26_2_24 = ImmuneGO_Annotated_Genes_26_2_24 %>% 
+  group_by(process) %>%
+  summarize(genes = paste0(genes, collapse = ",")) %>%
+  inner_join(ImmuneGO_Annotated_Genes_26_2_24 %>% select(-genes) %>% distinct(), by = "process")
+
+write.csv(ImmuneGO_Annotated_GO_26_2_24, file = "ImmuneGO_Annotated_GO_26_2_24.csv", row.names = F)
+
+write.csv(ImmuneGO_Annotated_Genes_26_2_24, file = "ImmuneGO_Annotated_Genes_26_2_24.csv", row.names = F)
+
+```
+
+Group immune system genes by process and cell
+
+```{r}
+ImmuneGO_Annotated_unique = ImmuneGO_Annotated_Genes %>% 
+  filter(go_term != "Manual")
+
+#Agrupar genes de todos os processos do sistema imune ----
+
+ImmuneGO_Adaptive <- ImmuneGO_Annotated_unique %>%
+  filter(immune_system == "Adaptive") %>% 
+  summarize(set_size = n(), 
+            genes = paste(genes, collapse = ",")) %>% 
+  mutate(process = "ADAPTIVE IMMUNE SYSTEM",
+  `Gene set, short` = "Adaptive immune system",
+  `Immune system` = "Adaptive",
+  `Immune sub-system` = "General",
+  `Immune tissue` = "General",
+  `GO.TERM` = "Manual") %>% 
+  clean_names()
+
+ImmuneGO_Innate <- ImmuneGO_Annotated_unique %>%
+  filter(immune_system == "Innate") %>% 
+  summarize(set_size = n(), 
+            genes = paste(genes, collapse = ",")) %>% 
+  mutate(process = "INNATE IMMUNE SYSTEM",
+  `Gene set, short` = "Innate immune system",
+  `Immune system` = "Innate",
+  `Immune sub-system` = "General",
+  `Immune tissue` = "General",
+  `GO.TERM` = "Manual") %>% 
+  clean_names()
+
+ImmuneGO_Complement <- ImmuneGO_Annotated_unique %>%
+  filter(immune_system == "Complement") %>% 
+  summarize(set_size = n(), 
+            genes = paste(genes, collapse = ",")) %>% 
+  mutate(process = "COMPLEMENT",
+  `Gene set, short` = "Complement immune system",
+  `Immune system` = "Complement",
+  `Immune sub-system` = "General",
+  `Immune tissue` = "General",
+  `GO.TERM` = "Manual") %>% 
+  clean_names()
+
+ImmuneGO_Inflammation <- ImmuneGO_Annotated_unique %>%
+  filter(immune_sub_system == "Inflammation") %>% 
+  summarize(set_size = n(), 
+            genes = paste(genes, collapse = ",")) %>% 
+  mutate(process = "INFLAMMATION",
+  `Gene set, short` = "Inflammation",
+  `Immune system` = "Innate",
+  `Immune sub-system` = "Inflammation",
+  `Immune tissue` = "General",
+  `GO.TERM` = "Manual") %>% 
+  clean_names()
+
+ImmuneGO_Interferon <- ImmuneGO_Annotated_unique %>%
+  filter(immune_sub_system %in% c("Antiviral", "Interferon")) %>% 
+  summarize(set_size = n(), 
+            genes = paste(genes, collapse = ",")) %>% 
+  mutate(process = "ANTIVIRAL & IFN",
+  `Gene set, short` = "Antiviral and Interferon",
+  `Immune system` = "Innate",
+  `Immune sub-system` = "Antiviral and Interferon",
+  `Immune tissue` = "General",
+  `GO.TERM` = "Manual") %>% 
+  clean_names()
+
+ImmuneGO_ARPP = ImmuneGO_Annotated_unique %>%
+  filter(immune_sub_system %in% c("PRR", "APC")) %>% 
+  summarize(set_size = n(), 
+            genes = paste(genes, collapse = ",")) %>% 
+  mutate(process = "ARPP",
+  `Gene set, short` = "Antigen receptors, processing and presentation",
+  `Immune system` = "Innate",
+  `Immune sub-system` = "APC",
+  `Immune tissue` = "APC",
+  `GO.TERM` = "Manual") %>% 
+  clean_names()
+
+
+ImmuneGO_Innate_DC <- ImmuneGO_Annotated_unique %>%
+  filter(immune_tissue == "Dendritic cell") %>% 
+  summarize(set_size = n(), 
+            genes = paste(genes, collapse = ",")) %>% 
+  mutate(process = "DENDRITIC CELL",
+  `Gene set, short` = "Dendritic cell",
+  `Immune system` = "Innate",
+  `Immune sub-system` = "Cell",
+  `Immune tissue` = "APC",
+  `GO.TERM` = "Manual") %>% 
+  clean_names()
+
+ImmuneGO_Innate_Macrophage <- ImmuneGO_Annotated_unique %>%
+  filter(immune_tissue == "Macrophage") %>% 
+  summarize(set_size = n(), 
+            genes = paste(genes, collapse = ",")) %>% 
+  mutate(process = "MACROPHAGE",
+  `Gene set, short` = "Macrophage",
+  `Immune system` = "Innate",
+  `Immune sub-system` = "Cell",
+  `Immune tissue` = "APC",
+  `GO.TERM` = "Manual") %>% 
+  clean_names()
+
+ImmuneGO_Innate_Mastcell <- ImmuneGO_Annotated_unique %>%
+  filter(immune_tissue == "Mast cell") %>% 
+  summarize(set_size = n(), 
+            genes = paste(genes, collapse = ",")) %>% 
+  mutate(process = "MAST CELL",
+  `Gene set, short` = "Mast cell",
+  `Immune system` = "Innate",
+  `Immune sub-system` = "Cell",
+  `Immune tissue` = "Mast cell",
+  `GO.TERM` = "Manual") %>% 
+  clean_names()
+
+ImmuneGO_Innate_Neutrophil <- ImmuneGO_Annotated_unique %>%
+  filter(immune_tissue == "Neutrophil") %>% 
+  summarize(set_size = n(), 
+            genes = paste(genes, collapse = ",")) %>% 
+  mutate(process = "NEUTROPHIL",
+  `Gene set, short` = "Neutrophil",
+  `Immune system` = "Innate",
+  `Immune sub-system` = "Cell",
+  `Immune tissue` = "Neutrophil",
+  `GO.TERM` = "Manual") %>% 
+  clean_names()
+
+ImmuneGO_Innate_Eosinophil <- ImmuneGO_Annotated_unique %>%
+  filter(immune_tissue == "Eosinophil") %>% 
+  summarize(set_size = n(), 
+            genes = paste(genes, collapse = ",")) %>% 
+  mutate(process = "EOSINOPHIL",
+  `Gene set, short` = "Eosinophil",
+  `Immune system` = "Innate",
+  `Immune sub-system` = "Cell",
+  `Immune tissue` = "Eosinophil",
+  `GO.TERM` = "Manual") %>% 
+  clean_names()
+
+ImmuneGO_Innate_NK <- ImmuneGO_Annotated_unique %>%
+  filter(immune_tissue == "NK cell") %>% 
+  summarize(set_size = n(), 
+            genes = paste(genes, collapse = ",")) %>% 
+  mutate(process = "NK CELL",
+  `Gene set, short` = "Natural Killer Cell",
+  `Immune system` = "Innate",
+  `Immune sub-system` = "Cell",
+  `Immune tissue` = "NK cell",
+  `GO.TERM` = "Manual") %>% 
+  clean_names()
+
+ImmuneGO_Innate_Monocyte <- ImmuneGO_Annotated_unique %>%
+  filter(immune_tissue == "Monocyte") %>% 
+  summarize(set_size = n(), 
+            genes = paste(genes, collapse = ",")) %>% 
+  mutate(process = "MONOCYTE",
+  `Gene set, short` = "Monocyte",
+  `Immune system` = "Innate",
+  `Immune sub-system` = "Cell",
+  `Immune tissue` = "APC",
+  `GO.TERM` = "Manual") %>% 
+  clean_names()
+
+ImmuneGO_Adap_Cellular <- ImmuneGO_Annotated_unique %>% 
+  filter(immune_sub_system == "Cellular") %>% 
+  summarize(set_size = n(), 
+            genes = paste(genes, collapse = ",")) %>% 
+  mutate(process = "CELLULAR ADAPTIVE IMMUNE SYSTEM",
+  `Gene set, short` = "Cellular adaptive immune system",
+  `Immune system` = "Adaptive",
+  `Immune sub-system` = "Cellular",
+  `Immune tissue` = "Cellular",
+  `GO.TERM` = "Manual") %>% 
+  clean_names()
+
+
+ImmuneGO_Adap_Tcell <- ImmuneGO_Annotated_unique %>%
+  filter(immune_tissue == "T cell") %>% 
+  summarize(set_size = n(), 
+            genes = paste(genes, collapse = ",")) %>% 
+  mutate(process = "T CELL",
+  `Gene set, short` = "T cell",
+  `Immune system` = "Adaptive",
+  `Immune sub-system` = "Cellular",
+  `Immune tissue` = "Cellular",
+  `GO.TERM` = "Manual") %>% 
+  clean_names()
+
+ImmuneGO_Adap_Thelper <- ImmuneGO_Annotated_unique %>%
+  filter(immune_tissue == "T helper") %>% 
+  summarize(set_size = n(), 
+            genes = paste(genes, collapse = ",")) %>% 
+  mutate(process = "T HELPER CELLS",
+  `Gene set, short` = "T helper cell",
+  `Immune system` = "Adaptive",
+  `Immune sub-system` = "Cellular",
+  `Immune tissue` = "Cellular",
+  `GO.TERM` = "Manual") %>% 
+  clean_names()
+
+ImmuneGO_Adap_Humoral <- ImmuneGO_Annotated_unique %>%
+  filter(immune_sub_system == "Humoral") %>% 
+  summarize(set_size = n(), 
+            genes = paste(genes, collapse = ",")) %>% 
+  mutate(process = "HUMORAL ADAPTIVE IMMUNE SYSTEM",
+  `Gene set, short` = "Humoral adaptive immune system",
+  `Immune system` = "Adaptive",
+  `Immune sub-system` = "Humoral",
+  `Immune tissue` = "Humoral",
+  `GO.TERM` = "Manual") %>% 
+  clean_names()
+
+ImmuneGO_Adap_Bcell <- ImmuneGO_Annotated_unique %>%
+  filter(immune_tissue == "B cell") %>% 
+  summarize(set_size = n(), 
+            genes = paste(genes, collapse = ",")) %>% 
+  mutate(process = "B CELL",
+  `Gene set, short` = "B cell",
+  `Immune system` = "Adaptive",
+  `Immune sub-system` = "Humoral",
+  `Immune tissue` = "B cell",
+  `GO.TERM` = "Manual") %>% 
+  clean_names()
+
+ImmuneGO_Adap_Ig <- ImmuneGO_Annotated_unique %>%
+  filter(immune_tissue == "B cell") %>% 
+  summarize(set_size = n(), 
+            genes = paste(genes, collapse = ",")) %>% 
+  mutate(process = "IMMUNOGLOBULIN MEDIATED RESPONSE",
+  `Gene set, short` = "Ig-mediated response",
+  `Immune system` = "Adaptive",
+  `Immune sub-system` = "Humoral",
+  `Immune tissue` = "B cell",
+  `GO.TERM` = "Manual") %>% 
+  clean_names()
+
+ImmuneGO_other <- ImmuneGO_Annotated_unique %>%
+  filter(immune_system == "General" |
+         immune_tissue == "Leukocyte") %>% 
+  summarize(set_size = n(), 
+            genes = paste(genes, collapse = ",")) %>% 
+  mutate(process = "GENERAL",
+  `Gene set, short` = "General",
+  `Immune system` = "General",
+  `Immune sub-system` = "General",
+  `Immune tissue` = "General",
+  `GO.TERM` = "Manual") %>% 
+  clean_names()
+
+
+ImmuneGO_antimicrobial <- ImmuneGO_Annotated_unique %>%
+  filter(immune_tissue == "Antimicrobial") %>% 
+  summarize(set_size = n(), 
+            genes = paste(genes, collapse = ",")) %>% 
+  mutate(process = "ANTIMICROBIAL",
+  `Gene set, short` = "Antimicrobial immune response",
+  `Immune system` = "General",
+  `Immune sub-system` = "General",
+  `Immune tissue` = "General",
+  `GO.TERM` = "Manual") %>% 
+  clean_names()
+
+
+# Unite sets -----
+
+ImmuneGO_Annotated_GO = bind_rows(ImmuneGO_Adaptive, 
+                            ImmuneGO_Innate, 
+                            ImmuneGO_Complement, 
+                            ImmuneGO_Inflammation,
+                            ImmuneGO_Interferon,
+                            ImmuneGO_ARPP,
+                            ImmuneGO_Innate_Macrophage,
+                            ImmuneGO_Innate_Mastcell,
+                            ImmuneGO_Innate_Neutrophil,
+                            ImmuneGO_Innate_Eosinophil,
+                            ImmuneGO_Innate_NK,
+                            ImmuneGO_Innate_Monocyte,
+                            ImmuneGO_Adap_Cellular,
+                            ImmuneGO_Adap_Tcell,
+                            ImmuneGO_Adap_Thelper,
+                            ImmuneGO_Adap_Humoral,
+                            ImmuneGO_Adap_Bcell,
+                            ImmuneGO_Adap_Ig,
+                            ImmuneGO_other,
+                            ImmuneGO_antimicrobial,
+                            ImmuneGO_Innate_DC,
+                            ImmuneGO_Annotated_unique) %>% 
+  select(process:go_term, set_size:genes) %>% 
+  distinct()
+
+ImmuneGO_Annotated_Genes = ImmuneGO_Annotated_GO %>% 
+   separate_rows(genes, sep = ",")
+
+# Separate TCR and BCR repertoire genes
+TCR_BCR_repertoire = ImmuneGO_Annotated_Genes %>% 
+  filter(grepl("^TR", genes) & process == "ADAPTIVE IMMUNE SYSTEM" |
+           grepl("^IG", genes) & process == "ADAPTIVE IMMUNE SYSTEM" |
+           grepl("^TR", genes) & process == "CELLULAR ADAPTIVE IMMUNE SYSTEM" |
+         grepl("^IG", genes) & process == "HUMORAL ADAPTIVE IMMUNE SYSTEM") %>% 
+  mutate(process = if_else(process == "CELLULAR ADAPTIVE IMMUNE SYSTEM", "TCR REPERTOIRE", 
+                           "BCR REPERTOIRE"),
+         gene_set_short = if_else(process == "TCR REPERTOIRE", 
+                                  "TCR REPERTOIRE", 
+                           "BCR REPERTOIRE"),
+         process = if_else(grepl("^TR", genes), "TCR REPERTOIRE", "BCR REPERTOIRE"),
+         immune_sub_system = if_else(process == "TCR REPERTOIRE", "Cellular", "Humoral"),
+         immune_tissue = if_else(process == "TCR REPERTOIRE", "Cellular", "Humoral"))
+
+immunego_manual = ImmuneGO_Annotated_Genes %>%
+  filter(go_term == "Manual") %>% 
+  anti_join(TCR_BCR_repertoire %>% select(genes) %>% distinct(), by = "genes") %>% 
+  bind_rows()
+
+#Verify if all genes are annotated. If there are no left genes, you are good to go
+a = ImmuneGO_Annotated_Genes %>% filter(go_term == "Manual") %>% select(genes) %>% distinct()
+ImmuneGO_Annotated_Genes %>% select(process, genes, immune_system) %>% anti_join(a, by = "genes")
+
+
+#Salvar
+write.csv(ImmuneGO_Annotated_GO, file = paste0("ImmuneGO_Annotated_GO_", today(), ".csv"), row.names = F)
+saveRDS(ImmuneGO_Annotated_GO, file = paste0("ImmuneGO_Annotated_GO_", today(), ".rds"))
+saveRDS(ImmuneGO_Annotated_Genes, file = paste0("ImmuneGO_Annotated_Genes_", today(), ".rds"))
+
+#Display
+view(ImmuneGO_Annotated_GO)
+view(ImmuneGO_Annotated_Genes)
+
+```
+
+Top 10 gene sets
+```{r}
+#Top 10 gene sets
+ImmuneGO_Annotated_unique_top10 = ImmuneGO_Annotated_GO %>% 
+  clean_names() %>% 
+  arrange(desc(set_size)) %>% 
+  slice_head(n = 20) %>% 
+  mutate(immune_system = if_else(gene_set_short == "Adaptive Immune response", "Adaptive", immune_system))
+
+#Gráfico de barras
+ImmuneGO_top10_barplot = ggplot(ImmuneGO_Annotated_unique_top10) +
+ aes(x = reorder(gene_set_short, set_size), 
+     weight = set_size, 
+     fill = immune_system) +  # Use reorder para reordenar as barras +
+  geom_bar()+
+  scale_fill_manual(
+    values = c(Adaptive = "#6DF8DF",
+    Complement = "#e9edc9",
+    General = "#bde0fe",
+    Innate = "#989898",
+    Undefined = "#edede9")) +
+ labs(y = "Set size", title = "ImmuneGO", subtitle = "Top 10 GO, by set size") +
+ coord_flip() +
+ theme_minimal()
+
+#Salvar
+ggsave(ImmuneGO_top10_barplot, file="ImmuneGO_top10_barplot.png", width = 10, height = 6)
+
+#Display
+head(ImmuneGO_top10_barplot)
+```
+
+
+
+### ImmuneGO + BTM
+
+```{r}
+btm_annotation_genes = readRDS(here("VaxGO gene sets", "btm_annotation_genes.rds"))
+ImmuneGO_Annotated_Genes = readRDS(here("VaxGO gene sets", "ImmuneGO_Annotated_Genes_2024-03-26.rds"))
+ImmuneGO_Annotated_GO = read_csv(here("VaxGO gene sets", "ImmuneGO_Annotated_GO_2024_03_26.csv"))
+
+#Unite genes
+immunego_btm_genes = ImmuneGO_Annotated_Genes %>% 
+              select(genes) %>% 
+              distinct() %>% 
+              mutate(set = "ImmuneGO") %>% 
+  bind_rows(btm_annotation_genes %>% 
+              select(genes) %>% 
+              distinct() %>% 
+              mutate(set = "BTM")) %>% 
+  arrange(genes)
+
+immunego_btm_genes_joined = immunego_btm_genes %>% 
+  bind_rows(immunego_btm_genes %>% mutate(set = "BTM and ImmuneGO")) %>% 
+  distinct()
+
+
+#Unite subsets
+btm_annotation_grouped = btm_annotation_genes %>% 
+  group_by(complete_name) %>% 
+  rename(process = complete_name) %>% 
+  mutate(genes = paste0(genes, collapse = ",")) %>% 
+  distinct() %>% 
+  mutate(genes = paste0(genes, collapse = ","),
+            immune_set = "BTM by Modules") %>% 
+    select(process,
+           immune_system:cells,
+           set_size = module_size,
+           genes,
+           immune_set)
+
+ImmuneGO_annotation_modules = ImmuneGO_Annotated_GO %>% 
+  filter(go_term != "Manual") %>% 
+    select(process = gene_set_short, 
+           immune_system:immune_tissue,
+           set_size, genes) %>% 
+    rename(cells = immune_tissue,
+           immune_subsystem = immune_sub_system) %>% 
+    mutate(immune_set = "ImmuneGO by Modules")
+
+immunego_btm_specific_grouped = btm_annotation_grouped %>% 
+  bind_rows(ImmuneGO_annotation_modules)
+  
+immunego_btm_specific_grouped %>% 
+  write_csv(file = here("VaxGO gene sets", "ImmuneGO_BTM_grouped_genesets_specific.csv"))
+
+  
+#By immune system
+btm_immunesystem = btm_annotation_genes %>% 
+  select(immune_system, genes) %>% 
+  distinct() %>% 
+  rename(process = immune_system) %>% 
+  group_by(process) %>% 
+  summarize(genes = paste0(genes, collapse = ","),
+            set_size = n(),
+            process = str_to_upper(process),
+            # id = process,
+            immune_system = process,
+            immune_subsystem = process,
+            cells = process,
+            complete_name = process,
+            annotation_level = "Manual",
+            immune_set = "BTM by Immune System") %>% 
+  distinct()
+
+#By immune subsystem
+btm_immunesubsystem = btm_annotation_genes %>% 
+  select(immune_subsystem, genes) %>% 
+  distinct() %>% 
+  rename(process = immune_subsystem) %>% 
+  group_by(process) %>% 
+  summarize(genes = paste0(genes, collapse = ","),
+            process = str_to_upper(process),
+            set_size = n(),
+            # id = process,
+            immune_system = process,
+            immune_subsystem = process,
+            cells = process,
+            complete_name = process,
+            annotation_level = "Manual",
+            immune_set = "BTM by Immune Sub-System") %>% 
+  distinct() 
+#By cell
+btm_cells = btm_annotation_genes %>% 
+  select(cells, genes) %>%
+  distinct() %>% 
+  rename(process = cells) %>% 
+  group_by(process) %>% 
+  summarize(genes = paste0(genes, collapse = ","),
+            set_size = n(),
+            process = str_to_upper(process),
+            # id = process,
+            immune_system = process,
+            immune_subsystem = process,
+            cells = process,
+            annotation_level = "Manual",
+            complete_name = process,
+            immune_set = "BTM by Immune Cell") %>% 
+  distinct() 
+#Merge
+btm_manual = bind_rows(btm_immunesystem,
+          btm_immunesubsystem,
+          btm_cells) %>% 
+  arrange(complete_name) %>% 
+  select(complete_name, everything()) %>% 
+  distinct()
+
+btm_manual_grouped = bind_rows(btm_manual,
+                               btm_annotation_grouped) %>% 
+  distinct()
+
+
+#Merge ImmuneGO and BTM main processes
+immunego_btm_manual_grouped = btm_manual %>% 
+  select(process, genes, immune_set, set_size) %>% 
+  mutate(immune_set = "BTM") %>% 
+  bind_rows(ImmuneGO_Annotated_GO %>% 
+              filter(go_term == "Manual") %>% 
+              select(process, genes, set_size) %>% 
+              mutate(immune_set = "ImmuneGO")) %>% 
+  arrange(process) %>% 
+  mutate(process = case_when(process == "ADAPTIVE" ~ "ADAPTIVE IMMUNE SYSTEM",
+                              process == "ALL" ~ "IMMUNE SYSTEM",
+                              process == "GENERAL" ~ "LEUKOCYTES",
+                              process == "CELLS" ~ "LEUKOCYTES",
+                              process == "DCS" ~ "DENDRITIC CELL",
+                              process == "APP" ~ "ARPP",
+                              process == "CELLULAR" ~ "CELLULAR ADAPTIVE IMMUNE SYSTEM",
+                              process == "DCS, MYELOID" ~ "DENDRITIC CELL",
+                              process == "GENERIC" ~ "LEUKOCYTES",
+                              process == "HUMORAL" ~ "HUMORAL ADAPTIVE IMMUNE SYSTEM",
+                              process == "INNATE" ~ "INNATE IMMUNE SYSTEM",
+                              process == "INTERFERON" ~ "ANTIVIRAL & IFN",
+                              process == "NK" ~ "NK CELL",
+                              process == "B CELL, PLASMA CELL" ~ "B CELL",
+                              process == "PLASMA CELL" ~ "B CELL",
+                              process == "PRR" ~ "ARPP",
+                              process == "SIGNALING" ~ "SIGNALING",
+                              process == "TH2" ~ "T CELL",
+                              process == "TH1" ~ "T CELL",
+                              process == "T HELPER CELLS" ~ "T CELL",
+                              TRUE ~ process
+                              )) %>% 
+  distinct() %>% 
+  bind_rows(
+    immunego_btm_specific_grouped)
+
+immunego_btm_manual_grouped_genes = immunego_btm_manual_grouped %>%
+  separate_rows(genes, sep = ",") %>% 
+  distinct()
+
+immunego_btm_manual_grouped_genes = immunego_btm_manual_grouped_genes %>% 
+  bind_rows(
+    immunego_btm_manual_grouped_genes %>% 
+      mutate(immune_set = "BTM and ImmuneGO") %>% 
+      distinct()
+  )
+  
+  
+immunego_btm_manual_grouped %>% 
+  write_csv(file = here("VaxGO gene sets", "ImmuneGO_BTM_grouped_genesets.csv"))
+
+immunego_btm_manual_grouped_genes %>% 
+  write_csv(file = here("VaxGO gene sets", "ImmuneGO_BTM_grouped_genes.csv"))
+  
+```
+Plot relative frequency of genes by main process
+```{r fig.height=5, fig.width=7}
+
+#Get exclusive genes
+immunego_only_genes = immunego_btm_manual_grouped_genes %>% 
+  filter(immune_set == "ImmuneGO") %>% 
+  select(-immune_set, -set_size) %>% 
+  anti_join(immunego_btm_manual_grouped_genes %>% 
+            filter(immune_set == "BTM"),
+            by = "genes") %>% 
+  mutate(immune_set = "ImmuneGO only") %>% 
+  distinct()
+
+btm_only_genes = immunego_btm_manual_grouped_genes %>% 
+  filter(immune_set == "BTM") %>% 
+  select(-immune_set, -set_size) %>% 
+  anti_join(immunego_btm_manual_grouped_genes %>% 
+            filter(immune_set == "ImmuneGO"),
+            by = "genes") %>% 
+  mutate(immune_set = "BTM only") %>% 
+  distinct()
+
+btm_immune_joined_stats = immunego_only_genes %>% 
+  bind_rows(btm_only_genes) %>% 
+  distinct() %>% 
+  mutate(immune_set = "BTM and ImmuneGO") %>% 
+  select(process, genes, immune_set) %>% 
+  distinct() %>% 
+  group_by(process) %>% 
+  distinct() %>% 
+  mutate(ntotal=n()) %>% 
+  ungroup() %>% 
+  select(process, ntotal) %>% 
+  distinct() %>% 
+  inner_join(immunego_only_genes %>% 
+               bind_rows(btm_only_genes), by = "process") %>% 
+  group_by(process, immune_set) %>% 
+  mutate(n = n(),
+         genes = paste0(genes, collapse = ",")) %>% 
+  select(-genes) %>% 
+  distinct() %>% 
+  ungroup() %>% 
+  mutate(n_perc = (n/ntotal) * 100)
+
+btm_immune_joined_stats_plot = btm_immune_joined_stats %>% 
+  filter(!process %in% c("LYMPHOCYTE", 
+                         "IMMUNOGLOBULIN MEDIATED RESPONSE",
+                         "MYELOID CELL", 
+                         "SIGNALING", 
+                         "IMMUNE SYSTEM")) %>%
+  mutate(process = str_to_title(process),
+         process = fct_relevel(process, 
+                               "Leukocytes",
+                               "Adaptive Immune System",
+                               "Innate Immune System",
+                               "Complement"	,
+                               "Cellular Adaptive Immune System",
+                               "Humoral Adaptive Immune System",
+                               )) %>% 
+ ggplot() +
+  aes(x = n_perc, y = fct_rev(process), fill = immune_set) +
+  geom_bar(stat = "summary", fun = "sum", position = "fill") +
+  scale_fill_manual(values = c("BTM only" = "#5e60ce",
+                               "ImmuneGO only" = "#00A087FF")) +
+  theme_minimal() +
+  theme(legend.position = "right",
+        strip.text.x = element_text(color = "black", size = 12), 
+        axis.text.x = element_text(color = "black", size = 10),
+        axis.text.y = element_text(vjust = 0.5, size = 10, color = "black"),
+        axis.line = element_line(size = 0.5, colour = "black", linetype=1),
+        axis.ticks = element_line(size = 0.5, color = "black")) +
+  labs(x = "%Coverage",
+       y = "",
+       fill = "Immune set",
+       subtitle = "Merged data",
+       title = "ImmuneGO and BTM main processes genes") +
+  scale_x_continuous(expand = c(0,0)) +
+  geom_text(aes(label = paste0(round(n_perc, 0))), 
+            position = position_fill(vjust = 0.5), 
+            size = 3, 
+            color = "white",
+            fontface = "bold") 
+
+btm_immune_joined_stats_plot %>% 
+  ggsave(filename = here("Figures", "ImmuneGO_BTM_Joined_Stats_barplot.png"),
+         width = 10,
+         height = 7)
+
+btm_immune_joined_stats_plot
+```
+
+
+### VAX MSigDB
+
+
+```{r}
+#Importar arquivo
+VaxSigDB_genesets = VAX_GeneSets_Annotated_26_10_23
+
+# Divida os dados em blocos de informações para cada vacina
+vaccines_att <- split(VaxSigDB_genesets$Col2, VaxSigDB_genesets$Col1)
+
+# Combine data
+VAX_Genesets <- bind_rows(lapply(vaccines_att, function(x) data.frame(t(x))), .id = "V")
+
+# Name a new index column
+colnames(VAX_Genesets) <- paste0("V", seq_len(ncol(VAX_Genesets)))
+
+# Transpose
+rownames(VAX_Genesets) <- VAX_Genesets$V1
+VAX_Genesets = VAX_Genesets %>% 
+  t() %>%
+  as.data.frame()
+
+#Order columns
+VAX_Genesets = VAX_Genesets %>% 
+  select(STANDARD_NAME, everything()) %>% 
+  filter(STANDARD_NAME != "STANDARD_NAME") 
+rownames(VAX_Genesets) = VAX_Genesets$SYSTEMATIC_NAME
+VAX_Genesets = VAX_Genesets %>% select(STANDARD_NAME, 
+                                       DESCRIPTION_BRIEF,
+                                       DESCRIPTION_FULL,
+                                       PMID,
+                                       AUTHORS,
+                                       SYSTEMATIC_NAME,
+                                       GENE_SYMBOLS,
+                                       everything())
+
+#Anotar novas colunas
+VAX_Genesets <- VAX_Genesets %>%
+  mutate(
+    SAMPLE_SOURCE = ifelse(
+      grepl("pbmc|peripheral blood mononuclear cell|peripheral blood mononuclear cells", DESCRIPTION_FULL, ignore.case = TRUE) |
+      grepl("pbmc|peripheral blood mononuclear cell|peripheral blood mononuclear cells", DESCRIPTION_BRIEF, ignore.case = TRUE),
+      "PBMC",
+      ifelse(
+        grepl("whole blood", DESCRIPTION_FULL, ignore.case = TRUE) |
+        grepl("whole blood", DESCRIPTION_BRIEF, ignore.case = TRUE) |
+        grepl("_BLOOD", STANDARD_NAME, ignore.case = TRUE)  ,
+        "WHOLE BLOOD",
+        "OTHER")),
+    REGULATION = ifelse(
+      grepl("up", DESCRIPTION_BRIEF, ignore.case = TRUE),
+      "UP",
+      ifelse(
+        grepl("down", DESCRIPTION_BRIEF, ignore.case = TRUE),
+        "DOWN",
+        "UNKNOWN")))
+
+#Reordenar colunas
+VAX_Genesets = VAX_Genesets %>% select(SAMPLE_SOURCE, REGULATION, everything())
+
+# Salvar
+write.csv(VAX_Genesets, file = "VAXSigDB_Annotated.csv") #Continuar a anotação no Google Sheets
+
+head(VAX_Genesets)
+```
+
+ Long table with Gene symbols
+
+```{r}
+############## Long table with Gene symbols
+
+VAX_Genesets = VAXSigDB_Annotated
+
+VAX_Genes <- VAX_Genesets %>%
+  mutate(GENE = GENE_SYMBOLS) %>% 
+  separate_rows(GENE, sep = ",") %>% 
+  select(GENE, everything()) %>%
+  group_by(STANDARD_NAME) %>%
+  mutate(SetSize = n()) %>% 
+  relocate(SetSize, .after = GENE_SYMBOLS)
+
+VAX_GeneSets_annotated <- VAX_Genes %>%
+  select(-GENE) %>% 
+  distinct()
+
+#Salvar
+write.csv(VAX_Genes, file = "VAX_Genes_Annotated_RAW.csv")
+write.csv(VAX_GeneSets_annotated, file = "VAX_Genesets_Annotated_RAW.csv")
+
+#Display
+head(VAX_GeneSets_annotated)
+```
+
+Filtering
+
+```{r}
+unique(VAX_GeneSets_annotated$STUDY_TYPE) 
+#"CORRELATION"
+#"VACCINE"
+#"SUBSET"
+#"CHALLENGE"
+
+unique(VAX_GeneSets_annotated$STUDY_SUBTYPE)
+# "ANTIBODY"				
+# "VAC ONLY"				
+# "BOOSTER"				
+# "VAC VS CTRL"				
+# "SIGNATURE"				
+# "ADVERSE EVENT"			
+# "COMPARISON"				
+# "RESPONDER VS NON RESPONDER"				
+# "AGE"				
+# "RESPONDER"				
+# "ADJUVANT"				
+# "NON RESPONDER"				
+# "ANTIMICROBIAL ACTIVITY"				
+# "CELLS"				
+# "CHALLENGE"				
+# "TOP DEGS"				
+# "PROTECTION"				
+# "TRAINING SET"				
+# "EXON ANALYSIS"				
+# "DOSE"				
+# "VAC VS OTHER"
+
+
+# Subset de vacinas para as seguintes análises comparativas
+VAX_GeneSets_Blood_PBMC_VAC = VAX_GeneSets_annotated %>% 
+  filter(SAMPLE_SOURCE %in% c("PBMC", "WHOLE BLOOD"), 
+         STUDY_TYPE %in% c("VACCINE"))
+
+# Subset de vacinas com resultados de comparações entre vacinas, adjuvantes, idade e sexo
+VAX_GeneSets_Blood_PBMC_CORR = VAX_GeneSets_annotated %>% 
+  filter(SAMPLE_SOURCE %in% c("PBMC", "WHOLE BLOOD"), 
+         STUDY_TYPE %in% c("CORRELATION"))
+
+# Subset com resultados de correlações com resposta inata, celular e humoral
+VAX_GeneSets_Blood_PBMC_SUBSETS = VAX_GeneSets_annotated %>% 
+  filter(SAMPLE_SOURCE %in% c("PBMC", "WHOLE BLOOD"), 
+         STUDY_TYPE %in% c("SUBSET"))
+
+
+# Subset de vacinas com genes associados a eventos adversos
+VAX_GeneSets_Blood_PBMC_CHALLENGE = VAX_GeneSets_annotated %>% 
+  filter(SAMPLE_SOURCE %in% c("PBMC", "WHOLE BLOOD"), 
+         STUDY_TYPE %in% c("CHALLENGE"))
+
+VAX_GeneSets_Blood_PBMC_VAC.stats = VAX_GeneSets_Blood_PBMC_VAC %>% 
+  group_by(VACCINE, PLATFORM, REGULATION, `TARGET_PATHOGEN_DISEASE`, MICROBE_TYPE) %>% 
+  summarise(Count = n()) %>% 
+  arrange(desc(Count))
+
+```
+
+
+
+# 3. Select studies and retrieve data
 
 ## Download and process data
 
@@ -1440,7 +2529,7 @@ ggsave(normalizedcounts_pca_plot_sex, file = here("Figures", "covid_vax_pca_samp
 
 ```
 
-# 3. General data analysis
+# 4. General data analysis
 
 
 ## Metadata
@@ -2515,7 +3604,7 @@ Serology_data %>%
 
 
 
-# 3. Differential Gene Expression Analysis
+# 5. Differential Gene Expression Analysis
 
 ```{r}
 # Get all comparisons
@@ -2923,7 +4012,7 @@ all_studies_degs_weighted %>%
 ```
 
 
-# 4. DEGs analysis
+# 6. DEGs analysis
 
 ## Up and down-regulated DEGs
 
@@ -3692,6 +4781,209 @@ all_degs_biotypes_plot_immuneBTM
 
  
 ```
+
+
+
+## Immune genes representation in the datasets
+Are all immune-related genes represented in all datasets?
+
+```{r}
+genes_raw_combined = all_matrices_genes
+ImmuneGO_Annotated_Genes
+
+datasets_immune_genes = genes_raw_combined %>% 
+  right_join(ImmuneGO_Annotated_Genes %>% 
+               filter(go_term == "Manual") %>% 
+               select(process, genes)  %>%  
+               filter(process %in% c('INNATE IMMUNE SYSTEM',
+                                     'ADAPTIVE IMMUNE SYSTEM',
+                                     'CELLULAR ADAPTIVE IMMUNE SYSTEM',
+                                     'HUMORAL ADAPTIVE IMMUNE SYSTEM')), by = "genes") %>% 
+  mutate(process = fct_relevel(process, 'INNATE IMMUNE SYSTEM',
+                                     'ADAPTIVE IMMUNE SYSTEM',
+                                     'CELLULAR ADAPTIVE IMMUNE SYSTEM',
+                                     'HUMORAL ADAPTIVE IMMUNE SYSTEM'),
+         gse_id = fct_relevel(gse_id, 'GSE199750', 
+                                          'GSE201533',
+                                          'GSE201530',
+                                          'GSE189039',
+                                          "GSE206023")) %>% 
+  filter(gse_id != "NA")
+
+```
+
+
+
+```{r fig.height=10, fig.width=20}
+######## ALL
+
+ImmuneGO_Interesting_Genes_plot.higher <- datasets_immune_genes %>%
+  ggplot() +
+  aes(x = fct_rev(gse_id), y = genes, fill = gse_id) +
+  geom_tile() +
+  facet_wrap(vars(process), scales = "free_x",
+             ncol = 1) +
+  scale_fill_manual(
+    values = c("GSE199750" = "#80ffdb",
+               "GSE201533" = "#5e60ce", 
+               "GSE201530" = "#7400b8",
+               "GSE206023" = "#4361ee",
+               "GSE189039" = "#48bfe3")) +
+  coord_flip() +
+  theme_void() +
+  labs(
+    x = "GSE_ID",
+    y = "#Genes",
+    fill = "GSE ID",
+    title = "") + 
+  theme(axis.text.x = element_text(angle = 90, size = 0),
+        axis.text.y = element_text(size = 0, hjust = 20),
+        plot.title = element_text(size = 20),
+        legend.position = "right",
+        legend.text = element_text(size = 20),
+        legend.title = element_text(size = 20),
+        strip.text = element_text(size= 20))
+
+#Save
+ggsave(ImmuneGO_Interesting_Genes_plot.higher, 
+       file = here("Figures", "ImmuneGO_Dataset_Representation_label.png"), 
+       width = 20, height = 10)
+
+ImmuneGO_Interesting_Genes_plot.higher
+```
+
+
+```{r fig.height=10, fig.width=20}
+############### Grouped
+ImmuneGO_genes_indatasets.merge_grouped = genes_raw_combined %>% 
+  inner_join(ImmuneGO_Annotated_Genes %>% 
+               filter(go_term == "Manual") %>% 
+               select(process, genes)  %>%  
+               filter(process %in% c('INNATE IMMUNE SYSTEM',
+                                     'ADAPTIVE IMMUNE SYSTEM',
+                                     'CELLULAR ADAPTIVE IMMUNE SYSTEM',
+                                     'HUMORAL ADAPTIVE IMMUNE SYSTEM')), by = "genes") %>% 
+  group_by(gse_id, process) %>% 
+  summarize(n_in = n()) %>% 
+  inner_join(ImmuneGO_Annotated_Genes %>% select(process, set_size)) %>% 
+  mutate(n_perc_in = n_in/set_size,
+         n_perc_in = n_perc_in *100,
+         n_perc_in = round(n_perc_in,0)) %>% 
+    distinct() %>% 
+    mutate(process = fct_relevel(process, 'INNATE IMMUNE SYSTEM',
+                                     'ADAPTIVE IMMUNE SYSTEM',
+                                     'CELLULAR ADAPTIVE IMMUNE SYSTEM',
+                                     'HUMORAL ADAPTIVE IMMUNE SYSTEM'))
+
+#Plot
+ggImmuneGO_genes_indatasets.stats =  ImmuneGO_genes_indatasets.merge_grouped %>% 
+  mutate(gse_id = fct_relevel(gse_id,  'GSE199750', 
+                                          'GSE201533',
+                                          'GSE201530',
+                                          'GSE189039',
+                                          'GSE206023') %>% 
+           fct_rev()) %>% 
+  ggplot() +
+  aes(x = gse_id, y = n_perc_in, fill = gse_id) +
+  geom_col() +
+  scale_fill_manual(
+    values = c("GSE199750" = "#80ffdb",
+               "GSE201533" = "#5e60ce", 
+               "GSE201530" = "#7400b8",
+               "GSE206023" = "#4361ee",
+               "GSE189039" = "#48bfe3")) +
+  coord_flip() +
+  theme_void() +
+  geom_text(aes(label = n_perc_in, y = n_perc_in), 
+            position = position_dodge(width = 0.9), 
+            vjust = 0.5, 
+            hjust = -0.05, 
+            size = 6) +
+  labs(
+    x = "",
+    y = "#Genes",
+    title = ""
+  ) +
+  facet_wrap(vars(process), ncol = 1) +
+    theme(axis.text.x = element_text(angle = 90, size = 0, hjust = 1),
+        axis.text.y = element_text(size = 20),
+        plot.title = element_text(size = 20),
+        legend.position = "none",
+        strip.text = element_text(size= 20)) +
+  ylim(0, 110)
+
+patch_indatasets = ggImmuneGO_genes_indatasets.stats + ImmuneGO_Interesting_Genes_plot.higher +
+  plot_layout(widths = c(1, 2)) +
+  plot_annotation(title = "Number of genes represented in ImmuneGO, by study", 
+                  theme = theme(plot.title = element_text(size = 30)))
+
+ggsave(patch_indatasets, file = here("Figures", "ImmuneGO_Genesrepresented_bystudy.png"), width = 20, height = 10)
+patch_indatasets
+
+```
+
+Line plots
+
+```{r}
+
+Immune_GO_GSEA
+
+################## Innate
+Immune_GO_innate = Immune_GO_GSEA %>% filter(`Immune system` == "Innate")
+write.csv(Immune_GO_innate, file = "Immune_GO_innate_l2fc.csv")
+
+Immune_GO_innate_SUM <- Immune_GO_innate %>% 
+  rename(Condition = study) %>% 
+  group_by(Condition, Process) %>%
+  mutate(Soma = n()) %>% select(Vaccine, Condition, Process, `Immune group`, `Immune response gene set, specific`, `Immune system`, Soma) %>% filter(Vaccine != "NA")
+write.csv(Immune_GO_innate_SUM, file="Immune_GO_innate_SUM.csv")
+
+
+################## Adaptive
+#Humoral
+Immune_GO_humoral = Immune_allgenes %>% filter(`Immune system` == "Humoral")
+write.csv(Immune_GO_humoral, file = "Immune_GO_humoral_l2fc.csv")
+
+Immune_GO_humoral_SUM <- Immune_GO_humoral %>% 
+  rename(Condition = study) %>% 
+  group_by(Condition, Process) %>%
+  mutate(Soma = n()) %>% select(Vaccine, Condition, Process, `Immune group`, `Immune response gene set, specific`, `Immune system`, Soma) %>% filter(Vaccine != "NA")
+write.csv(Immune_GO_humoral_SUM, file="Immune_GO_humoral_SUM.csv")
+
+#Cellular
+Immune_GO_cellular = Immune_allgenes %>% filter(`Immune system` == "Cellular")
+write.csv(Immune_GO_cellular, file = "Immune_GO_cellular_l2fc.csv")
+
+Immune_GO_cellular_SUM <- Immune_GO_cellular %>% 
+  rename(Condition = study) %>% 
+  group_by(Condition, Process) %>%
+  mutate(Soma = n()) %>% select(Vaccine, Condition, Process, `Immune group`, `Immune response gene set, specific`, `Immune system`, Soma) %>% filter(Vaccine != "NA")
+write.csv(Immune_GO_cellular_SUM, file="Immune_GO_cellular_SUM.csv")
+
+################## General
+Immune_GO_general = Immune_allgenes %>% filter(`Immune system` == "General")
+write.csv(Immune_GO_general, file = "Immune_GO_general_l2fc.csv")
+
+Immune_GO_general_SUM <- Immune_GO_general %>% 
+  rename(Condition = study) %>% 
+  group_by(Condition, Process) %>%
+  mutate(Soma = n()) %>% select(Vaccine, Condition, Process, `Immune group`, `Immune response gene set, specific`, `Immune system`, Soma) %>% filter(Vaccine != "NA")
+write.csv(Immune_GO_general_SUM, file = "Immune_GO_general_SUM.csv")
+
+################## All immune processes and genes
+Immune_allgenes_vaccines = Immune_allgenes_l2fc %>% rename(Condition = study, Genes = genes) %>% filter(Vaccine != "NA")
+ann_vaccines_pca_matrix = merge(ann_vaccines_pca, matrix_data_pca, by.x = "Condition", all.x = F, all.y = F)
+ann_vaccines_pca_matrix_long = ann_vaccines_pca_matrix %>% gather(Genes, L2FC, -Condition, -Vaccine, -Day, -Dose)
+
+Immune_allgenes_vaccines_SUM <- Immune_allgenes_vaccines %>%
+  group_by(Condition, Process) %>% #Somar e agrupar
+  summarize(Soma = n())
+
+Immune_allgenes_vaccines_SUM = merge(ann_vaccines_pca, Immune_allgenes_vaccines_SUM, by.x = "Condition", all.x = F, all.y = F) # Anotar vacinas
+write.csv(Immune_allgenes_vaccines_SUM, file="Immune_allgenes_vaccines_SUM.csv") #Salvar
+
+```
+
 
 ### Unite all
 
@@ -6578,7 +7870,7 @@ dev.off()
 ```
 
 
-# 5. Gene set enrichment analysis
+# 7. Gene set enrichment analysis
 
 Input
 
@@ -8037,7 +9329,7 @@ bxp +
 
 ```
 
-# 6. Principal components analysis
+# 8. Principal components analysis
 
 Tutorials [Data Camp - PCA Analysis in
 R](https://www.datacamp.com/tutorial/pca-analysis-r){.uri}
@@ -10303,1279 +11595,7 @@ dev.off()
 
 ```
 
-# 7. VAXGO
 
-## VaxGO gene sets construction
-
-```{r eval=FALSE, echo=TRUE}
-library(readr)
-library(explore)
-library(maditr)
-library(GEOquery)
-library(Matrix)
-library(circlize)
-library(RColorBrewer)
-library(celldex)
-library(biomaRt)
-library(org.Hs.eg.db)
-library(plotly)
-library(DESeq2)
-library(msigdbr)
-library(ape)
-library(GSVA)
-library(sva)
-library(clusterProfiler)
-library(pheatmap)
-library(EnhancedVolcano)
-library(ggbeeswarm)
-library(tidyverse)
-library(corrr)
-library(ggcorrplot)
-library(FactoMineR)
-library(factoextra)
-library(esquisse)
-library(corto)
-library(factoextra)
-library(reshape2)
-library(ComplexHeatmap)
-library(janitor)
-```
-
-
-##Gene set databases
-
-### Blood transcription modules <https://www.nature.com/articles/ni.2789>
-
-```{r}
-#Converter ítens de "Module member genes" em linhas em uma tabela longa
-btm_annotation_table_long_immune <- BTM_modules %>%
-  separate_rows(`Module member genes`, sep = ",") %>% 
-  filter(`Module category` == "immune")
-
-#Salvar
-write.csv(btm_annotation_table_long_immune, file = "btm_annotation_table_long_immune.csv")
-
-#Display
-head(btm_annotation_table_long_immune)
-
-#Calculate Set size
-btm_annotation_nested <- btm_annotation_table_long_immune %>%
-  group_by(`Module title`) %>% #Somar e agrupar
-  mutate(SetSize = n())
-
-#Convert gene symbol column to aggregated rows
-btm_annotation_nested <- btm_annotation_nested %>%
-  group_by(`Module title`) %>%
-  summarize(Genes = paste(`Module member genes`, collapse = ", "), .groups = "drop") %>% 
-  left_join(btm_annotation_nested, by = "Module title") %>% 
-  filter(Genes != "NA") %>% 
-  relocate(Genes, .after="SetSize")
-
-#Salvar
-write.csv(btm_annotation_nested, file = "btm_annotation_genes.csv")
-
-#Convert to unique values table
-btm_annotation_unique = btm_annotation_nested %>% 
-  select(-`Module member genes`)
-
-btm_annotation_unique = btm_annotation_unique %>% 
-  distinct() %>% 
-  relocate(Genes, .after="SetSize") %>% 
-  filter(Genes != "NA")
-
-#salvar
-write.csv(btm_annotation_unique, file = "btm_annotation_unique.csv")
-
-#Display
-head(btm_annotation_unique)
-
-btm_annotation_table_long_immune
-```
-
-### CellMarker
-
-Download database from
-"<http://117.50.127.228/CellMarker/CellMarker_download_files/file/Cell_marker_Human.xlsx>"
-
-```{r}
-##################### Baixar tabela de marcadores celulares
-
-url <- "http://117.50.127.228/CellMarker/CellMarker_download_files/file/Cell_marker_Human.xlsx" 
-f <- tempfile(fileext = ".xlsx")
-download.file(url, f)
-cell_marker_data <- readxl::read_excel(f, 1)
-
-##################### Sub-agrupar células por sistema imunológico
-
-#Filtrar marcadores e células por tecido (Blood)
-cells <- cell_marker_data %>%
-    filter(tissue_class == "Blood") %>%
-    select(cell_name, marker)
-
-##################### Filtrar células
-# Acessar todos os tipos de células no dataset de Blood
-cellmarker_celltypes <- unique(cells$cell_name)
-
-# Filtrar apenas os tipos que contêm "B cell" e plasmacell
-Bcells_no = cellmarker_celltypes[grep("B cell", cellmarker_celltypes)] #44 outputs
-Plasmacells_no = cellmarker_celltypes[grep("plasma", cellmarker_celltypes)] #5 outputs
-
-# Filtrar apenas os tipos que contêm "T cell" e seus subtipos "CD4" e "CD8"
-Tcells_no = cellmarker_celltypes[grep("T cell", cellmarker_celltypes)] #93 outputs
-TCD4_no = cellmarker_celltypes[grep("CD4", cellmarker_celltypes)] #35 outputs
-TCD8_no = cellmarker_celltypes[grep("CD8", cellmarker_celltypes)] #34 outputs
-Treg_no = cellmarker_celltypes[grep("Treg", cellmarker_celltypes)] #7 outputs
-Thelper_no = cellmarker_celltypes[grep("helper", cellmarker_celltypes)] #17 outputs
-
-# Filtrar outros tipos celulares da resposta imune
-Neutrophils_no = cellmarker_celltypes[grep("neutrophil", cellmarker_celltypes)] #7 outputs
-Monocyte_no = cellmarker_celltypes[grep("monocyte", cellmarker_celltypes)] #14 outputs
-DCells_no = cellmarker_celltypes[grep("dendritic", cellmarker_celltypes)] #25 outputs
-Macrophages_no = cellmarker_celltypes[grep("macrophage", cellmarker_celltypes)] #7 outputs
-NKcells_no = cellmarker_celltypes[grep("killer", cellmarker_celltypes)] # 11 outputs
-Neutrophils_no = cellmarker_celltypes[grep("mastcell", cellmarker_celltypes)] #7 outputs
-
-# Criar variáveis para cada célula para enriquecimento
-
-# Filtrar apenas as células da resposta imune adaptativa
-Bcells <- filter(cells, str_detect(cell_name, regex("B cell|plasma cell|plasmablast", ignore_case = TRUE)))
-TCD4 <- filter(cells, str_detect(cell_name, regex("CD4", ignore_case = TRUE)))
-TCD8 <- filter(cells, str_detect(cell_name, regex("CD8", ignore_case = TRUE)))
-Treg <- filter(cells, str_detect(cell_name, regex("Treg", ignore_case = TRUE)))
-Thelper <- filter(cells, str_detect(cell_name, regex("helper", ignore_case = TRUE)))
-
-
-# Filtrar células da resposta imune inata
-Neutrophils <- filter(cells, str_detect(cell_name, regex("neutrophil", ignore_case = TRUE)))
-Monocyte <- filter(cells, str_detect(cell_name, regex("monocyte", ignore_case = TRUE)))
-DCells <- filter(cells, str_detect(cell_name, regex("dendritic", ignore_case = TRUE)))
-Macrophages <- filter(cells, str_detect(cell_name, regex("macrophage", ignore_case = TRUE)))
-Mastcells <- filter(cells, str_detect(cell_name, regex("mast cell", ignore_case = TRUE)))
-NKcells <- filter(cells, str_detect(cell_name, regex("killer", ignore_case = TRUE)))
-Platelets <- filter(cells, str_detect(cell_name, regex("Platelet", ignore_case = TRUE)))
-Eosinophil <- filter(cells, str_detect(cell_name, regex("Eosinophil", ignore_case = TRUE)))
-Basophil <- filter(cells, str_detect(cell_name, regex("Basophil", ignore_case = TRUE)))
-Granulocyte <- filter(cells, str_detect(cell_name, regex("Granulocyte", ignore_case = TRUE)))
-
-#Agrupar todos os resultados em Immune cells
-Immune_adap = rbind(Bcells, TCD4, TCD8, Treg, Thelper)
-Immune_adap$Type = "Adaptive"
-
-Immune_innate = rbind(Neutrophils, Monocyte, DCells, Macrophages, Mastcells, NKcells, Platelets, Eosinophil, Basophil, Granulocyte)
-Immune_innate$Type = "Innate"
-
-#Unir tabelas
-Immune_cells = rbind(Immune_adap, Immune_innate) 
-
-#Salvar
-write.csv(Immune_cells, file = "CellMarker_ImmuneCells.csv")
-
-esquisser(Immune_cells_markersbycells)
-```
-
-Top 20 cells by #markers
-
-```{r}
-
-Immune_cells_markersbycells = Immune_cells %>% 
-  group_by(cell_name, Type) %>% 
-  summarise(n_markers = n()) %>% 
-  arrange(desc(n_markers))
-Immune_cells_markersbycells_top = Immune_cells_markersbycells[1:20, ]
-
-ggImmune_cells_cellsbyimmune = ggplot(Immune_cells_markersbycells_top) +
-  aes(x = reorder(cell_name, n_markers), y = n_markers, fill = Type) +
-  scale_fill_manual(values = c('Innate' = "#989898",
-                               'Adaptive' = "#6DF8DF")) +
-  geom_col() +
-  labs(
-    x = "#Markers",
-    y = "Cells",
-    title = "Top 20 cells by #markers"
-  ) +
-  coord_flip() +
-  theme_minimal() +
-  geom_text(aes(label = n_markers, y = n_markers), 
-            position = position_dodge(width = 0.9), 
-            vjust = -0.2, 
-            hjust = -0.2, 
-            size = 3)
-
-ggsave(ggImmune_cells_cellsbyimmune, file= "CellMarker_Top10_cellsbyn_markers.png", width = 10, height = 5)
-
-print(ggImmune_cells_cellsbyimmune)
-
-```
-
-Number of Cells by immune system
-
-```{r}
-Immune_cells_cellsbyimmune = Immune_cells %>% 
-  group_by(Type, cell_name) %>% 
-  summarise(n_cells = n()) %>% 
-  group_by(Type) %>% 
-  summarise(n_cells = n())
-
-ggImmune_cells_cellsbyimmune = ggplot(Immune_cells_cellsbyimmune) +
-  aes(x = reorder(Type, n_cells), y = n_cells, fill = Type) +
-  geom_col() +
-  scale_fill_manual(values = c('Innate' = "#989898",
-                               'Adaptive' = "#6DF8DF")) +
-  labs(
-    x = "#Cells",
-    y = "Immune system",
-    title = "#Cells by immune system"
-  ) +
-  coord_flip() +
-  theme_minimal() +
-  geom_text(aes(label = n_cells, y = n_cells), 
-            position = position_dodge(width = 0.9), 
-            vjust = -0.2, 
-            hjust = -0.2, 
-            size = 3)
-ggsave(ggImmune_cells_cellsbyimmune, file= "CellMarker_nCellsbyimmunesystem.png", width = 10, height = 2)
-
-print(ggImmune_cells_cellsbyimmune)
-```
-
-### ImmuneGO
-
-```{r}
-organism = "org.Hs.eg.db"
-install.packages("GO.db")
-BiocManager::install(organism, character.only = TRUE)
-library(organism, character.only = TRUE)
-library(clusterProfiler)
-library(GO.db)
-
-#HGNC symbol to Entrez
-x <- org.Hs.egSYMBOL
-mapped_genes <- mappedkeys(x)
-symbols_entrez <- as.data.frame(x[mapped_genes])
-
-## Entrez to GO
-x <- org.Hs.egGO
-mapped_genes <- mappedkeys(x)
-entrez_geneontology <- as.data.frame(x[mapped_genes])
-
-## GO BP ancestors
-go_bp_ancestor = GOBPANCESTOR %>% 
-  as.data.frame()
-colnames(go_bp_ancestor)[1] <- "go_id"
-colnames(go_bp_ancestor)[2] <- "go_ancestor"
-
-## GO ID to terms
-go_bp = AnnotationDbi::select(GO.db, columns=c("GOID","TERM"), keys= "BP", keytype= "ONTOLOGY") %>% 
-  clean_names() %>% 
-  select(go_id = goid, term)
-
-## GO child and ancestor
-go_bp_ancestor = go_bp_ancestor %>% 
-  inner_join(go_bp %>% rename(go_ancestor = go_id), by = "go_ancestor") %>% 
-  rename(term_ancestor = term)
-
-#GO ids to terms
-go_bp = AnnotationDbi::select(GO.db, columns=c("GOID","TERM"), keys="BP", keytype="ONTOLOGY") %>% 
-  clean_names() %>% 
-  rename(go_id = goid) %>% 
-  select(-ontology) %>% 
-  right_join(entrez_geneontology, by = "go_id") %>% 
-  right_join(symbols_entrez, by = "gene_id") %>% 
-  clean_names() %>% 
-  left_join(go_bp_ancestor, by = "go_id") %>% 
-  distinct()
-
-#GO immune process
-
-immunego_go.bp = go_bp %>% 
-  filter(term_ancestor == "immune system process") %>% 
-  mutate(term = toupper(term))
-
-ImmuneGO_Annotated_Genes_26_2_24 = ImmuneGO_Annotated_GO_8_2_24 %>% 
-  select(-"...1") %>% 
-  mutate(genes = str_replace_all(genes, "\\s+", "")) %>% 
-  separate_rows(genes, sep = ",") %>% 
-  full_join(immunego_go.bp %>% select(genes = symbol, process = term), by = join_by("process", "genes")) %>% 
-  distinct()
-
-ImmuneGO_Annotated_GO_26_2_24 = ImmuneGO_Annotated_Genes_26_2_24 %>% 
-  group_by(process) %>%
-  summarize(genes = paste0(genes, collapse = ",")) %>%
-  inner_join(ImmuneGO_Annotated_Genes_26_2_24 %>% select(-genes) %>% distinct(), by = "process")
-
-write.csv(ImmuneGO_Annotated_GO_26_2_24, file = "ImmuneGO_Annotated_GO_26_2_24.csv", row.names = F)
-
-write.csv(ImmuneGO_Annotated_Genes_26_2_24, file = "ImmuneGO_Annotated_Genes_26_2_24.csv", row.names = F)
-
-```
-
-Group immune system genes by process and cell
-
-```{r}
-ImmuneGO_Annotated_unique = ImmuneGO_Annotated_Genes %>% 
-  filter(go_term != "Manual")
-
-#Agrupar genes de todos os processos do sistema imune ----
-
-ImmuneGO_Adaptive <- ImmuneGO_Annotated_unique %>%
-  filter(immune_system == "Adaptive") %>% 
-  summarize(set_size = n(), 
-            genes = paste(genes, collapse = ",")) %>% 
-  mutate(process = "ADAPTIVE IMMUNE SYSTEM",
-  `Gene set, short` = "Adaptive immune system",
-  `Immune system` = "Adaptive",
-  `Immune sub-system` = "General",
-  `Immune tissue` = "General",
-  `GO.TERM` = "Manual") %>% 
-  clean_names()
-
-ImmuneGO_Innate <- ImmuneGO_Annotated_unique %>%
-  filter(immune_system == "Innate") %>% 
-  summarize(set_size = n(), 
-            genes = paste(genes, collapse = ",")) %>% 
-  mutate(process = "INNATE IMMUNE SYSTEM",
-  `Gene set, short` = "Innate immune system",
-  `Immune system` = "Innate",
-  `Immune sub-system` = "General",
-  `Immune tissue` = "General",
-  `GO.TERM` = "Manual") %>% 
-  clean_names()
-
-ImmuneGO_Complement <- ImmuneGO_Annotated_unique %>%
-  filter(immune_system == "Complement") %>% 
-  summarize(set_size = n(), 
-            genes = paste(genes, collapse = ",")) %>% 
-  mutate(process = "COMPLEMENT",
-  `Gene set, short` = "Complement immune system",
-  `Immune system` = "Complement",
-  `Immune sub-system` = "General",
-  `Immune tissue` = "General",
-  `GO.TERM` = "Manual") %>% 
-  clean_names()
-
-ImmuneGO_Inflammation <- ImmuneGO_Annotated_unique %>%
-  filter(immune_sub_system == "Inflammation") %>% 
-  summarize(set_size = n(), 
-            genes = paste(genes, collapse = ",")) %>% 
-  mutate(process = "INFLAMMATION",
-  `Gene set, short` = "Inflammation",
-  `Immune system` = "Innate",
-  `Immune sub-system` = "Inflammation",
-  `Immune tissue` = "General",
-  `GO.TERM` = "Manual") %>% 
-  clean_names()
-
-ImmuneGO_Interferon <- ImmuneGO_Annotated_unique %>%
-  filter(immune_sub_system %in% c("Antiviral", "Interferon")) %>% 
-  summarize(set_size = n(), 
-            genes = paste(genes, collapse = ",")) %>% 
-  mutate(process = "ANTIVIRAL & IFN",
-  `Gene set, short` = "Antiviral and Interferon",
-  `Immune system` = "Innate",
-  `Immune sub-system` = "Antiviral and Interferon",
-  `Immune tissue` = "General",
-  `GO.TERM` = "Manual") %>% 
-  clean_names()
-
-ImmuneGO_ARPP = ImmuneGO_Annotated_unique %>%
-  filter(immune_sub_system %in% c("PRR", "APC")) %>% 
-  summarize(set_size = n(), 
-            genes = paste(genes, collapse = ",")) %>% 
-  mutate(process = "ARPP",
-  `Gene set, short` = "Antigen receptors, processing and presentation",
-  `Immune system` = "Innate",
-  `Immune sub-system` = "APC",
-  `Immune tissue` = "APC",
-  `GO.TERM` = "Manual") %>% 
-  clean_names()
-
-
-ImmuneGO_Innate_DC <- ImmuneGO_Annotated_unique %>%
-  filter(immune_tissue == "Dendritic cell") %>% 
-  summarize(set_size = n(), 
-            genes = paste(genes, collapse = ",")) %>% 
-  mutate(process = "DENDRITIC CELL",
-  `Gene set, short` = "Dendritic cell",
-  `Immune system` = "Innate",
-  `Immune sub-system` = "Cell",
-  `Immune tissue` = "APC",
-  `GO.TERM` = "Manual") %>% 
-  clean_names()
-
-ImmuneGO_Innate_Macrophage <- ImmuneGO_Annotated_unique %>%
-  filter(immune_tissue == "Macrophage") %>% 
-  summarize(set_size = n(), 
-            genes = paste(genes, collapse = ",")) %>% 
-  mutate(process = "MACROPHAGE",
-  `Gene set, short` = "Macrophage",
-  `Immune system` = "Innate",
-  `Immune sub-system` = "Cell",
-  `Immune tissue` = "APC",
-  `GO.TERM` = "Manual") %>% 
-  clean_names()
-
-ImmuneGO_Innate_Mastcell <- ImmuneGO_Annotated_unique %>%
-  filter(immune_tissue == "Mast cell") %>% 
-  summarize(set_size = n(), 
-            genes = paste(genes, collapse = ",")) %>% 
-  mutate(process = "MAST CELL",
-  `Gene set, short` = "Mast cell",
-  `Immune system` = "Innate",
-  `Immune sub-system` = "Cell",
-  `Immune tissue` = "Mast cell",
-  `GO.TERM` = "Manual") %>% 
-  clean_names()
-
-ImmuneGO_Innate_Neutrophil <- ImmuneGO_Annotated_unique %>%
-  filter(immune_tissue == "Neutrophil") %>% 
-  summarize(set_size = n(), 
-            genes = paste(genes, collapse = ",")) %>% 
-  mutate(process = "NEUTROPHIL",
-  `Gene set, short` = "Neutrophil",
-  `Immune system` = "Innate",
-  `Immune sub-system` = "Cell",
-  `Immune tissue` = "Neutrophil",
-  `GO.TERM` = "Manual") %>% 
-  clean_names()
-
-ImmuneGO_Innate_Eosinophil <- ImmuneGO_Annotated_unique %>%
-  filter(immune_tissue == "Eosinophil") %>% 
-  summarize(set_size = n(), 
-            genes = paste(genes, collapse = ",")) %>% 
-  mutate(process = "EOSINOPHIL",
-  `Gene set, short` = "Eosinophil",
-  `Immune system` = "Innate",
-  `Immune sub-system` = "Cell",
-  `Immune tissue` = "Eosinophil",
-  `GO.TERM` = "Manual") %>% 
-  clean_names()
-
-ImmuneGO_Innate_NK <- ImmuneGO_Annotated_unique %>%
-  filter(immune_tissue == "NK cell") %>% 
-  summarize(set_size = n(), 
-            genes = paste(genes, collapse = ",")) %>% 
-  mutate(process = "NK CELL",
-  `Gene set, short` = "Natural Killer Cell",
-  `Immune system` = "Innate",
-  `Immune sub-system` = "Cell",
-  `Immune tissue` = "NK cell",
-  `GO.TERM` = "Manual") %>% 
-  clean_names()
-
-ImmuneGO_Innate_Monocyte <- ImmuneGO_Annotated_unique %>%
-  filter(immune_tissue == "Monocyte") %>% 
-  summarize(set_size = n(), 
-            genes = paste(genes, collapse = ",")) %>% 
-  mutate(process = "MONOCYTE",
-  `Gene set, short` = "Monocyte",
-  `Immune system` = "Innate",
-  `Immune sub-system` = "Cell",
-  `Immune tissue` = "APC",
-  `GO.TERM` = "Manual") %>% 
-  clean_names()
-
-ImmuneGO_Adap_Cellular <- ImmuneGO_Annotated_unique %>% 
-  filter(immune_sub_system == "Cellular") %>% 
-  summarize(set_size = n(), 
-            genes = paste(genes, collapse = ",")) %>% 
-  mutate(process = "CELLULAR ADAPTIVE IMMUNE SYSTEM",
-  `Gene set, short` = "Cellular adaptive immune system",
-  `Immune system` = "Adaptive",
-  `Immune sub-system` = "Cellular",
-  `Immune tissue` = "Cellular",
-  `GO.TERM` = "Manual") %>% 
-  clean_names()
-
-
-ImmuneGO_Adap_Tcell <- ImmuneGO_Annotated_unique %>%
-  filter(immune_tissue == "T cell") %>% 
-  summarize(set_size = n(), 
-            genes = paste(genes, collapse = ",")) %>% 
-  mutate(process = "T CELL",
-  `Gene set, short` = "T cell",
-  `Immune system` = "Adaptive",
-  `Immune sub-system` = "Cellular",
-  `Immune tissue` = "Cellular",
-  `GO.TERM` = "Manual") %>% 
-  clean_names()
-
-ImmuneGO_Adap_Thelper <- ImmuneGO_Annotated_unique %>%
-  filter(immune_tissue == "T helper") %>% 
-  summarize(set_size = n(), 
-            genes = paste(genes, collapse = ",")) %>% 
-  mutate(process = "T HELPER CELLS",
-  `Gene set, short` = "T helper cell",
-  `Immune system` = "Adaptive",
-  `Immune sub-system` = "Cellular",
-  `Immune tissue` = "Cellular",
-  `GO.TERM` = "Manual") %>% 
-  clean_names()
-
-ImmuneGO_Adap_Humoral <- ImmuneGO_Annotated_unique %>%
-  filter(immune_sub_system == "Humoral") %>% 
-  summarize(set_size = n(), 
-            genes = paste(genes, collapse = ",")) %>% 
-  mutate(process = "HUMORAL ADAPTIVE IMMUNE SYSTEM",
-  `Gene set, short` = "Humoral adaptive immune system",
-  `Immune system` = "Adaptive",
-  `Immune sub-system` = "Humoral",
-  `Immune tissue` = "Humoral",
-  `GO.TERM` = "Manual") %>% 
-  clean_names()
-
-ImmuneGO_Adap_Bcell <- ImmuneGO_Annotated_unique %>%
-  filter(immune_tissue == "B cell") %>% 
-  summarize(set_size = n(), 
-            genes = paste(genes, collapse = ",")) %>% 
-  mutate(process = "B CELL",
-  `Gene set, short` = "B cell",
-  `Immune system` = "Adaptive",
-  `Immune sub-system` = "Humoral",
-  `Immune tissue` = "B cell",
-  `GO.TERM` = "Manual") %>% 
-  clean_names()
-
-ImmuneGO_Adap_Ig <- ImmuneGO_Annotated_unique %>%
-  filter(immune_tissue == "B cell") %>% 
-  summarize(set_size = n(), 
-            genes = paste(genes, collapse = ",")) %>% 
-  mutate(process = "IMMUNOGLOBULIN MEDIATED RESPONSE",
-  `Gene set, short` = "Ig-mediated response",
-  `Immune system` = "Adaptive",
-  `Immune sub-system` = "Humoral",
-  `Immune tissue` = "B cell",
-  `GO.TERM` = "Manual") %>% 
-  clean_names()
-
-ImmuneGO_other <- ImmuneGO_Annotated_unique %>%
-  filter(immune_system == "General" |
-         immune_tissue == "Leukocyte") %>% 
-  summarize(set_size = n(), 
-            genes = paste(genes, collapse = ",")) %>% 
-  mutate(process = "GENERAL",
-  `Gene set, short` = "General",
-  `Immune system` = "General",
-  `Immune sub-system` = "General",
-  `Immune tissue` = "General",
-  `GO.TERM` = "Manual") %>% 
-  clean_names()
-
-
-ImmuneGO_antimicrobial <- ImmuneGO_Annotated_unique %>%
-  filter(immune_tissue == "Antimicrobial") %>% 
-  summarize(set_size = n(), 
-            genes = paste(genes, collapse = ",")) %>% 
-  mutate(process = "ANTIMICROBIAL",
-  `Gene set, short` = "Antimicrobial immune response",
-  `Immune system` = "General",
-  `Immune sub-system` = "General",
-  `Immune tissue` = "General",
-  `GO.TERM` = "Manual") %>% 
-  clean_names()
-
-
-# Unite sets -----
-
-ImmuneGO_Annotated_GO = bind_rows(ImmuneGO_Adaptive, 
-                            ImmuneGO_Innate, 
-                            ImmuneGO_Complement, 
-                            ImmuneGO_Inflammation,
-                            ImmuneGO_Interferon,
-                            ImmuneGO_ARPP,
-                            ImmuneGO_Innate_Macrophage,
-                            ImmuneGO_Innate_Mastcell,
-                            ImmuneGO_Innate_Neutrophil,
-                            ImmuneGO_Innate_Eosinophil,
-                            ImmuneGO_Innate_NK,
-                            ImmuneGO_Innate_Monocyte,
-                            ImmuneGO_Adap_Cellular,
-                            ImmuneGO_Adap_Tcell,
-                            ImmuneGO_Adap_Thelper,
-                            ImmuneGO_Adap_Humoral,
-                            ImmuneGO_Adap_Bcell,
-                            ImmuneGO_Adap_Ig,
-                            ImmuneGO_other,
-                            ImmuneGO_antimicrobial,
-                            ImmuneGO_Innate_DC,
-                            ImmuneGO_Annotated_unique) %>% 
-  select(process:go_term, set_size:genes) %>% 
-  distinct()
-
-ImmuneGO_Annotated_Genes = ImmuneGO_Annotated_GO %>% 
-   separate_rows(genes, sep = ",")
-
-# Separate TCR and BCR repertoire genes
-TCR_BCR_repertoire = ImmuneGO_Annotated_Genes %>% 
-  filter(grepl("^TR", genes) & process == "ADAPTIVE IMMUNE SYSTEM" |
-           grepl("^IG", genes) & process == "ADAPTIVE IMMUNE SYSTEM" |
-           grepl("^TR", genes) & process == "CELLULAR ADAPTIVE IMMUNE SYSTEM" |
-         grepl("^IG", genes) & process == "HUMORAL ADAPTIVE IMMUNE SYSTEM") %>% 
-  mutate(process = if_else(process == "CELLULAR ADAPTIVE IMMUNE SYSTEM", "TCR REPERTOIRE", 
-                           "BCR REPERTOIRE"),
-         gene_set_short = if_else(process == "TCR REPERTOIRE", 
-                                  "TCR REPERTOIRE", 
-                           "BCR REPERTOIRE"),
-         process = if_else(grepl("^TR", genes), "TCR REPERTOIRE", "BCR REPERTOIRE"),
-         immune_sub_system = if_else(process == "TCR REPERTOIRE", "Cellular", "Humoral"),
-         immune_tissue = if_else(process == "TCR REPERTOIRE", "Cellular", "Humoral"))
-
-immunego_manual = ImmuneGO_Annotated_Genes %>%
-  filter(go_term == "Manual") %>% 
-  anti_join(TCR_BCR_repertoire %>% select(genes) %>% distinct(), by = "genes") %>% 
-  bind_rows()
-
-#Verify if all genes are annotated. If there are no left genes, you are good to go
-a = ImmuneGO_Annotated_Genes %>% filter(go_term == "Manual") %>% select(genes) %>% distinct()
-ImmuneGO_Annotated_Genes %>% select(process, genes, immune_system) %>% anti_join(a, by = "genes")
-
-
-#Salvar
-write.csv(ImmuneGO_Annotated_GO, file = paste0("ImmuneGO_Annotated_GO_", today(), ".csv"), row.names = F)
-saveRDS(ImmuneGO_Annotated_GO, file = paste0("ImmuneGO_Annotated_GO_", today(), ".rds"))
-saveRDS(ImmuneGO_Annotated_Genes, file = paste0("ImmuneGO_Annotated_Genes_", today(), ".rds"))
-
-#Display
-view(ImmuneGO_Annotated_GO)
-view(ImmuneGO_Annotated_Genes)
-
-```
-
-Top 10 gene sets
-```{r}
-#Top 10 gene sets
-ImmuneGO_Annotated_unique_top10 = ImmuneGO_Annotated_GO %>% 
-  clean_names() %>% 
-  arrange(desc(set_size)) %>% 
-  slice_head(n = 20) %>% 
-  mutate(immune_system = if_else(gene_set_short == "Adaptive Immune response", "Adaptive", immune_system))
-
-#Gráfico de barras
-ImmuneGO_top10_barplot = ggplot(ImmuneGO_Annotated_unique_top10) +
- aes(x = reorder(gene_set_short, set_size), 
-     weight = set_size, 
-     fill = immune_system) +  # Use reorder para reordenar as barras +
-  geom_bar()+
-  scale_fill_manual(
-    values = c(Adaptive = "#6DF8DF",
-    Complement = "#e9edc9",
-    General = "#bde0fe",
-    Innate = "#989898",
-    Undefined = "#edede9")) +
- labs(y = "Set size", title = "ImmuneGO", subtitle = "Top 10 GO, by set size") +
- coord_flip() +
- theme_minimal()
-
-#Salvar
-ggsave(ImmuneGO_top10_barplot, file="ImmuneGO_top10_barplot.png", width = 10, height = 6)
-
-#Display
-head(ImmuneGO_top10_barplot)
-```
-
-
-
-### ImmuneGO + BTM
-
-```{r}
-btm_annotation_genes = readRDS(here("VaxGO gene sets", "btm_annotation_genes.rds"))
-ImmuneGO_Annotated_Genes = readRDS(here("VaxGO gene sets", "ImmuneGO_Annotated_Genes_2024-03-26.rds"))
-ImmuneGO_Annotated_GO = read_csv(here("VaxGO gene sets", "ImmuneGO_Annotated_GO_2024_03_26.csv"))
-
-
-
-#Unite genes
-immunego_btm_genes = ImmuneGO_Annotated_Genes %>% 
-              select(genes) %>% 
-              distinct() %>% 
-              mutate(set = "ImmuneGO") %>% 
-  bind_rows(btm_annotation_genes %>% 
-              select(genes) %>% 
-              distinct() %>% 
-              mutate(set = "BTM")) %>% 
-  arrange(genes)
-
-immunego_btm_genes_joined = immunego_btm_genes %>% 
-  bind_rows(immunego_btm_genes %>% mutate(set = "BTM and ImmuneGO")) %>% 
-  distinct()
-
-
-#Unite subsets
-btm_annotation_grouped = btm_annotation_genes %>% 
-  group_by(complete_name) %>% 
-  rename(process = complete_name) %>% 
-  mutate(genes = paste0(genes, collapse = ",")) %>% 
-  distinct() %>% 
-  mutate(genes = paste0(genes, collapse = ","),
-            set_size = n(),
-            # id = process,
-            immune_system = process,
-            immune_subsystem = process,
-            cells = process,
-            complete_name = process,
-            annotation_level = annotation_level,
-            immune_set = "BTM by Modules")
-
-#By immune system
-btm_immunesystem = btm_annotation_genes %>% 
-  select(immune_system, genes) %>% 
-  distinct() %>% 
-  rename(process = immune_system) %>% 
-  group_by(process) %>% 
-  summarize(genes = paste0(genes, collapse = ","),
-            set_size = n(),
-            process = str_to_upper(process),
-            # id = process,
-            immune_system = process,
-            immune_subsystem = process,
-            cells = process,
-            complete_name = process,
-            annotation_level = "Manual",
-            immune_set = "BTM by Immune System") %>% 
-  distinct()
-
-#By immune subsystem
-btm_immunesubsystem = btm_annotation_genes %>% 
-  select(immune_subsystem, genes) %>% 
-  distinct() %>% 
-  rename(process = immune_subsystem) %>% 
-  group_by(process) %>% 
-  summarize(genes = paste0(genes, collapse = ","),
-            process = str_to_upper(process),
-            set_size = n(),
-            # id = process,
-            immune_system = process,
-            immune_subsystem = process,
-            cells = process,
-            complete_name = process,
-            annotation_level = "Manual",
-            immune_set = "BTM by Immune Sub-System") %>% 
-  distinct() 
-#By cell
-btm_cells = btm_annotation_genes %>% 
-  select(cells, genes) %>%
-  distinct() %>% 
-  rename(process = cells) %>% 
-  group_by(process) %>% 
-  summarize(genes = paste0(genes, collapse = ","),
-            set_size = n(),
-            process = str_to_upper(process),
-            # id = process,
-            immune_system = process,
-            immune_subsystem = process,
-            cells = process,
-            annotation_level = "Manual",
-            complete_name = process,
-            immune_set = "BTM by Immune Cell") %>% 
-  distinct() 
-#Merge
-btm_manual = bind_rows(btm_immunesystem,
-          btm_immunesubsystem,
-          btm_cells) %>% 
-  arrange(complete_name) %>% 
-  select(complete_name, everything()) %>% 
-  distinct()
-
-btm_manual_grouped = bind_rows(btm_manual,
-                               btm_annotation_grouped) %>% 
-  distinct()
-
-
-#Merge ImmuneGO and BTM main processes
-immunego_btm_manual_grouped = btm_manual %>% 
-  select(process, genes, immune_set, set_size) %>% 
-  mutate(immune_set = "BTM") %>% 
-  bind_rows(ImmuneGO_Annotated_GO %>% 
-              filter(go_term == "Manual") %>% 
-              select(process, genes, set_size) %>% 
-              mutate(immune_set = "ImmuneGO")) %>% 
-  arrange(process) %>% 
-  mutate(process = case_when(process == "ADAPTIVE" ~ "ADAPTIVE IMMUNE SYSTEM",
-                              process == "ALL" ~ "IMMUNE SYSTEM",
-                              process == "GENERAL" ~ "LEUKOCYTES",
-                              process == "CELLS" ~ "LEUKOCYTES",
-                              process == "DCS" ~ "DENDRITIC CELL",
-                              process == "APP" ~ "ARPP",
-                              process == "CELLULAR" ~ "CELLULAR ADAPTIVE IMMUNE SYSTEM",
-                              process == "DCS, MYELOID" ~ "DENDRITIC CELL",
-                              process == "GENERIC" ~ "LEUKOCYTES",
-                              process == "HUMORAL" ~ "HUMORAL ADAPTIVE IMMUNE SYSTEM",
-                              process == "INNATE" ~ "INNATE IMMUNE SYSTEM",
-                              process == "INTERFERON" ~ "ANTIVIRAL & IFN",
-                              process == "NK" ~ "NK CELL",
-                              process == "B CELL, PLASMA CELL" ~ "B CELL",
-                              process == "PLASMA CELL" ~ "B CELL",
-                              process == "PRR" ~ "ARPP",
-                              process == "SIGNALING" ~ "SIGNALING",
-                              process == "TH2" ~ "T CELL",
-                              process == "TH1" ~ "T CELL",
-                              process == "T HELPER CELLS" ~ "T CELL",
-                              TRUE ~ process
-                              )) %>% 
-  distinct()
-
-immunego_btm_manual_grouped_genes = immunego_btm_manual_grouped %>%
-  separate_rows(genes, sep = ",") %>% 
-  distinct()
-
-immunego_btm_manual_grouped_genes = immunego_btm_manual_grouped_genes %>% 
-  bind_rows(
-    immunego_btm_manual_grouped_genes %>% 
-      mutate(immune_set = "BTM and ImmuneGO") %>% 
-      distinct()
-  )
-  
-immunego_btm_manual_grouped %>% 
-  write_csv(file = here("VaxGO gene sets", "ImmuneGO_BTM_grouped_genesets.csv"))
-
-immunego_btm_manual_grouped_genes %>% 
-  write_csv(file = here("VaxGO gene sets", "ImmuneGO_BTM_grouped_genes.csv"))
-  
-```
-Plot relative frequency of genes by main process
-```{r fig.height=5, fig.width=7}
-
-#Get exclusive genes
-immunego_only_genes = immunego_btm_manual_grouped_genes %>% 
-  filter(immune_set == "ImmuneGO") %>% 
-  select(-immune_set, -set_size) %>% 
-  anti_join(immunego_btm_manual_grouped_genes %>% 
-            filter(immune_set == "BTM"),
-            by = "genes") %>% 
-  mutate(immune_set = "ImmuneGO only") %>% 
-  distinct()
-
-btm_only_genes = immunego_btm_manual_grouped_genes %>% 
-  filter(immune_set == "BTM") %>% 
-  select(-immune_set, -set_size) %>% 
-  anti_join(immunego_btm_manual_grouped_genes %>% 
-            filter(immune_set == "ImmuneGO"),
-            by = "genes") %>% 
-  mutate(immune_set = "BTM only") %>% 
-  distinct()
-
-btm_immune_joined_stats = immunego_only_genes %>% 
-  bind_rows(btm_only_genes) %>% 
-  distinct() %>% 
-  mutate(immune_set = "BTM and ImmuneGO") %>% 
-  select(process, genes, immune_set) %>% 
-  distinct() %>% 
-  group_by(process) %>% 
-  distinct() %>% 
-  mutate(ntotal=n()) %>% 
-  ungroup() %>% 
-  select(process, ntotal) %>% 
-  distinct() %>% 
-  inner_join(immunego_only_genes %>% 
-               bind_rows(btm_only_genes), by = "process") %>% 
-  group_by(process, immune_set) %>% 
-  mutate(n = n(),
-         genes = paste0(genes, collapse = ",")) %>% 
-  select(-genes) %>% 
-  distinct() %>% 
-  ungroup() %>% 
-  mutate(n_perc = (n/ntotal) * 100)
-
-btm_immune_joined_stats_plot = btm_immune_joined_stats %>% 
-  filter(!process %in% c("LYMPHOCYTE", 
-                         "IMMUNOGLOBULIN MEDIATED RESPONSE",
-                         "MYELOID CELL", 
-                         "SIGNALING", 
-                         "IMMUNE SYSTEM")) %>%
-  mutate(process = str_to_title(process),
-         process = fct_relevel(process, 
-                               "Leukocytes",
-                               "Adaptive Immune System",
-                               "Innate Immune System",
-                               "Complement"	,
-                               "Cellular Adaptive Immune System",
-                               "Humoral Adaptive Immune System",
-                               )) %>% 
- ggplot() +
-  aes(x = n_perc, y = fct_rev(process), fill = immune_set) +
-  geom_bar(stat = "summary", fun = "sum", position = "fill") +
-  scale_fill_manual(values = c("BTM only" = "#5e60ce",
-                               "ImmuneGO only" = "#00A087FF")) +
-  theme_minimal() +
-  theme(legend.position = "right",
-        strip.text.x = element_text(color = "black", size = 12), 
-        axis.text.x = element_text(color = "black", size = 10),
-        axis.text.y = element_text(vjust = 0.5, size = 10, color = "black"),
-        axis.line = element_line(size = 0.5, colour = "black", linetype=1),
-        axis.ticks = element_line(size = 0.5, color = "black")) +
-  labs(x = "%Coverage",
-       y = "",
-       fill = "Immune set",
-       subtitle = "Merged data",
-       title = "ImmuneGO and BTM main processes genes") +
-  scale_x_continuous(expand = c(0,0)) +
-  geom_text(aes(label = paste0(round(n_perc, 0))), 
-            position = position_fill(vjust = 0.5), 
-            size = 3, 
-            color = "white",
-            fontface = "bold") 
-
-btm_immune_joined_stats_plot %>% 
-  ggsave(filename = here("Figures", "ImmuneGO_BTM_Joined_Stats_barplot.png"),
-         width = 10,
-         height = 7)
-
-btm_immune_joined_stats_plot
-```
-
-
-### VAX MSigDB
-
-
-```{r}
-#Importar arquivo
-VaxSigDB_genesets = VAX_GeneSets_Annotated_26_10_23
-
-# Divida os dados em blocos de informações para cada vacina
-vaccines_att <- split(VaxSigDB_genesets$Col2, VaxSigDB_genesets$Col1)
-
-# Combine data
-VAX_Genesets <- bind_rows(lapply(vaccines_att, function(x) data.frame(t(x))), .id = "V")
-
-# Name a new index column
-colnames(VAX_Genesets) <- paste0("V", seq_len(ncol(VAX_Genesets)))
-
-# Transpose
-rownames(VAX_Genesets) <- VAX_Genesets$V1
-VAX_Genesets = VAX_Genesets %>% 
-  t() %>%
-  as.data.frame()
-
-#Order columns
-VAX_Genesets = VAX_Genesets %>% 
-  select(STANDARD_NAME, everything()) %>% 
-  filter(STANDARD_NAME != "STANDARD_NAME") 
-rownames(VAX_Genesets) = VAX_Genesets$SYSTEMATIC_NAME
-VAX_Genesets = VAX_Genesets %>% select(STANDARD_NAME, 
-                                       DESCRIPTION_BRIEF,
-                                       DESCRIPTION_FULL,
-                                       PMID,
-                                       AUTHORS,
-                                       SYSTEMATIC_NAME,
-                                       GENE_SYMBOLS,
-                                       everything())
-
-#Anotar novas colunas
-VAX_Genesets <- VAX_Genesets %>%
-  mutate(
-    SAMPLE_SOURCE = ifelse(
-      grepl("pbmc|peripheral blood mononuclear cell|peripheral blood mononuclear cells", DESCRIPTION_FULL, ignore.case = TRUE) |
-      grepl("pbmc|peripheral blood mononuclear cell|peripheral blood mononuclear cells", DESCRIPTION_BRIEF, ignore.case = TRUE),
-      "PBMC",
-      ifelse(
-        grepl("whole blood", DESCRIPTION_FULL, ignore.case = TRUE) |
-        grepl("whole blood", DESCRIPTION_BRIEF, ignore.case = TRUE) |
-        grepl("_BLOOD", STANDARD_NAME, ignore.case = TRUE)  ,
-        "WHOLE BLOOD",
-        "OTHER")),
-    REGULATION = ifelse(
-      grepl("up", DESCRIPTION_BRIEF, ignore.case = TRUE),
-      "UP",
-      ifelse(
-        grepl("down", DESCRIPTION_BRIEF, ignore.case = TRUE),
-        "DOWN",
-        "UNKNOWN")))
-
-#Reordenar colunas
-VAX_Genesets = VAX_Genesets %>% select(SAMPLE_SOURCE, REGULATION, everything())
-
-# Salvar
-write.csv(VAX_Genesets, file = "VAXSigDB_Annotated.csv") #Continuar a anotação no Google Sheets
-
-head(VAX_Genesets)
-```
-
- Long table with Gene symbols
-
-```{r}
-############## Long table with Gene symbols
-
-VAX_Genesets = VAXSigDB_Annotated
-
-VAX_Genes <- VAX_Genesets %>%
-  mutate(GENE = GENE_SYMBOLS) %>% 
-  separate_rows(GENE, sep = ",") %>% 
-  select(GENE, everything()) %>%
-  group_by(STANDARD_NAME) %>%
-  mutate(SetSize = n()) %>% 
-  relocate(SetSize, .after = GENE_SYMBOLS)
-
-VAX_GeneSets_annotated <- VAX_Genes %>%
-  select(-GENE) %>% 
-  distinct()
-
-#Salvar
-write.csv(VAX_Genes, file = "VAX_Genes_Annotated_RAW.csv")
-write.csv(VAX_GeneSets_annotated, file = "VAX_Genesets_Annotated_RAW.csv")
-
-#Display
-head(VAX_GeneSets_annotated)
-```
-
-Filtering
-
-```{r}
-unique(VAX_GeneSets_annotated$STUDY_TYPE) 
-#"CORRELATION"
-#"VACCINE"
-#"SUBSET"
-#"CHALLENGE"
-
-unique(VAX_GeneSets_annotated$STUDY_SUBTYPE)
-# "ANTIBODY"				
-# "VAC ONLY"				
-# "BOOSTER"				
-# "VAC VS CTRL"				
-# "SIGNATURE"				
-# "ADVERSE EVENT"			
-# "COMPARISON"				
-# "RESPONDER VS NON RESPONDER"				
-# "AGE"				
-# "RESPONDER"				
-# "ADJUVANT"				
-# "NON RESPONDER"				
-# "ANTIMICROBIAL ACTIVITY"				
-# "CELLS"				
-# "CHALLENGE"				
-# "TOP DEGS"				
-# "PROTECTION"				
-# "TRAINING SET"				
-# "EXON ANALYSIS"				
-# "DOSE"				
-# "VAC VS OTHER"
-
-
-# Subset de vacinas para as seguintes análises comparativas
-VAX_GeneSets_Blood_PBMC_VAC = VAX_GeneSets_annotated %>% 
-  filter(SAMPLE_SOURCE %in% c("PBMC", "WHOLE BLOOD"), 
-         STUDY_TYPE %in% c("VACCINE"))
-
-# Subset de vacinas com resultados de comparações entre vacinas, adjuvantes, idade e sexo
-VAX_GeneSets_Blood_PBMC_CORR = VAX_GeneSets_annotated %>% 
-  filter(SAMPLE_SOURCE %in% c("PBMC", "WHOLE BLOOD"), 
-         STUDY_TYPE %in% c("CORRELATION"))
-
-# Subset com resultados de correlações com resposta inata, celular e humoral
-VAX_GeneSets_Blood_PBMC_SUBSETS = VAX_GeneSets_annotated %>% 
-  filter(SAMPLE_SOURCE %in% c("PBMC", "WHOLE BLOOD"), 
-         STUDY_TYPE %in% c("SUBSET"))
-
-
-# Subset de vacinas com genes associados a eventos adversos
-VAX_GeneSets_Blood_PBMC_CHALLENGE = VAX_GeneSets_annotated %>% 
-  filter(SAMPLE_SOURCE %in% c("PBMC", "WHOLE BLOOD"), 
-         STUDY_TYPE %in% c("CHALLENGE"))
-
-VAX_GeneSets_Blood_PBMC_VAC.stats = VAX_GeneSets_Blood_PBMC_VAC %>% 
-  group_by(VACCINE, PLATFORM, REGULATION, `TARGET_PATHOGEN_DISEASE`, MICROBE_TYPE) %>% 
-  summarise(Count = n()) %>% 
-  arrange(desc(Count))
-
-```
-
-## Immune genes representation in the datasets
-Are all immune-related genes represented in all datasets?
-
-```{r}
-genes_raw_combined = all_matrices_genes
-ImmuneGO_Annotated_Genes
-
-datasets_immune_genes = genes_raw_combined %>% 
-  right_join(ImmuneGO_Annotated_Genes %>% 
-               filter(go_term == "Manual") %>% 
-               select(process, genes)  %>%  
-               filter(process %in% c('INNATE IMMUNE SYSTEM',
-                                     'ADAPTIVE IMMUNE SYSTEM',
-                                     'CELLULAR ADAPTIVE IMMUNE SYSTEM',
-                                     'HUMORAL ADAPTIVE IMMUNE SYSTEM')), by = "genes") %>% 
-  mutate(process = fct_relevel(process, 'INNATE IMMUNE SYSTEM',
-                                     'ADAPTIVE IMMUNE SYSTEM',
-                                     'CELLULAR ADAPTIVE IMMUNE SYSTEM',
-                                     'HUMORAL ADAPTIVE IMMUNE SYSTEM'),
-         gse_id = fct_relevel(gse_id, 'GSE199750', 
-                                          'GSE201533',
-                                          'GSE201530',
-                                          'GSE189039',
-                                          "GSE206023")) %>% 
-  filter(gse_id != "NA")
-
-```
-
-
-
-```{r fig.height=10, fig.width=20}
-######## ALL
-
-ImmuneGO_Interesting_Genes_plot.higher <- datasets_immune_genes %>%
-  ggplot() +
-  aes(x = fct_rev(gse_id), y = genes, fill = gse_id) +
-  geom_tile() +
-  facet_wrap(vars(process), scales = "free_x",
-             ncol = 1) +
-  scale_fill_manual(
-    values = c("GSE199750" = "#80ffdb",
-               "GSE201533" = "#5e60ce", 
-               "GSE201530" = "#7400b8",
-               "GSE206023" = "#4361ee",
-               "GSE189039" = "#48bfe3")) +
-  coord_flip() +
-  theme_void() +
-  labs(
-    x = "GSE_ID",
-    y = "#Genes",
-    fill = "GSE ID",
-    title = "") + 
-  theme(axis.text.x = element_text(angle = 90, size = 0),
-        axis.text.y = element_text(size = 0, hjust = 20),
-        plot.title = element_text(size = 20),
-        legend.position = "right",
-        legend.text = element_text(size = 20),
-        legend.title = element_text(size = 20),
-        strip.text = element_text(size= 20))
-
-#Save
-ggsave(ImmuneGO_Interesting_Genes_plot.higher, 
-       file = here("Figures", "ImmuneGO_Dataset_Representation_label.png"), 
-       width = 20, height = 10)
-
-ImmuneGO_Interesting_Genes_plot.higher
-```
-
-
-```{r fig.height=10, fig.width=20}
-############### Grouped
-ImmuneGO_genes_indatasets.merge_grouped = genes_raw_combined %>% 
-  inner_join(ImmuneGO_Annotated_Genes %>% 
-               filter(go_term == "Manual") %>% 
-               select(process, genes)  %>%  
-               filter(process %in% c('INNATE IMMUNE SYSTEM',
-                                     'ADAPTIVE IMMUNE SYSTEM',
-                                     'CELLULAR ADAPTIVE IMMUNE SYSTEM',
-                                     'HUMORAL ADAPTIVE IMMUNE SYSTEM')), by = "genes") %>% 
-  group_by(gse_id, process) %>% 
-  summarize(n_in = n()) %>% 
-  inner_join(ImmuneGO_Annotated_Genes %>% select(process, set_size)) %>% 
-  mutate(n_perc_in = n_in/set_size,
-         n_perc_in = n_perc_in *100,
-         n_perc_in = round(n_perc_in,0)) %>% 
-    distinct() %>% 
-    mutate(process = fct_relevel(process, 'INNATE IMMUNE SYSTEM',
-                                     'ADAPTIVE IMMUNE SYSTEM',
-                                     'CELLULAR ADAPTIVE IMMUNE SYSTEM',
-                                     'HUMORAL ADAPTIVE IMMUNE SYSTEM'))
-
-#Plot
-ggImmuneGO_genes_indatasets.stats =  ImmuneGO_genes_indatasets.merge_grouped %>% 
-  mutate(gse_id = fct_relevel(gse_id,  'GSE199750', 
-                                          'GSE201533',
-                                          'GSE201530',
-                                          'GSE189039',
-                                          'GSE206023') %>% 
-           fct_rev()) %>% 
-  ggplot() +
-  aes(x = gse_id, y = n_perc_in, fill = gse_id) +
-  geom_col() +
-  scale_fill_manual(
-    values = c("GSE199750" = "#80ffdb",
-               "GSE201533" = "#5e60ce", 
-               "GSE201530" = "#7400b8",
-               "GSE206023" = "#4361ee",
-               "GSE189039" = "#48bfe3")) +
-  coord_flip() +
-  theme_void() +
-  geom_text(aes(label = n_perc_in, y = n_perc_in), 
-            position = position_dodge(width = 0.9), 
-            vjust = 0.5, 
-            hjust = -0.05, 
-            size = 6) +
-  labs(
-    x = "",
-    y = "#Genes",
-    title = ""
-  ) +
-  facet_wrap(vars(process), ncol = 1) +
-    theme(axis.text.x = element_text(angle = 90, size = 0, hjust = 1),
-        axis.text.y = element_text(size = 20),
-        plot.title = element_text(size = 20),
-        legend.position = "none",
-        strip.text = element_text(size= 20)) +
-  ylim(0, 110)
-
-patch_indatasets = ggImmuneGO_genes_indatasets.stats + ImmuneGO_Interesting_Genes_plot.higher +
-  plot_layout(widths = c(1, 2)) +
-  plot_annotation(title = "Number of genes represented in ImmuneGO, by study", 
-                  theme = theme(plot.title = element_text(size = 30)))
-
-ggsave(patch_indatasets, file = here("Figures", "ImmuneGO_Genesrepresented_bystudy.png"), width = 20, height = 10)
-patch_indatasets
-
-```
-
-Line plots
-
-```{r}
-
-Immune_GO_GSEA
-
-################## Innate
-Immune_GO_innate = Immune_GO_GSEA %>% filter(`Immune system` == "Innate")
-write.csv(Immune_GO_innate, file = "Immune_GO_innate_l2fc.csv")
-
-Immune_GO_innate_SUM <- Immune_GO_innate %>% 
-  rename(Condition = study) %>% 
-  group_by(Condition, Process) %>%
-  mutate(Soma = n()) %>% select(Vaccine, Condition, Process, `Immune group`, `Immune response gene set, specific`, `Immune system`, Soma) %>% filter(Vaccine != "NA")
-write.csv(Immune_GO_innate_SUM, file="Immune_GO_innate_SUM.csv")
-
-
-################## Adaptive
-#Humoral
-Immune_GO_humoral = Immune_allgenes %>% filter(`Immune system` == "Humoral")
-write.csv(Immune_GO_humoral, file = "Immune_GO_humoral_l2fc.csv")
-
-Immune_GO_humoral_SUM <- Immune_GO_humoral %>% 
-  rename(Condition = study) %>% 
-  group_by(Condition, Process) %>%
-  mutate(Soma = n()) %>% select(Vaccine, Condition, Process, `Immune group`, `Immune response gene set, specific`, `Immune system`, Soma) %>% filter(Vaccine != "NA")
-write.csv(Immune_GO_humoral_SUM, file="Immune_GO_humoral_SUM.csv")
-
-#Cellular
-Immune_GO_cellular = Immune_allgenes %>% filter(`Immune system` == "Cellular")
-write.csv(Immune_GO_cellular, file = "Immune_GO_cellular_l2fc.csv")
-
-Immune_GO_cellular_SUM <- Immune_GO_cellular %>% 
-  rename(Condition = study) %>% 
-  group_by(Condition, Process) %>%
-  mutate(Soma = n()) %>% select(Vaccine, Condition, Process, `Immune group`, `Immune response gene set, specific`, `Immune system`, Soma) %>% filter(Vaccine != "NA")
-write.csv(Immune_GO_cellular_SUM, file="Immune_GO_cellular_SUM.csv")
-
-################## General
-Immune_GO_general = Immune_allgenes %>% filter(`Immune system` == "General")
-write.csv(Immune_GO_general, file = "Immune_GO_general_l2fc.csv")
-
-Immune_GO_general_SUM <- Immune_GO_general %>% 
-  rename(Condition = study) %>% 
-  group_by(Condition, Process) %>%
-  mutate(Soma = n()) %>% select(Vaccine, Condition, Process, `Immune group`, `Immune response gene set, specific`, `Immune system`, Soma) %>% filter(Vaccine != "NA")
-write.csv(Immune_GO_general_SUM, file = "Immune_GO_general_SUM.csv")
-
-################## All immune processes and genes
-Immune_allgenes_vaccines = Immune_allgenes_l2fc %>% rename(Condition = study, Genes = genes) %>% filter(Vaccine != "NA")
-ann_vaccines_pca_matrix = merge(ann_vaccines_pca, matrix_data_pca, by.x = "Condition", all.x = F, all.y = F)
-ann_vaccines_pca_matrix_long = ann_vaccines_pca_matrix %>% gather(Genes, L2FC, -Condition, -Vaccine, -Day, -Dose)
-
-Immune_allgenes_vaccines_SUM <- Immune_allgenes_vaccines %>%
-  group_by(Condition, Process) %>% #Somar e agrupar
-  summarize(Soma = n())
-
-Immune_allgenes_vaccines_SUM = merge(ann_vaccines_pca, Immune_allgenes_vaccines_SUM, by.x = "Condition", all.x = F, all.y = F) # Anotar vacinas
-write.csv(Immune_allgenes_vaccines_SUM, file="Immune_allgenes_vaccines_SUM.csv") #Salvar
-
-```
 
 
 ## COVID-19 and other vaccines
@@ -12848,7 +12868,7 @@ covid_other_immune_genes_50_mostshared_all = stats_1 %>%
                select(condition, genes), by = "genes")
 ```
 
-# 8. Machine learning descriptors
+# 9. Machine learning descriptors
 
 Preparing
 
@@ -17557,7 +17577,7 @@ dev.off()
 
 
 
-# 9. Heatmaps - Genes - ImmuneGO
+# 10. Heatmaps - Genes - ImmuneGO
 
 Import files
 
@@ -20167,7 +20187,7 @@ draw(heatmap_plot_all, annotation_legend_side = "right", heatmap_legend_side = "
 dev.off()
 ```
 
-# 10. Gene networks
+# 11. Gene networks
 
 ```{r}
 ImmuneGO_Annotated_Genes = readRDS(here("VaxGO gene sets", "ImmuneGO_Annotated_Genes_2024-03-26.rds"))
@@ -24171,7 +24191,7 @@ write_tsv(nodes, file = paste0(filename, "Network_Covid_Other_sharedgenes_nodes.
 
 
 
-# 11. 13 Vax Atlas
+# 12. 13 Vax Atlas
 
 ```{r}
 IS2_FDR05_genes <- readRDS(here("13VaxAtlas", "IS2_FDR05_genes.rds"))
@@ -25085,7 +25105,7 @@ cluster_by_day <- function(df, day_column = "day", condition_column = "condition
 
 ```
 
-COVID and Other
+##### COVID and Other
 By day
 ```{r fig.height=15, fig.width=30}
 df = All_covid_13VaxImmune_GO_T2G_general_GSEA_ALL %>% 
@@ -25300,222 +25320,6 @@ patch_immune_main %>%
 patch_immune_main
 
 ```
-
-By day
-```{r fig.height=15, fig.width=15}
-df = All_covid_13VaxImmune_GO_T2G_general_GSEA_ALL %>% 
-  filter(p_adjust<= 0.25) %>%
-  inner_join(ann_vaccines_covid_other_conditions, by = "condition") %>% 
-  filter(set == "COVID-19")
-
-df =  df %>% 
-    mutate(day = fct_relevel(day, df %>% 
-                               select(day) %>% 
-                               distinct() %>% 
-                               mutate(day = as.character(day),
-                                      day = as.numeric(day)) %>% 
-                               arrange(day) %>% 
-                               pull() %>% 
-                               as.character()))
-
-
-row_clustered = df %>% 
-  select(condition, id, nes) %>% 
-  distinct() %>% 
-  pivot_wider(names_from = "condition",
-              values_from= "nes") %>%
-  column_to_rownames("id") %>% 
-  as.matrix() %>% 
-  replace(is.na(.), 0) %>% 
-  dist(.) %>% 
-  hclust()
-
-row_shared =  df %>%
-  filter(id %in% row_clustered$labels,
-         p_adjust <= 0.10) %>% 
-  mutate(condition = factor(condition, column_order),
-         id = factor(id, levels = row_clustered$labels[row_clustered$order]),
-         id = str_to_title(id),
-         id = case_when(id == "Humoral Adaptive Immune System" ~ "Humoral Adap.",
-                        id == "Cellular Adaptive Immune System" ~ "Cellular Adap.",
-                        id == "Adaptive Immune System" ~ "Adap.",
-                        id == "Innate Immune System" ~ "Innate",
-                        id == "Complement Immune System" ~ "Complement",
-                        id == "Immunoglobulin Mediated Response" ~ "Ig-mediated",
-                        id == "Antiviral And Interferon" ~ "Antiviral/IFN",.default = id)) %>% 
-  group_by(id) %>% 
-  summarize(n = n()) %>% 
-  ungroup() %>% 
-  arrange(-n)
-
-result_vac <- cluster_by_day(df %>% filter(disease_vac == "V"), day_column = "day", condition_column = "condition") %>%
-  distinct() %>% 
-  mutate(day = fct_relevel(day, df$day %>% unique() %>% sort() %>% as.character()))
-
-result_inf_vac2 <- cluster_by_day(df %>% 
-                               filter(disease_vac == "I",
-                                      dose %in% c("2")), day_column = "day") %>%
-  mutate(day = fct_relevel(day, df$day %>% unique() %>% sort() %>% as.character()))
-
-result_inf_vac01 <- cluster_by_day(df %>% 
-                               filter(disease_vac == "I",
-                                      dose %in% c("0", "1")), day_column = "day") %>%
-  mutate(day = fct_relevel(day, df$day %>% unique() %>% sort() %>% as.character()))
-
-column_order <- c(result_vac$condition, result_inf_vac2$condition, result_inf_vac01$condition)
-
-labels_set <- df %>% 
-  filter(id %in% row_clustered$labels) %>% 
-  mutate(condition = factor(condition, levels = column_order)) %>% 
-  ggplot() +
-  aes(x = condition, y = 1, fill = set) + 
-  geom_tile() + 
-  scale_fill_manual(values = ann_vaxsig_colors$set) + 
-  theme_void() +
-  labs(y = "Set") +
-  theme(axis.title.y = element_text(size = 12, hjust = 1),
-        legend.position = "right") 
-
-labels_disease_vac <- df %>% 
-  filter(id %in% row_clustered$labels) %>% 
-  mutate(condition = factor(condition, levels = column_order)) %>% 
-  ggplot() +
-  aes(x = condition, y = 1, fill = disease_vac) + 
-  geom_tile() + 
-  scale_fill_manual(values = ann_vaxsig_colors$disease_vac) + 
-  theme_void() +
-  labs(y = "Infection/Vaccination") +
-  theme(axis.title.y = element_text(size = 12, hjust = 1),
-        legend.position = "right") 
-
-labels_type <- df %>% 
-  filter(id %in% row_clustered$labels) %>% 
-  mutate(condition = factor(condition, levels = column_order)) %>% 
-  ggplot() +
-  aes(x = condition, y = 1, fill = type) + 
-  geom_tile() + 
-  scale_fill_manual(values = ann_vaxsig_colors$Platform) + 
-  theme_void() +
-  labs(y = "Type") +
-  theme(axis.title.y = element_text(size = 12, hjust = 1),
-        legend.position = "right") 
-
-labels_dose <- df %>% 
-  filter(id %in% row_clustered$labels) %>% 
-  mutate(condition = factor(condition, levels = column_order)) %>% 
-  ggplot() +
-  aes(x = condition, y = 1, fill = dose) + 
-  geom_tile() + 
-  scale_fill_manual(values = ann_vaxsig_colors$dose) + 
-  theme_void() +
-  labs(y = "Dose") +
-  theme(axis.title.y = element_text(size = 12, hjust = 1),
-        legend.position = "right") 
-
-labels_week = df %>% 
-  filter(id %in% row_clustered$labels) %>% 
-  mutate(condition = factor(condition, column_order)) %>% 
-  ggplot() +
-  aes(x = condition, y = 1, fill = week) + 
-  geom_tile() + 
-  scale_fill_manual(values = ann_vaxsig_colors$week) + 
-  theme_void() +
-  labs(y = "Week") +
-  theme(axis.title.y = element_text(size = 12, hjust = 1),
-        legend.position = "right")
-
-labels_day = df %>% 
-  filter(id %in% row_clustered$labels) %>% 
-  mutate(condition = factor(condition, column_order)) %>% 
-  ggplot() +
-  aes(x = condition, y = 1, fill = day) + 
-  geom_tile() + 
-  scale_fill_manual(values = ann_vaxsig_colors$day) + 
-  theme_void() +
-  labs(y = "Day") +
-  theme(axis.title.y = element_text(size = 12, hjust = 1),
-        legend.position = "right")
-
-
-#Plot
-
-dotplot = df %>% 
-  filter(id %in% row_clustered$labels) %>% 
-  mutate(signific = case_when(p_adjust <= 0.10 ~ "*",
-                              TRUE ~ "")) %>% 
-  mutate(condition = factor(condition, column_order),
-         # id = factor(id, levels = row_clustered$labels[row_clustered$order]),
-         id = str_to_title(id),
-         id = case_when(id == "Humoral Adaptive Immune System" ~ "Humoral Adap.",
-                        id == "Cellular Adaptive Immune System" ~ "Cellular Adap.",
-                        id == "Adaptive Immune System" ~ "Adap.",
-                        id == "Innate Immune System" ~ "Innate",
-                        id == "Complement Immune System" ~ "Complement",
-                        id == "Immunoglobulin Mediated Response" ~ "Ig-mediated",
-                        id == "Antiviral And Interferon" ~ "Antiviral/IFN",.default = id),
-         id = fct_relevel(id, c(row_shared$id))) %>% 
-  ggplot(aes(x=condition, y = fct_rev(id), 
-             fill = nes
-             )) +
-  geom_tile(color = "white",
-            size = 0.5) +
-  geom_text(aes(label = signific), size = 6, vjust = 0.5, color = "black") +
-  theme_minimal() + 
-  theme(axis.text = element_text(color = "black", size = 15),
-        axis.line.x  = element_line(size = 1, color ="black"),
-        # axis.line.y  = element_line(size = 1, color ="black"),
-        axis.text.x = element_text(angle = 45, vjust = 1, hjust=1),
-        axis.ticks = element_line(size = 1, color ="black"),
-        # panel.grid = element_line(linetype = 2, color = "gray75"),
-        panel.grid = element_blank(),
-        legend.direction = "horizontal",
-        legend.position = "bottom") +
-  labs(x = "",
-       y = "") +
-  scale_fill_gradient2(low = "#4DBBD5FF",
-                        mid = "white",
-                        midpoint = 0, 
-                        name = "NES",
-                      high = "#DC0000FF") +
-  # scale_color_gradient2(low = "blue",
-  #                       mid = "white",
-  #                       midpoint = 0, 
-  #                       name = "NES",
-  #                     high = "#DC0000FF") +
-  scale_y_discrete(position = "right") 
-
-
-patch_immune_main = 
-  (labels_set /
-  labels_disease_vac /
-  labels_type /
-  labels_dose/
-  labels_day/
-  dotplot) +
-  plot_layout(heights = c( 0.2, 0.2, 0.2, 0.2, 0.2, 5),
-              guides = 'collect',
-              axes = "collect") +
-  plot_annotation(title = "GSEA ImmuneGO + BTM",
-                  subtitle = "Main processes, p-adjusted value <= 0.25",
-                  theme = theme(legend.position = "right",
-                                plot.title = element_text(hjust = 0.5, size = 20),
-                                plot.subtitle = element_text(hjust = 0.5, size = 20),
-                                plot.margin = margin(5, 1, 5, 1, unit = "cm"),
-                                legend.direction = "vertical", 
-                                legend.box = "vertical"))
-  
-  patch_immune_main
-
-patch_immune_main %>%
-  ggsave(filename = here("Figures", paste0(filename, "_GSEA_ImmuneGO_BTM_MainGOs_Bubbleplot_COVIDONLY.png")),
-         width = 20,
-         height = 15)
-patch_immune_main
-
-```
-
-
-
 
 By condition
 ```{r fig.height=15, fig.width=30}
@@ -26071,6 +25875,222 @@ patch_immune_main %>%
 patch_immune_main
 
 ```
+
+
+##### COVID only
+By day
+```{r fig.height=15, fig.width=15}
+df = All_covid_13VaxImmune_GO_T2G_general_GSEA_ALL %>% 
+  filter(p_adjust<= 0.25) %>%
+  inner_join(ann_vaccines_covid_other_conditions, by = "condition") %>% 
+  filter(set == "COVID-19")
+
+df =  df %>% 
+    mutate(day = fct_relevel(day, df %>% 
+                               select(day) %>% 
+                               distinct() %>% 
+                               mutate(day = as.character(day),
+                                      day = as.numeric(day)) %>% 
+                               arrange(day) %>% 
+                               pull() %>% 
+                               as.character()))
+
+
+row_clustered = df %>% 
+  select(condition, id, nes) %>% 
+  distinct() %>% 
+  pivot_wider(names_from = "condition",
+              values_from= "nes") %>%
+  column_to_rownames("id") %>% 
+  as.matrix() %>% 
+  replace(is.na(.), 0) %>% 
+  dist(.) %>% 
+  hclust()
+
+row_shared =  df %>%
+  filter(id %in% row_clustered$labels,
+         p_adjust <= 0.10) %>% 
+  mutate(condition = factor(condition, column_order),
+         id = factor(id, levels = row_clustered$labels[row_clustered$order]),
+         id = str_to_title(id),
+         id = case_when(id == "Humoral Adaptive Immune System" ~ "Humoral Adap.",
+                        id == "Cellular Adaptive Immune System" ~ "Cellular Adap.",
+                        id == "Adaptive Immune System" ~ "Adap.",
+                        id == "Innate Immune System" ~ "Innate",
+                        id == "Complement Immune System" ~ "Complement",
+                        id == "Immunoglobulin Mediated Response" ~ "Ig-mediated",
+                        id == "Antiviral And Interferon" ~ "Antiviral/IFN",.default = id)) %>% 
+  group_by(id) %>% 
+  summarize(n = n()) %>% 
+  ungroup() %>% 
+  arrange(-n)
+
+result_vac <- cluster_by_day(df %>% filter(disease_vac == "V"), day_column = "day", condition_column = "condition") %>%
+  distinct() %>% 
+  mutate(day = fct_relevel(day, df$day %>% unique() %>% sort() %>% as.character()))
+
+result_inf_vac2 <- cluster_by_day(df %>% 
+                               filter(disease_vac == "I",
+                                      dose %in% c("2")), day_column = "day") %>%
+  mutate(day = fct_relevel(day, df$day %>% unique() %>% sort() %>% as.character()))
+
+result_inf_vac01 <- cluster_by_day(df %>% 
+                               filter(disease_vac == "I",
+                                      dose %in% c("0", "1")), day_column = "day") %>%
+  mutate(day = fct_relevel(day, df$day %>% unique() %>% sort() %>% as.character()))
+
+column_order <- c(result_vac$condition, result_inf_vac2$condition, result_inf_vac01$condition)
+
+labels_set <- df %>% 
+  filter(id %in% row_clustered$labels) %>% 
+  mutate(condition = factor(condition, levels = column_order)) %>% 
+  ggplot() +
+  aes(x = condition, y = 1, fill = set) + 
+  geom_tile() + 
+  scale_fill_manual(values = ann_vaxsig_colors$set) + 
+  theme_void() +
+  labs(y = "Set") +
+  theme(axis.title.y = element_text(size = 12, hjust = 1),
+        legend.position = "right") 
+
+labels_disease_vac <- df %>% 
+  filter(id %in% row_clustered$labels) %>% 
+  mutate(condition = factor(condition, levels = column_order)) %>% 
+  ggplot() +
+  aes(x = condition, y = 1, fill = disease_vac) + 
+  geom_tile() + 
+  scale_fill_manual(values = ann_vaxsig_colors$disease_vac) + 
+  theme_void() +
+  labs(y = "Infection/Vaccination") +
+  theme(axis.title.y = element_text(size = 12, hjust = 1),
+        legend.position = "right") 
+
+labels_type <- df %>% 
+  filter(id %in% row_clustered$labels) %>% 
+  mutate(condition = factor(condition, levels = column_order)) %>% 
+  ggplot() +
+  aes(x = condition, y = 1, fill = type) + 
+  geom_tile() + 
+  scale_fill_manual(values = ann_vaxsig_colors$Platform) + 
+  theme_void() +
+  labs(y = "Type") +
+  theme(axis.title.y = element_text(size = 12, hjust = 1),
+        legend.position = "right") 
+
+labels_dose <- df %>% 
+  filter(id %in% row_clustered$labels) %>% 
+  mutate(condition = factor(condition, levels = column_order)) %>% 
+  ggplot() +
+  aes(x = condition, y = 1, fill = dose) + 
+  geom_tile() + 
+  scale_fill_manual(values = ann_vaxsig_colors$dose) + 
+  theme_void() +
+  labs(y = "Dose") +
+  theme(axis.title.y = element_text(size = 12, hjust = 1),
+        legend.position = "right") 
+
+labels_week = df %>% 
+  filter(id %in% row_clustered$labels) %>% 
+  mutate(condition = factor(condition, column_order)) %>% 
+  ggplot() +
+  aes(x = condition, y = 1, fill = week) + 
+  geom_tile() + 
+  scale_fill_manual(values = ann_vaxsig_colors$week) + 
+  theme_void() +
+  labs(y = "Week") +
+  theme(axis.title.y = element_text(size = 12, hjust = 1),
+        legend.position = "right")
+
+labels_day = df %>% 
+  filter(id %in% row_clustered$labels) %>% 
+  mutate(condition = factor(condition, column_order)) %>% 
+  ggplot() +
+  aes(x = condition, y = 1, fill = day) + 
+  geom_tile() + 
+  scale_fill_manual(values = ann_vaxsig_colors$day) + 
+  theme_void() +
+  labs(y = "Day") +
+  theme(axis.title.y = element_text(size = 12, hjust = 1),
+        legend.position = "right")
+
+
+#Plot
+
+dotplot = df %>% 
+  filter(id %in% row_clustered$labels) %>% 
+  mutate(signific = case_when(p_adjust <= 0.10 ~ "*",
+                              TRUE ~ "")) %>% 
+  mutate(condition = factor(condition, column_order),
+         # id = factor(id, levels = row_clustered$labels[row_clustered$order]),
+         id = str_to_title(id),
+         id = case_when(id == "Humoral Adaptive Immune System" ~ "Humoral Adap.",
+                        id == "Cellular Adaptive Immune System" ~ "Cellular Adap.",
+                        id == "Adaptive Immune System" ~ "Adap.",
+                        id == "Innate Immune System" ~ "Innate",
+                        id == "Complement Immune System" ~ "Complement",
+                        id == "Immunoglobulin Mediated Response" ~ "Ig-mediated",
+                        id == "Antiviral And Interferon" ~ "Antiviral/IFN",.default = id),
+         id = fct_relevel(id, c(row_shared$id))) %>% 
+  ggplot(aes(x=condition, y = fct_rev(id), 
+             fill = nes
+             )) +
+  geom_tile(color = "white",
+            size = 0.5) +
+  geom_text(aes(label = signific), size = 6, vjust = 0.5, color = "black") +
+  theme_minimal() + 
+  theme(axis.text = element_text(color = "black", size = 15),
+        axis.line.x  = element_line(size = 1, color ="black"),
+        # axis.line.y  = element_line(size = 1, color ="black"),
+        axis.text.x = element_text(angle = 45, vjust = 1, hjust=1),
+        axis.ticks = element_line(size = 1, color ="black"),
+        # panel.grid = element_line(linetype = 2, color = "gray75"),
+        panel.grid = element_blank(),
+        legend.direction = "horizontal",
+        legend.position = "bottom") +
+  labs(x = "",
+       y = "") +
+  scale_fill_gradient2(low = "#4DBBD5FF",
+                        mid = "white",
+                        midpoint = 0, 
+                        name = "NES",
+                      high = "#DC0000FF") +
+  # scale_color_gradient2(low = "blue",
+  #                       mid = "white",
+  #                       midpoint = 0, 
+  #                       name = "NES",
+  #                     high = "#DC0000FF") +
+  scale_y_discrete(position = "right") 
+
+
+patch_immune_main = 
+  (labels_set /
+  labels_disease_vac /
+  labels_type /
+  labels_dose/
+  labels_day/
+  dotplot) +
+  plot_layout(heights = c( 0.2, 0.2, 0.2, 0.2, 0.2, 5),
+              guides = 'collect',
+              axes = "collect") +
+  plot_annotation(title = "GSEA ImmuneGO + BTM",
+                  subtitle = "Main processes, p-adjusted value <= 0.25",
+                  theme = theme(legend.position = "right",
+                                plot.title = element_text(hjust = 0.5, size = 20),
+                                plot.subtitle = element_text(hjust = 0.5, size = 20),
+                                plot.margin = margin(5, 1, 5, 1, unit = "cm"),
+                                legend.direction = "vertical", 
+                                legend.box = "vertical"))
+  
+  patch_immune_main
+
+patch_immune_main %>%
+  ggsave(filename = here("Figures", paste0(filename, "_GSEA_ImmuneGO_BTM_MainGOs_Bubbleplot_COVIDONLY.png")),
+         width = 20,
+         height = 15)
+patch_immune_main
+
+```
+
 
 
 ## Gene analysis
