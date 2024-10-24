@@ -23121,7 +23121,7 @@ write.csv(nodes, file = "Network_immune_notimmune_nodes.csv", row.names = F)
 ```{r}
 
 all_covid_vax_atlas =  readRDS(here("DGE analysis", "all_studies_degs_weighted.rds")) %>% 
-  filter(fdr <= 0.05)
+  filter(if_else(n >= 5, fdr <= 0.05, fdr <= (0.05 * 6/n))) 
 
 degs_all_updown_covid_vax_other = read_csv(here("VaxGO gene sets","degs_all_updown_covid_vax_other.csv")) %>% 
   select(-"...1")
@@ -23139,16 +23139,19 @@ OtherGOs_Annotated_Genes <- read_csv(here("VaxGO gene sets", "OtherGOs_Annotated
                         "Immune system",
                         "Metabolism"))
 
-# ImmuneGO_genes_selected = OtherGOs_Annotated_Genes
-
-ImmuneGO_genes_selected = ImmuneGO_Annotated_GO %>%
-  filter(go_term == "Manual",
-         process %in% c("ADAPTIVE IMMUNE SYSTEM",
+ImmuneGO_genes_selected = ImmuneGO_BTM_grouped_genes %>% 
+  filter(immune_set == "BTM and ImmuneGO") %>% 
+  filter(is.na(immune_system)) %>% 
+  filter(process %in% c("ADAPTIVE IMMUNE SYSTEM",
+                        "IMMUNE SYSTEM",
                         "INNATE IMMUNE SYSTEM",
                         "ANTIMICROBIAL",
-                        "GENERAL",
-                        "COMPLEMENT")) %>%
-  separate_rows(genes,sep = ",")
+                        "LEUKOCYTEs",
+                        "COMPLEMENT")) %>% 
+  bind_rows(OtherGOs_Annotated_Genes %>% 
+              filter(!process == "Immune system"))
+
+ImmuneGO_genes_selected$process %>% unique()
 
 conflicted::conflicts_prefer(dplyr::count)
 immune_genes_covid = all_covid_vax_atlas  %>% 
@@ -23169,17 +23172,108 @@ immune_genes_covid_shared_process = immune_genes_covid %>%
                select(genes, process), by = "genes") %>% 
   distinct() %>% 
   group_by(condition1, condition2, process) %>% 
-  summarise(n = n())
+  summarise(n = n(),
+            genes = paste0(genes, collapse = ",")) %>% 
+  ungroup()
 
+immune_genes_covid_shared_process$process %>% unique()
+
+
+immune_genes_covid_shared_process_genes = immune_genes_covid_shared_process %>% 
+  mutate(condition_grouped = paste0(condition1, "__", condition2)) %>% 
+  separate_rows(genes, sep = ",") %>% 
+  select(condition = condition_grouped, genes) %>% 
+  distinct()
+
+#Input
+data = immune_genes_covid_shared_process_genes %>%
+  select(condition, genes)
+Immune_GO_T2G = ImmuneGO_genes_selected %>% 
+  select(process, genes)
+  
+filename = "All_covid_13Vax_overlapping_ImmuneSystem"
+```
+
+```{r}
+
+# ORA function
+perform_ORA <- function(df, Immune_GO_T2G) {
+  resultados <- list()
+  
+  # Obter condições únicas na coluna "condition"
+  condicoes <- df$condition %>% 
+    unique() %>% 
+    as.character()
+  
+  for (condicao in condicoes) {
+    # Selecionar DEGs para a condição atual
+    degs_condicao <- df %>% 
+      filter(condition == condicao) %>%
+      select(genes) %>%
+      distinct()
+
+    # Preparar gene list
+    gene_list_ora <- degs_condicao$genes
+
+    ############ IMMUNE GO
+    immune_GO_ORA <- tryCatch({
+      enricher(gene_list_ora, 
+               TERM2GENE = Immune_GO_T2G, 
+               minGSSize = 1,
+               maxGSSize = 1000000,
+               pvalueCutoff = 1,
+               pAdjustMethod = "BH") %>% 
+        as.data.frame() %>% 
+        mutate(condition = condicao,
+               ora_enrichment = "ImmuneGO")
+    }, error = function(e) {
+      return(NULL)  # Retorna NULL caso ocorra o erro
+    })
+
+    if (!is.null(immune_GO_ORA)) {
+      resultados[[paste(condicao, "ImmuneGO", sep = "_")]] <- immune_GO_ORA
+    }
+  }
+
+  # Combinar todos os resultados em um único dataframe
+  resultado_final <- bind_rows(resultados)
+
+  return(resultado_final)
+}
+
+Immune_GO_T2G = ImmuneGO_genes_selected %>% 
+                               select(process, genes)
+df_resultados <- perform_ORA(immune_genes_covid_shared_process_genes, 
+                             Immune_GO_T2G)
+
+ImmuneGO_genes_selected$process %>% unique()
+
+df_clean = df_resultados %>% 
+  clean_names() %>% 
+  select(condition, count, process = id,
+         pvalue,
+         p_adjust,
+         genes = gene_id) %>% 
+  separate(condition, into = c("condition1", "condition2"), sep = "__")
+
+write.csv(df_clean, file = here("VaxGO gene sets", paste0(filename, "_ORA_filtered.csv")))
+
+df_clean 
 ```
 
 
+
 ```{r}
-df_vaccines <- immune_genes_covid_shared_process %>% 
+
+df_vaccines <- df_clean %>% 
+  filter(p_adjust <= 0.05) %>% 
+  mutate(count = if_else(count >0, 1, 0)) %>% 
   dplyr::select(Cond1 = condition1, 
                 Cond2 = condition2, 
-                Shared = n, 
+                Shared = count, 
                 process)
+
+df_vaccines$process %>% unique()
 
 group_types = annotation_conditions %>% 
   dplyr::select(Cond1 = condition, type) %>% 
@@ -23193,6 +23287,7 @@ types = df_vaccines %>%
   dplyr::select(condition = Cond1) %>% 
   distinct() %>% 
   inner_join(annotation_conditions %>% 
+               mutate(type = if_else(disease_vac == "I", "I", type)),
  dplyr::select(condition, type), by = "condition") %>% 
   dplyr::select(type)
 
@@ -23207,7 +23302,7 @@ colors = ann_vaxsig_colors$Platform %>%
 col_immune = c("ADAPTIVE IMMUNE SYSTEM" = "#6817c5",
           "COMPLEMENT" = "#2a9d8f",
           "INNATE IMMUNE SYSTEM" = "#0099ff",
-          "GENERAL" = "#435804",
+          "IMMUNE SYSTEM" = "#435804",
           "ANTIMICROBIAL" = "#38b000",
           
           #General processes
@@ -23346,17 +23441,86 @@ selected_links_vector_W7 = df_vaccines_selected_W7 %>%
 
 df_W7 = df_vaccines_selected_W7 %>% 
   select(Cond1:Shared)
+
+
+#All
+selected_links_all = df_vaccines %>% 
+  ungroup() %>% 
+  select(Cond1, Cond2) %>% 
+  inner_join(annotation_conditions %>% 
+              select(Cond1 = condition, week),
+             by = "Cond1") %>% 
+  select(Cond1) %>% 
+  mutate(selected_Cond1 = Cond1) %>% 
+  distinct()
+
+df_vaccines_selected_all = df_vaccines %>% 
+  left_join(selected_links_all %>% 
+              rename(Cond2 = Cond1,
+                     selected_Cond2 = selected_Cond1),
+             by = "Cond2") %>% 
+  left_join(selected_links_all,
+             by = "Cond1") %>% 
+  mutate(selected_TF = if_else(!is.na(selected_Cond1), T, F),
+         Shared = if_else(!is.na(selected_Cond2), Shared, 0))
+
+selected_links_vector_all = df_vaccines_selected_all %>% 
+  pull(selected_TF)
+
+df_all = df_vaccines_selected_all %>% 
+  select(Cond1:Shared)
 ```
 
 
-#### By week
+#### All and by week
 
+All
+```{r fig.height=10, fig.width=10}
+#Plot
+pdf(file = here("Figures","ChordDiagram_Covid19_AllCovid_By_Process_Immune_PAdjusted_All.pdf"), 
+    width = 10, 
+    height = 10)
+#Week 1
+chordDiagram(df_all, 
+             grid.col = colors_grid, 
+             col = col_links,
+             link.sort = TRUE,
+             link.decreasing = TRUE,
+             annotationTrack = "grid", 
+             directional = 1,
+             scale = F,
+             big.gap = 10,
+             transparency = 0,
+             small.gap = 0.5,
+             h.ratio = 0.7,
+             link.visible = selected_links_vector_all,
+             group = group_types,
+             preAllocateTracks = list(track.height = 0.5 * max(strwidth(unlist(unique(df_vaccines$Cond1)))))
+             )
+circos.track(
+  track.index = 1,
+  panel.fun = function(x, y) {
+    circos.text(
+      CELL_META$xcenter,
+      CELL_META$ylim[1],
+      CELL_META$sector.index,
+      facing = "clockwise",
+      niceFacing = TRUE,
+      adj = c(0, 0.5),
+      cex = 0.8, #Label size
+      font = 0.1)},#Label face
+  bg.border = NA) 
+title("All")
+
+dev.off()
+circos.clear()
+```
 
 Weeks 1-7
 ```{r fig.height=10, fig.width=10}
 
 #Plot
-pdf(file = here("Figures","ChordDiagram_Covid19_AllCovid_By_Process_Weeks_Immune.pdf"), 
+pdf(file = here("Figures","ChordDiagram_Covid19_AllCovid_By_Process_Weeks_Immune_PAdjusted.pdf"), 
     width = 20, 
     height = 5)
 
@@ -24248,8 +24412,6 @@ ann_vaccines_covid_other_conditions = ann_vaccines_conditions %>%
   bind_rows(hagan_vaxatlas_annotation)
 
 # Annotation ------
-immunego = ImmuneGO_Annotated_Genes # ImmuneGO Annotation
-
 filename = "All_covid_13Vax"
 
 degs_covid = degs_all_updown %>% 
@@ -24916,26 +25078,16 @@ Input
 ```{r}
 #Gene sets
 
-ImmuneGO_BTM_general = immunego_btm_manual_grouped_genes %>% 
-  # filter( 
-  #        # go_term == "Manual",
-  #        !process %in% c("ADAPTIVE IMMUNE SYSTEM",
-  #                        "INNATE IMMUNE SYSTEM",
-  #                        "BCR REPERTOIRE",
-  #                        "TCR REPERTOIRE")) %>% 
+ImmuneGO_BTM_grouped_genes <- read_csv("VaxGO gene sets/ImmuneGO_BTM_grouped_genes.csv")
+
+ImmuneGO_BTM_general = ImmuneGO_BTM_grouped_genes %>% 
+  filter(immune_set == "BTM and ImmuneGO") %>% 
   select(process, genes)
 
 
-# ImmuneGO_BTM_specific = immunegobtm %>% 
-#   filter(!process %in% c("ADAPTIVE IMMUNE SYSTEM",
-#                          "INNATE IMMUNE SYSTEM",
-#                          "BCR REPERTOIRE",
-#                          "TCR REPERTOIRE")) %>% 
-#   select(process, genes) 
-
-
-TERM2GENE = ImmuneGO_BTM_general
-geneset_name = "ImmuneGO_BTM_general"
+ImmuneGO_BTM_specific = ImmuneGO_BTM_grouped_genes %>%
+  filter(str_detect(immune_set, "Modules")) %>%
+  select(process, genes)
 
 filename = "All_covid_13Vax"
 ```
@@ -24995,8 +25147,7 @@ autoGSEA <- function(df, TERM2GENE, geneset_name) {
 ```{r}
 # Perform GSEA
 
-TERM2GENE = ImmuneGO_BTM_general
-geneset_name = "ImmuneGO_BTM_general"
+#General modules
 
 degs_covid_vax_GSEA_ALL <- degs_covid_vax %>%
   select(condition, genes, log2fold_change) %>% 
@@ -25012,24 +25163,21 @@ degs_covid_vax_GSEA = degs_covid_vax_GSEA_ALL %>%
 write_csv(degs_covid_vax_GSEA, 
           file = here("Gene set enrichment analysis", paste0(filename, geneset_name, "_GSEA_ALL", ".csv")))
 
-# Perform GSEA
+# Specific modules
 
-# TERM2GENE = ImmuneGO_BTM_T2G_specific
-# geneset_name = "ImmuneGO_BTM_T2G_specific"
-# 
-# degs_covid_vax_GSEA_ALL <- degs_covid_vax %>%
-#   select(condition, genes, log2fold_change) %>% 
-#   autoGSEA(TERM2GENE = Immune_GO_T2G_specfic, 
-#            geneset_name = "Immune_GO_T2G_specfic") 
-# 
-# degs_covid_vax_GSEA = degs_covid_vax_GSEA_ALL %>% 
-#   rownames_to_column("delete") %>% 
-#   clean_names() %>% 
-#     select(condition, id, everything()) 
-# 
-# #Save
-# write_csv(degs_covid_vax_GSEA, 
-#           file = here("Gene set enrichment analysis", paste0(filename, geneset_name, "_GSEA_ALL", ".csv")))
+degs_covid_vax_GSEA_specific_ALL <- degs_covid_vax %>%
+  select(condition, genes, log2fold_change) %>%
+  autoGSEA(TERM2GENE = ImmuneGO_BTM_specific,
+           geneset_name = "ImmuneGO_BTM_specific")
+
+degs_covid_vax_GSEA_specific = degs_covid_vax_GSEA_specific_ALL %>%
+  rownames_to_column("delete") %>%
+  clean_names() %>%
+    select(condition, id, everything())
+
+#Save
+write_csv(degs_covid_vax_GSEA,
+          file = here("Gene set enrichment analysis", paste0(filename, geneset_name, "_GSEA_ALL", ".csv")))
 
 degs_covid_vax_GSEA 
 
