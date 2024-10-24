@@ -24601,6 +24601,14 @@ matrix_data = matrix %>%
   replace(is.na(.), 0) %>% 
   as.matrix()
 
+
+ann_rows_heatmap = ann_rows_heatmap %>%
+  rownames_to_column("condition") %>%
+  mutate(condition = factor(condition, levels = unique(matrix_data %>% rownames()))) %>%
+  arrange(condition) %>% 
+  column_to_rownames("condition")
+  
+
 #Check dimensions
 dim(matrix_data)
 dim(ann_rows_heatmap)
@@ -24763,6 +24771,13 @@ matrix_data = matrix %>%
   mutate_if(is.character, as.numeric) %>%
   replace(is.na(.), 0) %>% 
   as.matrix()
+
+
+ann_rows_heatmap = ann_rows_heatmap %>%
+  rownames_to_column("condition") %>%
+  mutate(condition = factor(condition, levels = unique(matrix_data %>% rownames()))) %>%
+  arrange(condition) %>% 
+  column_to_rownames("condition")
 
 #Check dimensions
 dim(matrix_data)
