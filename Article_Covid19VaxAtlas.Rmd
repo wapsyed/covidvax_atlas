@@ -25236,7 +25236,7 @@ autoGSEA <- function(df, TERM2GENE, geneset_name) {
       GSEA(geneList = gene_list_lf2c,
            TERM2GENE = TERM2GENE,
            minGSSize = 1,
-           maxGSSize = 1000,
+           maxGSSize = 1000000,
            pvalueCutoff = 1,
            pAdjustMethod = "BH") %>%
         as.data.frame() %>%
@@ -25765,7 +25765,8 @@ patch_immune_main
 ###### Specific processes
 
 ```{r fig.height=45, fig.width=25}
-filter(qvalue<= 0.25) %>%
+df = All_covid_13VaxImmune_GO_T2G_specfic_GSEA_ALL %>% 
+  filter(p_adjust <= 0.25) %>%
   inner_join(ann_vaccines_covid_other_conditions, by = "condition") %>% 
     mutate(logq = -log10(qvalue)) 
   
@@ -25792,9 +25793,8 @@ row_clustered = df %>%
   hclust()
 
 row_shared =  df %>%
-  filter(id %in% row_clustered$labels,p_adjust <= 0.10) %>% 
-  mutate(condition = factor(condition, column_order),
-         id = factor(id, levels = row_clustered$labels[row_clustered$order]),
+  filter(p_adjust <= 0.10) %>% 
+  mutate(id = factor(id, levels = row_clustered$labels[row_clustered$order]),
          id = str_to_title(id),
          id = case_when(id == "Humoral Adaptive Immune System" ~ "Humoral Adap.",
                         id == "Cellular Adaptive Immune System" ~ "Cellular Adap.",
@@ -25807,7 +25807,10 @@ row_shared =  df %>%
   summarize(n = n()) %>% 
   ungroup() %>% 
   arrange(-n)
+```
 
+
+```{r fig.height=45, fig.width=25}
 result_vac <- cluster_by_day(df %>% filter(disease_vac == "V"), day_column = "day", condition_column = "condition") %>%
   distinct() %>% 
   mutate(day = fct_relevel(day, df$day %>% unique() %>% sort() %>% as.character()))
@@ -25954,7 +25957,7 @@ patch_immune_main =
   dotplot +
   plot_layout(heights = c(0.05, 0.05, 0.05, 0.05, 0.05, 5),
               guides = 'collect') +
-  plot_annotation(title = "GSEA ImmuneGO",
+  plot_annotation(title = "GSEA ImmuneGO_BTM",
                   subtitle = "Specific processes",
                   theme = theme(legend.position = "right",
                                 plot.title = element_text(hjust = 0.5, size = 20),
