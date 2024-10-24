@@ -2824,7 +2824,7 @@ ann_vaccines_conditions_ordered %>%
 ```
 
 
-### Samples by condition
+### Plot Samples by condition
 
 
 Original conditions
@@ -2922,7 +2922,7 @@ samples_by_condition_plot_vertical = samples_by_condition %>%
 samples_by_condition_plot_vertical
 ```
 
-### Samples by study
+### Plot Samples by study
 ```{r fig.height=3, fig.width=5}
 #### SAMPLES BY CONDITION -----
 samples_by_study = ann_vaccines_samples %>% 
@@ -2967,11 +2967,13 @@ samples_by_study_plot
 ```
 
 
-### Age by GSE
+### Plot Age by GSE
 
 ```{r fig.height=5, fig.width=6, cache = TRUE}
 
 library(ggstatsplot)
+# install.packages("Rmpfr")
+# library(Rmpfr)
 
 #### AGE BY GSE -------------
 age = ann_vaccines_samples %>% 
@@ -3025,11 +3027,11 @@ age_stats = ggbetweenstats(
         axis.line.x = element_line(size = 1,
                                    colour = "black",
                                    linetype = 1),
-        axis.line.y = element_line(size = 0 ,
-                                   colour = "black",
+        axis.line.y = element_line(size = 0,
+                                   colour = "white",
                                    linetype = 1),
         axis.ticks.x = element_line(size = 1, color = "black"),
-        axis.ticks.y = element_line(size = 0, color = "black"),
+        axis.ticks.y = element_line(size = 0, color = "gray75"),
         panel.grid.minor = element_blank(),
         plot.margin = margin(0, 0, 0, 0, unit = "cm")) +
   labs(y = "Age",
@@ -3044,7 +3046,7 @@ ggsave(age_stats, file = here("Figures", "Demographics_age.png") , width = 6, he
 age_stats
 ```
 
-### Sex by GSE
+### Plot Sex by GSE
 This figure's text was manipulated further in a design software.
 ```{r fig.height=5, fig.width=5, cache = TRUE}
 #### AGE BY GSE -------------
@@ -3135,7 +3137,7 @@ sex_stats_nonumb
 
 ```
 
-### Participants by day
+### Plot Participants by day
 ```{r cache = TRUE}
 
 #Participants by condition
@@ -3253,7 +3255,7 @@ demographics_time_plot
 
 
 
-### Studies designs
+### Plot Studies designs
 
 Ungrouped
 ```{r fig.height=6, fig.width=6}
@@ -4249,10 +4251,9 @@ all_degs %>%
 
 
 
+## Gene annotatios
+### By biotype
 
-## By biotype
-
-### All genes
 ```{r fig.height=10, fig.width=10}
 # library("biomaRt")
 # mart <- useMart("ensembl")
@@ -4310,7 +4311,13 @@ all_degs_biotypes_plot_totals = all_degs_biotypes %>%
         axis.text.x = element_text(color = "black", size = 10),
         axis.text.y = element_text(vjust = 0.5, size = 10, color = "black"),
         axis.line = element_line(size = 1, colour = "black", linetype=1),
-        axis.ticks = element_line(size = 0.5, color = "black")) +
+        axis.ticks = element_line(size = 0.5, color = "black"),
+        panel.grid.major.y = element_line(size = 0, 
+                                    linetype = 2,
+                                    color = "white"),
+        panel.grid.major.x = element_line(size = 0.5, 
+                                    linetype = 2,
+                                    color = "gray75")) +
   labs(x = "Total",
        y = "",
        fill = "Gene biotype",
@@ -4343,7 +4350,8 @@ all_degs_biotypes_plot_perc = all_degs_biotypes %>%
         axis.text.x = element_text(color = "black", size = 10),
         axis.text.y = element_text(vjust = 0.5, size = 10, color = "black"),
         axis.line = element_line(size = 1, colour = "black", linetype=1),
-        axis.ticks = element_line(size = 0.5, color = "black")) + 
+        axis.ticks = element_line(size = 0.5, color = "black"),
+        plot) + 
   labs(x = "%",
        y = "",
        fill = "Gene biotype",
@@ -4362,10 +4370,9 @@ all_degs_biotypes_plot_all %>%
 all_degs_biotypes_plot_all
 ```
 
-### Immune genes
-
 Most of immune genes in ImmuneGO are protein-coding.
 ```{r fig.height=10, fig.width=10}
+
 #ImmuneGO
 all_degs_biotypes_immune = all_degs_p_05_vac_infected %>% 
   inner_join(all_degs_totals, by = "condition") %>% 
@@ -4784,7 +4791,7 @@ all_degs_biotypes_plot_immuneBTM
 
 
 
-## Immune genes representation in the datasets
+### Immune genes representation in the datasets
 Are all immune-related genes represented in all datasets?
 
 ```{r}
@@ -25256,6 +25263,8 @@ autoGSEA <- function(df, TERM2GENE, geneset_name) {
 # Perform GSEA
 
 #General modules
+geneset_name = "ImmuneGO_BTM_general"
+filename = "All_covid_13Vax"
 
 degs_covid_vax_GSEA_ALL <- degs_covid_vax %>%
   select(condition, genes, log2fold_change) %>% 
@@ -25273,6 +25282,9 @@ write_csv(degs_covid_vax_GSEA,
 
 # Specific modules
 
+geneset_name = "ImmuneGO_BTM_specific"
+filename = "All_covid_13Vax"
+
 degs_covid_vax_GSEA_specific_ALL <- degs_covid_vax %>%
   select(condition, genes, log2fold_change) %>%
   autoGSEA(TERM2GENE = ImmuneGO_BTM_specific,
@@ -25287,7 +25299,7 @@ degs_covid_vax_GSEA_specific = degs_covid_vax_GSEA_specific_ALL %>%
 write_csv(degs_covid_vax_GSEA,
           file = here("Gene set enrichment analysis", paste0(filename, geneset_name, "_GSEA_ALL", ".csv")))
 
-degs_covid_vax_GSEA 
+degs_covid_vax_GSEA_specific 
 
 ```
 
