@@ -25100,6 +25100,25 @@ row_clustered = df %>%
   dist(.) %>% 
   hclust()
 
+row_shared =  df %>%
+  filter(id %in% row_clustered$labels) %>% 
+  mutate(signific = case_when(p_adjust <= 0.10 ~ "*",
+                              TRUE ~ "")) %>% 
+  mutate(condition = factor(condition, column_order),
+         id = factor(id, levels = row_clustered$labels[row_clustered$order]),
+         id = str_to_title(id),
+         id = case_when(id == "Humoral Adaptive Immune System" ~ "Humoral Adap.",
+                        id == "Cellular Adaptive Immune System" ~ "Cellular Adap.",
+                        id == "Adaptive Immune System" ~ "Adap.",
+                        id == "Innate Immune System" ~ "Innate",
+                        id == "Complement Immune System" ~ "Complement",
+                        id == "Immunoglobulin Mediated Response" ~ "Ig-mediated",
+                        id == "Antiviral And Interferon" ~ "Antiviral/IFN",.default = id)) %>% 
+  group_by(id) %>% 
+  summarize(n = n()) %>% 
+  ungroup() %>% 
+  arrange(-n)
+
 result_vac <- cluster_by_day(df %>% filter(disease_vac == "V"), day_column = "day", condition_column = "condition") %>%
   distinct() %>% 
   mutate(day = fct_relevel(day, df$day %>% unique() %>% sort() %>% as.character()))
@@ -25190,24 +25209,6 @@ labels_day = df %>%
 
 
 #Plot
-count_occurrences = df %>%
-  filter(id %in% row_clustered$labels) %>% 
-  mutate(signific = case_when(p_adjust <= 0.10 ~ "*",
-                              TRUE ~ "")) %>% 
-  mutate(condition = factor(condition, column_order),
-         id = factor(id, levels = row_clustered$labels[row_clustered$order]),
-         id = str_to_title(id),
-         id = case_when(id == "Humoral Adaptive Immune System" ~ "Humoral Adap.",
-                        id == "Cellular Adaptive Immune System" ~ "Cellular Adap.",
-                        id == "Adaptive Immune System" ~ "Adap.",
-                        id == "Innate Immune System" ~ "Innate",
-                        id == "Complement Immune System" ~ "Complement",
-                        id == "Immunoglobulin Mediated Response" ~ "Ig-mediated",
-                        id == "Antiviral And Interferon" ~ "Antiviral/IFN",.default = id)) %>% 
-  group_by(id) %>% 
-  summarize(n = n()) %>% 
-  ungroup() %>% 
-  arrange(-n)
 
 
 
@@ -25216,7 +25217,7 @@ dotplot = df %>%
   mutate(signific = case_when(p_adjust <= 0.10 ~ "*",
                               TRUE ~ "")) %>% 
   mutate(condition = factor(condition, column_order),
-         id = factor(id, levels = row_clustered$labels[row_clustered$order]),
+         # id = factor(id, levels = row_clustered$labels[row_clustered$order]),
          id = str_to_title(id),
          id = case_when(id == "Humoral Adaptive Immune System" ~ "Humoral Adap.",
                         id == "Cellular Adaptive Immune System" ~ "Cellular Adap.",
@@ -25224,8 +25225,9 @@ dotplot = df %>%
                         id == "Innate Immune System" ~ "Innate",
                         id == "Complement Immune System" ~ "Complement",
                         id == "Immunoglobulin Mediated Response" ~ "Ig-mediated",
-                        id == "Antiviral And Interferon" ~ "Antiviral/IFN",.default = id)) %>% 
-  ggplot(aes(x=condition, y = id, 
+                        id == "Antiviral And Interferon" ~ "Antiviral/IFN",.default = id),
+         id = fct_relevel(id, c(row_shared$id))) %>% 
+  ggplot(aes(x=condition, y = fct_rev(id), 
              fill = nes, 
              color = nes
              )) +
@@ -26649,7 +26651,10 @@ degs_covid_vax = degs_covid_vax %>% ungroup()
 
 # Gene set annotation.Used only to merge and filter genes.
 ImmuneGO_Annotated_Genes = readRDS(here("VaxGO gene sets", "ImmuneGO_Annotated_Genes_2024-03-26.rds"))
-btm_annotation_genes_immune
+ImmuneGO_BTM_grouped_genes <- read_csv("VaxGO gene sets/ImmuneGO_BTM_grouped_genes.csv")
+
+btm_annotation_genes_immune = ImmuneGO_BTM_grouped_genes %>% 
+  select(genes) %>% distinct()
 
 # Sample or condition annotation
 ann_vaccines = ann_vaccines_covid_other_conditions
@@ -26663,9 +26668,9 @@ data_annotation = ann_vaccines %>%
 
 ```{r}
 # Gene set data.
-ImmuneGO_Annotated_Genes_all = ImmuneGO_Annotated_Genes
-ImmuneGO_Annotated_Genes = ImmuneGO_Annotated_Genes_all %>% 
-  filter(!process %in% c("TCR REPERTOIRE", "BCR REPERTOIRE"))
+# ImmuneGO_Annotated_Genes_all = ImmuneGO_Annotated_Genes
+# ImmuneGO_Annotated_Genes = ImmuneGO_Annotated_Genes_all %>% 
+#   filter(!process %in% c("TCR REPERTOIRE", "BCR REPERTOIRE"))
 
 ImmuneGO_Genes = degs_covid_vax %>%
   inner_join(btm_annotation_genes_immune, by = "genes") %>% 
@@ -26679,7 +26684,7 @@ ImmuneGO_Genes = degs_covid_vax %>%
 
 #INPUT
 data_genes = ImmuneGO_Genes 
-filename = "13Vax_Covid_BTM"
+filename = "13Vax_Covid_BTM_ImmuneGO"
 
 #Convert long to wide table format.
 #Dataframe with sample annotation
