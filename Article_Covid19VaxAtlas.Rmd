@@ -23269,7 +23269,7 @@ df_clean
 ```{r}
 
 df_vaccines <- df_clean %>% 
-  filter(p_adjust <= 0.05) %>% 
+  filter( p_adjust <= 0.05) %>% 
   mutate(count = if_else(count >0, 1, 0)) %>% 
   dplyr::select(Cond1 = condition1, 
                 Cond2 = condition2, 
@@ -23308,9 +23308,9 @@ col_immune = c("ADAPTIVE IMMUNE SYSTEM" = "#6817c5",
           "ANTIMICROBIAL" = "#38b000",
           
           #General processes
-          "Immune system" = "#0099ff",
-          "Cellular" = "#6817c5",
-          "Metabolism" = "#2a9d8f")
+          "Immune system" = "blue",
+          "Cellular" = "green",
+          "Metabolism" = "red")
 
 colors_grid = df_vaccines %>%
   rename(condition = Cond1) %>% 
@@ -23706,8 +23706,8 @@ chordDiagram(df_W1,
              link.sort = F,
              link.decreasing = F,
              annotationTrack = "grid", 
-             directional = 0,
-             scale = F,
+             directional = 1,
+             scale = F, 
              big.gap = 3,
              transparency = 0,
              small.gap = 0.5,
@@ -23740,7 +23740,7 @@ chordDiagram(df_W2plus,
              link.decreasing = F,
              scale = F,
              annotationTrack = "grid", 
-             directional = 0,
+             directional = 1,
              big.gap = 3,
              transparency = 0,
              small.gap = 0.5,
