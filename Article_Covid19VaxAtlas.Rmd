@@ -23129,7 +23129,8 @@ degs_all_updown_covid_vax_other = read_csv(here("VaxGO gene sets","degs_all_updo
 ann_vaccines_vaxsig_covid <- read_csv(here("Annotations and metadata", "ann_vaccines_vaxsig_covid.csv"))
 
 annotation_conditions = read_csv(here("Annotations and metadata", "ann_vaccines_conditions.csv"), 
-    col_types = cols(...1 = col_skip()))
+    col_types = cols(...1 = col_skip())) %>% 
+    mutate(type = if_else(condition == "BNT−I (D0−5)", "I", type))
 
 ImmuneGO_Annotated_GO = read_rds(here("VaxGO gene sets", "ImmuneGO_Annotated_Genes_2024-03-26.rds"))
 
@@ -23141,13 +23142,15 @@ OtherGOs_Annotated_Genes <- read_csv(here("VaxGO gene sets", "OtherGOs_Annotated
 
 ImmuneGO_genes_selected = ImmuneGO_BTM_grouped_genes %>% 
   filter(immune_set == "BTM and ImmuneGO") %>% 
-  filter(is.na(immune_system)) %>% 
-  filter(process %in% c("ADAPTIVE IMMUNE SYSTEM",
-                        "IMMUNE SYSTEM",
-                        "INNATE IMMUNE SYSTEM",
-                        "ANTIMICROBIAL",
-                        "LEUKOCYTEs",
-                        "COMPLEMENT")) %>% 
+  mutate(process = "Immune system") %>% 
+  distinct() %>% 
+  # filter(is.na(immune_system)) %>% 
+  # filter(process %in% c("ADAPTIVE IMMUNE SYSTEM",
+  #                       "IMMUNE SYSTEM",
+  #                       "INNATE IMMUNE SYSTEM",
+  #                       "ANTIMICROBIAL",
+  #                       "LEUKOCYTES",
+  #                       "COMPLEMENT")) %>% 
   bind_rows(OtherGOs_Annotated_Genes %>% 
               filter(!process == "Immune system"))
 
@@ -23287,7 +23290,6 @@ types = df_vaccines %>%
   dplyr::select(condition = Cond1) %>% 
   distinct() %>% 
   inner_join(annotation_conditions %>% 
-               mutate(type = if_else(disease_vac == "I", "I", type)),
  dplyr::select(condition, type), by = "condition") %>% 
   dplyr::select(type)
 
@@ -23306,9 +23308,9 @@ col_immune = c("ADAPTIVE IMMUNE SYSTEM" = "#6817c5",
           "ANTIMICROBIAL" = "#38b000",
           
           #General processes
-          "Immune system" = "black",
-          "Cellular" = "yellow",
-          "Metabolism" = "#DC0000FF")
+          "Immune system" = "#0099ff",
+          "Cellular" = "#6817c5",
+          "Metabolism" = "#2a9d8f")
 
 colors_grid = df_vaccines %>%
   rename(condition = Cond1) %>% 
@@ -23382,6 +23384,36 @@ selected_links_vector_W2 = df_vaccines_selected_W2 %>%
   pull(selected_TF)
 
 df_W2 = df_vaccines_selected_W2 %>% 
+  select(Cond1:Shared)
+
+
+# Week 2>
+
+selected_links_W2plus = df_vaccines %>% 
+  ungroup() %>% 
+  select(Cond1, Cond2) %>% 
+  inner_join(annotation_conditions %>% 
+              select(Cond1 = condition, week) %>% 
+               filter(week > 2),
+             by = "Cond1") %>% 
+  select(Cond1) %>% 
+  mutate(selected_Cond1 = Cond1) %>% 
+  distinct()
+
+df_vaccines_selected_W2plus = df_vaccines %>% 
+  left_join(selected_links_W2 %>% 
+              rename(Cond2 = Cond1,
+                     selected_Cond2 = selected_Cond1),
+             by = "Cond2") %>% 
+  left_join(selected_links_W2plus,
+             by = "Cond1") %>% 
+  mutate(selected_TF = if_else(!is.na(selected_Cond1), T, F),
+         Shared = if_else(!is.na(selected_Cond2), Shared, 0))
+
+selected_links_vector_W2plus = df_vaccines_selected_W2plus %>% 
+  pull(selected_TF)
+
+df_W2plus = df_vaccines_selected_W2plus %>% 
   select(Cond1:Shared)
 
 # Week 4
@@ -23489,7 +23521,7 @@ chordDiagram(df_all,
              annotationTrack = "grid", 
              directional = 1,
              scale = F,
-             big.gap = 10,
+             big.gap = 3,
              transparency = 0,
              small.gap = 0.5,
              h.ratio = 0.7,
@@ -23658,7 +23690,83 @@ title("Week 8")
 dev.off()
 circos.clear()
 ```
+Weeks 1 and 2+
+```{r fig.height=10, fig.width=10}
 
+#Plot
+pdf(file = here("Figures","ChordDiagram_Covid19_AllCovid_By_Process_Weeks_1_2_more_Immune_PAdjusted.pdf"), 
+    width = 15, 
+    height = 10)
+
+par(mfrow = c(1, 2))
+#Week 1
+chordDiagram(df_W1, 
+             grid.col = colors_grid, 
+             col = col_links,
+             link.sort = F,
+             link.decreasing = F,
+             annotationTrack = "grid", 
+             directional = 0,
+             scale = F,
+             big.gap = 3,
+             transparency = 0,
+             small.gap = 0.5,
+             h.ratio = 0.7,
+             link.visible = selected_links_vector_W1,
+             group = group_types,
+             preAllocateTracks = list(track.height = 0.5 * max(strwidth(unlist(unique(df_vaccines$Cond1)))))
+             )
+circos.track(
+  track.index = 1,
+  panel.fun = function(x, y) {
+    circos.text(
+      CELL_META$xcenter,
+      CELL_META$ylim[1],
+      CELL_META$sector.index,
+      facing = "clockwise",
+      niceFacing = TRUE,
+      adj = c(0, 0.5),
+      cex = 0.8, #Label size
+      font = 0.1)},#Label face
+  bg.border = NA) 
+title("Week 1")
+
+
+#Week 2
+chordDiagram(df_W2plus, 
+             grid.col = colors_grid, 
+             col = col_links,
+             link.sort = F,
+             link.decreasing = F,
+             scale = F,
+             annotationTrack = "grid", 
+             directional = 0,
+             big.gap = 3,
+             transparency = 0,
+             small.gap = 0.5,
+             h.ratio = 0.7,
+             link.visible = selected_links_vector_W2plus,
+             group = group_types,
+             preAllocateTracks = list(track.height = 0.5 * max(strwidth(unlist(unique(df_vaccines$Cond1)))))
+             )
+circos.track(
+  track.index = 1,
+  panel.fun = function(x, y) {
+    circos.text(
+      CELL_META$xcenter,
+      CELL_META$ylim[1],
+      CELL_META$sector.index,
+      facing = "clockwise",
+      niceFacing = TRUE,
+      adj = c(0, 0.5),
+      cex = 0.8, #Label size
+      font = 0.1)},#Label face
+  bg.border = NA) 
+title("Week 2+")
+
+dev.off()
+circos.clear()
+```
 
 
 ### COVID-19 VS OTHER 
