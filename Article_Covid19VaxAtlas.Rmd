@@ -4044,7 +4044,7 @@ all_degs_total = all_degs %>%
 all_degs_total
 ```
 
-By vaccination or disease
+Horizontal
 
 ```{r fig.height=6, fig.width=12}
 # Plot 1
@@ -4104,7 +4104,54 @@ ggsave(ggplot_degs_bars, file = here("Figures", "DEGs_up_down_barplot_pvalue05_1
 ggplot_degs_bars
 
 ```
-Horizontal (all)
+
+Vertical, labelled
+
+```{r fig.height=10, fig.width=10}
+# Plot 1
+ggplot_degs_bars_vertical_nolabels = all_degs %>%
+    mutate(condition = fct_relevel(condition, c(ann_vaccines_conditions_ordered$condition_grouped %>% as.character() %>% unique())),
+           title = "DEGs by direction") %>% 
+  # filter(direction != "NEUTRAL") %>% 
+ ggplot() +
+  aes(x = n_degs, y = fct_rev(condition), fill = fct_relevel(direction, "UP", "DOWN", "NEUTRAL")) +
+  geom_col(position = "dodge", size = 0.2, color = "black", width = 0.8) +
+  scale_fill_manual(
+    values = c(DOWN = "#4DBBD5FF",
+    NEUTRAL = "gray90",
+    UP = "#d90429")) +
+  theme_minimal() +
+      theme(legend.position = "right",
+        strip.text.x = element_text(color = "black", size = 12), 
+        axis.text.x = element_text(color = "black", size = 10),
+        axis.text.y = element_text(vjust = 0.5, size = 10, color = "black"),
+        axis.line = element_line(size = 1, colour = "black", linetype=1),
+        axis.ticks = element_line(size = 0.5, color = "black"),
+        panel.grid.major.y = element_line(size = 0, 
+                                    linetype = 2,
+                                    color = "gray75"),
+        panel.grid.major.x = element_line(size = 0.5, 
+                                    linetype = 2,
+                                    color = "gray75"),
+        panel.spacing.x = unit(2, "lines")) +
+  scale_x_continuous(expand = c(0,0), limits = c(0, 3100), breaks = seq(0, 3100, 500)) +
+  labs(x = "Total",
+       y = "",
+       fill = "Direction",
+       title = "") +
+  facet_wrap(~title)
+
+
+ggsave(ggplot_degs_bars_vertical_nolabels, file = here("Figures", "DEGs_up_down_barplot_vertical_nolabels.png"),  width = 10, height = 10)
+
+ggplot_degs_bars_vertical_nolabels
+
+```
+
+No labels
+
+
+Vertical, facetted
 ```{r fig.height=10, fig.width=10}
 
 ggplot_degs_bars_directions = all_degs %>%
@@ -4260,6 +4307,11 @@ all_degs %>%
 # mart <- useDataset("hsapiens_gene_ensembl", mart)
 # gene_info <- getBM(attributes = c("entrezgene_id", "hgnc_symbol", "ensembl_gene_id", "gene_biotype", "start_position", "end_position"),
 #                    mart = mart)
+# 
+# gene_info %>% 
+#   saveRDS(file = here("DGE analysis", "Gene_info_biomart.rds"))
+
+gene_info = read_rds(file = here("DGE analysis", "Gene_info_biomart.rds"))
 
 all_degs_totals = all_degs_p_05_vac_infected %>%
   group_by(condition) %>% 
@@ -4350,8 +4402,7 @@ all_degs_biotypes_plot_perc = all_degs_biotypes %>%
         axis.text.x = element_text(color = "black", size = 10),
         axis.text.y = element_text(vjust = 0.5, size = 10, color = "black"),
         axis.line = element_line(size = 1, colour = "black", linetype=1),
-        axis.ticks = element_line(size = 0.5, color = "black"),
-        plot) + 
+        axis.ticks = element_line(size = 0.5, color = "black")) + 
   labs(x = "%",
        y = "",
        fill = "Gene biotype",
@@ -4373,7 +4424,12 @@ all_degs_biotypes_plot_all
 Most of immune genes in ImmuneGO are protein-coding.
 ```{r fig.height=10, fig.width=10}
 
+immunego_btm_manual_grouped_genes = read_csv(file = here("VaxGO gene sets", "ImmuneGO_BTM_grouped_genes.csv"))
+immunego_btm_genes = immunego_btm_manual_grouped_genes %>% 
+  select(genes) %>% distinct()
+
 #ImmuneGO
+
 all_degs_biotypes_immune = all_degs_p_05_vac_infected %>% 
   inner_join(all_degs_totals, by = "condition") %>% 
   filter(genes %in% immunego_btm_genes$genes) %>% 
@@ -4573,7 +4629,7 @@ all_degs_immuneGO_BTM_plot %>%
 all_degs_immuneGO_BTM_plot
 ```
 
-
+Percentage, total, labelled
 ```{r fig.height=10, fig.width=10}
 #Percentage total DEGs only united
 all_degs_immuneGO_BTM_united_plot = all_degs_immuneGO_BTM_totals %>% 
@@ -4618,6 +4674,59 @@ all_degs_immuneGO_BTM_united_plot
 ```
 
 
+Unlabelled
+```{r}
+#Percentage total DEGs only united
+all_degs_immuneGO_BTM_united_plot_nolabel = all_degs_immuneGO_BTM_totals %>% 
+  filter(set %in% c("BTM and ImmuneGO")) %>% 
+  mutate(condition = fct_relevel(condition, c(ann_vaccines_conditions_ordered$condition_grouped %>% 
+                                                as.character() %>% 
+                                                unique())),
+         title = "Immune system") %>% 
+  ggplot(.) +
+  aes(x = n_perc, y = fct_rev(condition), fill = fct_relevel(set, "Other", "BTM and ImmuneGO", "BTM", "ImmuneGO")) +
+  geom_col(color = "black",
+           size = 0.2) +
+  scale_fill_manual(values = c("BTM and ImmuneGO" = "#4DBBD5FF",
+    "Other" = "gray95",
+    "BTM" = "#5e60ce",
+    "ImmuneGO" = "#00A087FF")) +
+    theme_minimal() +
+  theme(legend.position = "none",
+        strip.text.x = element_text(color = "black", size = 12), 
+        axis.text.x = element_text(color = "black", size = 10),
+        axis.text.y = element_text(vjust = 0.5, size = 10, color = "black"),
+        axis.line.x = element_line(size = 1, colour = "black", linetype=1),
+        axis.line.y = element_line(size = 1, colour = "black", linetype=1),
+        axis.ticks.y = element_line(size = 0.5, color = "black"),
+        axis.ticks.x = element_line(size = 0, color = "black"),
+        panel.grid.major.y = element_line(size = 0, 
+                                    linetype = 2,
+                                    color = "gray75"),
+        panel.grid.major.x = element_line(size = 0.5, 
+                                    linetype = 2,
+                                    color = "gray75"),
+        panel.spacing.x = unit(2, "lines")) +
+  labs(x = "%Coverage",
+       y = "",
+       fill = "Immune system",
+       title = "") +
+  scale_x_continuous(expand = c(0,0), limits = c(0,100)) +
+  facet_wrap(~title)
+
+all_degs_immuneGO_BTM_united_plot_nolabel %>% 
+  ggsave(file = here("Figures", "all_degs_immuneGO_BTM_united_plot_nolabel.png"),
+         width = 10,
+         height = 10)
+  
+all_degs_immuneGO_BTM_united_plot_nolabel
+```
+
+
+
+
+
+Totals by direction, facetted
 ```{r fig.height=10, fig.width=10}
 #Totals by direction
 all_degs_immuneGO_BTM_reg_plot = all_degs_immuneGO_BTM_reg %>% 
@@ -4680,10 +4789,91 @@ all_degs_immuneGO_BTM_reg_plot %>%
 all_degs_immuneGO_BTM_reg_plot
 ```
 
+Totals by direction, dodged
+```{r fig.height=10, fig.width=10}
+#Totals by direction
+
+all_degs_immuneGO_BTM_reg_plot_dodged_table = all_degs_immuneGO_BTM_reg %>% 
+  group_by(condition, direction) %>% 
+  summarize(n_total_direction = sum(n),
+            n = n,
+            set = set
+            ) %>% 
+  ungroup() %>% 
+  mutate(condition = fct_relevel(condition, c(ann_vaccines_conditions_ordered$condition_grouped %>% 
+                                                as.character() %>% 
+                                                unique()))) %>% 
+  mutate(direction = case_when(direction == "UP" ~ "Up-regulated", 
+                               direction == "DOWN" ~ "Down-regulated", 
+                               TRUE ~ "Neutral"
+                             )) %>% 
+  filter(set %in% c("BTM and ImmuneGO", "Other"),
+         direction != "Neutral") %>% 
+  # Agrupar por 'condition' e 'direction'
+  group_by(condition, direction) %>%
+  # Calcular o total acumulado para cada grupo
+  mutate(cum_n = cumsum(n)) 
+
+
+
+all_degs_immuneGO_BTM_reg_plot_dodged = all_degs_immuneGO_BTM_reg_plot_dodged_table %>%
+  ggplot(aes(x = cum_n , 
+             y = fct_rev(condition), 
+             fill = fct_rev(direction)
+             )) +
+  geom_col(data = . %>% filter(set == "BTM and ImmuneGO"), 
+           position = position_dodge(width = 1), alpha = 1, 
+           width = 0.6,
+           color = "black") +
+  geom_col(data = . %>% filter(set == "Other"),
+           width = 0.6,
+           position = position_dodge(width = 1), alpha = 0.2,
+           color = "black") +
+  geom_tile(aes(y=NA_integer_, alpha = factor(set), fill = set),) + 
+  scale_alpha_manual(name = "Immune", values = c(1, 0.2),
+                     guide = guide_legend(override.aes = list(fill = "gray50", color = "black", size = 1) )) + 
+    scale_fill_manual(
+    values = c("Down-regulated" = "#4DBBD5FF",
+    "Neutral" = "gray90",
+    "Up-regulated" = "#d90429")) +
+  theme_minimal() +
+  theme(legend.position = "right",
+        strip.text.x = element_text(color = "black", size = 12), 
+        axis.text.x = element_text(color = "black", size = 10),
+        axis.text.y = element_text(vjust = 0.5, size = 10, color = "black"),
+        axis.line = element_line(size = 1, colour = "black", linetype=1),
+        axis.ticks = element_line(size = 0.5, color = "black"),
+        panel.grid.major.y = element_line(size = 0, 
+                                    linetype = 2,
+                                    color = "gray75"),
+        panel.grid.major.x = element_line(size = 0.5, 
+                                    linetype = 2,
+                                    color = "gray75"),
+        panel.spacing.x = unit(2, "lines")) +
+  labs(x = "Total",
+       y = "",
+       fill = "Direction",
+       title = "DEGs by Immune role") +
+  scale_x_continuous(expand = c(0, 0), limits = c(0, 3000), breaks = seq(0, 3000, 500))
+
+  # geom_text(aes(label = if_else(set == "Other", as.character(n_total_direction), ""),
+  #               x = n_total_direction),
+  #           hjust = -0.2, 
+  #           size = 3,
+  #           color = "black")
+
+all_degs_immuneGO_BTM_reg_plot_dodged %>% 
+  ggsave(file = here("Figures", "all_degs_immuneGO_BTM_totals_direction_plot_dodged.png"),
+         width = 10,
+         height = 10)
+
+all_degs_immuneGO_BTM_reg_plot_dodged
+```
+
 Unite plots
 ```{r fig.height=10, fig.width=15}
-all_degs_immuneGO_BTM_plot + all_degs_immuneGO_BTM_united_plot + all_degs_immuneGO_BTM_reg_plot +
-  plot_layout(guides = "collect", axes = "collect", widths = c(1, 1, 2))
+all_degs_immuneGO_BTM_plot + all_degs_immuneGO_BTM_united_plot + all_degs_immuneGO_BTM_reg_plot_dodged +
+  plot_layout(guides = "collect", axes = "collect", widths = c(1, 1, 1))
 ```
 
 
@@ -4995,9 +5185,9 @@ write.csv(Immune_allgenes_vaccines_SUM, file="Immune_allgenes_vaccines_SUM.csv")
 ### Unite all
 
 ```{r fig.height=10, fig.width=15}
-ggplot_degs_bars_directions + all_degs_biotypes_plot_totals + all_degs_biotypes_plot_perc +
+all_degs_immuneGO_BTM_reg_plot_dodged + all_degs_biotypes_plot_totals + all_degs_biotypes_plot_perc +
   plot_layout(axes = "collect", guides = "collect", axis_titles = "collect",
-              widths = c(3, 1, 1))
+              widths = c(1, 1, 1))
 ```
 
 ## Gene ontology
@@ -5285,7 +5475,14 @@ mutate(disease_vac = fct_relevel(disease_vac, "I", "V")) %>%
         axis.text.x = element_text(color = "black", size = 10),
         axis.text.y = element_text(vjust = 0.5, size = 10, color = "black"),
         axis.line = element_line(size = 1, colour = "black", linetype=1),
-        axis.ticks = element_line(size = 0.5, color = "black")) +
+        axis.ticks = element_line(size = 0.5, color = "black"),
+        panel.grid.major.y = element_line(size = 0, 
+                                    linetype = 2,
+                                    color = "gray75"),
+        panel.grid.major.x = element_line(size = 0.5, 
+                                    linetype = 2,
+                                    color = "gray75"),
+        panel.spacing.x = unit(2, "lines")) +
   geom_text(aes(label = paste0(n_genes_perc, "% (", n_genes, ")"), 
                 y = n_genes_perc), 
             hjust = 0, 
@@ -5322,7 +5519,14 @@ main_go_2_plot_up_down_totals = main_go_2 %>%
         axis.text.x = element_text(color = "black", size = 10),
         axis.text.y = element_text(vjust = 0.5, size = 10, color = "black"),
         axis.line = element_line(size = 1, colour = "black", linetype=1),
-        axis.ticks = element_line(size = 0.5, color = "black")) +
+        axis.ticks = element_line(size = 0.5, color = "black"),
+        panel.grid.major.y = element_line(size = 0, 
+                                    linetype = 2,
+                                    color = "gray75"),
+        panel.grid.major.x = element_line(size = 0.5, 
+                                    linetype = 2,
+                                    color = "gray75"),
+        panel.spacing.x = unit(2, "lines")) +
   
   geom_text(aes(label = n_genes_total, y = n_genes_total),
             hjust = 0, 
@@ -5391,7 +5595,14 @@ filter(term_ancestor %in% c(
         axis.text.x = element_text(color = "black", size = 10),
         axis.text.y = element_text(vjust = 0.5, size = 10, color = "black"),
         axis.line = element_line(size = 1, colour = "black", linetype=1),
-        axis.ticks = element_line(size = 0.5, color = "black")) +
+        axis.ticks = element_line(size = 0.5, color = "black"),
+        panel.grid.major.y = element_line(size = 0, 
+                                    linetype = 2,
+                                    color = "gray75"),
+        panel.grid.major.x = element_line(size = 0.5, 
+                                    linetype = 2,
+                                    color = "gray75"),
+        panel.spacing.x = unit(2, "lines")) +
   geom_text(aes(label = paste0(n_genes_perc, "% (", n_genes, ")"), 
                 y = n_genes_perc), 
             hjust = 0, 
@@ -5400,6 +5611,134 @@ filter(term_ancestor %in% c(
   labs(title = "Biological processes",
        x = "",
        y = "Number of genes (%)") +
+  facet_wrap(~term_ancestor, ncol = 3) +
+  scale_y_continuous(expand = c(0,0), limits = c(0,120))
+
+main_go_2_plot_alldirections_totals = main_go_2 %>%
+  group_by(condition, term_ancestor) %>% 
+  summarize(n_genes = sum(n_genes),
+            n_genes_total = sum(n_genes_total),
+            n_genes_perc = round((n_genes/n_genes_total)*100, 1)) %>% 
+inner_join(ann_vaccines_conditions, by = "condition") %>% 
+  mutate(
+    term_ancestor = fct_relevel(
+      term_ancestor,
+      "Immune system",
+      "Cellular",
+      "Metabolism",
+      "Reg. of BP"
+    )
+  ) %>%
+    select(condition, n_genes_total, type, disease_vac) %>% 
+  distinct() %>% 
+  mutate(disease_vac = fct_relevel(disease_vac, "I", "V")) %>% 
+  mutate(stat = "Total genes") %>% 
+  arrange(disease_vac) %>% 
+  mutate(condition = factor(condition, levels = ann_vaccines_conditions_ordered$condition_grouped %>% as.character() %>% unique())) %>%   
+  ggplot() +
+ aes(x = fct_rev(factor(condition)), y = n_genes_total, fill = type) +
+ geom_col(size = 0.2, color = "black") +
+ coord_flip() +
+ theme_minimal() +
+   scale_fill_manual(name = "Type",
+    values = c('IN'= "#00A087FF", #1st Gen  vaccines
+           'VV' = "#3C5488FF", #3rd Gen vaccines
+           'RNA' = "#4DBBD5FF",
+           'SU' = "#8491B4FF",
+           'I'= "#DC0000FF",
+           "H" = "grey90")) +
+   theme(legend.position = "right",
+        strip.text.x = element_text(color = "black", size = 12), 
+        axis.text.x = element_text(color = "black", size = 10),
+        axis.text.y = element_text(vjust = 0.5, size = 10, color = "black"),
+        axis.line = element_line(size = 1, colour = "black", linetype=1),
+        axis.ticks = element_line(size = 0.5, color = "black"),
+        panel.grid.major.y = element_line(size = 0, 
+                                    linetype = 2,
+                                    color = "gray75"),
+        panel.grid.major.x = element_line(size = 0.5, 
+                                    linetype = 2,
+                                    color = "gray75"),
+        panel.spacing.x = unit(2, "lines")) +
+  geom_text(aes(label = n_genes_total, y = n_genes_total),
+            hjust = 0, 
+            size = 3,
+            angle = 0) +
+  labs(title = "",
+       x = "",
+       y = "Total number of genes") +
+  ylim(0, 10000) +
+  facet_wrap(~stat) +
+  scale_y_continuous(expand = c(0,0))
+
+patch_maingo = main_go_2_plot_alldirections_totals + main_go_2_plot_alldirections +
+  plot_layout(widths = c(1, 2),
+              axes = "collect",
+              guides = "collect") +
+  plot_annotation(title = "Main Gene Ontologies (term ancestor), by condition",
+                  theme = theme(legend.position = "right",
+                                plot.title = element_text(size = 25,
+                                                          face = "bold",
+                                                     hjust = 0.5)))
+
+patch_maingo
+ggsave(patch_maingo, file = here("Figures", "main_go_2_plot_values_AllDirections_regulated.png"), 
+                                           width = 15, 
+                                           height = 10)
+```
+
+No labels
+```{r fig.height=10, fig.width=10, message=FALSE, warning=FALSE}
+main_go_2_plot_alldirections = main_go_2 %>%
+  group_by(condition, term_ancestor) %>%
+  summarize(n_genes = sum(n_genes),
+            n_genes_total = sum(n_genes_total),
+            n_genes_perc = round((n_genes/n_genes_total)*100, 1)) %>% 
+inner_join(ann_vaccines_conditions, by = "condition") %>% 
+  mutate(
+    term_ancestor = fct_relevel(
+      term_ancestor,
+      "Immune system",
+      "Cellular",
+      "Metabolism",
+      "Reg. of BP"
+    )
+  ) %>%
+filter(term_ancestor %in% c(
+  # "Immune system", 
+  "Cellular", 
+  "Metabolism")) %>% 
+  mutate(disease_vac = fct_relevel(disease_vac, "I", "V")) %>% 
+  arrange(disease_vac) %>% 
+  mutate(condition = factor(condition, levels = ann_vaccines_conditions_ordered$condition_grouped %>% as.character() %>% unique())) %>% 
+  ggplot() +
+ aes(x = fct_rev(factor(condition)), y = n_genes_perc, fill = type) +
+ geom_col(size = 0.2, color = "black") +
+ coord_flip() +
+ theme_minimal() +
+   scale_fill_manual(name = "Type",
+    values = c('IN'= "#00A087FF", #1st Gen  vaccines
+           'VV' = "#3C5488FF", #3rd Gen vaccines
+           'RNA' = "#4DBBD5FF",
+           'SU' = "#8491B4FF",
+           'I'= "#DC0000FF",
+           "H" = "grey90")) +
+  theme(legend.position = "right",
+        strip.text.x = element_text(color = "black", size = 12), 
+        axis.text.x = element_text(color = "black", size = 10),
+        axis.text.y = element_text(vjust = 0.5, size = 10, color = "black"),
+        axis.line = element_line(size = 1, colour = "black", linetype=1),
+        axis.ticks = element_line(size = 0.5, color = "black"),
+        panel.grid.major.y = element_line(size = 0, 
+                                    linetype = 2,
+                                    color = "gray75"),
+        panel.grid.major.x = element_line(size = 0.5, 
+                                    linetype = 2,
+                                    color = "gray75"),
+        panel.spacing.x = unit(2, "lines")) +
+  labs(title = "Biological processes",
+       x = "",
+       y = "Coverage (%)") +
   facet_wrap(~term_ancestor, ncol = 3) +
   scale_y_continuous(expand = c(0,0), limits = c(0,100))
 
@@ -5441,11 +5780,14 @@ inner_join(ann_vaccines_conditions, by = "condition") %>%
         axis.text.x = element_text(color = "black", size = 10),
         axis.text.y = element_text(vjust = 0.5, size = 10, color = "black"),
         axis.line = element_line(size = 1, colour = "black", linetype=1),
-        axis.ticks = element_line(size = 0.5, color = "black")) +
-  geom_text(aes(label = n_genes_total, y = n_genes_total),
-            hjust = 0, 
-            size = 3,
-            angle = 0) +
+        axis.ticks = element_line(size = 0.5, color = "black"),
+        panel.grid.major.y = element_line(size = 0, 
+                                    linetype = 2,
+                                    color = "gray75"),
+        panel.grid.major.x = element_line(size = 0.5, 
+                                    linetype = 2,
+                                    color = "gray75"),
+        panel.spacing.x = unit(2, "lines")) +
   labs(title = "",
        x = "",
        y = "Total number of genes") +
@@ -5464,26 +5806,25 @@ patch_maingo = main_go_2_plot_alldirections_totals + main_go_2_plot_alldirection
                                                      hjust = 0.5)))
 
 patch_maingo
-ggsave(patch_maingo, file = here("Figures", "main_go_2_plot_values_AllDirections_regulated.png"), 
+ggsave(patch_maingo, file = here("Figures", "main_go_2_plot_values_AllDirections_regulated_nolabels.png"), 
                                            width = 15, 
                                            height = 10)
 ```
-
-
-
 ## Unite with direction and biotype
 ```{r fig.height=10, fig.width=20}
-ggplot_degs_bars_directions_biotype_bps = 
+ggplot_degs_bars_directions_biotype_bps =
+  ggplot_degs_bars_vertical_nolabels +
   all_degs_biotypes_plot_totals + 
   # ggplot_degs_bars_directions_up_down +
   # all_degs_immuneGO_BTM_plot +
-  all_degs_immuneGO_BTM_reg_plot +
+  all_degs_immuneGO_BTM_united_plot_nolabel +
+  # all_degs_immuneGO_BTM_reg_plot_dodged +
   # all_degs_immuneGO_BTM_united_plot + 
   # all_degs_biotypes_plot_perc_immune + 
   # all_degs_biotypes_plot_totals_immune + 
   # all_degs_biotypes_plot_perc + 
   main_go_2_plot_alldirections + 
-  plot_layout(guides = "collect", axes = "collect", nrow = 1, widths = c(1, 2, 2)) 
+  plot_layout(guides = "collect", axes = "collect", axis_titles = "collect", nrow = 1, widths = c(1, 1, 1, 2)) 
 
 ggplot_degs_bars_directions_biotype_bps %>% 
   ggsave(filename = here("Figures", "DEGs_Directions_Biotype_BioProcesses_Up_Down.png"),
@@ -9380,9 +9721,6 @@ Process data
 all_degs_p_05_vac_infected = readRDS(here("DGE analysis", "all_studies_degs_weighted.rds")) %>% 
   filter(if_else(n >= 5, fdr <= 0.05, fdr <= (0.05 * 6/n))) 
 
-# Gene set annotation.Used only to merge and filter genes.
-ImmuneGO_Annotated_Genes = readRDS(here("VaxGO gene sets", "ImmuneGO_Annotated_Genes_2024-03-26.rds"))
-
 # Sample or condition annotation
 ann_vaccines <- read_csv(here("Annotations and metadata", "ann_vaccines_conditions.csv"))
 
@@ -9400,6 +9738,8 @@ ImmuneGO_Annotated_Genes = ImmuneGO_Annotated_Genes_all %>%
   filter(!process %in% c("TCR REPERTOIRE", "BCR REPERTOIRE"))
 
 btm_annotation_genes = readRDS(here("VaxGO gene sets", "btm_annotation_genes.rds"))
+ImmuneGO_BTM_grouped_genes <- read_csv("VaxGO gene sets/ImmuneGO_BTM_grouped_genes.csv")
+
 
 btm_annotation_genes_immune = btm_annotation_genes %>% 
   filter(module_category == "immune") %>% 
@@ -9407,8 +9747,9 @@ btm_annotation_genes_immune = btm_annotation_genes %>%
 
 ImmuneGO_Genes = all_degs_p_05_vac_infected %>%
   ungroup() %>% 
-  # inner_join(btm_annotation_genes_immune %>% select(genes) %>% distinct(), by = "genes") %>% 
-  inner_join(ImmuneGO_Annotated_Genes_all %>% select(genes) %>% distinct(), by = "genes") %>% 
+  inner_join(ImmuneGO_BTM_grouped_genes %>% select(genes) %>% distinct(), by = "genes") %>%
+  # inner_join(btm_annotation_genes_immune %>% select(genes) %>% distinct(), by = "genes") %>%
+  # inner_join(ImmuneGO_Annotated_Genes_all %>% select(genes) %>% distinct(), by = "genes") %>% 
   filter(if_else(n >= 5, fdr <= 0.05, fdr <= (0.05 * 6/n))) 
   
 ```
@@ -9418,7 +9759,7 @@ filtering genes with corr >99% is better
 ```{r}
 #INPUT
 data_genes = ImmuneGO_Genes 
-filename = "COVID_Infec_Vac_ImmuneGO"
+filename = "COVID_Infec_Vac_ImmuneGO_BTM"
 
 #Convert long to wide table format.
 #Dataframe with sample annotation
@@ -9444,7 +9785,7 @@ ann_vaccines_pca_matrix_ready = ann_vaccines_pca_matrix %>%
   select(!disease_vac:type) %>% 
   as.matrix()
 
-dim(ann_vaccines_pca_matrix_ready) #788 genes
+dim(ann_vaccines_pca_matrix_ready) #1837 genes
 
 ```
 
@@ -9558,14 +9899,14 @@ pca_plot_knn_cluster = autoplot(pca_res,
   geom_point(aes(fill = condition,
                  color = condition),
              stroke = 0.2) +
-   scale_color_manual(values = c("1" = "#4DBBD5FF", 
-                               "2" = "#DC0000FF", 
+   scale_color_manual(values = c("1" = "#DC0000FF", 
+                               "2" = "#4DBBD5FF", 
                                "3" = "#F5BB00",
                                "4" = "#8491B4FF",
                                 ann_vaxsig_colors$condition_col), 
                      guide = "none") +
-  scale_fill_manual(values = c("1" = "#4DBBD5FF", 
-                               "2" = "#DC0000FF", 
+  scale_fill_manual(values = c("1" = "#DC0000FF", 
+                               "2" = "#4DBBD5FF", 
                                "3" = "#F5BB00",
                                "4" = "#8491B4FF",
                                ann_vaxsig_colors$condition_col),
@@ -9576,7 +9917,7 @@ pca_plot_knn_cluster = autoplot(pca_res,
         text = element_text(color = "black"),
         panel.border = element_blank(),
         axis.line = element_line(colour = "black")) +
-  geom_text_repel(aes(label = condition,
+  geom_text_repel(aes(label = if_else(cluster != 2, condition, NA),
                       segment.colour="gray70"),
                   box.padding = 0.2,
                   size = 3)
@@ -9587,15 +9928,15 @@ ggsave(pca_plot_knn_cluster,
        file = here(file = "Figures", paste0(filename, pcas, "_KNN_Clustered_labels.png")), width = 7, height = 7)
 
 # Condition without labels
-pca_plot_knn_cluster = autoplot(pca_res, 
+pca_plot_knn_cluster_nolabels = autoplot(pca_res, 
         data = ann_vaccines_pca_matrix)  +
   # stat_ellipse(aes(color = cluster, fill = cluster),
-  #              # geom = "polygon", 
-  #              alpha = 0.2,
+  #              alpha = 1,
+  #              
   #              linetype = 1,
   #              size = 0.3,
   #              type = "t") +
-  geom_convexhull(aes(fill = cluster, colour = cluster), alpha = 0.2) +
+  geom_convexhull(aes(fill = cluster, colour = cluster), alpha = 0) +
   labs(title=paste0(filename, "_bycondition"),
        x = "PC1 (67.8%)",
        y = "PC2 (15.2%)") + 
@@ -9604,14 +9945,14 @@ pca_plot_knn_cluster = autoplot(pca_res,
   geom_point(aes(fill = condition,
                  color = condition),
              stroke = 0.8) +
-   scale_color_manual(values = c("1" = "#4DBBD5FF", 
-                               "2" = "#DC0000FF", 
+   scale_color_manual(values = c("1" = "#DC0000FF", 
+                               "2" = "#4DBBD5FF", 
                                "3" = "#F5BB00",
                                "4" = "#8491B4FF",
                                 ann_vaxsig_colors$condition_col), 
                      guide = "none") +
-  scale_fill_manual(values = c("1" = "#4DBBD5FF", 
-                               "2" = "#DC0000FF", 
+  scale_fill_manual(values = c("1" = "#DC0000FF", 
+                               "2" = "#4DBBD5FF", 
                                "3" = "#F5BB00",
                                "4" = "#8491B4FF",
                                ann_vaxsig_colors$condition_col),
@@ -9621,11 +9962,12 @@ pca_plot_knn_cluster = autoplot(pca_res,
   theme(panel.grid.minor = element_blank(),
         text = element_text(color = "black"),
         panel.border = element_blank(),
-        axis.line = element_line(colour = "black")) 
+        axis.line = element_line(colour = "black",
+                                 size = 1)) 
 
-ggsave(pca_plot_knn_cluster, 
+ggsave(pca_plot_knn_cluster_nolabels, 
        file = here(file = "Figures", paste0(filename, pcas, "_KNN_Clustered_nolabels.png")), width = 7, height = 7)
-pca_plot_knn_cluster
+pca_plot_knn_cluster_nolabels
 
 
 
@@ -25158,31 +25500,6 @@ draw(heatmap_plot,
 dev.off()
 
 ```
-
-### Correlation analysis
-```{r}
-library(ggcorrplot)
-data(mtcars)
-
-mtcars
-df2corr = degs_covid_vax %>% 
-  distinct() %>% 
-  pivot_wider(names_from = "genes",
-              values_from = "log2fold_change",
-              values_fn = mean) %>% 
-  column_to_rownames("condition") %>% 
-  replace(is.na(.), 0)
-
-
-corr = df2corr %>% 
-  cor() %>% 
-  round(., 1) 
-
-mat = df2corr %>% 
-  cor_pmat(.)
-```
-
-
 
 
 
