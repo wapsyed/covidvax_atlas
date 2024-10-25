@@ -2678,8 +2678,32 @@ ann_vaccines_samples_predicted
 
 
 #### Age imputation
+```{r}
 
-Conditions annotations
+ann_vaccines_samples_gse206023 = ann_vaccines_samples %>% 
+  filter(gse_id == "GSE206023") 
+
+all_matrices_tpm_gse206023 = all_matrices_counts_tpm_normalized %>% 
+  select(c(ann_vaccines_samples_gse206023$sample))
+
+
+# BiocManager::install("RNAAgeCalc")
+library(RNAAgeCalc)
+
+data(fpkmExample)
+head(fpkm)
+chronage = data.frame(sampleid = colnames(fpkm), age = c(30,50))
+res = predict_age(exprdata = fpkm, tissue = "brain", exprtype = "FPKM", 
+                  chronage = chronage)
+
+
+
+ann_vaccines_samples %>% 
+  arrange(age, gse_id)
+```
+
+
+#### Conditions annotations
 
 ```{r eval=FALSE, include=TRUE, cache = TRUE}
 library(tidyverse)
@@ -3733,7 +3757,7 @@ colData <- gse206023_metadata %>%
 # DESeq2
 dds <- DESeqDataSetFromMatrix(countData = countData, 
                               colData = colData, 
-                              design = ~ age + condition)
+                              design = ~ age + sex + condition)
 
 keep <- rowSums(counts(dds)) >= 10
 dds <- dds[keep,]
@@ -3751,6 +3775,7 @@ gse206023_DEGs =  gse206023_dds %>%
                                 condition == "condition_ZF2001..V3..D14._vs_H..D0." ~ "ZF2001 (V3, D14)",  
                                 condition == "condition_ZF2001..V3..D28._vs_H..D0." ~ "ZF2001 (V3, D28)", 
                                condition == "age" ~ "GSE201533 Ages",
+                               condition == "sex" ~ "GSE201533 Sex"
                                 .default = condition)) %>% 
   filter(!condition %in% c("Intercept"))
 
@@ -3790,23 +3815,33 @@ saveRDS(gse201533_metadata, file="gse201533_metadata_ready.rds")
 DESeq2
 ```{r}
 gse201533_counts_ready <- readRDS(here("raw_data", "gse201533_counts_ready.rds"))
+
 gse201533_metadata_ready = ann_vaccines_samples %>% 
-  filter(gse_id == "GSE201533")
+  filter(gse_id == "GSE201533") 
 
 countData <- gse201533_counts_ready %>% 
-  select(gse201533_metadata_ready$sample)
+  select(c(gse201533_metadata_ready$sample))
 colData <- gse201533_metadata_ready %>% 
   mutate(condition = as.factor(condition),
          condition = fct_relevel(condition, "ChAd (V1, D0)"),
-         sex = as.factor(sex)) %>% 
-  select(sample, everything())
+         sex = as.factor(sex),
+         age_group = case_when(
+    age <= 24 ~ "Young",
+    age >= 25 & age <= 64 ~ "Adult",
+    age >= 65 ~ "Elderly",
+    TRUE ~ NA)) %>% 
+  select(sample, everything()) 
+
+colData %>% 
+  view()
   
-
-
+  
 # DESeqDataSet
 dds <- DESeqDataSetFromMatrix(countData = countData, 
                               colData = colData, 
-                              design = ~ age + condition)
+                              design = ~ age + 
+                                # sex + (all samples are Female)
+                                condition)
 keep <- rowSums(counts(dds)) >= 10
 dds <- dds[keep,]
 
@@ -3834,6 +3869,7 @@ gse201533_DEGs %>%
 
 gse201533_DEGs
 
+ann_vaccines_conditions_ordered
 ```
 
 
