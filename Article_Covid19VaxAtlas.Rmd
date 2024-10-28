@@ -4040,7 +4040,9 @@ gse199750_DEGs %>%
   write_csv(file = here("DGE analysis", "gse199750_DEGs_wald.csv"))
 
 
-gse199750_DEGs
+gse199750_DEGs %>% 
+  select(condition) %>% 
+  distinct()
 
 
 ```
@@ -4053,7 +4055,9 @@ gse199750_DEGs
 # Reorder table
 infection_counts_ready = gse189039_counts_ready %>% 
   bind_cols(gse201530_counts_ready) %>% 
-  filter(genes %in% c(all_matrices_counts$genes))
+  rownames_to_column("genes") %>% 
+  filter(genes %in% c(all_matrices_counts$genes)) %>% 
+  column_to_rownames("genes")
 
 infection_metadata = ann_vaccines_samples %>% 
   select(sample, condition, condition_grouped, age, sex, gse_id, variant, severity, country, enroll_time, sequencer) %>% 
@@ -4093,7 +4097,7 @@ colData <- infection_metadata
 ###### DESeqDataSet
 dds <- DESeqDataSetFromMatrix(countData = countData, 
                               colData = colData, 
-                              design = ~ age_group + 
+                              design = ~ age + 
                                 sex +
                                 # severity +
                                 # variant + 
@@ -4132,8 +4136,6 @@ infection_DEGs =  gseinfection_dds %>%
                                 condition == "sex_Male_vs_Female" ~ "Infection Sex",
                                 .default = condition)) %>%
   filter(!condition %in% c("Intercept"))
-
-infection_DEGs %>% filter(condition == "BNT-I (D0-5)")
 
 
 # infection_DEGs =  gseinfection_dds %>% 
