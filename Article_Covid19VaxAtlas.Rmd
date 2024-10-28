@@ -3798,6 +3798,12 @@ Serology_data %>%
 
 # 5. Differential Gene Expression Analysis
 
+
+```{r}
+all_matrices_counts
+```
+
+
 ```{r}
 # Get all comparisons
 generate_all_DESeq2_results <- function(dds) {
@@ -3823,11 +3829,13 @@ generate_all_DESeq2_results <- function(dds) {
 ## GSE206023
 
 ```{r}
-gse206023_counts_ready <- readRDS(here("raw_data", "gse206023_counts_ready.rds")) %>%
-  round(., 0)
+
 
 gse206023_metadata = ann_vaccines_samples %>% 
   filter(gse_id == "GSE206023")
+
+gse206023_counts_ready <- all_matrices_counts %>% 
+  select(c(gse206023_metadata$sample))
 
 countData <- gse206023_counts_ready %>%
   select(
@@ -3874,6 +3882,10 @@ gse206023_DEGs =  gse206023_dds %>%
                                 .default = condition)) %>% 
   filter(!condition %in% c("Intercept"))
 
+gse206023_DEGs %>% 
+  select(condition) %>% 
+  distinct()
+
 
 gse206023_DEGs %>% 
   write_csv(file = here("DGE analysis", "gse206023_DEGs_wald.csv"))
@@ -3909,10 +3921,11 @@ saveRDS(gse201533_metadata, file="gse201533_metadata_ready.rds")
 
 DESeq2
 ```{r}
-gse201533_counts_ready <- readRDS(here("raw_data", "gse201533_counts_ready.rds"))
 
 gse201533_metadata_ready = ann_vaccines_samples %>% 
   filter(gse_id == "GSE201533") 
+gse201533_counts_ready <- all_matrices_counts %>% 
+  select(c(gse201533_metadata_ready$sample))
 
 countData <- gse201533_counts_ready %>% 
   select(c(gse201533_metadata_ready$sample))
@@ -3927,10 +3940,6 @@ colData <- gse201533_metadata_ready %>%
     TRUE ~ NA)) %>% 
   select(sample, everything()) 
 
-colData %>% 
-  view()
-  
-  
 # DESeqDataSet
 dds <- DESeqDataSetFromMatrix(countData = countData, 
                               colData = colData, 
@@ -3954,9 +3963,14 @@ gse201533_DEGs =  gse201533_dds %>%
                                 condition == "condition_ChAd..V2..D7._vs_ChAd..V1..D0." ~ "ChAd (V2, D7)",
                                 condition == "condition_ChAd.BNT..V2..D3._vs_ChAd..V1..D0." ~ "ChAd-BNT (V2, D3)",  
                                 condition == "condition_ChAd.BNT..V2..D7._vs_ChAd..V1..D0." ~ "ChAd-BNT (V2, D7)", 
+                               condition == "condition_ChAd.BNT..V2..D0._vs_ChAd..V1..D0." ~ "ChAd-BNT (V2, D0)",
                                condition == "age" ~ "GSE201533 Ages",
                                 .default = condition)) %>% 
   filter(!condition %in% c("Intercept"))
+
+gse201533_DEGs %>% 
+  select(condition) %>% 
+  distinct()
 
 
 gse201533_DEGs %>% 
@@ -3964,7 +3978,6 @@ gse201533_DEGs %>%
 
 gse201533_DEGs
 
-ann_vaccines_conditions_ordered
 ```
 
 
@@ -3972,11 +3985,12 @@ ann_vaccines_conditions_ordered
 
 ```{r}
 # Required files
-gse199750_counts_ready = readRDS(here("raw_data", "gse199750_counts_ready.rds")) %>% 
-  as.data.frame()
 
 gse199750_metadata = ann_vaccines_samples %>% 
   filter(gse_id == "GSE199750")
+
+gse199750_counts_ready <- all_matrices_counts %>% 
+  select(c(gse199750_metadata$sample))
 
 countData <- gse199750_counts_ready %>% 
   select(c(gse199750_metadata$sample))
@@ -4038,7 +4052,8 @@ gse199750_DEGs
 ############### GSE201530
 # Reorder table
 infection_counts_ready = gse189039_counts_ready %>% 
-  bind_cols(gse201530_counts_ready)
+  bind_cols(gse201530_counts_ready) %>% 
+  filter(genes %in% c(all_matrices_counts$genes))
 
 infection_metadata = ann_vaccines_samples %>% 
   select(sample, condition, condition_grouped, age, sex, gse_id, variant, severity, country, enroll_time, sequencer) %>% 
