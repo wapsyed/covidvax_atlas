@@ -4040,11 +4040,6 @@ gse199750_DEGs %>%
   write_csv(file = here("DGE analysis", "gse199750_DEGs_wald.csv"))
 
 
-gse199750_DEGs %>% 
-  select(condition) %>% 
-  distinct()
-
-
 ```
 
 ## Infection: GSE189039 and GSE201530
@@ -4118,8 +4113,6 @@ res <- results(dds) %>%
 
 gseinfection_dds <- generate_all_DESeq2_results(dds)
 
-gseinfection_dds$condition %>% unique()
-
 
 infection_DEGs =  gseinfection_dds %>%
   mutate(condition = case_when(condition == "condition_grouped_BNT.I..D0.5._vs_H..D0." ~ "BNT-I (D0-5)",
@@ -4132,10 +4125,13 @@ infection_DEGs =  gseinfection_dds %>%
                                 condition == "condition_grouped_I..D51..hospital._vs_H..D0." ~ "I (D51, hospital)",
                                 condition == "condition_grouped_I.BNT..D5._vs_H..D0." ~ "I-BNT (D5)",
                                 condition == "condition_grouped_I.I..D0.5._vs_H..D0." ~ "I-I (D0-5)",
+                                condition == "condition_grouped_BNT.I.BNT..D51..hospital._vs_H..D0." ~ "BNT-I-BNT (D51, hospital)",
                                 condition == "age" ~ "Infection Ages",
                                 condition == "sex_Male_vs_Female" ~ "Infection Sex",
                                 .default = condition)) %>%
   filter(!condition %in% c("Intercept"))
+
+infection_DEGs$condition %>% unique()
 
 
 # infection_DEGs =  gseinfection_dds %>% 
@@ -4180,7 +4176,7 @@ infection_DEGs %>%
 ## Merge all
 
 ```{r}
-gse201533_DEGs = read_csv(here("DGE analysis", "gse201533_DEGs_wald.csv"))
+gse201533_DEGs = read_csv(file = here("DGE analysis", "gse201533_DEGs_wald.csv"))
 gse206023_DEGs = read_csv(file = here("DGE analysis", "gse206023_DEGs_wald.csv"))
 infection_DEGs = read_csv(file = here("DGE analysis", "infection_DEGs_wald_grouped.csv"))
 gse199750_DEGs = read_csv(file = here("DGE analysis", "gse199750_DEGs_wald.csv"))
