@@ -2628,7 +2628,9 @@ seximpute_gse206023 = all_matrices_tpm_gse206023 %>%
                names_to = "sample",
                values_to = "value") %>% 
   separate(sample, into = c("participant", "day")) %>% 
-  mutate(value_log = if_else(value == 0.000000e+00, 0, -log(value))) %>% 
+  mutate(value_log = if_else(value == 0.000000e+00, 0, -log(value))) %>%
+  # mutate(value_log = log(value + 1)) %>% 
+  # mutate(minmax_tpm = (value_log - min(value_log)) / (max(value_log) - min(value_log))) %>% 
   filter(day == "0d")
 
 seximpute_gse206023_plot = seximpute_gse206023 %>% 
@@ -2657,19 +2659,69 @@ seximpute_gse206023_plot %>%
   ggsave(filename = here("Figures", "seximpute_gse206023_plot.png"),
          width = 5,
          height = 5)
+```
 
+
+```{r fig.height=5, fig.width=10}
 seximpute_gse206023_predicted = all_matrices_tpm_gse206023 %>% 
   rownames_to_column("genes") %>% 
   filter(genes %in% c("XIST", "IF1AY", "KDM5D", "UTY", "DDX3Y","RPS4Y1"))  %>% 
-  select(genes, A02_0d:D50_0d) %>% 
   column_to_rownames("genes") %>%
   t() %>% 
-  as.data.frame() %>%
-  mutate(sex = if_else(XIST != 0 & UTY == 0, "Female", "Male")) %>% 
+  as.data.frame() %>% 
   rownames_to_column("sample") %>% 
-  separate(sample, into = c("participant_id", "day"))
+  mutate(sex = if_else(XIST != 0 & UTY == 0, "Female", "Male")) %>% 
+  mutate(chr_y = if_else(rowSums(select(., DDX3Y, KDM5D, RPS4Y1, UTY)) != 0, "TRUE", "FALSE"),
+         XIST = if_else(XIST == 0.000000e+00, 0.0, XIST),
+         ratio_mf = sum(DDX3Y,KDM5D,RPS4Y1, UTY)/ XIST,
+         ratio_mf = if_else(ratio_mf == Inf, 1, ratio_mf)) %>% 
+  separate(sample, into = c("participant_id", "day")) %>% 
+  pivot_longer(cols = c("XIST", "KDM5D", "UTY", "DDX3Y","RPS4Y1"),
+               names_to = "genes",
+               values_to = "value") %>% 
+  mutate(value_log = if_else(value == 0.000000e+00, 0, log(value))) %>% 
+  mutate(day = str_replace(day, "d", "") %>% as.integer()) %>% 
+  group_by(genes) %>% 
+  mutate(minmax_normalized = (value_log - min(value_log)) / (max(value_log) - min(value_log)))
+  
+seximpute_gse206023_plot_2 = seximpute_gse206023_predicted %>% 
+   filter(value_log != 0) %>%
+   ggplot() +
+   aes(
+    x = day,
+    y = minmax_normalized,
+    colour = chr_y,
+    label = participant_id,
+    group = participant_id
+  ) +
+  geom_line() +
+  geom_point(aes(color = chr_y)) +
+   scale_x_continuous(breaks = c(0, 7, 14, 28)) +
+   facet_wrap(~genes, nrow = 1) +
+  theme_minimal()+
+  theme(axis.text = element_text(color = "black", size = 12),
+        axis.line.x  = element_line(size = 1, color ="black"),
+        # axis.line.y  = element_line(size = 1, color ="black"),
+        axis.text.x = element_text(angle = 0, vjust = 1, hjust=0.5),
+        axis.ticks = element_line(size = 1, color ="black"),
+        panel.grid.x = element_blank(),
+        panel.grid.y = element_line(linetype = 2, color = "gray75"),
+        strip.text = element_text(size = 10, color = "black"),
+        legend.direction = "horizontal",
+        legend.position = "top") +
+  scale_y_continuous(expand = c(0,0)) +
+  labs(x = "",
+       y = "log(TPM) normalized",
+       title = "Sex imputation, GSE206023") 
+
+seximpute_gse206023_plot_2 %>% 
+  ggplotly()
 
 
+```
+
+
+```{r fig.height=5, fig.width=5}
 ann_vaccines_samples_predicted = ann_vaccines_samples %>%
   left_join(
     seximpute_gse206023_predicted %>% select(participant_id, sex), 
@@ -2681,12 +2733,17 @@ ann_vaccines_samples_predicted = ann_vaccines_samples %>%
   ) %>%
   select(-sex_predicted)
 
-ann_vaccines_samples_predicted %>% 
-  saveRDS(file = here("Annotations and metadata", "ann_vaccines_samples_predicted_sex.rds"))
+
 
 ann_vaccines_samples_predicted
 
 ann_vaccines_samples = ann_vaccines_samples_predicted
+
+# ann_vaccines_samples_predicted %>% 
+#   saveRDS(file = here("Annotations and metadata", "ann_vaccines_samples_predicted_sex.rds"))
+
+# ann_vaccines_samples %>% 
+#   saveRDS(file = here("Annotations and metadata", "ann_vaccines_samples.rds"))
 
 ```
 
