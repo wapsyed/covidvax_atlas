@@ -2078,7 +2078,23 @@ all_matrices_counts = gse189039 %>%
   full_join(gse199750, by = "genes") %>% 
   full_join(gse206023, by = "genes")
 
-saveRDS(all_matrices_counts, file = here("DGE analysis", "all_matrices_counts.rds"))
+#Get genes present in all matrices
+genes_not_shared = all_matrices_counts %>% 
+  column_to_rownames("genes") %>% 
+  mutate(across(everything(), ~ if_else(is.na(.), "NA", as.character(.)))) %>% 
+  rownames_to_column("genes") %>% 
+  pivot_longer(cols = -genes, 
+               names_to = "sample",
+               values_to = "counts") %>% 
+  filter(counts == "NA") %>% 
+  select(genes) %>% 
+  distinct()
+
+
+all_matrices_counts_filtered = all_matrices_counts %>% 
+  filter(!genes %in% c(genes_not_shared %>% pull(genes)))
+
+saveRDS(all_matrices_counts_filtered, file = here("DGE analysis", "all_matrices_counts.rds"))
 
 ```
 
@@ -2097,7 +2113,7 @@ all_matrices_counts_long = all_matrices_counts %>%
 all_matrices_counts_long_annotated = all_matrices_counts_long %>% 
   inner_join(ann_vaccines_samples, by = "sample")
 
-all_matrices_counts_long_annotated %>% saveRDS(here("DGE analysis", "all_matrices_counts_long_annotated.rds"))
+# all_matrices_counts_long_annotated %>% saveRDS(here("DGE analysis", "all_matrices_counts_long_annotated.rds"))
 ```
 
 #### Transcripts per million (TPM)
