@@ -3830,7 +3830,6 @@ generate_all_DESeq2_results <- function(dds) {
 
 ```{r}
 
-
 gse206023_metadata = ann_vaccines_samples %>% 
   filter(gse_id == "GSE206023")
 
@@ -3877,8 +3876,8 @@ gse206023_DEGs =  gse206023_dds %>%
                                 condition == "condition_ZF2001..V3..D07._vs_H..D0." ~ "ZF2001 (V3, D07)",
                                 condition == "condition_ZF2001..V3..D14._vs_H..D0." ~ "ZF2001 (V3, D14)",  
                                 condition == "condition_ZF2001..V3..D28._vs_H..D0." ~ "ZF2001 (V3, D28)", 
-                               condition == "age" ~ "GSE201533 Ages",
-                               condition == "sex_Male_vs_Female" ~ "GSE201533 Sex",
+                               condition == "age" ~ "GSE206023 Ages",
+                               condition == "sex_Male_vs_Female" ~ "GSE206023 Sex",
                                 .default = condition)) %>% 
   filter(!condition %in% c("Intercept"))
 
@@ -3906,8 +3905,6 @@ saveRDS(gse201533_counts, file="gse201533_counts_ready.rds")
 ########## Metadata #############
 gse201533_metadata <- as.data.frame(gse201533_metadata)
 rownames(gse201533_metadata) <- gse201533_metadata$GEO 
-
-#A coluna de Sample name corresponde aos timepoints da coleta de amostra pós vacinacao. Por isso, vamos extrair somente o numero do timepoint (0,2,3,4,7)
 
 gse201533_metadata$Timepoint <- sub(".*(0|2|3|4|7).*", "\\1", gse201533_metadata$`Sample name`)
 
@@ -4038,6 +4035,8 @@ gse199750_DEGs =  gse199750_dds %>%
 
 gse199750_DEGs %>% 
   write_csv(file = here("DGE analysis", "gse199750_DEGs_wald.csv"))
+
+gse199750_DEGs$condition %>% unique()
 
 
 ```
@@ -4182,13 +4181,16 @@ infection_DEGs = read_csv(file = here("DGE analysis", "infection_DEGs_wald_group
 gse199750_DEGs = read_csv(file = here("DGE analysis", "gse199750_DEGs_wald.csv"))
 
 
-
-
 all_degs = bind_rows(gse199750_DEGs,
                      gse201533_DEGs,
                      gse206023_DEGs,
                      infection_DEGs) %>% 
   mutate(condition = if_else(condition == "ChAd (V3, D1)", "BNT (V3, D1)", condition))
+
+
+all_degs %>% 
+  select(condition) %>% 
+  distinct()
 
 #Save
 all_degs %>% 
@@ -4248,6 +4250,7 @@ all_degs_p_05_vac_infected = read_rds(file = here("DGE analysis", "all_studies_d
   filter(if_else(n >= 5, fdr <= 0.05, fdr <= (0.05 * 6/n))) 
 
 ann_vaccines_conditions = read_csv(here("Annotations and metadata", "ann_vaccines_conditions.csv"))
+ann_vaccines_conditions_ordered = read_csv(here("Annotations and metadata", "ann_vaccines_conditions_ordered.rds"))
 
 ann_vaccines = ann_vaccines_conditions
 all_degs = all_degs_p_05_vac_infected %>% 
@@ -4327,7 +4330,7 @@ ggplot_degs_bars
 
 ```
 
-Vertical, labelled
+Vertical
 
 ```{r fig.height=10, fig.width=10}
 # Plot 1
@@ -4425,7 +4428,7 @@ ggplot_degs_bars_directions %>%
 ggplot_degs_bars_directions
 ```
 
-Horizontal (Up and down)
+Vertical (Up and down)
 ```{r fig.height=10, fig.width=10}
 
 ggplot_degs_bars_directions_up_down = all_degs %>%
