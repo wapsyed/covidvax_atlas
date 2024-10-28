@@ -2113,7 +2113,7 @@ all_matrices_counts_long = all_matrices_counts %>%
 all_matrices_counts_long_annotated = all_matrices_counts_long %>% 
   inner_join(ann_vaccines_samples, by = "sample")
 
-# all_matrices_counts_long_annotated %>% saveRDS(here("DGE analysis", "all_matrices_counts_long_annotated.rds"))
+all_matrices_counts_long_annotated %>% saveRDS(here("DGE analysis", "all_matrices_counts_long_annotated.rds"))
 ```
 
 #### Transcripts per million (TPM)
@@ -2211,11 +2211,6 @@ counts_gse206023_samples_l2fc = counts_control_gse206023 %>%
          log2fc = if_else(log2fc == -Inf, 0, log2fc)) %>% 
   select(genes, condition, sample, control_mean_counts, counts,diff, log2fc)
 
-counts_gse206023_samples_l2fc
-```
-
-
-```{r cache = TRUE}
 # GSE189039
 counts_control_gse189039 = all_matrices_counts_long_annotated %>% 
   filter(gse_id == "GSE189039") %>% 
@@ -2334,6 +2329,8 @@ dds <- DESeqDataSetFromMatrix(countData = exprs_deseq,
                                 rownames_to_column("sample"), 
                               design = ~ condition)
 dds <- estimateSizeFactors(dds)
+
+
 normalized_counts <- counts_batch_corrected %>% 
   counts(normalized=TRUE) %>% 
   as.data.frame()
