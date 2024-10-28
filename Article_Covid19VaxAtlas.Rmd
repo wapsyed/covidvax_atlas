@@ -2620,49 +2620,12 @@ ann_vaccines_samples_gse206023 = ann_vaccines_samples %>%
 
 all_matrices_tpm_gse206023 = all_matrices_counts_tpm_normalized %>% 
   select(c(ann_vaccines_samples_gse206023$sample))
-
-seximpute_gse206023 = all_matrices_tpm_gse206023 %>% 
-  rownames_to_column("genes") %>% 
-  filter(genes %in% c("XIST", "IF1AY", "KDM5D", "UTY", "DDX3Y","RPS4Y1")) %>% 
-  pivot_longer(cols = -genes,
-               names_to = "sample",
-               values_to = "value") %>% 
-  separate(sample, into = c("participant", "day")) %>% 
-  mutate(value_log = if_else(value == 0.000000e+00, 0, -log(value))) %>%
-  # mutate(value_log = log(value + 1)) %>% 
-  # mutate(minmax_tpm = (value_log - min(value_log)) / (max(value_log) - min(value_log))) %>% 
-  filter(day == "0d")
-
-seximpute_gse206023_plot = seximpute_gse206023 %>% 
-ggplot(.) +
-  aes(x = genes, y = fct_reorder(participant, value_log), fill = value_log) +
-  geom_tile(color = "white", size = 0.5) +
-  theme(axis.text = element_text(color = "black", size = 15),
-        axis.line  = element_line(size = 1, color ="black"),
-        # axis.line.y  = element_line(size = 1, color ="black"),
-        axis.text.x = element_text(angle = 0, vjust = 1, hjust=0.5),
-        axis.ticks = element_line(size = 1, color ="black"),
-        # panel.grid = element_line(linetype = 2, color = "gray75"),
-        panel.grid = element_blank(),
-        legend.direction = "horizontal",
-        legend.position = "top") +
-  scale_x_discrete(expand = c(0,0)) +
-  labs(x = "",
-       y = "",
-       title = "Sex imputation, GSE206023") +
-  scale_fill_gradient2(low = "white",
-                        name = "-log(TPM)",
-                      high = "#DC0000FF")
-
-seximpute_gse206023_plot
-seximpute_gse206023_plot %>% 
-  ggsave(filename = here("Figures", "seximpute_gse206023_plot.png"),
-         width = 5,
-         height = 5)
 ```
 
 
-```{r fig.height=5, fig.width=10}
+
+
+```{r fig.height=5, fig.width=12}
 seximpute_gse206023_predicted = all_matrices_tpm_gse206023 %>% 
   rownames_to_column("genes") %>% 
   filter(genes %in% c("XIST", "IF1AY", "KDM5D", "UTY", "DDX3Y","RPS4Y1"))  %>% 
@@ -2671,7 +2634,7 @@ seximpute_gse206023_predicted = all_matrices_tpm_gse206023 %>%
   as.data.frame() %>% 
   rownames_to_column("sample") %>% 
   mutate(sex = if_else(XIST != 0 & UTY == 0, "Female", "Male")) %>% 
-  mutate(chr_y = if_else(rowSums(select(., DDX3Y, KDM5D, RPS4Y1, UTY)) != 0, "TRUE", "FALSE"),
+  mutate(chr_y = if_else(rowSums(select(., DDX3Y, KDM5D, RPS4Y1, UTY)) != 0, "Yes", "No"),
          XIST = if_else(XIST == 0.000000e+00, 0.0, XIST),
          ratio_mf = sum(DDX3Y,KDM5D,RPS4Y1, UTY)/ XIST,
          ratio_mf = if_else(ratio_mf == Inf, 1, ratio_mf)) %>% 
@@ -2682,7 +2645,8 @@ seximpute_gse206023_predicted = all_matrices_tpm_gse206023 %>%
   mutate(value_log = if_else(value == 0.000000e+00, 0, log(value))) %>% 
   mutate(day = str_replace(day, "d", "") %>% as.integer()) %>% 
   group_by(genes) %>% 
-  mutate(minmax_normalized = (value_log - min(value_log)) / (max(value_log) - min(value_log)))
+  mutate(minmax_normalized = (value_log - min(value_log)) / (max(value_log) - min(value_log))) %>% 
+    mutate(minmax_normalized = if_else(value_log == 0, 0, minmax_normalized))
   
 seximpute_gse206023_plot_2 = seximpute_gse206023_predicted %>% 
    filter(value_log != 0) %>%
@@ -2695,28 +2659,79 @@ seximpute_gse206023_plot_2 = seximpute_gse206023_predicted %>%
     group = participant_id
   ) +
   geom_line() +
+  geom_point(color = "black", stroke = 1) +
   geom_point(aes(color = chr_y)) +
-   scale_x_continuous(breaks = c(0, 7, 14, 28)) +
+  scale_color_manual(values = c("Yes" = "#4DBBD5FF",
+          "No" = "#E64B35FF")) +
    facet_wrap(~genes, nrow = 1) +
   theme_minimal()+
-  theme(axis.text = element_text(color = "black", size = 12),
+  theme(axis.text = element_text(color = "black", size = 10),
+        legend.text = element_text(color = "black", size = 10),
         axis.line.x  = element_line(size = 1, color ="black"),
-        # axis.line.y  = element_line(size = 1, color ="black"),
+        axis.line.y  = element_line(size = 1, color ="black"),
         axis.text.x = element_text(angle = 0, vjust = 1, hjust=0.5),
         axis.ticks = element_line(size = 1, color ="black"),
-        panel.grid.x = element_blank(),
-        panel.grid.y = element_line(linetype = 2, color = "gray75"),
+        panel.grid.major = element_line(linetype = 2, color = "gray75"),
+        panel.grid.minor = element_line(linetype = 2, size = 0, color = "gray75"),
+        # panel.grid.x = element_line(linetype = 2, color = "gray75"),
+        # panel.grid.y = element_line(linetype = 2, color = "gray75"),
         strip.text = element_text(size = 10, color = "black"),
         legend.direction = "horizontal",
         legend.position = "top") +
-  scale_y_continuous(expand = c(0,0)) +
-  labs(x = "",
+  scale_y_continuous(expand = c(0,0), limits = c(0, 1)) +
+  scale_x_continuous(breaks = c(0, 7, 14, 28)) +
+  labs(x = "Days",
+       # color = "Chromosome Y specific genes present",
+       color = "Chromosome Y \nspecific genes present",
        y = "log(TPM) normalized",
-       title = "Sex imputation, GSE206023") 
+       title = "")
 
-seximpute_gse206023_plot_2 %>% 
-  ggplotly()
+seximpute_gse206023_plot = seximpute_gse206023_predicted %>%
+  mutate(title = "Day 0, GSE206023") %>% 
+ggplot(.) +
+  aes(x = genes, y = fct_reorder(participant_id, minmax_normalized), fill = minmax_normalized) +
+  geom_tile(color = "white", size = 0.5) +
+  theme_minimal() +
+  theme(axis.text = element_text(color = "black", size = 10),
+        axis.line  = element_line(size = 1, color ="black"),
+        
+        # axis.line.y  = element_line(size = 1, color ="black"),
+        axis.text.x = element_text(angle = 45, vjust = 1, hjust=1),
+        axis.ticks = element_line(size = 1, color ="black"),
+        # panel.grid = element_line(linetype = 2, color = "gray75"),
+        panel.grid = element_blank(),
+        strip.text = element_text(size = 10, color = "black"),
+        legend.direction = "horizontal",
+        legend.position = "top") +
+  scale_x_discrete(expand = c(0,0)) +
+  labs(x = "",
+       y = "",
+       title = "") +
+  scale_fill_gradient2(low = "white",
+                        name = "log(TPM) normalized",
+                      high = "#DC0000FF") +
+  facet_wrap(~title)
 
+
+patch = seximpute_gse206023_plot_2 + seximpute_gse206023_plot + 
+  plot_layout(widths = c(1, 0.20),
+              guides = "collect"
+              ) & theme(legend.position = 'top')
+patch
+patch %>% 
+  ggsave(filename = here("Figures", "seximpute_gse206023_Joined.png"),
+         width = 10,
+         height = 5)
+
+seximpute_gse206023_plot %>% 
+  ggsave(filename = here("Figures", "seximpute_gse206023_plot.png"),
+         width = 4,
+         height = 4)
+
+seximpute_gse206023_plot_2 %>%
+  ggsave(filename = here("Figures", "seximpute_gse206023_plot_lines.png"),
+         width = 10,
+         height = 5)
 
 ```
 
@@ -6023,26 +6038,22 @@ ggplot_degs_bars_directions_biotype_bps
 
 ```{r}
 
-degs_all_updown = all_degs_p_05_vac_infected %>% 
-  distinct()
+degs_all_updown = all_degs_p_05_vac_infected
 
-ImmuneGO_Annotated_Genes = readRDS(here("VaxGO gene sets", "ImmuneGO_Annotated_Genes_2024-03-26.rds"))
-
-ImmuneGO_Annotated_Genes = ImmuneGO_Annotated_Genes %>% 
-  filter(!(process %in% c("TCR REPERTOIRE", "BCR REPERTOIRE")))
+# immunego_btm_genes
 
 shared_genes_infection = degs_all_updown %>%
   select(condition, genes) %>% 
   inner_join(ann_vaccines, by = "condition") %>% 
     filter(disease_vac == "I") %>%
   select(condition, genes, vaccine) %>% 
-  inner_join(ImmuneGO_Annotated_Genes %>% select(genes) %>% distinct(), by = "genes") %>% 
+  inner_join(immunego_btm_genes %>% select(genes) %>% distinct(), by = "genes") %>% 
   group_by(genes) %>% 
   summarise("Infection" = n()) %>% 
   arrange(desc("Infection"), genes) %>% 
   ungroup() %>% 
   pivot_longer(-genes, names_to = "infection_vaccination", values_to = "n_conditions") %>% 
-  inner_join(ImmuneGO_Annotated_Genes , by = "genes") %>% 
+  inner_join(immunego_btm_genes , by = "genes") %>% 
   select(genes, infection_vaccination, n_conditions) %>% 
   mutate(comparison = "Infection only") %>% 
   arrange(desc(n_conditions)) %>% 
@@ -6051,7 +6062,7 @@ shared_genes_infection = degs_all_updown %>%
 shared_genes_vaccines = degs_all_updown %>%
   select(condition, genes) %>% 
   distinct() %>% 
-  inner_join(ImmuneGO_Annotated_Genes %>% select(genes) %>% distinct(), by = "genes") %>% 
+  inner_join(immunego_btm_genes %>% select(genes) %>% distinct(), by = "genes") %>% 
   inner_join(ann_vaccines, by = "condition") %>% 
   filter(disease_vac == "V") %>% 
   select(condition, genes, vaccine) %>% 
@@ -6060,7 +6071,7 @@ shared_genes_vaccines = degs_all_updown %>%
   arrange(desc("Vaccination"), genes) %>% 
   ungroup() %>% 
   pivot_longer(-genes, names_to = "infection_vaccination", values_to = "n_conditions") %>% 
-  inner_join(ImmuneGO_Annotated_Genes , by = "genes") %>% 
+  inner_join(immunego_btm_genes %>% select(genes) %>% distinct(), by = "genes") %>% 
   select(genes, infection_vaccination,n_conditions) %>% 
   mutate(comparison = "Vaccination only") %>% 
   arrange(desc(n_conditions)) %>% 
@@ -6074,7 +6085,7 @@ shared_genes_vaccines_infection = shared_genes_vaccines %>%
   rename(Vaccination = n_conditions.x, Infection = n_conditions.y) %>% 
   distinct() %>% 
   pivot_longer(-genes, names_to = "infection_vaccination", values_to = "n_conditions") %>% 
-  inner_join(ImmuneGO_Annotated_Genes , by = "genes") %>% 
+  inner_join(immunego_btm_genes %>% select(genes) %>% distinct(), by = "genes") %>% 
   select(genes, infection_vaccination,n_conditions) %>% 
   mutate(comparison = "Infection and vaccination") %>% 
   distinct()
@@ -6084,10 +6095,10 @@ shared_genes_comparisons = bind_rows(shared_genes_infection,
                                      shared_genes_vaccines, 
                                      shared_genes_vaccines_infection)
 
-write_csv(shared_genes_comparisons, file = here("Figures", "shared_genes_infection_vaccination_comparisons.csv"))
+write_csv(shared_genes_comparisons, file = here("Figures", "ImmuneGO_BTM_shared_genes_infection_vaccination_comparisons.csv"))
 
 ```
-
+Horizontal
 ```{r fig.height=9, fig.width=10}
 # Vaccine and infection ----
 shared_genes_infection_vaccination = shared_genes_comparisons %>% 
@@ -6199,6 +6210,160 @@ patch = shared_genes_vaccines_infection_plot / shared_genes_vaccines_only_plot /
   subtitle = "Infection and vaccination, Vaccination only, Infection only ")
 
 ggsave(patch, file = here("Figures", "Genes_shared_Vaccination_Infection_united.png"), width = 10, height = 9)
+
+patch
+```
+
+
+
+
+
+
+Vertical
+```{r fig.height=5, fig.width=10}
+# Vaccine and infection ----
+shared_genes_infection_vaccination = shared_genes_comparisons %>% 
+  filter(comparison == "Infection and vaccination")
+
+shared_genes_infection = shared_genes_comparisons %>% 
+  filter(comparison == "Infection only")
+
+shared_genes_vaccines = shared_genes_comparisons %>% 
+  filter(comparison == "Vaccination only")
+
+
+shared_genes_vaccines_infection_plot = shared_genes_infection_vaccination %>% 
+  select(genes, infection_vaccination, n_conditions, comparison) %>% 
+  distinct() %>%
+  slice_head(n=40) %>%  
+  ggplot() +
+  aes(
+    x = n_conditions,
+    y = reorder(genes, n_conditions),
+    fill = infection_vaccination
+  ) +
+  geom_col() +
+  scale_fill_manual(
+    values = c("Vaccination" = "#4DBBD5FF",
+              "Infection" = "#DC0000FF")
+    )+
+  theme_minimal() +
+  labs(fill = "Status") +
+  xlab("") + 
+  ylab("") +
+   theme(legend.position = "none",
+        strip.text.x = element_text(color = "black", size = 12), 
+        axis.text.x = element_text(color = "black", size = 10),
+        axis.text.y = element_text(vjust = 0.5, size = 10, color = "black"),
+        axis.line = element_line(size = 1, colour = "black", linetype=1),
+        axis.ticks = element_line(size = 0.5, color = "black"),
+        panel.grid.major.y = element_line(size = 0, 
+                                    linetype = 2,
+                                    color = "gray75"),
+        panel.grid.major.x = element_line(size = 0.5, 
+                                    linetype = 2,
+                                    color = "gray75"),
+        panel.spacing.x = unit(2, "lines"))  +
+  scale_x_continuous(expand = c(0,0)) +
+  facet_wrap(~comparison)
+
+#Vaccination only -----
+shared_genes_vaccines_only = shared_genes_vaccines %>% 
+  anti_join(shared_genes_infection, by = "genes") %>% 
+  inner_join(ImmuneGO_Annotated_Genes %>% select(genes), by = "genes") %>% 
+  select(genes, n_conditions) %>% 
+  mutate(comparison = "Vaccination only") %>% 
+  arrange(desc(n_conditions)) %>% 
+  distinct()
+
+shared_genes_vaccines_only_plot = shared_genes_vaccines_only %>% 
+  select(genes, n_conditions, comparison) %>% 
+  distinct() %>%
+  slice_head(n=20) %>% 
+  ggplot() +
+  aes(
+    x = n_conditions,
+    y = reorder(genes, n_conditions),
+    fill = comparison
+  ) +
+  geom_col() +
+  scale_fill_manual(
+    values = c("Vaccination only" = "#4DBBD5FF",
+              "Infection only" = "#DC0000FF")
+    )+
+  theme_minimal() +
+  labs(fill = "Status") +
+  xlab("") + 
+  ylab("") +
+   theme(legend.position = "none",
+        strip.text.x = element_text(color = "black", size = 12), 
+        axis.text.x = element_text(color = "black", size = 10),
+        axis.text.y = element_text(vjust = 0.5, size = 10, color = "black"),
+        axis.line = element_line(size = 1, colour = "black", linetype=1),
+        axis.ticks = element_line(size = 0.5, color = "black"),
+        panel.grid.major.y = element_line(size = 0, 
+                                    linetype = 2,
+                                    color = "gray75"),
+        panel.grid.major.x = element_line(size = 0.5, 
+                                    linetype = 2,
+                                    color = "gray75"),
+        panel.spacing.x = unit(2, "lines"))  +
+  scale_x_continuous(expand = c(0,0)) +
+  facet_wrap(~comparison)
+
+
+# Infection only
+shared_genes_infection_only = shared_genes_infection %>% 
+  anti_join(shared_genes_vaccines_only, by = "genes") %>%
+  inner_join(ImmuneGO_Annotated_Genes, by = "genes") %>% 
+  select(genes, n_conditions) %>% 
+  mutate(comparison = "Infection only") %>% 
+  arrange(desc(n_conditions))
+
+shared_genes_infection_only_plot = shared_genes_infection_only %>% 
+  select(genes, n_conditions, comparison) %>% 
+  arrange(desc(n_conditions)) %>% 
+  distinct() %>%
+  slice_head(n=20) %>% 
+  ggplot() +
+  aes(
+    x = n_conditions,
+    y = reorder(genes, n_conditions),
+    fill = comparison
+  ) +
+  geom_col() +
+   scale_fill_manual(
+    values = c("Vaccination only" = "#4DBBD5FF",
+              "Infection only" = "#DC0000FF")
+    )+
+  theme_minimal() +
+  labs(fill = "Status") +
+  xlab("") + 
+  ylab("") +
+   theme(legend.position = "none",
+        strip.text.x = element_text(color = "black", size = 12), 
+        axis.text.x = element_text(color = "black", size = 10),
+        axis.text.y = element_text(vjust = 0.5, size = 10, color = "black"),
+        axis.line = element_line(size = 1, colour = "black", linetype=1),
+        axis.ticks = element_line(size = 0.5, color = "black"),
+        panel.grid.major.y = element_line(size = 0, 
+                                    linetype = 2,
+                                    color = "gray75"),
+        panel.grid.major.x = element_line(size = 0.5, 
+                                    linetype = 2,
+                                    color = "gray75"),
+        panel.spacing.x = unit(2, "lines"))  +
+  scale_x_continuous(expand = c(0,0)) +
+  facet_wrap(~comparison)
+
+
+
+patch =  shared_genes_vaccines_only_plot + shared_genes_infection_only_plot + shared_genes_vaccines_infection_plot + plot_layout(guides = 'collect') +
+  plot_annotation(
+  title = "Top 20 shared immune-related genes",
+  subtitle = "Infection and vaccination, Vaccination only, Infection only ")
+
+ggsave(patch, file = here("Figures", "Genes_shared_Vaccination_Infection_united_vertical.png"), width = 10, height = 5)
 
 patch
 ```
@@ -13911,12 +14076,17 @@ dev.off()
 
 ```{r}
 ImmuneGO_Annotated_Genes = readRDS(here("VaxGO gene sets","ImmuneGO_Annotated_Genes_2024-03-26.rds"))
+ImmuneGO_BTM_grouped_genes <- read_csv("VaxGO gene sets/ImmuneGO_BTM_grouped_genes.csv")
+
+all_samples_l2fc = read_rds(here("DGE analysis", "all_samples_l2fc.rds"))
 df_samples_l2fc_vipgenes_covid = all_samples_l2fc 
 ann_vaccines_samples <- read_csv(here("Annotations and metadata", "ann_vaccines_samples.csv"))
 
+df_samples_l2fc_vipgenes_covid
+
 
 # Input data ----
-filename = "ImmuneGO_Genes_Type_including_Infection_L2FCvalues_"
+filename = "ImmuneGO_BTM_Genes_Type_including_Infection_L2FCvalues_"
 df = df_samples_l2fc_vipgenes_covid
 
 ## Vaccination types
@@ -13948,7 +14118,7 @@ Step_corr:
 # Prepare data ------
 
 df_input <- df %>%
-  inner_join(ImmuneGO_Annotated_Genes %>% select(genes) %>% distinct(), by = "genes") %>%
+  inner_join(ImmuneGO_BTM_grouped_genes %>% select(genes) %>% distinct(), by = "genes") %>%
   select(genes, sample, log2fc) %>% 
   pivot_wider(names_from = genes,
               values_from = log2fc) %>% 
