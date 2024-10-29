@@ -4202,7 +4202,7 @@ all_degs
 ## Weight and adjust p values
 
 ```{r}
-
+all_degs = read_rds(file = here("DGE analysis", "all_studies_degs_wald.rds"))
 all_degs_annotated = all_degs %>%
   inner_join(ann_vaccines_conditions %>% 
                select(condition, n = samples) %>% 
@@ -4221,7 +4221,8 @@ all_studies_degs_weighted = all_degs_annotated %>%
   summarise(
     n = sum(n),
     meta_p = pvalue/sqrt(n),
-    log2fold_change = log2fold_change
+    log2fold_change = log2fold_change,
+    base_mean, lfc_se, stat
   ) %>% 
   distinct() %>% 
   ungroup()
@@ -9986,17 +9987,7 @@ data_annotation = ann_vaccines %>%
 
 ```{r}
 # Gene set data.
-ImmuneGO_Annotated_Genes_all = ImmuneGO_Annotated_Genes
-ImmuneGO_Annotated_Genes = ImmuneGO_Annotated_Genes_all %>% 
-  filter(!process %in% c("TCR REPERTOIRE", "BCR REPERTOIRE"))
-
-btm_annotation_genes = readRDS(here("VaxGO gene sets", "btm_annotation_genes.rds"))
 ImmuneGO_BTM_grouped_genes <- read_csv("VaxGO gene sets/ImmuneGO_BTM_grouped_genes.csv")
-
-
-btm_annotation_genes_immune = btm_annotation_genes %>% 
-  filter(module_category == "immune") %>% 
-  select(genes) %>% distinct()
 
 ImmuneGO_Genes = all_degs_p_05_vac_infected %>%
   ungroup() %>% 
@@ -10008,7 +9999,7 @@ ImmuneGO_Genes = all_degs_p_05_vac_infected %>%
 ```
 
 **Input**
-filtering genes with corr >99% is better
+
 ```{r}
 #INPUT
 data_genes = ImmuneGO_Genes 
@@ -10029,7 +10020,7 @@ ann_vaccines_pca_matrix = data_genes %>%
   rownames_to_column("condition") %>% 
   inner_join(data_annotation %>% 
                select(condition, disease_vac, vaccine, day, week, dose, infection, type), by = "condition") 
-dim(ann_vaccines_pca_matrix) #796 genes
+dim(ann_vaccines_pca_matrix) #1786 genes
 
 
 # Convert dataframe to matrix without annotation columns
@@ -10038,7 +10029,7 @@ ann_vaccines_pca_matrix_ready = ann_vaccines_pca_matrix %>%
   select(!disease_vac:type) %>% 
   as.matrix()
 
-dim(ann_vaccines_pca_matrix_ready) #1837 genes
+dim(ann_vaccines_pca_matrix_ready) #1778 genes
 
 ```
 
@@ -10183,8 +10174,8 @@ pca_plot_knn_cluster_labels = autoplot(pca_res,
   #              type = "t") +
   geom_convexhull(aes(fill = cluster, colour = cluster), alpha = 0.2) +
   labs(title=paste0(filename, "_bycondition"),
-       x = "PC1 (69.7%)",
-       y = "PC2 (13.3%)") + 
+       x = "PC1 (71.8%)",
+       y = "PC2 (13%)") + 
   # geom_hline(yintercept = 0, size = 0.3, color = "gray50", linetype = 4) +
   # geom_vline(xintercept = 0, size = 0.3, color = "gray50", linetype = 4) +
   geom_point(aes(fill = condition,
@@ -10204,17 +10195,17 @@ pca_plot_knn_cluster_labels = autoplot(pca_res,
                     guide = "none") + 
   guides(col="none") +
   theme_few() +
-  theme(
+  theme(axis.text = element_text(size = 10, color = "black"),
       panel.grid = element_line(size = 0.5, 
                                     linetype = 2,
                                     color = "gray90"),
         axis.line = element_line(size = 1, colour = "black", linetype=1),
         text = element_text(color = "black", size = 10),
-        panel.border = element_rect(fill = NA, color = "black", size = 0))  +
+        panel.border = element_rect(fill = NA, color = "black", size = 0))   +
   geom_text_repel(aes(label = if_else(cluster != 2, condition, NA)),
                   segment.colour="black",
                   box.padding = 0.3,
-                  size = 3)
+                  size = 3.5)
   # xlim(-0.4, 0.6)
 pca_plot_knn_cluster_labels
 
@@ -10232,8 +10223,8 @@ pca_plot_knn_cluster_nolabels = autoplot(pca_res,
   #              type = "t") +
   geom_convexhull(aes(fill = cluster, colour = cluster), alpha = 0) +
   labs(title=paste0(filename, "_bycondition"),
-       x = "PC1 (69.7%)",
-       y = "PC2 (13.3%)") + 
+       x = "PC1 (71.8%)",
+       y = "PC2 (13%)") + 
   # geom_hline(yintercept = 0, size = 0.3, color = "gray50", linetype = 4) +
   # geom_vline(xintercept = 0, size = 0.3, color = "gray50", linetype = 4) +
   geom_point(aes(fill = condition,
@@ -10253,16 +10244,12 @@ pca_plot_knn_cluster_nolabels = autoplot(pca_res,
                     guide = "none") + 
   guides(col="none") +
   theme_few() +
-  theme(
+  theme(axis.text = element_text(size = 10, color = "black"),
       panel.grid = element_line(size = 0.5, 
                                     linetype = 2,
                                     color = "gray90"),
-        # panel.grid.major.x = element_line(size = 0.5, 
-        #                             linetype = 2,
-        #                             color = "gray75"),
-      # panel.grid.minor = element_blank(),
         axis.line = element_line(size = 1, colour = "black", linetype=1),
-        text = element_text(color = "black", size = 15),
+        text = element_text(color = "black", size = 10),
         panel.border = element_rect(fill = NA, color = "black", size = 0)) 
 
 ggsave(pca_plot_knn_cluster_nolabels, 
