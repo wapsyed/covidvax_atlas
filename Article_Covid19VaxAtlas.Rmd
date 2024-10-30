@@ -1909,7 +1909,7 @@ counts_gse201530 <- list_data_GSE201530 %>%
   reduce(full_join, by = "genes")
 colnames(counts_gse201530)[-1] <- gsub("^[^_]+_(.*)", "\\1", colnames(counts_gse201530)[-1])
 
-saveRDS(counts_gse201530, file = here("raw_data", "gse201530_counts.rds"))
+saveRDS(counts_gse201530, file = here("raw_data", "gse201530_counts_ready.rds"))
 
 counts_gse201530 = read_rds(file = here("raw_data", "gse201530_counts.rds"))
 
@@ -2065,8 +2065,7 @@ GSE206023_pseudoalign_stats <- read_excel("raw_data/GSE206023_pseudoalignment_ST
 ####### Wide table
 gse189039 = gse189039_counts_ready %>% 
   rownames_to_column("genes") 
-gse201530 = gse201530_counts_ready %>% 
-  rownames_to_column("genes") 
+gse201530 = gse201530_counts 
 gse201533 = gse201533_counts_ready %>% 
   rownames_to_column("genes") 
 gse199750 = gse199750_counts_ready %>% 
@@ -2080,6 +2079,10 @@ all_matrices_counts = gse189039 %>%
   full_join(gse201533, by = "genes") %>% 
   full_join(gse199750, by = "genes") %>% 
   full_join(gse206023, by = "genes")
+
+
+all_matrices_counts
+saveRDS(all_matrices_counts, file = here("DGE analysis", "all_matrices_counts_raw.rds"))
 
 #Get genes present in all matrices
 genes_not_shared = all_matrices_counts %>% 
@@ -2104,8 +2107,6 @@ saveRDS(all_matrices_counts_filtered, file = here("DGE analysis", "all_matrices_
 
 
 ## Counts normalization
-
-
 ```{r cache = TRUE}
 all_matrices_counts = read_rds(file = here("DGE analysis", "all_matrices_counts.rds"))
 all_matrices_counts_long = all_matrices_counts %>% 
@@ -2642,21 +2643,19 @@ write.csv(ann_vaccines_samples_participants, file = "ann_vaccines_samples.csv")
 XIST (female-specific) and Y-linked genes IF1AY, KDM5D, UTY, DDX3Y, and RPS4Y1 are indicative of sex
 ```{r fig.height=5, fig.width=5}
 all_matrices_counts_tpm_normalized <- readRDS(here("DGE analysis","all_matrices_counts_tpm_normalized.rds"))
+
 ann_vaccines_samples
+
+all_matrices_counts <- readRDS(here("DGE analysis", "all_matrices_counts_raw.rds"))
 
 ann_vaccines_samples_gse206023 = ann_vaccines_samples %>% 
   filter(gse_id == "GSE206023") 
 
-all_matrices_tpm_gse206023 = all_matrices_counts_tpm_normalized %>% 
-  select(c(ann_vaccines_samples_gse206023$sample))
-```
-
-
-
-
-```{r fig.height=5, fig.width=12}
-seximpute_gse206023_predicted = all_matrices_tpm_gse206023 %>% 
+all_matrices_gse206023 = all_matrices_counts_tpm_normalized %>% 
   rownames_to_column("genes") %>% 
+  select(genes, c(ann_vaccines_samples_gse206023$sample))
+
+seximpute_gse206023_predicted = all_matrices_gse206023 %>% 
   filter(genes %in% c("XIST", "IF1AY", "KDM5D", "UTY", "DDX3Y","RPS4Y1"))  %>% 
   column_to_rownames("genes") %>%
   t() %>% 
@@ -26986,7 +26985,7 @@ xcell_results = read_csv(file = here("Cell populations", "degs_covid_vax_l2fc_ma
 ```
 
 Heatmap
-```{r fig.height=25, fig.width=30}
+```{r fig.height=20, fig.width=30}
 
 filename = "All_covid_13Vax"
 xcell_results_annotated = xcell_results %>% 
@@ -27182,11 +27181,18 @@ dotplot = df %>%
   labs(x = "",
        y = "") +
   scale_y_discrete(position = "right") +
-  scale_fill_gradientn(colors = c("white", "#4DBBD5FF", "#EFC000FF", "#DC0000FF"),
-                       values = scales::rescale(c(quartiles)),
-                       limits = c(min(df$value_minmax, na.rm = TRUE), max(df$value_minmax, na.rm = TRUE)),
-                       oob = scales::squish,
-                       name = "Regularized\nscore") 
+  scale_fill_gradientn(
+    colors = c("white", "#4DBBD5FF", "#EFC000FF", "#F39C12", "#d90429"),  # cores para os quartis
+    values = c(0, 0.10, 0.25, 0.5, 0.75, 1),                       # limites dos quartis
+    name = "Regularized\nscore",
+    limits = c(0, 1),
+    oob = scales::squish
+  ) 
+  # scale_fill_gradientn(colors = c("white", "#4DBBD5FF", "#EFC000FF", "#DC0000FF"),
+  #                      values = scales::rescale(c(quartiles)),
+  #                      limits = c(min(df$value_minmax, na.rm = TRUE), max(df$value_minmax, na.rm = TRUE)),
+  #                      oob = scales::squish,
+  #                      name = "Regularized\nscore") 
 #   scale_fill_gradientn(
 #   colors = c("white", "#4DBBD5FF", "#EFC000FF", "#d90429"),  # cores para cada quartil
 #   values = scales::rescale(c(0, 0.25, 0.5, 0.75, 1)),     # divisão para quartis
@@ -27209,14 +27215,14 @@ patch_xcell_vac =
                   theme = theme(legend.position = "top",
                                 plot.title = element_text(hjust = 0.5, size = 15),
                                 plot.subtitle = element_text(hjust = 0.5, size = 15),
-                                plot.margin = margin(5, 0.5, 5, 1, unit = "cm"),
+                                plot.margin = margin(5, 0.5, 1, 1, unit = "cm"),
                                 legend.direction = "horizontal", 
                                 legend.box = "horizontal"))
 patch_xcell_vac
 patch_xcell_vac %>%
   ggsave(filename = here("Figures", paste0(filename, "_ssGSEA_XCell_1dose_Heatmap.png")),
          width = 25,
-         height = 25)
+         height = 20)
 ```
 
 
@@ -27271,7 +27277,7 @@ create_colplots(xcell_results_annotated %>%
 ```
 
 #### COVID-19 only
-```{r fig.height=10, fig.width=25}
+```{r fig.height=15, fig.width=15}
 #XCell (ssGSEA) ----
 xcell_results = read_csv(file = here("Cell populations", "degs_covid_vax_l2fc_matrix_xcell_results.csv"))
 filename = "COVID_19"
@@ -27294,11 +27300,7 @@ xcell_results_annotated = xcell_results %>%
 
 
 
-```
 
-
-Heatmap
-```{r fig.height=15, fig.width=15}
 hagan_vaxatlas_annotation = hagan_vaxatlas_annotation %>% 
   mutate(week = as.factor(week))
 
@@ -27380,7 +27382,7 @@ labels_disease_vac <- df %>%
   geom_tile() + 
   scale_fill_manual(values = ann_vaxsig_colors$disease_vac) + 
   theme_void() +
-  labs(y = "Infection/Vaccination") +
+  labs(y = "disease_vac") +
   theme(axis.title.y = element_text(size = 12, hjust = 1),
         legend.direction = "horizontal",
         legend.position = "bottom") 
