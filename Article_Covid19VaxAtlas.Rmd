@@ -2171,6 +2171,18 @@ tpm %>%
   saveRDS(here("DGE analysis", "all_matrices_counts_tpm_normalized.rds"))
 
 
+all_matrices_counts_tpm_normalized  = readRDS(here("DGE analysis", "all_matrices_counts_tpm_normalized.rds"))
+all_matrices_counts_tpm_normalized_long = all_matrices_counts_tpm_normalized %>% 
+  rownames_to_column("genes") %>% 
+  pivot_longer(cols = -genes,
+               names_to = "sample",
+               values_to = "counts")
+
+all_matrices_counts_tpm_normalized_long_annotated = all_matrices_counts_tpm_normalized_long %>% 
+  inner_join(ann_vaccines_samples, by = "sample")
+
+all_matrices_counts_tpm_normalized_long_annotated %>% saveRDS(here("DGE analysis", "all_matrices_counts_tpm_normalized_long_annotated.rds"))
+
 ```
 
 #### Counts per million
@@ -2195,7 +2207,7 @@ cpm_counts %>%
 # Log2FC by sample ------
 
 # GSE206023
-counts_control_gse206023 = all_matrices_counts_long_annotated %>% 
+counts_control_gse206023 = all_matrices_counts_tpm_normalized_long_annotated %>% 
   filter(gse_id == "GSE206023") %>% 
   filter(!is.na(counts))
 
@@ -2212,7 +2224,7 @@ counts_gse206023_samples_l2fc = counts_control_gse206023 %>%
   select(genes, condition, sample, control_mean_counts, counts,diff, log2fc)
 
 # GSE189039
-counts_control_gse189039 = all_matrices_counts_long_annotated %>% 
+counts_control_gse189039 = all_matrices_counts_tpm_normalized_long_annotated %>% 
   filter(gse_id == "GSE189039") %>% 
   filter(!is.na(counts))
 
@@ -2229,7 +2241,7 @@ counts_gse189039_samples_l2fc = counts_control_gse189039 %>%
   select(genes, condition, sample, control_mean_counts, counts,diff, log2fc)
 
 # GSE201530
-counts_control_gse201530 = all_matrices_counts_long_annotated %>% 
+counts_control_gse201530 = all_matrices_counts_tpm_normalized_long_annotated %>% 
   filter(gse_id == "GSE201530") %>% 
   filter(!is.na(counts))
 
@@ -2246,7 +2258,7 @@ counts_gse201530_samples_l2fc = counts_control_gse201530 %>%
   select(genes, condition, sample, control_mean_counts, counts,diff, log2fc)
 
 # GSE201533
-counts_control_gse201533 = all_matrices_counts_long_annotated %>% 
+counts_control_gse201533 = all_matrices_counts_tpm_normalized_long_annotated %>% 
   filter(gse_id == "GSE201533") %>% 
   filter(!is.na(counts))
 
@@ -2264,7 +2276,7 @@ counts_gse201533_samples_l2fc = counts_control_gse201533 %>%
   
 
 # GSE199750
-counts_control_gse199750 = all_matrices_counts_long_annotated %>% 
+counts_control_gse199750 = all_matrices_counts_tpm_normalized_long_annotated %>% 
   filter(gse_id == "GSE199750") %>% 
   filter(!is.na(counts))
 
@@ -5874,9 +5886,9 @@ ggplot_degs_bars_directions_biotype_bps %>%
 
 
 
-### Shared genes
+## Shared genes
 
-#### Immune related only
+### Immune related only
 
 ```{r}
 
@@ -6253,7 +6265,7 @@ ggsave(patch, file = here("Figures", "Genes_shared_Vaccination_Infection_united_
 patch
 ```
 
-#### Not-immune related only
+### Not-immune related only
 
 ```{r}
 degs_all_updown = all_degs_p_05_vac_infected %>% 
@@ -6587,6 +6599,11 @@ write_csv(shared_genes_df_mirror,
 #### Shared genes
 
 ```{r}
+
+filename = "All_covid_ImmuneGO_BTM"
+
+shared_genes_df_mirror = read_csv(file = here("DGE analysis", "All_covid_ImmuneGO_BTM_sharedgenes_Fisher_Jaccard.csv"))
+
 matrix_data = shared_genes_df_mirror %>% 
   dcast(Cond1 ~ Cond2, 
         value.var = "Shared", 
@@ -6688,8 +6705,8 @@ heatmap_plot_all = Heatmap(mat,
                         left_annotation = row_ha,
                         show_row_names = TRUE,
                         show_heatmap_legend = TRUE,
-                        heatmap_legend_param = list(direction = "horizontal"),
-                        name = "Shared DEGs", #Legend
+                        heatmap_legend_param = list(direction = "vertical"),
+                        name = "Jaccard distance", #Legend
                         col = col_fun, #color
                          cell_fun = function(j, i, x, y, width, height, fill) {
   if (!is.na(mat[i, j]) && mat[i, j] > 0) {
@@ -6780,8 +6797,11 @@ matrix_data_ordered_rows = matrix_data_ordered %>%
 dim(matrix_data_ordered)
 dim(ann_vaccines_heatmap)
 
-col_fun <- colorRamp2(c(0, 0.70), c("white", "#d90429")) #Immune
-
+# Quantile interpolation
+quartiles <- quantile(matrix_data_ordered, probs = c(0, 0.25, 0.5, 0.75, 1), na.rm = TRUE)
+# col_fun <- colorRamp2(quartiles, c("white", "#a8dadc", "#457b9d", "#d90429", "#1d3557"))
+col_fun <- colorRamp2(quartiles, c("white", "#a8dadc", "#457b9d", "#EFC000FF", "#d90429"))
+# col_fun <- colorRamp2(quartiles, c("white", "#E8E79AFF", "#8CBF9AFF", "#477B95FF", "#011C40FF"))
 
 
 ######## HEATMAP ANNOTATION
@@ -6795,8 +6815,11 @@ ha = HeatmapAnnotation(df = ann_vaccines_heatmap,
                        annotation_name_side = "left",
                        show_legend = F)
 
-row_ha = rowAnnotation(df = ann_vaccines_heatmap, 
-                       col = ann_vaxsig_colors)
+row_ha = HeatmapAnnotation(df = ann_vaccines_heatmap,
+                            which = "row",
+                       col = ann_vaxsig_colors, 
+                       show_annotation_name = F,
+                       show_legend = F)
 
 
 
@@ -6808,8 +6831,7 @@ height = unit(20, "cm")
 column_names_gp = gpar(fontsize = 10)
 row_names_gp = gpar(fontsize = 10)
 gp = gpar(fontsize = 5)
-rect_gp = gpar(col = "gray1", lwd = 0)
-
+rect_gp = gpar(col = "white", lwd = 2)
 
 
 fileimageheatmap_grouped = paste0(filename, sep ="_", "Jaccard_Heatmap.png")
@@ -6827,8 +6849,8 @@ heatmap_plot_all = Heatmap(mat,
                         left_annotation = row_ha,
                         show_row_names = TRUE,
                         show_heatmap_legend = TRUE,
-                        heatmap_legend_param = list(direction = "horizontal"),
-                        name = "Shared DEGs", #Legend
+                        heatmap_legend_param = list(direction = "vertical"),
+                        name = "Jaccard \ndistance", #Legend
                         col = col_fun, #color
                          cell_fun = function(j, i, x, y, width, height, fill) {
   if (!is.na(mat[i, j]) && mat[i, j] > 0.01) {
@@ -6837,7 +6859,7 @@ heatmap_plot_all = Heatmap(mat,
 },
                         column_title = fileimageheatmap_grouped,
                         column_title_gp = gpar(fontsize = 15, fontface = "bold"),
-                        column_names_rot = 90,
+                        column_names_rot = 45,
                         column_names_gp = column_names_gp,
                         cluster_rows = TRUE,
                         rect_gp = rect_gp,
@@ -6925,7 +6947,11 @@ matrix_data_ordered_rows = matrix_data_ordered %>%
 dim(matrix_data_ordered)
 dim(ann_vaccines_heatmap)
 
-col_fun <- colorRamp2(c(0, 0.70), c("white", "#d90429")) #Immune
+# Quantile interpolation
+quartiles <- quantile(matrix_data_ordered, probs = c(0, 0.25, 0.5, 0.75, 1), na.rm = TRUE)
+# col_fun <- colorRamp2(quartiles, c("white", "#a8dadc", "#457b9d", "#d90429", "#1d3557"))
+col_fun <- colorRamp2(quartiles, c("white", "#a8dadc", "#457b9d", "#EFC000FF", "#d90429"))
+# col_fun <- colorRamp2(quartiles, c("white", "#E8E79AFF", "#8CBF9AFF", "#477B95FF", "#011C40FF"))
 
 
 
@@ -6940,8 +6966,11 @@ ha = HeatmapAnnotation(df = ann_vaccines_heatmap,
                        annotation_name_side = "left",
                        show_legend = F)
 
-row_ha = rowAnnotation(df = ann_vaccines_heatmap, 
-                       col = ann_vaxsig_colors)
+row_ha = HeatmapAnnotation(df = ann_vaccines_heatmap,
+                            which = "row",
+                       col = ann_vaxsig_colors, 
+                       show_annotation_name = F,
+                       show_legend = F)
 
 
 
@@ -6953,8 +6982,7 @@ height = unit(20, "cm")
 column_names_gp = gpar(fontsize = 10)
 row_names_gp = gpar(fontsize = 10)
 gp = gpar(fontsize = 5)
-rect_gp = gpar(col = "gray1", lwd = 0)
-
+rect_gp = gpar(col = "white", lwd = 2)
 
 
 fileimageheatmap_grouped = paste0(filename, sep ="_", "Jaccard_Heatmap_ByDay.png")
@@ -6972,8 +7000,8 @@ heatmap_plot_all = Heatmap(mat,
                         left_annotation = row_ha,
                         show_row_names = TRUE,
                         show_heatmap_legend = TRUE,
-                        heatmap_legend_param = list(direction = "horizontal"),
-                        name = "Shared DEGs", #Legend
+                        heatmap_legend_param = list(direction = "vertical"),
+                        name = "Jaccard \ndistance", #Legend
                         col = col_fun, #color
                          cell_fun = function(j, i, x, y, width, height, fill) {
   if (!is.na(mat[i, j]) && mat[i, j] > 0.01) {
@@ -6982,7 +7010,7 @@ heatmap_plot_all = Heatmap(mat,
 },
                         column_title = fileimageheatmap_grouped,
                         column_title_gp = gpar(fontsize = 15, fontface = "bold"),
-                        column_names_rot = 90,
+                        column_names_rot = 45,
                         column_names_gp = column_names_gp,
                         cluster_rows = F,
                         rect_gp = rect_gp,
@@ -7068,7 +7096,11 @@ matrix_data_ordered_rows = matrix_data_ordered %>%
 dim(matrix_data_ordered)
 dim(ann_vaccines_heatmap)
 
-col_fun <- colorRamp2(c(0, 0.70), c("white", "#d90429")) #Immune
+# Quantile interpolation
+quartiles <- quantile(matrix_data_ordered, probs = c(0, 0.25, 0.5, 0.75, 1), na.rm = TRUE)
+# col_fun <- colorRamp2(quartiles, c("white", "#a8dadc", "#457b9d", "#d90429", "#1d3557"))
+col_fun <- colorRamp2(quartiles, c("white", "#a8dadc", "#457b9d", "#EFC000FF", "#d90429"))
+# col_fun <- colorRamp2(quartiles, c("white", "#E8E79AFF", "#8CBF9AFF", "#477B95FF", "#011C40FF"))
 
 
 
@@ -7083,8 +7115,11 @@ ha = HeatmapAnnotation(df = ann_vaccines_heatmap,
                        annotation_name_side = "left",
                        show_legend = F)
 
-row_ha = rowAnnotation(df = ann_vaccines_heatmap, 
-                       col = ann_vaxsig_colors)
+row_ha = HeatmapAnnotation(df = ann_vaccines_heatmap,
+                            which = "row",
+                       col = ann_vaxsig_colors, 
+                       show_annotation_name = F,
+                       show_legend = F)
 
 
 
@@ -7096,8 +7131,7 @@ height = unit(20, "cm")
 column_names_gp = gpar(fontsize = 10)
 row_names_gp = gpar(fontsize = 10)
 gp = gpar(fontsize = 5)
-rect_gp = gpar(col = "gray1", lwd = 0)
-
+rect_gp = gpar(col = "white", lwd = 2)
 
 
 fileimageheatmap_grouped = paste0(filename, sep ="_", "Jaccard_Heatmap_ByCondition.png")
@@ -7115,8 +7149,8 @@ heatmap_plot_all = Heatmap(mat,
                         left_annotation = row_ha,
                         show_row_names = TRUE,
                         show_heatmap_legend = TRUE,
-                        heatmap_legend_param = list(direction = "horizontal"),
-                        name = "Shared DEGs", #Legend
+                        heatmap_legend_param = list(direction = "vertical"),
+                        name = "Jaccard \ndistance", #Legend
                         col = col_fun, #color
                          cell_fun = function(j, i, x, y, width, height, fill) {
   if (!is.na(mat[i, j]) && mat[i, j] > 0.01) {
@@ -7125,7 +7159,7 @@ heatmap_plot_all = Heatmap(mat,
 },
                         column_title = fileimageheatmap_grouped,
                         column_title_gp = gpar(fontsize = 15, fontface = "bold"),
-                        column_names_rot = 90,
+                        column_names_rot = 45,
                         column_names_gp = column_names_gp,
                         cluster_rows = F,
                         rect_gp = rect_gp,
@@ -7210,7 +7244,11 @@ matrix_data_ordered_rows = matrix_data_ordered %>%
 dim(matrix_data_ordered)
 dim(ann_vaccines_heatmap)
 
-col_fun <- colorRamp2(c(0, 0.70), c("white", "#d90429")) #Immune
+# Quantile interpolation
+quartiles <- quantile(matrix_data_ordered, probs = c(0, 0.25, 0.5, 0.75, 1), na.rm = TRUE)
+# col_fun <- colorRamp2(quartiles, c("white", "#a8dadc", "#457b9d", "#d90429", "#1d3557"))
+col_fun <- colorRamp2(quartiles, c("white", "#a8dadc", "#457b9d", "#EFC000FF", "#d90429"))
+# col_fun <- colorRamp2(quartiles, c("white", "#E8E79AFF", "#8CBF9AFF", "#477B95FF", "#011C40FF"))
 
 
 
@@ -7225,8 +7263,11 @@ ha = HeatmapAnnotation(df = ann_vaccines_heatmap,
                        annotation_name_side = "left",
                        show_legend = F)
 
-row_ha = rowAnnotation(df = ann_vaccines_heatmap, 
-                       col = ann_vaxsig_colors)
+row_ha = HeatmapAnnotation(df = ann_vaccines_heatmap,
+                            which = "row",
+                       col = ann_vaxsig_colors, 
+                       show_annotation_name = F,
+                       show_legend = F)
 
 
 
@@ -7238,7 +7279,7 @@ height = unit(20, "cm")
 column_names_gp = gpar(fontsize = 10)
 row_names_gp = gpar(fontsize = 10)
 gp = gpar(fontsize = 5)
-rect_gp = gpar(col = "gray1", lwd = 0)
+rect_gp = gpar(col = "white", lwd = 2)
 
 
 
@@ -7257,8 +7298,8 @@ heatmap_plot_all = Heatmap(mat,
                         left_annotation = row_ha,
                         show_row_names = TRUE,
                         show_heatmap_legend = TRUE,
-                        heatmap_legend_param = list(direction = "horizontal"),
-                        name = "Jaccard distance", #Legend
+                        heatmap_legend_param = list(direction = "vertical"),
+                        name = "Jaccard \ndistance", #Legend
                         col = col_fun, #color
                          cell_fun = function(j, i, x, y, width, height, fill) {
   if (!is.na(mat[i, j]) && mat[i, j] > 0.01) {
@@ -7267,7 +7308,7 @@ heatmap_plot_all = Heatmap(mat,
 },
                         column_title = fileimageheatmap_grouped,
                         column_title_gp = gpar(fontsize = 15, fontface = "bold"),
-                        column_names_rot = 90,
+                        column_names_rot = 45,
                         column_names_gp = column_names_gp,
                         cluster_rows = F,
                         rect_gp = rect_gp,
@@ -9992,8 +10033,6 @@ ImmuneGO_BTM_grouped_genes <- read_csv("VaxGO gene sets/ImmuneGO_BTM_grouped_gen
 ImmuneGO_Genes = all_degs_p_05_vac_infected %>%
   ungroup() %>% 
   inner_join(ImmuneGO_BTM_grouped_genes %>% select(genes) %>% distinct(), by = "genes") %>%
-  # inner_join(btm_annotation_genes_immune %>% select(genes) %>% distinct(), by = "genes") %>%
-  # inner_join(ImmuneGO_Annotated_Genes_all %>% select(genes) %>% distinct(), by = "genes") %>% 
   filter(if_else(n >= 5, fdr <= 0.05, fdr <= (0.05 * 6/n))) 
   
 ```
@@ -10109,13 +10148,13 @@ PC2_top20_neg = pca_res$rotation %>%
 
 circle_contrib= fviz_pca_var(pca_res, 
                              col.var = "cos2",
-                              gradient.cols = c("#4DBBD5FF", "#DC0000FF"),
+                              gradient.cols = c("#DC0000FF", "black"),
                                col.ind = "black",
                               # select.var= list(cos2 = 20), 
                               select.var = list(name = c(PC1_top20_pos, PC1_top20_neg, PC2_top20_pos, PC2_top20_neg)),
                               repel = T, 
                               labelsize = 5, 
-                              col.circle = NA) +
+                              col.circle = "gray90") +
   labs(title = "",
        x = "PC1",
        y = "PC2") +
@@ -10161,9 +10200,12 @@ ann_vaccines_pca_matrix$cluster <- as.factor(cluster_model$cluster)
 
 
 #### Plot PC1-2
-```{r fig.height=5, fig.width=5, paged.print=FALSE, cache=TRUE}
-
+```{r fig.height=7, fig.width=7, paged.print=FALSE, cache=TRUE}
 # Condition with density plot ------
+
+# ann_vaxsig_colors_linebreak = ann_vaxsig_colors
+# names(ann_vaxsig_colors_linebreak$condition_col) <- str_replace(names(ann_vaxsig_colors_linebreak$condition_col), " \\(", "\n(")
+
 pca_plot_knn_cluster_labels = autoplot(pca_res, 
         data = ann_vaccines_pca_matrix)  +
   # stat_ellipse(aes(color = cluster, fill = cluster),
@@ -10176,11 +10218,15 @@ pca_plot_knn_cluster_labels = autoplot(pca_res,
   labs(title=paste0(filename, "_bycondition"),
        x = "PC1 (71.8%)",
        y = "PC2 (13%)") + 
-  # geom_hline(yintercept = 0, size = 0.3, color = "gray50", linetype = 4) +
-  # geom_vline(xintercept = 0, size = 0.3, color = "gray50", linetype = 4) +
+  # geom_hline(yintercept = 0, size = 0.8, color = "gray50", linetype = 1, alpha = 1) +
+  # geom_vline(xintercept = 0, size = 0.8, color = "gray50", linetype = 1, alpha = 1) +
+  geom_point(color = "black",
+             size = 4,
+             stroke = 1) +
   geom_point(aes(fill = condition,
                  color = condition),
-             stroke = 0.2) +
+             size = 3,
+             stroke = 1) +
    scale_color_manual(values = c("1" = "#DC0000FF", 
                                "2" = "#4DBBD5FF", 
                                "3" = "#F5BB00",
@@ -10196,69 +10242,27 @@ pca_plot_knn_cluster_labels = autoplot(pca_res,
   guides(col="none") +
   theme_few() +
   theme(axis.text = element_text(size = 10, color = "black"),
-      panel.grid = element_line(size = 0.5, 
-                                    linetype = 2,
+      panel.grid.minor = element_blank(),
+      panel.grid.major = element_line(size = 1, 
+                                    linetype = 1,
                                     color = "gray90"),
-        axis.line = element_line(size = 1, colour = "black", linetype=1),
+        axis.line = element_line(size = 0, colour = "black", linetype=1),
+        # axis.line = element_line(size = 1, colour = "black", linetype=1),
         text = element_text(color = "black", size = 10),
-        panel.border = element_rect(fill = NA, color = "black", size = 0))   +
-  geom_text_repel(aes(label = if_else(cluster != 2, condition, NA)),
+        panel.border = element_rect(fill = NA, color = "gray90", size = 2))   +
+  geom_label_repel(aes(label = if_else(cluster != 2 | type == "I" & condition != c("I-BNT (D5)", "BNT-I-BNT (D51, hospital)"), condition, NA)),
                   segment.colour="black",
-                  box.padding = 0.3,
-                  size = 3.5)
-  # xlim(-0.4, 0.6)
+                  box.padding = 0.5, 
+                  # fill = "gray60",
+                  # color = "white",
+                  size = 3.5)  +
+  xlim(-0.3, 0.8)
 pca_plot_knn_cluster_labels
 
 ggsave(pca_plot_knn_cluster_labels, 
        file = here(file = "Figures", paste0(filename, pcas, "_KNN_Clustered_labels.png")), width = 7, height = 7)
-
-# Condition without labels
-pca_plot_knn_cluster_nolabels = autoplot(pca_res, 
-        data = ann_vaccines_pca_matrix)  +
-  # stat_ellipse(aes(color = cluster, fill = cluster),
-  #              alpha = 1,
-  #              
-  #              linetype = 1,
-  #              size = 0.3,
-  #              type = "t") +
-  geom_convexhull(aes(fill = cluster, colour = cluster), alpha = 0) +
-  labs(title=paste0(filename, "_bycondition"),
-       x = "PC1 (71.8%)",
-       y = "PC2 (13%)") + 
-  # geom_hline(yintercept = 0, size = 0.3, color = "gray50", linetype = 4) +
-  # geom_vline(xintercept = 0, size = 0.3, color = "gray50", linetype = 4) +
-  geom_point(aes(fill = condition,
-                 color = condition),
-             stroke = 0.8) +
-   scale_color_manual(values = c("1" = "#DC0000FF", 
-                               "2" = "#4DBBD5FF", 
-                               "3" = "#F5BB00",
-                               "4" = "#8491B4FF",
-                                ann_vaxsig_colors$condition_col), 
-                     guide = "none") +
-  scale_fill_manual(values = c("1" = "#DC0000FF", 
-                               "2" = "#4DBBD5FF", 
-                               "3" = "#F5BB00",
-                               "4" = "#8491B4FF",
-                               ann_vaxsig_colors$condition_col),
-                    guide = "none") + 
-  guides(col="none") +
-  theme_few() +
-  theme(axis.text = element_text(size = 10, color = "black"),
-      panel.grid = element_line(size = 0.5, 
-                                    linetype = 2,
-                                    color = "gray90"),
-        axis.line = element_line(size = 1, colour = "black", linetype=1),
-        text = element_text(color = "black", size = 10),
-        panel.border = element_rect(fill = NA, color = "black", size = 0)) 
-
-ggsave(pca_plot_knn_cluster_nolabels, 
-       file = here(file = "Figures", paste0(filename, pcas, "_KNN_Clustered_nolabels.png")), width = 7, height = 7)
-pca_plot_knn_cluster_nolabels
-
-
-
 ```
+
 
 
 
@@ -10320,7 +10324,7 @@ PC1_2 = bind_rows(PC1, PC2)
 PC1_2 %>% 
   select(genes) %>% distinct()
 
-PC1_2 %>% write_csv(file = paste(filename, "PC_1_2_cos2.csv"))
+PC1_2 %>% write_csv(file = here("PCA", paste(filename, "PC_1_2_cos2.csv")))
 
 ```
 
@@ -10331,6 +10335,8 @@ Horizontal
 ```{r}
 # INPUT
 ann_genes = ImmuneGO_Annotated_Genes
+btm_annotation_genes <- readRDS(here("VaxGO gene sets", "btm_annotation_genes.rds"))
+btm_annotation_genes_immune = btm_annotation_genes
 pc = "PC1"
 # data_2 =  PC1 %>% 
 #   slice_max(order_by = cos2, n = 10) %>% 
@@ -10400,7 +10406,8 @@ ann_rows_immune = matrix_data %>%
   as.data.frame() %>%
   mutate(set = if_else(is.na(set), set2, set),
          set2 = if_else(set == set2, NA, set2)) %>% 
-  replace(is.na(.), "None")
+  replace(is.na(.), "None") %>% 
+  select(set2, set)
 
 # Reorder columns (same order as lines in the annotation table)
 matrix_data_ordered = matrix_data %>% 
@@ -10432,6 +10439,9 @@ col_immune_sets = list(
           "None"="white"))
 
 
+ann_cols_heatmap <- ann_cols_heatmap %>%
+  mutate(day = factor(day, levels = unique(day[order(day)])))
+
 #Heatmap annotation -----
 ha = HeatmapAnnotation(df = ann_cols_heatmap, 
                        col = ann_vaxsig_colors,
@@ -10445,7 +10455,7 @@ row_ha = HeatmapAnnotation(df = ann_rows_immune,
                        simple_anno_size = unit(2, "mm"))
 
 # Values colors -----
-col_fun <- colorRamp2(c(-2, 0, 2), c("#9bc1bc", "white", "#ed6a5a"))
+col_fun <- colorRamp2(c(-2, 0, 2), c("#4DBBD5FF", "white", "#ed6a5a"))
 
 
 # Parameters -----
@@ -10453,7 +10463,7 @@ file = filename_2
 mat = matrix_data
 width_image = 20
 height_image = 15
-width = unit(10, "cm")
+width = unit(12, "cm")
 height = unit(5, "cm")
 column_names_gp = gpar(fontsize = 10)
 row_names_gp = gpar(fontsize = 10)
@@ -10497,69 +10507,6 @@ heatmap_plot = Heatmap(mat,
                         column_dend_side = "top",
                         clustering_distance_rows = "euclidean",
                         border = TRUE,
-                        width = width,
-                        height = height 
-)
-
-draw(heatmap_plot, 
-     annotation_legend_side = "right", 
-     heatmap_legend_side = "bottom")
-dev.off()
-```
-
-Get row and column orders
-```{r}
-## Get row and column orders
-ht_list = draw(heatmap_plot)
-rows_clustered = rownames(mat)[row_order(ht_list)]
-cols_clustered = colnames(mat)[column_order(ht_list)]
-
-mat_2 = mat %>% 
-  as.data.frame() %>% 
-  rownames_to_column("genes") %>% 
-  filter(genes %in% c(rev(rows_clustered))) %>% 
-  select(genes, c(rev(cols_clustered))) %>% 
-  column_to_rownames("genes") %>% 
-  as.matrix()
-
-fileimageheatmap_grouped = paste0(file, sep ="_", "Complexheatmap_ForPCA.png")
-
-png(file = here("Figures", fileimageheatmap_grouped), 
-    width = width_image, 
-    height = height_image, 
-    units="cm", 
-    res=900)
-
-heatmap_plot = Heatmap(mat_2,
-                        # top_annotation = ha,
-                        name = "L2FC",
-                        # left_annotation = row_ha,
-                        show_row_names = TRUE,
-                        row_names_side = "right",
-                        show_heatmap_legend = TRUE,
-                        heatmap_legend_param = list(direction = "horizontal"),
-                        col = col_fun, #color
-                        show_column_names = TRUE,
-                        column_title = fileimageheatmap_grouped,
-                        column_title_gp = gpar(fontsize = 10, fontface = "bold"),
-                        column_names_rot = 45,
-                        column_names_gp = column_names_gp,
-                        rect_gp = rect_gp,
-                        na_col = "white",
-                        cluster_rows = F,
-                        row_names_gp = row_names_gp,
-                        row_dend_width = unit(2, "cm"),
-                        column_split = NULL,
-                        row_split = NULL,
-                        row_gap = unit(2, "mm"),
-                        cluster_columns = F,
-                        column_gap = unit(8, "mm"),
-                        show_column_dend = F,
-                        show_row_dend = F,
-                        row_dend_side = "left",
-                        column_dend_side = "top",
-                        clustering_distance_rows = "euclidean",
-                        border = F,
                         width = width,
                         height = height 
 )
@@ -10645,7 +10592,8 @@ ann_rows_immune = matrix_data %>%
   as.data.frame() %>%
   mutate(set = if_else(is.na(set), set2, set),
          set2 = if_else(set == set2, NA, set2)) %>% 
-  replace(is.na(.), "None")
+  replace(is.na(.), "None") %>% 
+  select(set2, set)
 
 # Reorder columns (same order as lines in the annotation table)
 matrix_data_ordered = matrix_data %>% 
@@ -10676,6 +10624,9 @@ col_immune_sets = list(
           "ImmuneGO" = "#00A087FF",
           "None"="white"))
 
+ann_cols_heatmap <- ann_cols_heatmap %>%
+  mutate(day = factor(day, levels = unique(day[order(day)])))
+
 
 #Heatmap annotation -----
 ha = HeatmapAnnotation(df = ann_cols_heatmap, 
@@ -10690,7 +10641,7 @@ row_ha = HeatmapAnnotation(df = ann_rows_immune,
                        simple_anno_size = unit(2, "mm"))
 
 # Values colors -----
-col_fun <- colorRamp2(c(-2, 0, 2), c("#9bc1bc", "white", "#ed6a5a"))
+col_fun <- colorRamp2(c(-2, 0, 2), c("#4DBBD5FF", "white", "#ed6a5a"))
 
 
 # Parameters -----
@@ -10698,7 +10649,7 @@ file = filename_2
 mat = matrix_data
 width_image = 15
 height_image = 15
-width = unit(5, "cm")
+width = unit(7, "cm")
 height = unit(5, "cm")
 column_names_gp = gpar(fontsize = 10)
 row_names_gp = gpar(fontsize = 10)
@@ -10824,7 +10775,7 @@ dev.off()
 
 
 
-## COVID-19 and other vaccines
+## (DELETE) COVID-19 and other vaccines
 
 ```{r}
 # Input files ------
@@ -23761,10 +23712,15 @@ degs_hagan = hagan_vaxatlas %>%
   select(condition, genes, log2fold_change)
 
 degs_covid_vax = degs_covid %>% 
-  bind_rows(degs_hagan)
+  bind_rows(degs_hagan) %>% 
+  filter(genes %in% c(degs_covid$genes %>% unique()))
 
 degs_covid_vax %>% 
   saveRDS(file = here("VaxGO gene sets", "degs_covid_vaxhagan.rds"))
+
+
+ImmuneGO_BTM_grouped_genes <- read_csv("VaxGO gene sets/ImmuneGO_BTM_grouped_genes.csv")
+immunego_btm_genes = ImmuneGO_BTM_grouped_genes
 
 ```
 
@@ -23775,7 +23731,7 @@ degs_covid_vax %>%
 ```{r}
 #Input
 data = degs_covid_vax %>%
-  filter(genes %in% immunego_btm_genes_joined$genes) %>% 
+  filter(genes %in% immunego_btm_genes$genes) %>% 
   rename(process = condition) %>% 
   select(process, genes)
   
@@ -23974,8 +23930,11 @@ row_ha = HeatmapAnnotation(df = ann_rows_heatmap,
                        show_annotation_name = F,
                        show_legend = T)
 
-# Values colors
-col_fun <- colorRamp2(c(0, max(matrix_data)), c("white", "#ed6a5a"))
+# Quantile interpolation
+quartiles <- quantile(matrix_data, probs = c(0, 0.25, 0.5, 0.75, 1), na.rm = TRUE)
+# col_fun <- colorRamp2(quartiles, c("white", "#a8dadc", "#457b9d", "#d90429", "#1d3557"))
+col_fun <- colorRamp2(quartiles, c("white", "#a8dadc", "#457b9d", "#EFC000FF", "#d90429"))
+# col_fun <- colorRamp2(quartiles, c("white", "#E8E79AFF", "#8CBF9AFF", "#477B95FF", "#011C40FF"))
 
 
 mat = matrix_data
@@ -24000,7 +23959,8 @@ heatmap_plot = Heatmap(mat,
                         show_row_names = TRUE,
                         row_names_side = "left",
                         show_heatmap_legend = TRUE,
-                        heatmap_legend_param = list(title = "Jaccard distance", direction = "vertical"),
+                        heatmap_legend_param = list(direction = "vertical"),
+                        name = "Jaccard \ndistance", #Legend
                         col = col_fun, #color
                         cell_fun = function(j, i, x, y, width, height, fill) {
                                             if(mat[i, j] > 0)
@@ -24013,7 +23973,7 @@ heatmap_plot = Heatmap(mat,
                         column_title_gp = gpar(fontsize = 10, fontface = "bold"),
                         column_names_rot = 45,
                         column_names_gp = column_names_gp,
-                        rect_gp = gpar(col = "white", lwd = 1.5),
+                        rect_gp = gpar(col = "white", lwd = 2),
                         cluster_rows = TRUE,
                         row_names_gp = row_names_gp, #Grande = 6, Pequeno 15
                         row_dend_width = unit(5, "cm"), #Altura do dendrograma
@@ -24146,8 +24106,11 @@ row_ha = HeatmapAnnotation(df = ann_rows_heatmap,
                        show_annotation_name = F,
                        show_legend = T)
 
-# Values colors
-col_fun <- colorRamp2(c(0, max(matrix_data)), c("white", "#ed6a5a"))
+# Quantile interpolation
+quartiles <- quantile(matrix_data, probs = c(0, 0.25, 0.5, 0.75, 1), na.rm = TRUE)
+# col_fun <- colorRamp2(quartiles, c("white", "#a8dadc", "#457b9d", "#d90429", "#1d3557"))
+col_fun <- colorRamp2(quartiles, c("white", "#a8dadc", "#457b9d", "#EFC000FF", "#d90429"))
+# col_fun <- colorRamp2(quartiles, c("white", "#E8E79AFF", "#8CBF9AFF", "#477B95FF", "#011C40FF"))
 
 
 mat = matrix_data
@@ -24172,7 +24135,7 @@ heatmap_plot = Heatmap(mat,
                         show_row_names = TRUE,
                         row_names_side = "left",
                         show_heatmap_legend = TRUE,
-                        heatmap_legend_param = list(title = "Jaccard distance", direction = "vertical"),
+                        heatmap_legend_param = list(title = "Jaccard \ndistance", direction = "vertical"),
                         col = col_fun, #color
                         cell_fun = function(j, i, x, y, width, height, fill) {
                                             if(mat[i, j] > 0)
@@ -24185,7 +24148,7 @@ heatmap_plot = Heatmap(mat,
                         column_title_gp = gpar(fontsize = 10, fontface = "bold"),
                         column_names_rot = 45,
                         column_names_gp = column_names_gp,
-                        rect_gp = gpar(col = "white", lwd = 1.5),
+                        rect_gp = gpar(col = "white", lwd = 2),
                         cluster_rows = F,
                         row_names_gp = row_names_gp, #Grande = 6, Pequeno 15
                         row_dend_width = unit(5, "cm"), #Altura do dendrograma
@@ -24316,8 +24279,11 @@ row_ha = HeatmapAnnotation(df = ann_rows_heatmap,
                        show_annotation_name = F,
                        show_legend = T)
 
-# Values colors
-col_fun <- colorRamp2(c(0, max(matrix_data)), c("white", "#ed6a5a"))
+# Quantile interpolation
+quartiles <- quantile(matrix_data, probs = c(0, 0.25, 0.5, 0.75, 1), na.rm = TRUE)
+# col_fun <- colorRamp2(quartiles, c("white", "#a8dadc", "#457b9d", "#d90429", "#1d3557"))
+col_fun <- colorRamp2(quartiles, c("white", "#a8dadc", "#457b9d", "#EFC000FF", "#d90429"))
+# col_fun <- colorRamp2(quartiles, c("white", "#E8E79AFF", "#8CBF9AFF", "#477B95FF", "#011C40FF"))
 
 
 mat = matrix_data
@@ -24342,7 +24308,7 @@ heatmap_plot = Heatmap(mat,
                         show_row_names = TRUE,
                         row_names_side = "left",
                         show_heatmap_legend = TRUE,
-                        heatmap_legend_param = list(title = "Jaccard distance", direction = "vertical"),
+                        heatmap_legend_param = list(title = "Jaccard \ndistance", direction = "vertical"),
                         col = col_fun, #color
                         cell_fun = function(j, i, x, y, width, height, fill) {
                                             if(mat[i, j] > 0)
@@ -24397,7 +24363,6 @@ ImmuneGO_BTM_grouped_genes <- read_csv("VaxGO gene sets/ImmuneGO_BTM_grouped_gen
 ImmuneGO_BTM_general = ImmuneGO_BTM_grouped_genes %>% 
   filter(immune_set == "BTM and ImmuneGO") %>% 
   select(process, genes)
-
 
 ImmuneGO_BTM_specific = ImmuneGO_BTM_grouped_genes %>%
   filter(str_detect(immune_set, "Modules")) %>%
@@ -24593,17 +24558,17 @@ row_clustered = df %>%
   hclust()
 
 row_shared =  df %>%
-  filter(id %in% row_clustered$labels,p_adjust <= 0.10) %>% 
-  mutate(condition = factor(condition, column_order),
-         id = factor(id, levels = row_clustered$labels[row_clustered$order]),
-         id = str_to_title(id),
+  filter(id %in% row_clustered$labels, 
+         p_adjust <= 0.10) %>% 
+  mutate(id = str_to_title(id),
          id = case_when(id == "Humoral Adaptive Immune System" ~ "Humoral Adap.",
                         id == "Cellular Adaptive Immune System" ~ "Cellular Adap.",
                         id == "Adaptive Immune System" ~ "Adap.",
                         id == "Innate Immune System" ~ "Innate",
                         id == "Complement Immune System" ~ "Complement",
                         id == "Immunoglobulin Mediated Response" ~ "Ig-mediated",
-                        id == "Antiviral And Interferon" ~ "Antiviral/IFN",.default = id)) %>% 
+                        id == "Antiviral And Interferon" ~ "Antiviral/IFN",
+                        .default = id)) %>% 
   group_by(id) %>% 
   summarize(n = n()) %>% 
   ungroup() %>% 
@@ -24634,7 +24599,7 @@ labels_set <- df %>%
   scale_fill_manual(values = ann_vaxsig_colors$set) + 
   theme_void() +
   labs(y = "Set") +
-  theme(axis.title.y = element_text(size = 12, hjust = 1),
+  theme(axis.title.y = element_text(size = 15, hjust = 1),
         legend.position = "right") 
 
 labels_disease_vac <- df %>% 
@@ -24645,8 +24610,8 @@ labels_disease_vac <- df %>%
   geom_tile() + 
   scale_fill_manual(values = ann_vaxsig_colors$disease_vac) + 
   theme_void() +
-  labs(y = "Infection/Vaccination") +
-  theme(axis.title.y = element_text(size = 12, hjust = 1),
+  labs(y = "Disease_vac") +
+  theme(axis.title.y = element_text(size = 15, hjust = 1),
         legend.position = "right") 
 
 labels_type <- df %>% 
@@ -24658,7 +24623,7 @@ labels_type <- df %>%
   scale_fill_manual(values = ann_vaxsig_colors$Platform) + 
   theme_void() +
   labs(y = "Type") +
-  theme(axis.title.y = element_text(size = 12, hjust = 1),
+  theme(axis.title.y = element_text(size = 15, hjust = 1),
         legend.position = "right") 
 
 labels_dose <- df %>% 
@@ -24670,7 +24635,7 @@ labels_dose <- df %>%
   scale_fill_manual(values = ann_vaxsig_colors$dose) + 
   theme_void() +
   labs(y = "Dose") +
-  theme(axis.title.y = element_text(size = 12, hjust = 1),
+  theme(axis.title.y = element_text(size = 15, hjust = 1),
         legend.position = "right") 
 
 labels_week = df %>% 
@@ -24682,7 +24647,7 @@ labels_week = df %>%
   scale_fill_manual(values = ann_vaxsig_colors$week) + 
   theme_void() +
   labs(y = "Week") +
-  theme(axis.title.y = element_text(size = 12, hjust = 1),
+  theme(axis.title.y = element_text(size = 15, hjust = 1),
         legend.position = "right")
 
 labels_day = df %>% 
@@ -24694,7 +24659,7 @@ labels_day = df %>%
   scale_fill_manual(values = ann_vaxsig_colors$day) + 
   theme_void() +
   labs(y = "Day") +
-  theme(axis.title.y = element_text(size = 12, hjust = 1),
+  theme(axis.title.y = element_text(size = 15, hjust = 1),
         legend.position = "right")
 
 
@@ -24756,7 +24721,7 @@ patch_immune_main =
   labels_dose/
   labels_day/
   dotplot) +
-  plot_layout(heights = c( 0.2, 0.2, 0.2, 0.2, 0.2, 5),
+  plot_layout(heights = c( 0.3, 0.3, 0.3, 0.3, 0.3, 6),
               guides = 'collect',
               axes = "collect") +
   plot_annotation(title = "GSEA ImmuneGO + BTM",
@@ -24768,7 +24733,6 @@ patch_immune_main =
                                 legend.direction = "vertical", 
                                 legend.box = "vertical"))
   
-  patch_immune_main
 
 patch_immune_main %>%
   ggsave(filename = here("Figures", paste0(filename, "_GSEA_ImmuneGO_BTM_MainGOs_Bubbleplot.png")),
@@ -24835,7 +24799,7 @@ labels_set <- df %>%
   scale_fill_manual(values = ann_vaxsig_colors$set) + 
   theme_void() +
   labs(y = "Set") +
-  theme(axis.title.y = element_text(size = 12, hjust = 1),
+  theme(axis.title.y = element_text(size = 15, hjust = 1),
         legend.position = "right") 
 
 labels_disease_vac <- df %>% 
@@ -24846,8 +24810,8 @@ labels_disease_vac <- df %>%
   geom_tile() + 
   scale_fill_manual(values = ann_vaxsig_colors$disease_vac) + 
   theme_void() +
-  labs(y = "Infection/Vaccination") +
-  theme(axis.title.y = element_text(size = 12, hjust = 1),
+  labs(y = "disease_vac") +
+  theme(axis.title.y = element_text(size = 15, hjust = 1),
         legend.position = "right") 
 
 labels_type <- df %>% 
@@ -24859,7 +24823,7 @@ labels_type <- df %>%
   scale_fill_manual(values = ann_vaxsig_colors$Platform) + 
   theme_void() +
   labs(y = "Type") +
-  theme(axis.title.y = element_text(size = 12, hjust = 1),
+  theme(axis.title.y = element_text(size = 15, hjust = 1),
         legend.position = "right") 
 
 labels_dose <- df %>% 
@@ -24871,7 +24835,7 @@ labels_dose <- df %>%
   scale_fill_manual(values = ann_vaxsig_colors$dose) + 
   theme_void() +
   labs(y = "Dose") +
-  theme(axis.title.y = element_text(size = 12, hjust = 1),
+  theme(axis.title.y = element_text(size = 15, hjust = 1),
         legend.position = "right") 
 
 labels_week = df %>% 
@@ -24883,7 +24847,7 @@ labels_week = df %>%
   scale_fill_manual(values = ann_vaxsig_colors$week) + 
   theme_void() +
   labs(y = "Week") +
-  theme(axis.title.y = element_text(size = 12, hjust = 1),
+  theme(axis.title.y = element_text(size = 15, hjust = 1),
         legend.position = "right")
 
 labels_day = df %>% 
@@ -24895,7 +24859,7 @@ labels_day = df %>%
   scale_fill_manual(values = ann_vaxsig_colors$day) + 
   theme_void() +
   labs(y = "Day") +
-  theme(axis.title.y = element_text(size = 12, hjust = 1),
+  theme(axis.title.y = element_text(size = 15, hjust = 1),
         legend.position = "right")
 
 
@@ -24926,7 +24890,7 @@ dotplot = df %>%
         legend.position = "bottom") +
   labs(x = "",
        y = "") +
-  scale_color_gradient2(low = "blue",
+  scale_color_gradient2(low = "#4DBBD5FF",
                         mid = "white",
                         midpoint = 0, 
                         name = "NES",
@@ -24942,7 +24906,7 @@ patch_immune_main =
   labels_dose/
   labels_day/
   dotplot +
-  plot_layout(heights = c(0.2, 0.2, 0.2, 0.2, 0.2, 7),
+  plot_layout(heights = c(0.3, 0.3, 0.3, 0.3, 0.3, 6),
               guides = 'collect') +
   plot_annotation(title = "GSEA ImmuneGO + BTM",
                   subtitle = "Main processes",
@@ -25454,7 +25418,7 @@ labels_disease_vac <- df %>%
   geom_tile() + 
   scale_fill_manual(values = ann_vaxsig_colors$disease_vac) + 
   theme_void() +
-  labs(y = "Infection/Vaccination") +
+  labs(y = "disease_vac") +
   theme(axis.title.y = element_text(size = 12, hjust = 1),
         legend.position = "right") 
 
@@ -25538,7 +25502,7 @@ dotplot = df %>%
         axis.ticks = element_line(size = 1, color ="black"),
         # panel.grid = element_line(linetype = 2, color = "gray75"),
         panel.grid = element_blank(),
-        legend.direction = "horizontal",
+        legend.direction = "vertical",
         legend.position = "bottom") +
   labs(x = "",
        y = "") +
@@ -25556,13 +25520,12 @@ dotplot = df %>%
 
 
 patch_immune_main = 
-  (labels_set /
-  labels_disease_vac /
+  (labels_disease_vac /
   labels_type /
   labels_dose/
   labels_day/
   dotplot) +
-  plot_layout(heights = c( 0.2, 0.2, 0.2, 0.2, 0.2, 5),
+  plot_layout(heights = c(0.2, 0.2, 0.2, 0.2, 5),
               guides = 'collect',
               axes = "collect") +
   plot_annotation(title = "GSEA ImmuneGO + BTM",
@@ -25578,7 +25541,7 @@ patch_immune_main =
 
 patch_immune_main %>%
   ggsave(filename = here("Figures", paste0(filename, "_GSEA_ImmuneGO_BTM_MainGOs_Bubbleplot_COVIDONLY.png")),
-         width = 20,
+         width = 15,
          height = 15)
 patch_immune_main
 
