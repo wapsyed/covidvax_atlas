@@ -126,6 +126,9 @@ Read the recent version here:
 # install.packages("ggstatsplot")
 # install.packages("chorddiag")
 # devtools::install_github("cmartin/ggConvexHull")
+# install.packages("ggbeeswarm")
+
+library(ggbeeswarm)
 library(maditr)
 library(readxl)
 library(ggConvexHull)
@@ -2205,6 +2208,7 @@ cpm_counts %>%
 #### Log2fc by sample
 ```{r cache = TRUE}
 # Log2FC by sample ------
+# all_matrices_counts_tpm_normalized_long_annotated = readRDS(here("DGE analysis", "all_matrices_counts_tpm_normalized_long_annotated.rds"))
 
 # GSE206023
 counts_control_gse206023 = all_matrices_counts_tpm_normalized_long_annotated %>% 
@@ -9575,7 +9579,8 @@ head(nesmat_result_CellMarker)
 library(immunedeconv)
 library(tidyverse)
 
-all_matrices_counts <- readRDS(here("DGE analysis", "all_matrices_counts.rds"))
+all_samples_l2fc = readRDS(file = here("DGE analysis", "all_samples_l2fc.rds"))
+
 all_matrices_counts_l2fc = all_samples_l2fc %>% 
   select(genes, sample, log2fc) %>% 
   pivot_wider(names_from = "sample",
@@ -9583,7 +9588,6 @@ all_matrices_counts_l2fc = all_samples_l2fc %>%
   column_to_rownames("genes") %>% 
   as.matrix()
 
-all_matrices_counts_tpm_normalized <- readRDS(here("DGE analysis", "all_matrices_counts_tpm_normalized.rds"))
 ```
 
 
@@ -9594,7 +9598,10 @@ xcell_results = immunedeconv::deconvolute(all_matrices_counts_l2fc, "xcell")
 
 xcell_results %>% 
   write_csv(file = here("Cell populations", "all_covid_degs_xcell_results.csv"))
+```
 
+
+```{r fig.height=6, fig.width=12}
 xcell_results_annotated = xcell_results %>% 
   pivot_longer(cols = -cell_type,
                names_to = "sample",
@@ -9611,35 +9618,98 @@ xcell_results_annotated = xcell_results %>%
   rename(condition = condition_grouped) %>% 
   mutate(condition = fct_relevel(condition, 
                                  ann_vaccines_conditions_ordered$condition_grouped %>% as.character()%>% unique())) %>% 
-  mutate(type = if_else(condition == "BNT-I (D0-5)", "RNA", type))
+  mutate(type = if_else(condition == "BNT-I (D0-5)", "RNA", type)) %>% 
+  filter(day != 0) %>% 
+  group_by(condition, cell_type) %>% 
+  mutate(minmax_value = (value - min(value)) / 
+                             (max(value) - min(value)))
 
+xcell_results_annotated
+  
 ```
 
 
-```{r fig.height=6, fig.width=12}
+```{r fig.height=6, fig.width=10}
+
+xcell_results_annotated_summary = xcell_results_annotated %>% 
+  group_by(condition, cell_type) %>% 
+  summarize(median = median(minmax_value),
+            mean = mean(minmax_value),
+            sd = sd(minmax_value)) %>% 
+  inner_join(ann_vaccines_conditions %>% 
+               select(condition, type, vaccine, disease_vac, day), by = join_by("condition")) %>% 
+  ungroup() 
+
+cell_type_selected = "B cell"
+
 #boxplot
 xcell_results_annotated_2_plot =  xcell_results_annotated %>% 
-  filter(cell_type == "B cell") %>% 
-  ggplot() +
-  aes(x = condition, y = value, 
-      fill = if_else(day == 0 & disease_vac != "I", "Day 0", type)
-      ) +  
-  geom_hline(yintercept = 0, linetype = 2) +
-  geom_jitter(aes(color = if_else(day == 0, "Day 0", type)),
-              alpha = 0.3, size = 0.5) +
-  geom_boxplot(outliers = F) +
-  theme_few() +
+  filter(cell_type == cell_type_selected) %>% 
+  ggplot() +  
+  geom_beeswarm(aes(x = condition, 
+                  y = minmax_value), 
+                color = "black",
+              alpha = 1, 
+              size = 3, 
+              seed = 123,
+              cex = 0.1) +
+  geom_beeswarm(aes(x = condition, 
+                  y = minmax_value,
+                  color = type), 
+              alpha = 1, size = 2, seed = 123,
+              cex = 0.1) +
+  geom_bar(data = xcell_results_annotated_summary %>% 
+             filter(cell_type == cell_type_selected), 
+           aes(x = condition, y = median, fill = type), 
+           stat = "identity", 
+           alpha = 0.3) +
+  stat_summary(data = xcell_results_annotated_summary %>% 
+             filter(cell_type == cell_type_selected,
+                    median > 0.001),
+             aes(x = condition, y = median),
+               fun = "median",
+               geom = "crossbar", 
+              size = 0.2,
+               width = 1,
+               colour = "black") +
   scale_fill_manual(values = c("Day 0" = "white", 
                                ann_vaxsig_colors$type)) +
-    scale_color_manual(values = c("Day 0" = "gray80", 
+  scale_color_manual(values = c("Day 0" = "gray80", 
                                ann_vaxsig_colors$type)) +
-  theme(axis.text.x = element_text(angle = 45,
+  theme_minimal()+
+  theme(legend.position = "top",
+        axis.text.x = element_text(size = 10,
+                                   color = "black",
+                                   vjust = 1,
                                    hjust = 1,
-                                   vjust = 1),
-        plot.title = element_text(hjust = 0.5, face = "bold"),
-        plot.margin = margin(0, 0, 0, 2, "cm"),
-        panel.grid.major = element_line(size = 0.05),
-        panel.grid.minor = element_line(size = 0.05)) +
+                                   angle = 45),
+        axis.text.y = element_text(size = 10,
+                                   color = "black",
+                                   angle = 0),
+        # legend.text = element_text(size = 10),
+        # legend.title = element_text(size = 15),
+        plot.title = element_text(size = 12),
+        plot.subtitle = element_text(size = 10),
+        axis.title.y = element_text(color = "black"),
+        panel.grid.major.y = element_line(size = 0.5,
+                                          linetype = 2,
+                                          color = "gray75"),
+        panel.grid.major.x = element_line(size = 0,
+                                          linetype = 2,
+                                          color = "gray75"),
+        axis.line.x = element_line(size = 1,
+                                   colour = "black",
+                                   linetype = 1),
+        axis.line.y = element_line(size = 1,
+                                   colour = "black",
+                                   linetype = 1),
+        axis.ticks.x = element_line(size = 1, color = "black"),
+        axis.ticks.y = element_line(size = 1, color = "gray75"),
+        panel.grid.minor = element_line(size = 0.5,
+                                          linetype = 2,
+                                          color = "gray75"),
+        plot.margin = margin(0, 0, 0, 0, unit = "cm")) +
+  # scale_y_continuous(expand = c(0,0)) +
   labs(y = "NES",
        title = "B cell",
        x="",
@@ -26913,7 +26983,12 @@ xcell_results %>%
 
 
 xcell_results = read_csv(file = here("Cell populations", "degs_covid_vax_l2fc_matrix_xcell_results.csv"))
+```
 
+Heatmap
+```{r fig.height=25, fig.width=30}
+
+filename = "All_covid_13Vax"
 xcell_results_annotated = xcell_results %>% 
   pivot_longer(cols = -cell_type,
                names_to = "condition",
@@ -26926,48 +27001,10 @@ xcell_results_annotated = xcell_results %>%
   mutate(disease_vac = fct_relevel(disease_vac, "H", "I", "V"),
            type = fct_relevel(type, "I", "RNA", "VV", "IN", "SU")) %>% 
   arrange(disease_vac,type, condition) %>% 
-  inner_join(ann_vaccines_covid_other_conditions %>% select(condition), by = "condition")
-```
+  inner_join(ann_vaccines_covid_other_conditions %>% select(condition), by = "condition") %>% 
+  mutate(value_minmax = (value - min(value)) / 
+                             (max(value) - min(value)))
 
-Boxplot
-```{r fig.height=10, fig.width=25}
-#boxplot
-xcell_results_annotated_2_plot =  xcell_results_annotated %>% 
-  filter(day != "0") %>% 
-  mutate(condition = fct_relevel(condition, c(ann_vaccines_covid_other_conditions %>%
-                                                mutate(day = as.character(day),
-                                                       day = as.integer(day)) %>% 
-                                                arrange(disease_vac, vaccine, day) %>% pull(condition)))) %>% 
-  filter(cell_type == "T cell CD8+") %>% 
-  ggplot() +
-  aes(x = condition, y = value, fill = if_else(day == 0, "Day 0", type)) +  
-  geom_hline(yintercept = 0, linetype = 2) +
-  geom_col() +
-  theme_few() +
-  scale_fill_manual(values = c("Day 0" = "white", 
-                               ann_vaxsig_colors$type)) +
-    scale_color_manual(values = c("Day 0" = "gray80", 
-                               ann_vaxsig_colors$type)) +
-  theme(axis.text.x = element_text(angle = 45,
-                                   hjust = 1,
-                                   size = 10,
-                                   vjust = 1),
-        plot.title = element_text(hjust = 0.5, face = "bold"),
-        plot.margin = margin(0, 0, 0, 2, "cm"),
-        panel.grid.major = element_line(size = 0.05),
-        panel.grid.minor = element_line(size = 0.05)) +
-  labs(y = "Score",
-       title = "T cell CD8+",
-       x="",
-       subtitle = "By week",
-       fill = "Type") +
-  guides(color = "none") +
-  ggforce::facet_row(~type, scales = "free_x", space = "free")
-xcell_results_annotated_2_plot
-```
-
-Heatmap
-```{r fig.height=25, fig.width=30}
 hagan_vaxatlas_annotation = hagan_vaxatlas_annotation %>% 
   mutate(week = as.factor(week))
 
@@ -26982,20 +27019,21 @@ ann_vaccines_covid_other_conditions = ann_vaccines_conditions %>%
 
 df = xcell_results_annotated %>% 
   filter(day != "0") %>% 
-  select(cell_type, condition, value) %>% 
+  select(cell_type, condition, value_minmax) %>% 
   pivot_wider(names_from = "cell_type",
-              values_from = "value") %>% 
+              values_from = "value_minmax") %>% 
   column_to_rownames("condition") %>% 
   as.matrix() %>%
-  scale() %>% 
   as.data.frame() %>% 
   rownames_to_column("condition") %>% 
   pivot_longer(cols = -condition, 
                names_to = "cell_type",
-               values_to = "value") %>% 
+               values_to = "value_minmax") %>% 
   inner_join(ann_vaccines_covid_other_conditions, by = "condition") %>% 
   # filter(day != "0")
-    filter(!cell_type %in% c("stroma score", "microenvironment score"))
+    filter(!cell_type %in% c("stroma score", "microenvironment score",
+                             "Cancer associated fibroblast",
+                             "Common lymphoid progenitor"))
     # filter(cell_type %in% c("T cell CD8+",
     #                       "T cell CD4+ (non-regulatory)",
     #                       "T cell regulatory (Tregs)",
@@ -27014,15 +27052,23 @@ df = df %>% mutate(day = fct_relevel(day, df %>%
                                as.character()))
 
 row_clustered = df %>% 
-  select(condition, cell_type, value) %>% 
+  select(condition, cell_type, value_minmax) %>% 
   distinct() %>% 
   pivot_wider(names_from = "condition",
-              values_from= "value", values_fn = mean) %>%
+              values_from= "value_minmax", values_fn = mean) %>%
   column_to_rownames("cell_type") %>% 
   as.matrix() %>% 
   replace(is.na(.), 0) %>% 
   dist(.) %>% 
   hclust()
+
+row_shared =  df %>%
+  filter(cell_type %in% row_clustered$labels,
+         value_minmax > 0.0000001) %>% 
+  group_by(cell_type) %>% 
+  summarize(n = n()) %>% 
+  ungroup() %>% 
+  arrange(-n)
 
 result_vac <- cluster_by_day(df %>% filter(disease_vac == "V"), day_column = "day", condition_column = "condition") %>%
   distinct() %>% 
@@ -27049,7 +27095,7 @@ labels_set <- df %>%
   scale_fill_manual(values = ann_vaxsig_colors$set) + 
   theme_void() +
   labs(y = "Set") +
-  theme(axis.title.y = element_text(size = 10, hjust = 1),
+  theme(axis.title.y = element_text(size = 15, hjust = 1),
         legend.direction = "horizontal",
         legend.position = "bottom") 
 
@@ -27060,8 +27106,8 @@ labels_disease_vac <- df %>%
   geom_tile() + 
   scale_fill_manual(values = ann_vaxsig_colors$disease_vac) + 
   theme_void() +
-  labs(y = "Infection/Vaccination") +
-  theme(axis.title.y = element_text(size = 10, hjust = 1),
+  labs(y = "disease_vac") +
+  theme(axis.title.y = element_text(size = 15, hjust = 1),
         legend.direction = "horizontal",
         legend.position = "bottom") 
 
@@ -27073,7 +27119,7 @@ labels_type <-df %>%
   scale_fill_manual(values = ann_vaxsig_colors$type) + 
   theme_void() +
   labs(y = "Type") +
-  theme(axis.title.y = element_text(size = 10, hjust = 1),
+  theme(axis.title.y = element_text(size = 15, hjust = 1),
         legend.direction = "horizontal",
         legend.position = "bottom") 
 
@@ -27085,7 +27131,7 @@ labels_dose <- df %>%
   scale_fill_manual(values = ann_vaxsig_colors$dose) + 
   theme_void() +
   labs(y = "Dose") +
-  theme(axis.title.y = element_text(size = 10, hjust = 1),
+  theme(axis.title.y = element_text(size = 15, hjust = 1),
         legend.direction = "horizontal",
         legend.position = "bottom") 
 
@@ -27097,7 +27143,7 @@ labels_week = df %>%
   scale_fill_manual(values = ann_vaxsig_colors$week) + 
   theme_void() +
   labs(y = "Week") +
-  theme(axis.title.y = element_text(size = 10, hjust = 1),
+  theme(axis.title.y = element_text(size = 15, hjust = 1),
         legend.direction = "horizontal",
         legend.position = "bottom")
 
@@ -27109,39 +27155,45 @@ labels_day = df %>%
   scale_fill_manual(values = ann_vaxsig_colors$day) + 
   theme_void() +
   labs(y = "Day") +
-  theme(axis.title.y = element_text(size = 10, hjust = 1),
+  theme(axis.title.y = element_text(size = 15, hjust = 1),
         legend.direction = "horizontal",
         legend.position = "bottom")
 
-
 #Plot
+quartiles <- quantile(df$value_minmax, probs = c(0, 0.25, 0.5, 0.75, 1), na.rm = TRUE)
+
+
 dotplot = df %>% 
   filter(cell_type %in% row_clustered$labels) %>% 
   mutate(condition = factor(condition, column_order),
-         cell_type = factor(cell_type, levels = row_clustered$labels[row_clustered$order])) %>% 
-  ggplot(aes(x=condition, y = cell_type, fill = value)) +
+         cell_type = factor(cell_type, levels = c(row_clustered$labels[row_clustered$order]))
+         # cell_type = factor(cell_type, levels = c(row_shared$cell_type)) %>% 
+         #   fct_rev()
+         ) %>% 
+  ggplot(aes(x=condition, y = cell_type, fill = value_minmax)) +
   geom_tile() + 
   theme_minimal() + 
   theme(axis.text = element_text(color = "black", size = 12) ,
-        axis.line  = element_blank(),
+        axis.line.x  = element_line(size = 1, color = "black"),
         axis.text.x = element_text(angle = 45, vjust = 1, hjust=1),
-        axis.ticks = element_blank(),
+        axis.ticks = element_line(size = 1, color = "black"),
         legend.direction = "horizontal",
         legend.position = "bottom") +
   labs(x = "",
        y = "") +
-  scale_fill_gradient2(
-    low = "#4DBBD5FF",
-                       # low = "white",
-                        mid = "white",
-                        midpoint = 0, 
-                        name = "NES", 
-                       limits = c(-1, 1),     # Definir os limites
-    oob = scales::squish,
-                      high = "#DC0000FF") +
-  scale_y_discrete(position = "right")
-  
-
+  scale_y_discrete(position = "right") +
+  scale_fill_gradientn(colors = c("white", "#4DBBD5FF", "#EFC000FF", "#DC0000FF"),
+                       values = scales::rescale(c(quartiles)),
+                       limits = c(min(df$value_minmax, na.rm = TRUE), max(df$value_minmax, na.rm = TRUE)),
+                       oob = scales::squish,
+                       name = "Regularized\nscore") 
+#   scale_fill_gradientn(
+#   colors = c("white", "#4DBBD5FF", "#EFC000FF", "#d90429"),  # cores para cada quartil
+#   values = scales::rescale(c(0, 0.25, 0.5, 0.75, 1)),     # divisão para quartis
+#   name = "Regularized\nscore",
+#   limits = c(0, 1),
+#   oob = scales::squish
+# )
 patch_xcell_vac = 
   labels_set /
   labels_disease_vac /
@@ -27150,14 +27202,14 @@ patch_xcell_vac =
   labels_week/
   labels_day/
   dotplot +
-  plot_layout(heights = c(0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 5),
+  plot_layout(heights = c(0.2, 0.2, 0.2, 0.2, 0.2, 0.2, 5),
               guides = 'collect') +
   plot_annotation(title = "Top 20 genes shared",
                   subtitle = "At least one vaccine dose",
                   theme = theme(legend.position = "top",
                                 plot.title = element_text(hjust = 0.5, size = 15),
                                 plot.subtitle = element_text(hjust = 0.5, size = 15),
-                                plot.margin = margin(10, 0.5, 10, 1, unit = "cm"),
+                                plot.margin = margin(5, 0.5, 5, 1, unit = "cm"),
                                 legend.direction = "horizontal", 
                                 legend.box = "horizontal"))
 patch_xcell_vac
@@ -27218,7 +27270,7 @@ create_colplots(xcell_results_annotated %>%
                                                 arrange(disease_vac, vaccine, day) %>% pull(condition)))))
 ```
 
-##### COVID-19 only
+#### COVID-19 only
 ```{r fig.height=10, fig.width=25}
 #XCell (ssGSEA) ----
 xcell_results = read_csv(file = here("Cell populations", "degs_covid_vax_l2fc_matrix_xcell_results.csv"))
@@ -27236,7 +27288,9 @@ xcell_results_annotated = xcell_results %>%
            type = fct_relevel(type, "I", "RNA", "VV", "IN", "SU")) %>% 
   arrange(disease_vac,type, condition) %>% 
   inner_join(ann_vaccines_covid_other_conditions %>% select(condition), by = "condition") %>% 
-  filter(set == "COVID-19")
+  filter(set == "COVID-19") %>% 
+  mutate(value_minmax = (value - min(value)) / 
+                             (max(value) - min(value)))
 
 
 
@@ -27244,9 +27298,7 @@ xcell_results_annotated = xcell_results %>%
 
 
 Heatmap
-
-SELECTED CELLS
-```{r fig.height=25, fig.width=15}
+```{r fig.height=15, fig.width=15}
 hagan_vaxatlas_annotation = hagan_vaxatlas_annotation %>% 
   mutate(week = as.factor(week))
 
@@ -27261,20 +27313,21 @@ ann_vaccines_covid_other_conditions = ann_vaccines_conditions %>%
 
 df = xcell_results_annotated %>% 
   filter(day != "0") %>% 
-  select(cell_type, condition, value) %>% 
+  select(cell_type, condition, value_minmax) %>% 
   pivot_wider(names_from = "cell_type",
-              values_from = "value") %>% 
+              values_from = "value_minmax") %>% 
   column_to_rownames("condition") %>% 
   as.matrix() %>%
-  # scale() %>% 
   as.data.frame() %>% 
   rownames_to_column("condition") %>% 
   pivot_longer(cols = -condition, 
                names_to = "cell_type",
-               values_to = "value") %>% 
+               values_to = "value_minmax") %>% 
   inner_join(ann_vaccines_covid_other_conditions, by = "condition") %>% 
-  # filter(day != "0") %>% 
-  filter(!cell_type %in% c("stroma score", "microenvironment score"))
+  # filter(day != "0")
+    filter(!cell_type %in% c("stroma score", "microenvironment score",
+                             "Cancer associated fibroblast",
+                             "Common lymphoid progenitor"))
     # filter(cell_type %in% c("T cell CD8+",
     #                       "T cell CD4+ (non-regulatory)",
     #                       "T cell regulatory (Tregs)",
@@ -27293,10 +27346,10 @@ df = df %>% mutate(day = fct_relevel(day, df %>%
                                as.character()))
 
 row_clustered = df %>% 
-  select(condition, cell_type, value) %>% 
+  select(condition, cell_type, value_minmax) %>% 
   distinct() %>% 
   pivot_wider(names_from = "condition",
-              values_from= "value", values_fn = mean) %>%
+              values_from= "value_minmax", values_fn = mean) %>%
   column_to_rownames("cell_type") %>% 
   as.matrix() %>% 
   replace(is.na(.), 0) %>% 
@@ -27328,7 +27381,7 @@ labels_disease_vac <- df %>%
   scale_fill_manual(values = ann_vaxsig_colors$disease_vac) + 
   theme_void() +
   labs(y = "Infection/Vaccination") +
-  theme(axis.title.y = element_text(size = 10, hjust = 1),
+  theme(axis.title.y = element_text(size = 12, hjust = 1),
         legend.direction = "horizontal",
         legend.position = "bottom") 
 
@@ -27340,7 +27393,7 @@ labels_type <-df %>%
   scale_fill_manual(values = ann_vaxsig_colors$type) + 
   theme_void() +
   labs(y = "Type") +
-  theme(axis.title.y = element_text(size = 10, hjust = 1),
+  theme(axis.title.y = element_text(size = 12, hjust = 1),
         legend.direction = "horizontal",
         legend.position = "bottom") 
 
@@ -27352,7 +27405,7 @@ labels_dose <- df %>%
   scale_fill_manual(values = ann_vaxsig_colors$dose) + 
   theme_void() +
   labs(y = "Dose") +
-  theme(axis.title.y = element_text(size = 10, hjust = 1),
+  theme(axis.title.y = element_text(size = 12, hjust = 1),
         legend.direction = "horizontal",
         legend.position = "bottom") 
 
@@ -27364,7 +27417,7 @@ labels_week = df %>%
   scale_fill_manual(values = ann_vaxsig_colors$week) + 
   theme_void() +
   labs(y = "Week") +
-  theme(axis.title.y = element_text(size = 10, hjust = 1),
+  theme(axis.title.y = element_text(size = 12, hjust = 1),
         legend.direction = "horizontal",
         legend.position = "bottom")
 
@@ -27376,36 +27429,50 @@ labels_day = df %>%
   scale_fill_manual(values = ann_vaxsig_colors$day) + 
   theme_void() +
   labs(y = "Day") +
-  theme(axis.title.y = element_text(size = 10, hjust = 1),
+  theme(axis.title.y = element_text(size = 12, hjust = 1),
         legend.direction = "horizontal",
         legend.position = "bottom")
 
+quartiles <- quantile(df$value_minmax, probs = c(0, 0.25, 0.5, 0.75, 1), na.rm = TRUE)
 
 #Plot
 dotplot = df %>% 
   filter(cell_type %in% row_clustered$labels) %>% 
   mutate(condition = factor(condition, column_order),
-         cell_type = factor(cell_type, levels = row_clustered$labels[row_clustered$order])) %>% 
-  ggplot(aes(x=condition, y = cell_type, fill = value)) +
+         cell_type = factor(cell_type, levels = c(row_clustered$labels[row_clustered$order]))) %>% 
+  ggplot(aes(x = condition, y = cell_type, fill = value_minmax)) +
   geom_tile() + 
   theme_minimal() + 
-  theme(axis.text = element_text(color = "black", size = 12) ,
-        axis.line  = element_blank(),
-        axis.text.x = element_text(angle = 45, vjust = 1, hjust=1),
-        axis.ticks = element_blank(),
+  theme(axis.text = element_text(color = "black", size = 12),
+        axis.line.x  = element_line(size = 1, color = "black"),
+        axis.text.x = element_text(angle = 45, vjust = 1, hjust = 1),
+        axis.ticks = element_line(size = 1, color = "black"),
         legend.direction = "horizontal",
         legend.position = "bottom") +
-  labs(x = "",
-       y = "") +
-  scale_fill_gradient2(low = "#4DBBD5FF",
-                        mid = "white",
-                        midpoint = 0, 
-                        name = "XCell score", 
-                       limits = c(0, 1),     # Definir os limites
-    oob = scales::squish,
-                      high = "#DC0000FF") +
-  scale_y_discrete(position = "right")
-  
+  labs(x = "", y = "") + 
+  scale_y_discrete(position = "right") + 
+  scale_fill_gradientn(
+    colors = c("white", "#4DBBD5FF", "#EFC000FF", "#F39C12", "#d90429"),  # cores para os quartis
+    values = c(0, 0.10, 0.25, 0.5, 0.75, 1),                       # limites dos quartis
+    name = "Regularized\nscore",
+    limits = c(0, 1),
+    oob = scales::squish
+  ) 
+
+# scale_fill_gradientn(colors = c("white", "#4DBBD5FF", "#EFC000FF", "#DC0000FF"),
+  #                      values = scales::rescale(c(quartiles)),
+  #                      limits = c(min(df$value_minmax, na.rm = TRUE), max(df$value_minmax, na.rm = TRUE)),
+  #                      oob = scales::squish,
+  #                      name = "Regularized\nscore")
+  # scale_fill_gradient2(
+  #   low = "white",
+    # mid = "#4DBBD5FF",
+  #   midpoint = 0.5,
+  #   name = "Regularized\nscore",
+  #   limits = c(0, 1),     # Definir os limites
+  #   oob = scales::squish,
+    # high = "#DC0000FF")
+
 
 patch_xcell_vac = 
   labels_set /
@@ -27415,208 +27482,24 @@ patch_xcell_vac =
   labels_week/
   labels_day/
   dotplot +
-  plot_layout(heights = c(0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 5),
+plot_layout(heights = c(0.3, 0.3, 0.3, 0.3, 0.3, 0.3, 10),
               guides = 'collect') +
-  plot_annotation(title = "XCell immune cells population in PBMCs",
-                  subtitle = "",
+  plot_annotation(title = "Top 20 genes shared",
+                  subtitle = "At least one vaccine dose",
                   theme = theme(legend.position = "top",
                                 plot.title = element_text(hjust = 0.5, size = 15),
                                 plot.subtitle = element_text(hjust = 0.5, size = 15),
-                                plot.margin = margin(10, 0.5, 10, 1, unit = "cm"),
+                                plot.margin = margin(4, 3, 3, 1, unit = "cm"),
                                 legend.direction = "horizontal", 
                                 legend.box = "horizontal"))
 patch_xcell_vac
 patch_xcell_vac %>%
   ggsave(filename = here("Figures", paste0(filename, "_ssGSEA_XCell_1dose_Heatmap.png")),
          width = 15,
-         height = 30)
+         height = 15)
+
+
 ```
-
-
-All cells
-```{r fig.height=20, fig.width=15}
-hagan_vaxatlas_annotation = hagan_vaxatlas_annotation %>% 
-  mutate(week = as.factor(week))
-
-ann_vaccines_covid_other_conditions = ann_vaccines_conditions %>%
-  select(condition, vaccine, day, week, dose, infection, type, disease_vac) %>% 
-  mutate(day = as.factor(day),
-         week = as.factor(week),
-         dose = as.factor(dose),
-         set = "COVID-19") %>% 
-  bind_rows(hagan_vaxatlas_annotation) 
-  
-
-df = xcell_results_annotated %>% 
-  filter(day != "0") %>% 
-  select(cell_type, condition, value) %>% 
-  pivot_wider(names_from = "cell_type",
-              values_from = "value") %>% 
-  column_to_rownames("condition") %>% 
-  as.matrix() %>%
-  scale() %>% 
-  as.data.frame() %>% 
-  rownames_to_column("condition") %>% 
-  pivot_longer(cols = -condition, 
-               names_to = "cell_type",
-               values_to = "value") %>% 
-  inner_join(ann_vaccines_covid_other_conditions, by = "condition") %>% 
-  filter(day != "0") %>% 
-  filter(!cell_type %in% c("immune score", 
-  "microenvironment score", 
-  "stroma score", 
-  "immune score",
-  "Cancer associated fibroblast"))
-
-
-df = df %>% mutate(day = fct_relevel(day, df %>% 
-                               select(day) %>% 
-                               distinct() %>% 
-                               mutate(day = as.character(day),
-                                      day = as.numeric(day)) %>% 
-                               arrange(day) %>% 
-                               pull() %>% 
-                               as.character()))
-
-row_clustered = df %>% 
-  select(condition, cell_type, value) %>% 
-  distinct() %>% 
-  pivot_wider(names_from = "condition",
-              values_from= "value", values_fn = mean) %>%
-  column_to_rownames("cell_type") %>% 
-  as.matrix() %>% 
-  replace(is.na(.), 0) %>% 
-  dist(.) %>% 
-  hclust()
-
-result_vac <- cluster_by_day(df %>% filter(disease_vac == "V"), day_column = "day", condition_column = "condition") %>%
-  distinct() %>% 
-  mutate(day = fct_relevel(day, df$day %>% unique() %>% sort() %>% as.character()))
-
-result_inf_vac01 <- cluster_by_day(df %>% 
-                               filter(disease_vac == "I",
-                                      dose %in% c("0", "1")), day_column = "day") %>%
-  mutate(day = fct_relevel(day, df$day %>% unique() %>% sort() %>% as.character()))
-
-result_inf_vac2 <- cluster_by_day(df %>% 
-                               filter(disease_vac == "I",
-                                      dose %in% c("2")), day_column = "day") %>%
-  mutate(day = fct_relevel(day, df$day %>% unique() %>% sort() %>% as.character()))
-
-column_order <- c(result_vac$condition, result_inf_vac2$condition, result_inf_vac01$condition) %>% 
-  unique()
-
-labels_disease_vac <- df %>% 
-  mutate(condition = factor(condition, levels = column_order)) %>% 
-  ggplot() +
-  aes(x = condition, y = 1, fill = disease_vac) + 
-  geom_tile() + 
-  scale_fill_manual(values = ann_vaxsig_colors$disease_vac) + 
-  theme_void() +
-  labs(y = "Infection/Vaccination") +
-  theme(axis.title.y = element_text(size = 10, hjust = 1),
-        legend.direction = "horizontal",
-        legend.position = "bottom") 
-
-labels_type <-df %>% 
-  mutate(condition = factor(condition, levels = column_order)) %>% 
-  ggplot() +
-  aes(x = condition, y = 1, fill = type) + 
-  geom_tile() + 
-  scale_fill_manual(values = ann_vaxsig_colors$type) + 
-  theme_void() +
-  labs(y = "Type") +
-  theme(axis.title.y = element_text(size = 10, hjust = 1),
-        legend.direction = "horizontal",
-        legend.position = "bottom") 
-
-labels_dose <- df %>% 
-  mutate(condition = factor(condition, levels = column_order)) %>% 
-  ggplot() +
-  aes(x = condition, y = 1, fill = dose) + 
-  geom_tile() + 
-  scale_fill_manual(values = ann_vaxsig_colors$dose) + 
-  theme_void() +
-  labs(y = "Dose") +
-  theme(axis.title.y = element_text(size = 10, hjust = 1),
-        legend.direction = "horizontal",
-        legend.position = "bottom") 
-
-labels_week = df %>% 
-  mutate(condition = factor(condition, column_order)) %>% 
-  ggplot() +
-  aes(x = condition, y = 1, fill = week) + 
-  geom_tile() + 
-  scale_fill_manual(values = ann_vaxsig_colors$week) + 
-  theme_void() +
-  labs(y = "Week") +
-  theme(axis.title.y = element_text(size = 10, hjust = 1),
-        legend.direction = "horizontal",
-        legend.position = "bottom")
-
-labels_day = df %>% 
-  mutate(condition = factor(condition, column_order)) %>% 
-  ggplot() +
-  aes(x = condition, y = 1, fill = day) + 
-  geom_tile() + 
-  scale_fill_manual(values = ann_vaxsig_colors$day) + 
-  theme_void() +
-  labs(y = "Day") +
-  theme(axis.title.y = element_text(size = 10, hjust = 1),
-        legend.direction = "horizontal",
-        legend.position = "bottom")
-
-
-#Plot
-dotplot = df %>% 
-  filter(cell_type %in% row_clustered$labels) %>% 
-  mutate(condition = factor(condition, column_order),
-         cell_type = factor(cell_type, levels = row_clustered$labels[row_clustered$order])) %>% 
-  ggplot(aes(x=condition, y = cell_type, fill = value)) +
-  geom_tile() + 
-  theme_minimal() + 
-  theme(axis.text = element_text(color = "black", size = 12) ,
-        axis.line  = element_blank(),
-        axis.text.x = element_text(angle = 45, vjust = 1, hjust=1),
-        axis.ticks = element_blank(),
-        legend.direction = "horizontal",
-        legend.position = "bottom") +
-  labs(x = "",
-       y = "") +
-  scale_fill_gradient2(low = "#4DBBD5FF",
-                        mid = "white",
-                        midpoint = 0, 
-                        name = "NES", 
-                       limits = c(-1, 1),     # Definir os limites
-    oob = scales::squish,
-                      high = "#DC0000FF") +
-  scale_y_discrete(position = "right")
-  
-
-patch_xcell_vac = 
-  labels_disease_vac /
-  labels_type /
-  labels_dose/
-  labels_week/
-  labels_day/
-  dotplot +
-  plot_layout(heights = c(0.1, 0.1, 0.1, 0.1, 0.1, 5),
-              guides = 'collect') +
-  plot_annotation(title = "XCell immune cells population in PBMCs",
-                  subtitle = "",
-                  theme = theme(legend.position = "top",
-                                plot.title = element_text(hjust = 0.5, size = 15),
-                                plot.subtitle = element_text(hjust = 0.5, size = 15),
-                                plot.margin = margin(10, 0.5, 10, 1, unit = "cm"),
-                                legend.direction = "horizontal", 
-                                legend.box = "horizontal"))
-patch_xcell_vac
-patch_xcell_vac %>%
-  ggsave(filename = here("Figures", paste0(filename, "_ssGSEA_XCell_Allcells_Heatmap.png")),
-         width = 15,
-         height = 10)
-```
-
 
 
 
