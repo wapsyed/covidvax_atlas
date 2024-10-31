@@ -4367,7 +4367,7 @@ ggplot_degs_bars_vertical_nolabels = all_degs %>%
   # filter(direction != "NEUTRAL") %>% 
  ggplot() +
   aes(x = n_degs, y = fct_rev(condition), fill = fct_relevel(direction, "UP", "DOWN", "NEUTRAL")) +
-  geom_col(position = "dodge", size = 0.2, color = "black", width = 0.8) +
+  geom_col(position = "dodge", size = 0.5, color = "black", width = 0.8) +
   scale_fill_manual(
     values = c(DOWN = "#4DBBD5FF",
     NEUTRAL = "gray90",
@@ -4565,7 +4565,7 @@ all_degs %>%
 # gene_info %>% 
 #   saveRDS(file = here("DGE analysis", "Gene_info_biomart.rds"))
 
-# gene_info = read_rds(file = here("DGE analysis", "Gene_info_biomart.rds"))
+gene_info = read_rds(file = here("DGE analysis", "Gene_info_biomart.rds"))
 
 all_degs_totals = all_degs_p_05_vac_infected %>%
   group_by(condition) %>% 
@@ -4584,13 +4584,13 @@ all_degs_biotypes = all_degs_p_05_vac_infected %>%
                                           str_detect(gene_biotype, "TEC") ~ "To be Experimentally Confirmed",
                                           TRUE ~ gene_biotype)) %>% 
   group_by(condition, gene_biotype_grouped) %>% 
+  distinct() %>% 
   summarise(n_biotypes = n(),
             n_total = n_total) %>%
   distinct() %>% 
   mutate(n_perc = 100*(n_biotypes/n_total)) %>% 
   inner_join(ann_vaccines, by="condition") %>% 
   ungroup()
-
 
 all_degs_biotypes_plot_totals = all_degs_biotypes %>% 
   mutate(gene_biotype_grouped = fct_relevel(gene_biotype_grouped, 
@@ -4609,10 +4609,11 @@ all_degs_biotypes_plot_totals = all_degs_biotypes %>%
   aes(x = n_biotypes, y = fct_rev(condition), fill = gene_biotype_grouped) +
   geom_bar(stat = "summary", fun = "sum",
            color ="black",
-           size = 0.2) +
+           size = 0.5,
+           width = 0.6) +
   theme_minimal() +
-  scale_fill_manual(values = c("Pseudogene" = "#F39B7FFF",
-                               "Protein coding" = "#118ab2",
+  scale_fill_manual(values = c("Pseudogene" = "#457b9d",
+                               "Protein coding" = "gray95",
                                "Non-coding RNAs" ="#EFC000FF")) +
   theme(legend.position = "right",
         strip.text.x = element_text(color = "black", size = 12), 
@@ -4642,30 +4643,40 @@ all_degs_biotypes_plot_perc = all_degs_biotypes %>%
                                             "Pseudogene",
                                             "To be Experimentally Confirmed"
                                             ),
-         title = "%DEGs by biotype",
+         title = "%DEGs by biotype,\nnon-protein-coding genes",
          condition = fct_relevel(condition, c(ann_vaccines_conditions_ordered$condition_grouped %>% 
                                                 as.character() %>% 
-                                                unique()))) %>% 
+                                                unique()))) %>%
   ggplot(.) +
-  aes(x = n_biotypes, y = fct_rev(condition), fill = gene_biotype_grouped) +
-  geom_bar(stat = "summary", fun = "sum", position = "fill",
+  aes(x = n_perc, y = fct_rev(condition), fill = gene_biotype_grouped) +
+  geom_bar(stat = "summary", 
+           fun = "sum", 
+           # position = "fill",
            color = "black",
-           size = 0.2) +
+           size = 0.5,
+           width = 0.6) +
   theme_minimal() +
-  scale_fill_manual(values = c("Pseudogene" = "#F39B7FFF",
-                               "Protein coding" = "#118ab2",
+  scale_fill_manual(values = c("Pseudogene" = "#457b9d",
+                               "Protein coding" = "gray95",
                                "Non-coding RNAs" ="#EFC000FF")) +
   theme(legend.position = "right",
         strip.text.x = element_text(color = "black", size = 12), 
         axis.text.x = element_text(color = "black", size = 10),
         axis.text.y = element_text(vjust = 0.5, size = 10, color = "black"),
         axis.line = element_line(size = 1, colour = "black", linetype=1),
-        axis.ticks = element_line(size = 0.5, color = "black")) + 
+        axis.ticks = element_line(size = 0.5, color = "black"),
+        panel.grid.major.y = element_line(size = 0, 
+                                    linetype = 2,
+                                    color = "gray75"),
+        panel.grid.major.x = element_line(size = 0.5, 
+                                    linetype = 2,
+                                    color = "gray75")) + 
   labs(x = "%",
        y = "",
        fill = "Gene biotype",
        title = "Percentage of DEGs by biotype") +
-  scale_x_continuous(expand = c(0,0)) +
+  # xlim(0, 7) +
+  scale_x_continuous(expand = c(0,0), limits = c(0, 7)) +
   facet_wrap(~title, scales= "free", ncol = 1)
 
 all_degs_biotypes_plot_all = all_degs_biotypes_plot_totals + all_degs_biotypes_plot_perc + 
@@ -4679,6 +4690,13 @@ all_degs_biotypes_plot_all %>%
 all_degs_biotypes_plot_all
 
 ```
+
+
+
+
+
+
+
 
 Most of immune genes in ImmuneGO are protein-coding.
 ```{r fig.height=10, fig.width=10}
@@ -4947,13 +4965,11 @@ all_degs_immuneGO_BTM_united_plot_nolabel = all_degs_immuneGO_BTM_totals %>%
                                                 unique())),
          title = "Immune system") %>% 
   ggplot(.) +
-  aes(x = n_perc, y = fct_rev(condition), fill = fct_relevel(set, "Other", "BTM and ImmuneGO", "BTM", "ImmuneGO")) +
+  aes(x = n_perc, y = fct_rev(condition), fill = type) +
   geom_col(color = "black",
-           size = 0.2) +
-  scale_fill_manual(values = c("BTM and ImmuneGO" = "#4DBBD5FF",
-    "Other" = "gray95",
-    "BTM" = "#5e60ce",
-    "ImmuneGO" = "#00A087FF")) +
+           size = 0.5,
+           width = 0.6) +
+  scale_fill_manual(values = ann_vaxsig_colors$type) +
     theme_minimal() +
   theme(legend.position = "none",
         strip.text.x = element_text(color = "black", size = 12), 
@@ -5012,7 +5028,8 @@ all_degs_immuneGO_BTM_reg_plot = all_degs_immuneGO_BTM_reg %>%
   ggplot(.) +
   aes(x = n, y = fct_rev(condition), fill = fct_relevel(set, "Other", "BTM and ImmuneGO", "BTM", "ImmuneGO")) +
   geom_bar(stat = "summary", fun = "sum",
-           size = 0.2,
+           size = 0.5,
+           width = 0.6,
            color ="black") +  
     scale_fill_manual(values = c("BTM and ImmuneGO" = "#4DBBD5FF",
     "Other" = "gray95",
@@ -5524,7 +5541,9 @@ mutate(disease_vac = fct_relevel(disease_vac, "I", "V")) %>%
   mutate(condition = factor(condition, levels = ann_vaccines_conditions_ordered$condition_grouped %>% as.character() %>% unique())) %>% 
   ggplot() +
  aes(x = fct_rev(factor(condition)), y = n_genes_perc, fill = type) +
- geom_col() +
+ geom_col(size = 0.5, 
+          color = "black",
+          width = 0.6) +
  coord_flip() +
  theme_minimal() +
    scale_fill_manual(name = "Type",
@@ -5568,7 +5587,9 @@ main_go_2_plot_up_down_totals = main_go_2 %>%
   mutate(condition = factor(condition, levels = ann_vaccines_conditions_ordered$condition_grouped %>% as.character() %>% unique())) %>%   
   ggplot() +
  aes(x = fct_rev(factor(condition)), y = n_genes_total, fill = type) +
- geom_col() +
+ geom_col(size = 0.5, 
+          color = "black",
+          width = 0.6) +
  coord_flip() +
  theme_minimal() +
    scale_fill_manual(name = "Type",
@@ -5645,7 +5666,9 @@ filter(term_ancestor %in% c(
   mutate(condition = factor(condition, levels = ann_vaccines_conditions_ordered$condition_grouped %>% as.character() %>% unique())) %>% 
   ggplot() +
  aes(x = fct_rev(factor(condition)), y = n_genes_perc, fill = type) +
- geom_col(size = 0.2, color = "black") +
+ geom_col(size = 0.5, 
+          color = "black",
+          width = 0.6) +
  coord_flip() +
  theme_minimal() +
    scale_fill_manual(name = "Type",
@@ -5702,7 +5725,9 @@ inner_join(ann_vaccines_conditions, by = "condition") %>%
   mutate(condition = factor(condition, levels = ann_vaccines_conditions_ordered$condition_grouped %>% as.character() %>% unique())) %>%   
   ggplot() +
  aes(x = fct_rev(factor(condition)), y = n_genes_total, fill = type) +
- geom_col(size = 0.2, color = "black") +
+ geom_col(size = 0.5, 
+          color = "black",
+          width = 0.6) +
  coord_flip() +
  theme_minimal() +
    scale_fill_manual(name = "Type",
@@ -5777,7 +5802,9 @@ filter(term_ancestor %in% c(
   mutate(condition = factor(condition, levels = ann_vaccines_conditions_ordered$condition_grouped %>% as.character() %>% unique())) %>% 
   ggplot() +
  aes(x = fct_rev(factor(condition)), y = n_genes_perc, fill = type) +
- geom_col(size = 0.2, color = "black") +
+ geom_col(size = 0.5, 
+          color = "black",
+          width = 0.6) +
  coord_flip() +
  theme_minimal() +
    scale_fill_manual(name = "Type",
@@ -5829,7 +5856,9 @@ inner_join(ann_vaccines_conditions, by = "condition") %>%
   mutate(condition = factor(condition, levels = ann_vaccines_conditions_ordered$condition_grouped %>% as.character() %>% unique())) %>%   
   ggplot() +
  aes(x = fct_rev(factor(condition)), y = n_genes_total, fill = type) +
- geom_col(size = 0.2, color = "black") +
+ geom_col(size = 0.5, 
+          color = "black",
+          width = 0.6) +
  coord_flip() +
  theme_minimal() +
    scale_fill_manual(name = "Type",
@@ -5873,11 +5902,15 @@ ggsave(patch_maingo, file = here("Figures", "main_go_2_plot_values_AllDirections
                                            width = 15, 
                                            height = 10)
 ```
+
+
+
 ## Unite with direction and biotype
 ```{r fig.height=10, fig.width=20}
 ggplot_degs_bars_directions_biotype_bps =
   ggplot_degs_bars_vertical_nolabels +
-  all_degs_biotypes_plot_totals + 
+  # all_degs_biotypes_plot_totals + 
+  all_degs_biotypes_plot_perc +
   # ggplot_degs_bars_directions_up_down +
   # all_degs_immuneGO_BTM_plot +
   all_degs_immuneGO_BTM_united_plot_nolabel +
@@ -15838,7 +15871,7 @@ dev.off()
 ```{r}
 # Input data ----
 filename = "ImmuneGO_Genes_Types_"
-df = all_matrices_normalized_counts
+df = all_samples_l2fc
 
 ## Vaccination types
 outcomevar = "type"
@@ -15846,7 +15879,7 @@ outcomevar = "type"
 ann_vaccines_samples_filtered = ann_vaccines_samples %>% 
   mutate(outcomevar = type) %>%
   mutate(type = if_else(day == 0, "H", type)) %>% 
-  filter(type != "I") %>% 
+  # filter(type != "I") %>% 
   mutate(type = fct_relevel(type, "H"))
 
 #How many samples by level?
@@ -15860,7 +15893,9 @@ levels = nrow(count_levels)
 
 
 #Select only important genes
-PC1_2 = PC_1_2_cos2
+COVID_Infec_Vac_ImmuneGO_BTM_PC_1_2_cos2 <- read_csv("PCA/COVID_Infec_Vac_ImmuneGO_BTM PC_1_2_cos2.csv")
+
+PC1_2 = COVID_Infec_Vac_ImmuneGO_BTM_PC_1_2_cos2
 ```
 
 Train and test
@@ -15869,7 +15904,11 @@ Train and test
 # Prepare data ------
 
 df_input <- df %>%
-  rownames_to_column("genes") %>%
+  select(genes, condition, sample, log2fc) %>% 
+  pivot_wider(values_from = "log2fc",
+              names_from = "sample"
+              )
+  # rownames_to_column("genes") %>%
   inner_join(PC1_2 %>% select(genes) %>% distinct(), by = "genes") %>%
   column_to_rownames("genes") %>%
   t() %>%
@@ -15884,7 +15923,10 @@ df_input <- df %>%
   column_to_rownames("sample") %>%
   mutate_if(is.character, factor) %>% 
   mutate(outcomevar = fct_relevel(outcomevar, order_levels))
+```
 
+
+```{r fig.height=10, fig.width=10}
 # glimpse(df_input)
 
 # Split data
