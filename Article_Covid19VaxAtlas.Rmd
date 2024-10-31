@@ -2229,9 +2229,8 @@ counts_gse206023_samples_l2fc = counts_control_gse206023 %>%
   summarize(control_mean_counts = mean(counts)) %>% 
   inner_join(counts_control_gse206023, by = "genes") %>% 
   mutate(diff = counts - control_mean_counts,
-         log2fc = if_else(diff < 0, abs(diff) %>% log2(), 
-                          log2(diff)),
-         log2fc = if_else(log2fc == -Inf, 0, log2fc)) %>% 
+       log2fc = if_else(diff == 0, 0, sign(diff) * log2(abs(diff))),
+       log2fc = replace(log2fc, log2fc == -Inf, 0)) %>% 
   select(genes, condition, sample, control_mean_counts, counts,diff, log2fc)
 
 # GSE189039
@@ -2246,9 +2245,8 @@ counts_gse189039_samples_l2fc = counts_control_gse189039 %>%
   summarize(control_mean_counts = mean(counts)) %>% 
   inner_join(counts_control_gse189039, by = "genes") %>% 
   mutate(diff = counts - control_mean_counts,
-         log2fc = if_else(diff < 0, abs(diff) %>% log2(), 
-                          log2(diff)),
-         log2fc = if_else(log2fc == -Inf, 0, log2fc)) %>% 
+       log2fc = if_else(diff == 0, 0, sign(diff) * log2(abs(diff))),
+       log2fc = replace(log2fc, log2fc == -Inf, 0)) %>% 
   select(genes, condition, sample, control_mean_counts, counts,diff, log2fc)
 
 # GSE201530
@@ -2263,9 +2261,8 @@ counts_gse201530_samples_l2fc = counts_control_gse201530 %>%
   summarize(control_mean_counts = mean(counts)) %>% 
   inner_join(counts_control_gse201530, by = "genes") %>% 
   mutate(diff = counts - control_mean_counts,
-         log2fc = if_else(diff < 0, abs(diff) %>% log2(), 
-                          log2(diff)),
-         log2fc = if_else(log2fc == -Inf, 0, log2fc)) %>% 
+       log2fc = if_else(diff == 0, 0, sign(diff) * log2(abs(diff))),
+       log2fc = replace(log2fc, log2fc == -Inf, 0)) %>% 
   select(genes, condition, sample, control_mean_counts, counts,diff, log2fc)
 
 # GSE201533
@@ -2280,9 +2277,8 @@ counts_gse201533_samples_l2fc = counts_control_gse201533 %>%
   summarize(control_mean_counts = mean(counts)) %>% 
   inner_join(counts_control_gse201533, by = "genes") %>% 
   mutate(diff = counts - control_mean_counts,
-         log2fc = if_else(diff < 0, abs(diff) %>% log2(), 
-                          log2(diff)),
-         log2fc = if_else(log2fc == -Inf, 0, log2fc)) %>% 
+       log2fc = if_else(diff == 0, 0, sign(diff) * log2(abs(diff))),
+       log2fc = replace(log2fc, log2fc == -Inf, 0)) %>% 
   select(genes, condition, sample, control_mean_counts, counts,diff, log2fc)
   
 
@@ -2298,9 +2294,8 @@ counts_gse199750_samples_l2fc = counts_control_gse199750 %>%
   summarize(control_mean_counts = mean(counts)) %>% 
   inner_join(counts_control_gse199750, by = "genes") %>% 
   mutate(diff = counts - control_mean_counts,
-         log2fc = if_else(diff < 0, abs(diff) %>% log2(), 
-                          log2(diff)),
-         log2fc = if_else(log2fc == -Inf, 0, log2fc)) %>% 
+       log2fc = if_else(diff == 0, 0, sign(diff) * log2(abs(diff))),
+       log2fc = replace(log2fc, log2fc == -Inf, 0)) %>% 
   select(genes, condition, sample, control_mean_counts, counts,diff, log2fc)
 
 
@@ -12160,9 +12155,9 @@ covid_other_immune_genes_50_mostshared_all = stats_1 %>%
 
 # 9. Machine learning descriptors
 
-Preparing
+## Preparing
 
-Library
+### Library
 
 ```{r message=FALSE, warning=FALSE}
 # install.packages("randomForest")
@@ -12203,10 +12198,11 @@ library(kknn)
 library(nnet)
 library(tictoc)
 library(ggthemes)
+tidymodels_prefer()
 
 ```
 
-##Import files
+### Import files
 
 ```{r}
 all_matrices_normalized_counts <- readRDS(here("DGE analysis", "all_matrices_normalized_counts.rds"))
@@ -12225,7 +12221,7 @@ PC_1_2_cos2 = read_csv(here("PCA", "PC_1_2_cos2.csv"))
 dim(all_matrices_normalized_counts)
 ```
 
-
+ 
 
 ## COVID-19 vaccines vs infection (counts)
 
@@ -15872,9 +15868,7 @@ dev.off()
 
 
 
-##  COVID-19 vaccines types
-
-### All types + Healthy
+##  COVID-19 vaccines types:  All types + Healthy + Infection
 ```{r}
 # Input data ----
 filename = "ImmuneGO_Genes_Types_"
@@ -15909,7 +15903,8 @@ levels = nrow(count_levels)
 #Select only important genes
 COVID_Infec_Vac_ImmuneGO_BTM_PC_1_2_cos2 <- read_csv("PCA/COVID_Infec_Vac_ImmuneGO_BTM PC_1_2_cos2.csv")
 
-PC1_2 = COVID_Infec_Vac_ImmuneGO_BTM_PC_1_2_cos2
+PC1_2 = COVID_Infec_Vac_ImmuneGO_BTM_PC_1_2_cos2 %>% 
+  filter(cos2>0.75) #232 genes
 ```
 
 Train and test
@@ -15930,10 +15925,11 @@ df_input1 <- df %>%
 df_input = df_input1 %>% 
   rownames_to_column("sample") %>%
   inner_join(ann_vaccines_samples_filtered %>% select(sample,
+                                                      day,
                                                       age, 
                                                       sex,
                                                       # country,
-                                                      variant,
+                                                      # variant,
                                                       # sequencer,
                                                       outcomevar), #Outcome
              by = "sample") %>%
@@ -15942,7 +15938,7 @@ df_input = df_input1 %>%
          age,
          sex,
          # country,
-         variant,
+         # variant,
          # sequencer, 
          everything()) %>%
   column_to_rownames("sample") %>%
@@ -15999,6 +15995,8 @@ mer_metrics <- metric_set(yardstick::recall,
 
 # Parallel computing 
 doParallel::registerDoParallel()
+conflicted::conflicts_prefer(base::intersect)
+conflicted::conflicts_prefer(base::setdiff)
 
 set.seed(345)
 tune_res <- tune_grid(
@@ -16039,8 +16037,8 @@ metrics_tuneres %>% ggsave(file = here("Figures",
                                         width = 10,
                                         height = 10)
 
-min_n_selec = c(3:5) #Observations by node)
-mtry_selec = 68:70 #Features/genes by tree)
+min_n_selec = c(5,5) #Observations by node)
+mtry_selec = 40:45 #Features/genes by tree)
 ```
 
 Hyperparameter tuning
@@ -16090,22 +16088,11 @@ regular_res_metrics
 #                                         paste(filename, outcomevar, "metrics", today(), ".png")), 
 #        width = 10, height = 10)
 ```
-```{r}
-regular_res %>%
-  collect_metrics() %>% 
-  group_by(id) %>%
-  roc_curve(outcomevar...9, .pred_H:.pred_VV) %>%
-  ggplot(aes(1 - specificity, sensitivity, color = id)) +
-  geom_abline(lty = 2, color = "gray80", size = 1.5) +
-  geom_path(show.legend = FALSE, alpha = 0.6, size = 1.2) +
-  facet_wrap(~.level, ncol = 5) +
-  coord_equal()
-```
 
 
 ```{r}
 # Select best model -----
-best_auc <- select_best(regular_res, metric = "pr_auc")
+best_auc <- select_best(regular_res, metric = "accuracy")
 final_rf <- finalize_model(
   tune_spec,
   best_auc
@@ -16129,17 +16116,22 @@ genes_rf %>% write_csv(file = here("Figures", paste0("vipgenes_tidymodels_", fil
 genes_rf_10 = genes_rf %>% 
   arrange(-importance) %>% 
   slice_head(n = 10)
+
+
+
+
 #Importance plot
 importance_plot = ggplot(genes_rf_10) +
   aes(x = reorder(genes, importance),
     y = importance,
     fill = importance,
       weight = importance) +
-  geom_col() +
+  geom_col(width = 0.6,
+           size = 0.5) +
   theme_few() +
   xlab("Genes") + 
   ylab("importance") +
-  ylim(0, 0.1) +
+  ylim(0, 0.2) +
   geom_text(aes(label = round(importance, 4), y = importance),
             hjust = -0.2, 
             size = 4,
@@ -16191,33 +16183,33 @@ final_res_preds = final_res %>%
 
 
 #Confusion matrix
-res_conf_mat = conf_mat(final_res_preds, truth = outcomevar...9,
+res_conf_mat = conf_mat(final_res_preds, truth = outcomevar...10,
          estimate = .pred_class)
 
 #Accuracy
-res_acc = accuracy(final_res_preds, truth = outcomevar...9,
+res_acc = accuracy(final_res_preds, truth = outcomevar...10,
          estimate = .pred_class)
 
 #Specificity
-res_spec = spec(final_res_preds, truth = outcomevar...9,
+res_spec = spec(final_res_preds, truth = outcomevar...10,
          estimate = .pred_class)
 
 #Precision
-res_prec = precision(final_res_preds, truth = outcomevar...9,
+res_prec = precision(final_res_preds, truth = outcomevar...10,
          estimate = .pred_class)
 
 #Recall
-res_recall = recall(final_res_preds, truth = outcomevar...9,
+res_recall = recall(final_res_preds, truth = outcomevar...10,
          estimate = .pred_class)
 #Precision recall AUC
-res_pr_auc = pr_auc(final_res_preds, outcomevar...9, .pred_RNA)
+# res_pr_auc = pr_auc(final_res_preds, outcomevar...10, .pred_RNA)
 
 
 #Unite results
 final_res_metrics = bind_rows(res_acc,
                          res_recall,
                          res_prec,
-                         res_pr_auc,
+                         # res_pr_auc,
                          res_spec) %>% 
   select(-".estimator")
 
@@ -16242,7 +16234,8 @@ final_model_metrics = final_res_metrics %>%
     y = fct_rev(metric),
     fill = estimate,
     weight = estimate) +
-  geom_col() +
+  geom_col(size = 0.5,
+           width = 0.6) +
   theme_few() +
   geom_text(aes(label = round(estimate, 3), y = metric),
             hjust = -0.2, 
@@ -16284,42 +16277,45 @@ Multi ROC
 ```{r fig.height=5, fig.width=5}
 multi_roc = final_res_preds %>% 
   group_by(id) %>%
-  roc_curve(outcomevar...9, .pred_H:.pred_VV) %>%
+  roc_curve(outcomevar...10, .pred_H:.pred_VV) %>%
   ggplot(aes(1 - specificity, sensitivity, color = .level)) +
   geom_abline(lty = 2, color = "gray80", size = 0.5) +
   geom_path(show.legend = FALSE, alpha = 0.6, size = 1.2) +
   facet_wrap(~.level, ncol = 3) +
   coord_equal() +
   theme_few() +
-    theme(axis.text = element_text(size = 6, color = "black")) +
+    theme(axis.text = element_text(size = 12, color = "black")) +
   labs(title ="Receiver-operator curve",
        subtitle = "Multiclass classification, Randomforest",
        x = "1-Specificity",
        y = "Sensitivity") +
   scale_colour_manual(values = c(ann_vaxsig_colors$type[names(ann_vaxsig_colors$type) != "H"], 
                                  H = "black"))
+
+multi_roc
 ```
 
 Confusion matrix
 ```{r fig.height=5, fig.width=5}
 conf_matrix_heat = final_res_preds %>% 
-  conf_mat(outcomevar...9, .pred_class) %>%
+  conf_mat(outcomevar...10, .pred_class) %>%
   autoplot(type = "heatmap") +
+    theme_few() +
+  theme(axis.text = element_text(size = 12, color = "black")) +
   scale_fill_gradient(low = "white", high = "#DC0000FF") +
   labs(title ="Confusion matrix",
        subtitle = "Multiclass classification, Randomforest",
        x = "Truth",
        y = "Prediction")
 
-conf_matrix_heat / 
-  multi_roc
+conf_matrix_heat + multi_roc
   
 ```
 
 Precision recall curve
 ```{r}
 # Precision recall
-pr_curve_res = pr_curve(final_res_preds, outcomevar...6, .pred_I) %>% 
+pr_curve_res = pr_curve(final_res_preds, outcomevar...10, .pred_I) %>% 
   ggplot(aes(x = recall, y = precision)) +
   geom_path(color = "#DC0000FF",
             size = 2) +
@@ -16341,9 +16337,9 @@ pr_curve_res %>%
 
 ```{r}
 #Matrix counts of VIP genes
-all_matrices_counts_genesRF = all_matrices_counts_long_annotated %>% 
+all_matrices_counts_genesRF = all_samples_l2fc %>% 
   inner_join(genes_rf %>% 
-               select(genes = Variable), by = "genes")
+               select(genes), by = "genes")
 ```
 
 
@@ -16707,28 +16703,32 @@ dev.off()
 
 ```{r}
 # Required files
-ImmuneGO_Annotated_Genes = readRDS(here("VaxGO gene sets","ImmuneGO_Annotated_Genes_2024-03-26.rds"))
+# ImmuneGO_Annotated_Genes = readRDS(here("VaxGO gene sets","ImmuneGO_Annotated_Genes_2024-03-26.rds"))
 #df = all_matrices_counts_genesRF
 df = all_samples_l2fc %>% 
-  filter(genes %in% genes_rf$Variable)
+  filter(genes %in% c(genes_rf %>% 
+                        slice_head(n = 12) %>% 
+                        pull(genes)))
 
-ann_vaccines_samples <- read_csv(here("Annotations and metadata", "ann_vaccines_samples.csv")) %>% 
-  mutate(disease_vac = if_else(disease_vac == "Healthy", "H", disease_vac)) %>% 
-  filter(disease_vac != "I")
+ann_vaccines_samples <- read_csv(here("Annotations and metadata", "ann_vaccines_samples.csv"))
+ann_vaccines_samples = ann_vaccines_samples %>% 
+  mutate(type = if_else(day == 0 & type == "I", "I", type),
+         type = if_else(disease_vac == "I", "I", type),
+         type = if_else(day == 0 & disease_vac != "I", "H", type),
+         type = if_else(vaccine == "H", "H", type),
+         type = fct_relevel(type, "H"))
 ```
 
 
 ```{r}
 #Inputs
-ImmuneGO_Annotated_Genes_all = ImmuneGO_Annotated_Genes %>% 
-  filter(!process %in% c("TCR REPERTOIRE", "BCR REPERTOIRE"))
 
 ImmuneGO_Genes = df %>% 
-  inner_join(ImmuneGO_Annotated_Genes %>% 
-               select(genes, process) %>% 
-               distinct() %>% 
-               select(genes),
-               by = "genes") %>% 
+  # inner_join(ImmuneGO_Annotated_Genes %>% 
+  #              select(genes, process) %>% 
+  #              distinct() %>% 
+  #              select(genes),
+  #              by = "genes") %>% 
   distinct() %>% 
   select(genes, sample, log2fc) %>% 
   pivot_wider(names_from = sample, values_from = log2fc)
@@ -16795,30 +16795,30 @@ matrix_data = matrix %>%
   replace(is.na(.), 0)
 
 #Rows Immune ----
-ann_rows_immune = matrix_data %>%
-  as.data.frame() %>%
-  rownames_to_column("genes") %>%
-  left_join(ImmuneGO_Annotated_Genes %>% filter(go_term == "Manual"), by = "genes") %>%
-  select(genes, process) %>%
-  distinct() %>%
-  group_by(genes) %>%
-  arrange(genes, factor(process, levels = c("INNATE IMMUNE SYSTEM", "ADAPTIVE IMMUNE SYSTEM")), .by_group = TRUE) %>%
-  mutate(i_process = row_number()) %>%
-  pivot_wider(., names_from = "i_process", values_from = "process") %>%
-  column_to_rownames("genes") %>%
-  t() %>%
-  as.data.frame() %>%
-  rownames_to_column("index") %>%
-  mutate(index = as.numeric(index)) %>%
-  arrange(desc(index)) %>%
-  column_to_rownames("index") %>%
-  t() %>%
-  as.data.frame() %>%
-  replace(is.na(.), ".") %>% 
-  mutate(`1` = if_else(`1` == ".", "INNATE IMMUNE SYSTEM", `1`)) %>% 
-  rownames_to_column("genes") %>% 
-  mutate(genes = rownames(matrix_data)) %>% 
-  column_to_rownames("genes")
+# ann_rows_immune = matrix_data %>%
+#   as.data.frame() %>%
+#   rownames_to_column("genes") %>%
+#   left_join(ImmuneGO_Annotated_Genes %>% filter(go_term == "Manual"), by = "genes") %>%
+#   select(genes, process) %>%
+#   distinct() %>%
+#   group_by(genes) %>%
+#   arrange(genes, factor(process, levels = c("INNATE IMMUNE SYSTEM", "ADAPTIVE IMMUNE SYSTEM")), .by_group = TRUE) %>%
+#   mutate(i_process = row_number()) %>%
+#   pivot_wider(., names_from = "i_process", values_from = "process") %>%
+#   column_to_rownames("genes") %>%
+#   t() %>%
+#   as.data.frame() %>%
+#   rownames_to_column("index") %>%
+#   mutate(index = as.numeric(index)) %>%
+#   arrange(desc(index)) %>%
+#   column_to_rownames("index") %>%
+#   t() %>%
+#   as.data.frame() %>%
+#   replace(is.na(.), ".") %>% 
+#   mutate(`1` = if_else(`1` == ".", "INNATE IMMUNE SYSTEM", `1`)) %>% 
+#   rownames_to_column("genes") %>% 
+#   mutate(genes = rownames(matrix_data)) %>% 
+#   column_to_rownames("genes")
 
 #Verificar dimensões do dataset
 dim(matrix_data)
@@ -16833,27 +16833,27 @@ ha = HeatmapAnnotation(df = ann_cols_heatmap,
                        col = ann_vaxsig_colors,
                        annotation_name_side = "right")
 
-row_ha = HeatmapAnnotation(df = ann_rows_immune,
-                       col = col_process_immune,
-                       which= "row",
-                       show_annotation_name = F,
-                       show_legend = F,
-                       simple_anno_size = unit(1, "mm"))
+# row_ha = HeatmapAnnotation(df = ann_rows_immune,
+#                        col = col_process_immune,
+#                        which= "row",
+#                        show_annotation_name = F,
+#                        show_legend = F,
+#                        simple_anno_size = unit(1, "mm"))
 min(matrix_data)
 
 max(matrix_data)
 # Values colors
-col_fun <- colorRamp2(c(-20, 0, 20), c("#9bc1bc", "white", "#ed6a5a"))
+col_fun <- colorRamp2(c(-10, 0, 10), c("#9bc1bc", "white", "#ed6a5a"))
 
 file = filename_2
 mat = matrix_data
 width_image = 60
-height_image = 40
+height_image = 20
 width = unit(50, "cm")
-height = unit(30, "cm")
-column_names_gp = gpar(fontsize = 8)
+height = unit(10, "cm")
+column_names_gp = gpar(fontsize = 5)
 row_names_gp = gpar(fontsize = 10)
-rect_gp = gpar(col = "gray80", lwd = 0.5)
+rect_gp = gpar(col = "white", lwd = 2)
 
 fileimageheatmap_grouped = paste0(file, sep ="_", "Complexheatmap.png")
 
@@ -16865,10 +16865,10 @@ png(file = here("Figures", fileimageheatmap_grouped),
 
 heatmap_plot = Heatmap(mat,
                         top_annotation = ha,
-                        left_annotation = row_ha,
+                        # left_annotation = row_ha,
                         show_row_names = TRUE,
                         row_names_side = "right",
-                        show_heatmap_legend = TRUE,
+                        show_heatmap_legend = TRUE, 
                         heatmap_legend_param = list(direction = "horizontal"),
                         name = "Log10 (raw counts)",
                         col = col_fun, #color
