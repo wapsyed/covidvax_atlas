@@ -2042,7 +2042,12 @@ saveRDS(gse206023_metadata, file=here("raw_data","gse206023_metadata.rds"))
 #Pseudoalignment
 gse206023_counts = read_excel(here("raw_data", "GSE206023_counts_Pseudoalignment.xlsx")) 
 
-gse206023_counts_ready = gse206023_counts %>% 
+
+gse206023_counts_ready %>% 
+  rownames_to_column("genes") %>% 
+  filter(genes == "XIST")
+
+gse206023_counts_ready = gse206023_counts %>%
   select(!c(1, 2)) %>% 
   drop_na(external_gene_name) %>% 
   column_to_rownames("external_gene_name") %>% 
@@ -2204,6 +2209,7 @@ print(cpm_counts)
 cpm_counts %>% 
   saveRDS(here("DGE analysis", "all_matrices_cpm_normalized.rds"))
 
+cpm_counts = readRDS(here("DGE analysis", "all_matrices_cpm_normalized.rds"))
 ```
 
 #### Log2fc by sample
@@ -2605,6 +2611,7 @@ gse201533_metadata_2 = GSE201533_metadata %>%
          gsm_id = geo_sample) %>% 
   select(geo_sample = sample_id, participant_id) %>% 
   rownames_to_column("sample")
+
 ```
 
 Unite samples
@@ -2641,18 +2648,17 @@ write.csv(ann_vaccines_samples_participants, file = "ann_vaccines_samples.csv")
 
 #### Sex imputation
 XIST (female-specific) and Y-linked genes IF1AY, KDM5D, UTY, DDX3Y, and RPS4Y1 are indicative of sex
-```{r fig.height=5, fig.width=5}
-all_matrices_counts_tpm_normalized <- readRDS(here("DGE analysis","all_matrices_counts_tpm_normalized.rds"))
+```{r fig.height=5, fig.width=10}
+all_matrices_counts_raw <- readRDS(here("DGE analysis","all_matrices_counts_raw.rds"))
+all_matrices_counts = all_matrices_counts_raw
+all_matrices_counts_tpm_normalized_unfiltered <- readRDS(here("DGE analysis","all_matrices_counts_tpm_normalized_unfiltered.rds"))
 
-ann_vaccines_samples
-
-all_matrices_counts <- readRDS(here("DGE analysis", "all_matrices_counts_raw.rds"))
 
 ann_vaccines_samples_gse206023 = ann_vaccines_samples %>% 
   filter(gse_id == "GSE206023") 
 
-all_matrices_gse206023 = all_matrices_counts_tpm_normalized %>% 
-  rownames_to_column("genes") %>% 
+all_matrices_gse206023 = all_matrices_counts_tpm_normalized_unfiltered %>% 
+  rownames_to_column("genes") %>%
   select(genes, c(ann_vaccines_samples_gse206023$sample))
 
 seximpute_gse206023_predicted = all_matrices_gse206023 %>% 
@@ -2696,7 +2702,7 @@ seximpute_gse206023_plot_2 = seximpute_gse206023_predicted %>%
   theme(axis.text = element_text(color = "black", size = 10),
         legend.text = element_text(color = "black", size = 10),
         axis.line.x  = element_line(size = 1, color ="black"),
-        axis.line.y  = element_line(size = 1, color ="black"),
+        axis.line.y  = element_line(size = 0, color ="black"),
         axis.text.x = element_text(angle = 0, vjust = 1, hjust=0.5),
         axis.ticks = element_line(size = 1, color ="black"),
         panel.grid.major = element_line(linetype = 2, color = "gray75"),
@@ -2706,25 +2712,27 @@ seximpute_gse206023_plot_2 = seximpute_gse206023_predicted %>%
         strip.text = element_text(size = 10, color = "black"),
         legend.direction = "horizontal",
         legend.position = "top") +
-  scale_y_continuous(expand = c(0,0), limits = c(0, 1)) +
+  scale_y_continuous(expand = c(0,0), limits = c(0, 0.80)) +
   scale_x_continuous(breaks = c(0, 7, 14, 28)) +
   labs(x = "Days",
        # color = "Chromosome Y specific genes present",
        color = "Chromosome Y \nspecific genes present",
-       y = "log(TPM) normalized",
+       y = "Normalized counts",
        title = "")
 
 seximpute_gse206023_plot = seximpute_gse206023_predicted %>%
-  mutate(title = "Day 0, GSE206023") %>% 
+  # filter(day == 0) %>% 
+  mutate(title = paste("Day ", day),
+         title = fct_reorder(title, day)) %>% 
 ggplot(.) +
   aes(x = genes, y = fct_reorder(participant_id, minmax_normalized), fill = minmax_normalized) +
   geom_tile(color = "white", size = 0.5) +
   theme_minimal() +
-  theme(axis.text = element_text(color = "black", size = 10),
-        axis.line  = element_line(size = 1, color ="black"),
-        
+  theme(axis.text.y = element_text(color = "black", size = 10),
+        axis.line.x  = element_line(size = 1, color ="black"),
+        axis.line.y  = element_line(size = 0, color ="black"),
         # axis.line.y  = element_line(size = 1, color ="black"),
-        axis.text.x = element_text(angle = 45, vjust = 1, hjust=1),
+        axis.text.x = element_text(angle = 45, vjust = 1, hjust=1, size = 10),
         axis.ticks = element_line(size = 1, color ="black"),
         # panel.grid = element_line(linetype = 2, color = "gray75"),
         panel.grid = element_blank(),
@@ -2736,13 +2744,13 @@ ggplot(.) +
        y = "",
        title = "") +
   scale_fill_gradient2(low = "white",
-                        name = "log(TPM) normalized",
+                        name = "Normalized counts",
                       high = "#DC0000FF") +
-  facet_wrap(~title)
+  facet_wrap(~title, nrow = 1)
 
 
 patch = seximpute_gse206023_plot_2 + seximpute_gse206023_plot + 
-  plot_layout(widths = c(1, 0.20),
+  plot_layout(widths = c(1, 1),
               guides = "collect"
               ) & theme(legend.position = 'top')
 patch
@@ -2760,6 +2768,8 @@ seximpute_gse206023_plot_2 %>%
   ggsave(filename = here("Figures", "seximpute_gse206023_plot_lines.png"),
          width = 10,
          height = 5)
+
+seximpute_gse206023_plot_2 %>% ggplotly()
 
 ```
 
@@ -2789,6 +2799,7 @@ ann_vaccines_samples = ann_vaccines_samples_predicted
 #   saveRDS(file = here("Annotations and metadata", "ann_vaccines_samples.rds"))
 
 ```
+
 
 
 #### Age imputation
