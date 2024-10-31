@@ -12206,11 +12206,18 @@ library(ggthemes)
 
 ```
 
-Import files
+##Import files
 
 ```{r}
 all_matrices_normalized_counts <- readRDS(here("DGE analysis", "all_matrices_normalized_counts.rds"))
+all_matrices_counts_tpm_normalized <- readRDS(here("DGE analysis", "all_matrices_counts_tpm_normalized.rds"))
 all_matrices_counts <- readRDS(here("DGE analysis", "all_matrices_counts.rds"))
+all_samples_l2fc <- readRDS(here("DGE analysis", "all_samples_l2fc.rds"))
+ImmuneGO_BTM_grouped_genes <- read_csv("VaxGO gene sets/ImmuneGO_BTM_grouped_genes.csv")
+all_degs_p_05_vac_infected = readRDS(here("DGE analysis", "all_studies_degs_weighted.rds")) %>% 
+    filter(if_else(n >= 5, fdr <= 0.05, fdr <= (0.05 * 6/n))) 
+ann_vaccines <- read_csv(here("Annotations and metadata", "ann_vaccines_conditions.csv"))
+
 ann_vaccines_samples = read_csv(here("Annotations and metadata", "ann_vaccines_samples.csv"))
 PC_1_2_cos2 = read_csv(here("PCA", "PC_1_2_cos2.csv"))
 
@@ -15871,16 +15878,23 @@ dev.off()
 ```{r}
 # Input data ----
 filename = "ImmuneGO_Genes_Types_"
-df = all_samples_l2fc
+# df = all_samples_l2fc
+df = all_matrices_counts_tpm_normalized
 
 ## Vaccination types
-outcomevar = "type"
+outcomevar_selected = "type"
 
-ann_vaccines_samples_filtered = ann_vaccines_samples %>% 
-  mutate(outcomevar = type) %>%
-  mutate(type = if_else(day == 0, "H", type)) %>% 
-  # filter(type != "I") %>% 
-  mutate(type = fct_relevel(type, "H"))
+#New version
+ann_vaccines_samples_filtered = ann_vaccines_samples %>%
+  select(condition, outcomevar_selected, type, everything()) %>% 
+  mutate(type = if_else(day == 0 & type == "I", "I", type),
+         type = if_else(disease_vac == "I", "I", type),
+         type = if_else(day == 0 & disease_vac != "I", "H", type),
+         type = if_else(vaccine == "H", "H", type),
+         type = fct_relevel(type, "H"),
+         outcomevar = type) %>% 
+  select(condition, outcomevar, type, everything()) 
+
 
 #How many samples by level?
 count_levels = ann_vaccines_samples_filtered %>% 
@@ -15903,26 +15917,34 @@ Train and test
 ```{r fig.height=10, fig.width=10}
 # Prepare data ------
 
-df_input <- df %>%
-  select(genes, condition, sample, log2fc) %>% 
-  pivot_wider(values_from = "log2fc",
-              names_from = "sample"
-              )
-  # rownames_to_column("genes") %>%
-  inner_join(PC1_2 %>% select(genes) %>% distinct(), by = "genes") %>%
+df_input1 <- df %>%
+  rownames_to_column("genes") %>% 
+  inner_join(PC1_2 %>% select(genes) %>% distinct(), by = "genes") %>% 
   column_to_rownames("genes") %>%
   t() %>%
-  as.data.frame() %>%
+  as.data.frame() 
+
+df_input = df_input1 %>% 
   rownames_to_column("sample") %>%
   inner_join(ann_vaccines_samples_filtered %>% select(sample,
+                                                      age, 
+                                                      sex,
+                                                      country,
+                                                      variant,
+                                                      sequencer,
                                                       outcomevar), #Outcome
              by = "sample") %>%
   select(sample,
          outcomevar,
+         age,
+         sex,
+         country,
+         variant,
+         sequencer, 
          everything()) %>%
   column_to_rownames("sample") %>%
   mutate_if(is.character, factor) %>% 
-  mutate(outcomevar = fct_relevel(outcomevar, order_levels))
+  mutate(outcomevar = fct_relevel(outcomevar, "H"))
 ```
 
 
@@ -15943,7 +15965,8 @@ tree_rec <- recipe(outcomevar ~ ., data = trees_train) %>% #OUTCOME
 
 tree_prep <- prep(tree_rec)
 
-juiced <- juice(tree_prep)
+juiced <- juice(tree_prep) %>% 
+  select(!colnames(df_input1), colnames(df_input1))
 
 # Set random forest hyper parameters
 tune_spec <- rand_forest(
