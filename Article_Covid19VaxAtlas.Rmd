@@ -15878,8 +15878,8 @@ dev.off()
 ```{r}
 # Input data ----
 filename = "ImmuneGO_Genes_Types_"
-# df = all_samples_l2fc
-df = all_matrices_counts_tpm_normalized
+df = all_samples_l2fc
+# df = all_matrices_counts_tpm_normalized
 
 ## Vaccination types
 outcomevar_selected = "type"
@@ -15918,8 +15918,11 @@ Train and test
 # Prepare data ------
 
 df_input1 <- df %>%
-  rownames_to_column("genes") %>% 
+  select(genes, sample, log2fc) %>% 
+  # rownames_to_column("genes") %>% 
   inner_join(PC1_2 %>% select(genes) %>% distinct(), by = "genes") %>% 
+  pivot_wider(values_from = "log2fc",
+              names_from = "sample") %>% 
   column_to_rownames("genes") %>%
   t() %>%
   as.data.frame() 
@@ -15929,18 +15932,18 @@ df_input = df_input1 %>%
   inner_join(ann_vaccines_samples_filtered %>% select(sample,
                                                       age, 
                                                       sex,
-                                                      country,
+                                                      # country,
                                                       variant,
-                                                      sequencer,
+                                                      # sequencer,
                                                       outcomevar), #Outcome
              by = "sample") %>%
   select(sample,
          outcomevar,
          age,
          sex,
-         country,
+         # country,
          variant,
-         sequencer, 
+         # sequencer, 
          everything()) %>%
   column_to_rownames("sample") %>%
   mutate_if(is.character, factor) %>% 
