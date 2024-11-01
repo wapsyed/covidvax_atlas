@@ -15958,8 +15958,8 @@ df_input = df_input1 %>%
          outcomevar,
          age,
          sex,
-         day,
-         vaccine,
+         # day,
+         # vaccine,
          everything()) %>%
   column_to_rownames("sample") %>%
   mutate_if(is.character, factor) %>% 
@@ -16061,8 +16061,8 @@ metrics_tuneres %>% ggsave(file = here("Figures",
                                         width = 10,
                                         height = 10)
 
-min_n_selec = c(3, 5) #Observations by node)
-mtry_selec = c(17, 17) #Features/genes by tree)
+min_n_selec = c(3, 3) #Observations by node)
+mtry_selec = c(16, 16) #Features/genes by tree)
 ```
 
 Hyperparameter tuning
@@ -16102,7 +16102,7 @@ regular_res_metrics = regular_res %>%
   aes(x = value, y = mean, colour = .metric, label = value) +
   geom_line() +
   geom_label(size = 3) +
-  scale_color_npg()+
+  scale_color_npg() +
   theme_minimal() +
   facet_grid(vars(.metric), vars(parameter), scales = "free")
 
@@ -16211,23 +16211,23 @@ final_res_preds = final_res %>%
 
 
 #Confusion matrix
-res_conf_mat = conf_mat(final_res_preds, truth = outcomevar...13,
+res_conf_mat = conf_mat(final_res_preds, truth = outcomevar...9,
          estimate = .pred_class)
 
 #Accuracy
-res_acc = accuracy(final_res_preds, truth = outcomevar...13,
+res_acc = accuracy(final_res_preds, truth = outcomevar...9,
          estimate = .pred_class)
 
 #Specificity
-res_spec = spec(final_res_preds, truth = outcomevar...13,
+res_spec = spec(final_res_preds, truth = outcomevar...9,
          estimate = .pred_class)
 
 #Precision
-res_prec = precision(final_res_preds, truth = outcomevar...13,
+res_prec = precision(final_res_preds, truth = outcomevar...9,
          estimate = .pred_class)
 
 #Recall
-res_recall = recall(final_res_preds, truth = outcomevar...13,
+res_recall = recall(final_res_preds, truth = outcomevar...9,
          estimate = .pred_class)
 #Precision recall AUC
 # res_pr_auc = pr_auc(final_res_preds, outcomevar...9, .pred_RNA)
@@ -16312,7 +16312,7 @@ Multi ROC
 ```{r fig.height=5, fig.width=7}
 multi_roc = final_res_preds %>% 
   group_by(id) %>%
-  roc_curve(outcomevar...13, .pred_I:.pred_VV) %>%
+  roc_curve(outcomevar...9, .pred_I:.pred_VV) %>%
   ggplot(aes(1 - specificity, sensitivity, color = .level)) +
   geom_abline(lty = 2, color = "gray80", size = 0.5) +
   geom_path(show.legend = FALSE, alpha = 0.6, size = 1.2) +
@@ -16334,7 +16334,7 @@ multi_roc
 Confusion matrix
 ```{r fig.height=4, fig.width=4}
 conf_matrix_heat = final_res_preds %>% 
-  conf_mat(outcomevar...13, .pred_class) %>%
+  conf_mat(outcomevar...9, .pred_class) %>%
   autoplot(type = "heatmap") +
     theme_few() +
   theme(axis.text = element_text(size = 10, color = "black"),
@@ -16358,7 +16358,7 @@ conf_matrix_heat + multi_roc +
 Precision recall curve
 ```{r}
 # Precision recall
-pr_curve_res = pr_curve(final_res_preds, outcomevar...13, .pred_I) %>% 
+pr_curve_res = pr_curve(final_res_preds, outcomevar...9, .pred_I) %>% 
   ggplot(aes(x = recall, y = precision)) +
   geom_path(color = "#DC0000FF",
             size = 2) +
@@ -16544,17 +16544,6 @@ plot
 ```
 
 
-#### Randomforest explainer
-
-```{r}
-# install.packages("randomForestExplainer")
-# library(randomForestExplainer)
-# library(randomForest)
-# 
-# final_wf_extracted$fit$fit
-# seed(123)
-```
-
 
 #### Heatmap: Gene L2FC per condition
 
@@ -16573,7 +16562,7 @@ ImmuneGO_Annotated_Genes_all = ImmuneGO_Annotated_Genes %>%
 
 ImmuneGO_Genes = all_degs_p_05_vac_infected %>% 
   inner_join(genes_rf %>% 
-               slice_head(n = 20) %>% 
+               slice_head(n = 15) %>% 
                select(genes), by = "genes") %>% 
   # inner_join(ImmuneGO_Annotated_Genes %>% 
   #              select(genes, process) %>% 
@@ -16625,7 +16614,8 @@ ann_cols_heatmap = matrix %>%
   inner_join(ann_vaccines_covid_other_2, by = "condition") %>% 
   distinct() %>% 
   arrange(condition) %>% 
-  column_to_rownames("condition")
+  column_to_rownames("condition") %>% 
+  mutate(day = as.integer(day))
 
 matrix_data = matrix %>% 
   column_to_rownames("genes") %>% 
@@ -16758,7 +16748,7 @@ heatmap_plot
 df = all_samples_l2fc %>% 
   inner_join(genes_rf %>% 
                arrange(-importance) %>% 
-               slice_head(n=20) %>% 
+               slice_head(n=15) %>% 
                select(genes), by = "genes")
 
 ann_vaccines_samples <- read_csv(here("Annotations and metadata", "ann_vaccines_samples.csv"))
@@ -16951,7 +16941,7 @@ heatmap_plot = draw(heatmap_plot,
 dev.off()
 
 ```
-Clustered
+Clustered by type
 ```{r}
 file = filename_2
 mat = matrix_data
@@ -17013,25 +17003,90 @@ heatmap_plot = draw(heatmap_plot,
 dev.off()
 ```
 
+```{r}
+file = filename_2
+mat = matrix_data
+width_image = 60
+height_image = 20
+width = unit(50, "cm")
+height = unit(6, "cm")
+column_names_gp = gpar(fontsize = 5)
+row_names_gp = gpar(fontsize = 10)
+rect_gp = gpar(col = "white", lwd = 2)
+
+fileimageheatmap_grouped = paste0(file, sep ="_", "Complexheatmap_Clustered_all.png")
+
+png(file = here("Figures", fileimageheatmap_grouped), 
+    width = width_image, 
+    height = height_image, 
+    units="cm", 
+    res=900)
+
+heatmap_plot = Heatmap(mat,
+                        top_annotation = ha,
+                        # left_annotation = row_ha,
+                        show_row_names = TRUE,
+                        row_names_side = "right",
+                        show_heatmap_legend = TRUE, 
+                        heatmap_legend_param = list(direction = "vertical"),
+                        name = "L2FC",
+                        col = col_fun, #color
+                        show_column_names = T, 
+                        column_title = fileimageheatmap_grouped,
+                        column_title_gp = gpar(fontsize = 10, fontface = "bold"),
+                        column_names_rot = 45,
+                        column_names_gp = column_names_gp,
+                        rect_gp = rect_gp,
+                        na_col = "white",
+                        cluster_rows = TRUE,
+                        row_names_gp = row_names_gp,
+                        row_dend_width = unit(1, "cm"), 
+                        column_dend_height =  unit(2, "cm"),
+                        row_split = NULL,
+                        column_split = 5,
+                        # column_split = column_split,
+                        row_gap = unit(2, "mm"),
+                        cluster_columns = T,
+                        column_gap = unit(2, "mm"),
+                        show_column_dend = T,
+                        show_row_dend = T,
+                        row_dend_side = "left",
+                        column_dend_side = "top",
+                        clustering_distance_rows = "euclidean",
+                        border = TRUE,
+                        width = width,
+                        height = height)
+
+heatmap_plot = draw(heatmap_plot, 
+     annotation_legend_side = "left", 
+     heatmap_legend_side = "left")
+
+dev.off()
+```
+
+
+
 
 ### Scatterplot
-```{r fig.height=20, fig.width=20, message=FALSE, warning=FALSE}
+```{r fig.height=15, fig.width=15, message=FALSE, warning=FALSE}
 library(GGally)
 genes_rf
 
 selected_genes_rf = df_input %>% 
-  select(outcomevar, age, sex, day, vaccine, any_of(genes_rf %>% slice_head(n = 20) %>% 
+  select(outcomevar, age, sex, day, vaccine, any_of(genes_rf %>% slice_head(n = 15) %>% 
                                                       pull(genes)))
 
-ggpairs_rf = ggpairs(selected_genes_rf, columns = 6:10, 
-        aes(color = outcomevar))
+ggpairs_rf = ggpairs(selected_genes_rf, columns = 6:15, 
+        aes(color = outcomevar,
+            alpha = 0.5))
 
 ggpairs_rf = ggpairs_rf + 
   scale_color_manual(values = ann_vaxsig_colors$type) +
   scale_fill_manual(values = ann_vaxsig_colors$type) +
   theme_minimal() +
   theme(legend.position = "right",
-        strip.text.x = element_text(color = "black", size = 12),
+        strip.text.y = element_text(color = "black", size = 12, face = "bold"),
+        strip.text.x = element_text(color = "black", size = 12, face = "bold"),
         axis.text.x = element_text(color = "black", size = 10),
         axis.text.y = element_text(vjust = 0.5,
                                    size = 10,
@@ -17040,10 +17095,10 @@ ggpairs_rf = ggpairs_rf +
                                  colour = "black",
                                  linetype = 1),
         axis.ticks = element_line(size = 0.5, color = "black"),
-        panel.grid.major.y = element_line(size = 0,
+        panel.grid.major.y = element_line(size = 0.1,
                                           linetype = 2,
                                           color = "gray75"),
-        panel.grid.major.x = element_line(size = 0.5,
+        panel.grid.major.x = element_line(size = 0.1,
                                           linetype = 2,
                                           color = "gray75"),
         panel.spacing.x = unit(2, "lines"))
@@ -17051,7 +17106,7 @@ ggpairs_rf = ggpairs_rf +
 ggpairs_rf
 
 ggpairs_rf %>% 
-  ggsave(filename = here("Figures", "ggpairs_rf_selected_genes.png"), width = 15,
+  ggsave(filename = here("Figures", paste(file, "ggpairs_rf_selected_genes.png")), width = 15,
          height = 15)
   
 ```
