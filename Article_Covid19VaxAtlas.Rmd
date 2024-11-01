@@ -2217,6 +2217,8 @@ cpm_counts = readRDS(here("DGE analysis", "all_matrices_cpm_normalized.rds"))
 # Log2FC by sample ------
 # all_matrices_counts_tpm_normalized_long_annotated = readRDS(here("DGE analysis", "all_matrices_counts_tpm_normalized_long_annotated.rds"))
 
+
+##### Vaccination
 # GSE206023
 counts_control_gse206023 = all_matrices_counts_tpm_normalized_long_annotated %>% 
   filter(gse_id == "GSE206023") %>% 
@@ -2224,14 +2226,49 @@ counts_control_gse206023 = all_matrices_counts_tpm_normalized_long_annotated %>%
 
 counts_gse206023_samples_l2fc = counts_control_gse206023 %>% 
   filter(day == 0) %>% 
-  select(genes, counts) %>% 
-  group_by(genes) %>% 
-  summarize(control_mean_counts = mean(counts)) %>% 
-  inner_join(counts_control_gse206023, by = "genes") %>% 
-  mutate(diff = counts - control_mean_counts,
+  select(genes, participant_id, baseline = counts) %>% 
+  inner_join(counts_control_gse206023, by = join_by("genes", "participant_id")) %>% 
+  group_by(participant_id) %>% 
+  mutate(diff = counts - baseline,
        log2fc = if_else(diff == 0, 0, sign(diff) * log2(abs(diff))),
        log2fc = replace(log2fc, log2fc == -Inf, 0)) %>% 
-  select(genes, condition, sample, control_mean_counts, counts,diff, log2fc)
+  select(genes, condition, participant_id, sample, baseline, counts,diff, log2fc) %>% 
+  ungroup()
+
+# GSE201533
+counts_control_gse201533 = all_matrices_counts_tpm_normalized_long_annotated %>% 
+  filter(gse_id == "GSE201533") %>% 
+  filter(!is.na(counts))
+
+counts_gse201533_samples_l2fc = counts_control_gse201533 %>% 
+  filter(day == 0) %>% 
+  select(genes, participant_id, baseline = counts) %>% 
+  inner_join(counts_control_gse201533, by = join_by("genes", "participant_id")) %>% 
+  group_by(participant_id) %>% 
+  mutate(diff = counts - baseline,
+       log2fc = if_else(diff == 0, 0, sign(diff) * log2(abs(diff))),
+       log2fc = replace(log2fc, log2fc == -Inf, 0)) %>% 
+  select(genes, condition, participant_id, sample, baseline, counts,diff, log2fc) %>% 
+  ungroup()
+  
+
+# GSE199750
+counts_control_gse199750 = all_matrices_counts_tpm_normalized_long_annotated %>% 
+  filter(gse_id == "GSE199750") %>% 
+  filter(!is.na(counts))
+
+counts_gse199750_samples_l2fc = counts_control_gse199750 %>% 
+  filter(day == 0) %>% 
+  select(genes, participant_id, baseline = counts) %>% 
+  inner_join(counts_control_gse199750, by = join_by("genes", "participant_id")) %>% 
+  group_by(participant_id) %>% 
+  mutate(diff = counts - baseline,
+       log2fc = if_else(diff == 0, 0, sign(diff) * log2(abs(diff))),
+       log2fc = replace(log2fc, log2fc == -Inf, 0)) %>% 
+  select(genes, condition, participant_id, sample, baseline, counts,diff, log2fc) %>% 
+  ungroup()
+
+####### Infection
 
 # GSE189039
 counts_control_gse189039 = all_matrices_counts_tpm_normalized_long_annotated %>% 
@@ -2242,12 +2279,12 @@ counts_gse189039_samples_l2fc = counts_control_gse189039 %>%
   filter(day == 0) %>% 
   select(genes, counts) %>% 
   group_by(genes) %>% 
-  summarize(control_mean_counts = mean(counts)) %>% 
+  summarize(baseline = median(counts)) %>% 
   inner_join(counts_control_gse189039, by = "genes") %>% 
-  mutate(diff = counts - control_mean_counts,
+  mutate(diff = counts - baseline,
        log2fc = if_else(diff == 0, 0, sign(diff) * log2(abs(diff))),
        log2fc = replace(log2fc, log2fc == -Inf, 0)) %>% 
-  select(genes, condition, sample, control_mean_counts, counts,diff, log2fc)
+  select(genes, condition, sample, baseline, counts,diff, log2fc)
 
 # GSE201530
 counts_control_gse201530 = all_matrices_counts_tpm_normalized_long_annotated %>% 
@@ -2258,45 +2295,12 @@ counts_gse201530_samples_l2fc = counts_control_gse201530 %>%
   filter(day == 0) %>% 
   select(genes, counts) %>% 
   group_by(genes) %>% 
-  summarize(control_mean_counts = mean(counts)) %>% 
+  summarize(baseline = median(counts)) %>% 
   inner_join(counts_control_gse201530, by = "genes") %>% 
-  mutate(diff = counts - control_mean_counts,
+  mutate(diff = counts - baseline,
        log2fc = if_else(diff == 0, 0, sign(diff) * log2(abs(diff))),
        log2fc = replace(log2fc, log2fc == -Inf, 0)) %>% 
-  select(genes, condition, sample, control_mean_counts, counts,diff, log2fc)
-
-# GSE201533
-counts_control_gse201533 = all_matrices_counts_tpm_normalized_long_annotated %>% 
-  filter(gse_id == "GSE201533") %>% 
-  filter(!is.na(counts))
-
-counts_gse201533_samples_l2fc = counts_control_gse201533 %>% 
-  filter(day == 0) %>% 
-  select(genes, counts) %>% 
-  group_by(genes) %>% 
-  summarize(control_mean_counts = mean(counts)) %>% 
-  inner_join(counts_control_gse201533, by = "genes") %>% 
-  mutate(diff = counts - control_mean_counts,
-       log2fc = if_else(diff == 0, 0, sign(diff) * log2(abs(diff))),
-       log2fc = replace(log2fc, log2fc == -Inf, 0)) %>% 
-  select(genes, condition, sample, control_mean_counts, counts,diff, log2fc)
-  
-
-# GSE199750
-counts_control_gse199750 = all_matrices_counts_tpm_normalized_long_annotated %>% 
-  filter(gse_id == "GSE199750") %>% 
-  filter(!is.na(counts))
-
-counts_gse199750_samples_l2fc = counts_control_gse199750 %>% 
-  filter(day == 0) %>% 
-  select(genes, counts) %>% 
-  group_by(genes) %>% 
-  summarize(control_mean_counts = mean(counts)) %>% 
-  inner_join(counts_control_gse199750, by = "genes") %>% 
-  mutate(diff = counts - control_mean_counts,
-       log2fc = if_else(diff == 0, 0, sign(diff) * log2(abs(diff))),
-       log2fc = replace(log2fc, log2fc == -Inf, 0)) %>% 
-  select(genes, condition, sample, control_mean_counts, counts,diff, log2fc)
+  select(genes, condition, sample, baseline, counts,diff, log2fc)
 
 
 all_samples_l2fc = bind_rows(counts_gse206023_samples_l2fc,
@@ -2304,6 +2308,8 @@ all_samples_l2fc = bind_rows(counts_gse206023_samples_l2fc,
                          counts_gse201533_samples_l2fc,
                          counts_gse201530_samples_l2fc,
                          counts_gse189039_samples_l2fc)
+
+all_samples_l2fc
 
 all_samples_l2fc %>% 
   saveRDS(file = here("DGE analysis", "all_samples_l2fc.rds"))
@@ -15871,7 +15877,7 @@ dev.off()
 ##  COVID-19 vaccines types:  All types + Healthy + Infection
 ```{r}
 # Input data ----
-filename = "ImmuneGO_Genes_Types_"
+filename = "ImmuneGO_Genes_Types_L2FC"
 df = all_samples_l2fc
 # df = all_matrices_counts_tpm_normalized
 
@@ -15887,9 +15893,15 @@ ann_vaccines_samples_filtered = ann_vaccines_samples %>%
          type = if_else(vaccine == "H", "H", type),
          # type = fct_relevel(type, "H"),
          outcomevar = type) %>% 
-  select(condition, outcomevar, type, everything()) %>% 
+  select(condition, outcomevar, type, vaccine, everything()) %>% 
   filter(type != "H") %>% 
-  mutate(type = fct_relevel(type, "I"))
+  mutate(type = fct_relevel(type, "I")) %>% 
+  mutate(vaccine = if_else(condition == "BNT-MO (V1, D6)", "MO", vaccine)) %>% 
+  mutate(type = if_else(type == "I" & vaccine != "I", "V-I", type),
+         outcomevar = type)
+
+
+ann_vaccines_samples_filtered
 
 
 #How many samples by level?
@@ -15907,6 +15919,8 @@ COVID_Infec_Vac_ImmuneGO_BTM_PC_1_2_cos2 <- read_csv("PCA/COVID_Infec_Vac_Immune
 
 PC1_2 = COVID_Infec_Vac_ImmuneGO_BTM_PC_1_2_cos2 %>% 
   filter(cos2>0.75) #232 genes
+
+dim(PC1_2)
 ```
 
 Train and test
@@ -15914,40 +15928,41 @@ Train and test
 ```{r fig.height=10, fig.width=10}
 # Prepare data ------
 
+#L2FC
 df_input1 <- df %>%
-  select(genes, sample, log2fc) %>% 
-  # rownames_to_column("genes") %>% 
+  select(genes, sample, log2fc) %>%
+  distinct() %>% 
   inner_join(PC1_2 %>% select(genes) %>% distinct(), by = "genes") %>% 
+  distinct() %>% 
   pivot_wider(values_from = "log2fc",
-              names_from = "sample") %>% 
+              names_from = "sample",
+              values_fn = mean) %>% 
   column_to_rownames("genes") %>%
   t() %>%
   as.data.frame() 
 
+
 df_input = df_input1 %>% 
   rownames_to_column("sample") %>%
   inner_join(ann_vaccines_samples_filtered %>% select(sample,
+                                                      # participant_id,
                                                       day,
                                                       age, 
                                                       sex,
-                                                      # country,
-                                                      # variant,
-                                                      # sequencer,
-                                                      outcomevar), #Outcome
+                                                      outcomevar,
+                                                      vaccine
+                                                      ),
              by = "sample") %>%
   select(sample,
          outcomevar,
          age,
          sex,
          day,
-         # country,
-         # variant,
-         # sequencer, 
+         vaccine,
          everything()) %>%
   column_to_rownames("sample") %>%
   mutate_if(is.character, factor) %>% 
-  mutate(outcomevar = fct_relevel(outcomevar, "I")) %>% 
-  arrange(outcomevar)
+  mutate(outcomevar = fct_relevel(outcomevar, "I"))
 
 df_input
 ```
@@ -15973,6 +15988,8 @@ tree_prep <- prep(tree_rec)
 juiced <- juice(tree_prep) %>% 
   select(!colnames(df_input1), colnames(df_input1))
 
+juiced
+
 # Set random forest hyper parameters
 tune_spec <- rand_forest(
   mtry = tune(),
@@ -15989,7 +16006,7 @@ tune_wf <- workflow() %>%
 
 #Cross validation
 set.seed(234)
-trees_folds <- vfold_cv(trees_train)
+trees_folds <- vfold_cv(trees_train, v = 10, strata = outcomevar)
 
 #Define performance metrics
 mer_metrics <- metric_set(yardstick::recall,
@@ -16043,8 +16060,8 @@ metrics_tuneres %>% ggsave(file = here("Figures",
                                         width = 10,
                                         height = 10)
 
-min_n_selec = c(3,6) #Observations by node)
-mtry_selec = 81 #Features/genes by tree)
+min_n_selec = c(3, 5) #Observations by node)
+mtry_selec = c(17, 17) #Features/genes by tree)
 ```
 
 Hyperparameter tuning
@@ -16052,8 +16069,8 @@ Hyperparameter tuning
 ```{r}
 # Tune hyperparameters ----
 rf_grid <- grid_regular(
-  min_n(range = c(3, 5)),
-  mtry(range = c(68, 70)),
+  min_n(range = c(min_n_selec)),
+  mtry(range = c(mtry_selec)),
   levels = levels
 )
 
@@ -16112,7 +16129,7 @@ final = final_rf %>%
   set_engine("ranger", importance = "permutation") %>%
   fit(outcomevar ~ .,
     data = juice(tree_prep)) %>% 
-  vip(num_features = 70)
+  vip(num_features = 20)
 
 genes_rf = final$data
 genes_rf = genes_rf %>% select(genes = Variable, importance = Importance)
@@ -16122,9 +16139,6 @@ genes_rf %>% write_csv(file = here("Figures", paste0("vipgenes_tidymodels_", fil
 genes_rf_10 = genes_rf %>% 
   arrange(-importance) %>% 
   slice_head(n = 10)
-
-
-
 
 #Importance plot
 importance_plot = ggplot(genes_rf_10) +
@@ -16189,23 +16203,23 @@ final_res_preds = final_res %>%
 
 
 #Confusion matrix
-res_conf_mat = conf_mat(final_res_preds, truth = outcomevar...9,
+res_conf_mat = conf_mat(final_res_preds, truth = outcomevar...13,
          estimate = .pred_class)
 
 #Accuracy
-res_acc = accuracy(final_res_preds, truth = outcomevar...9,
+res_acc = accuracy(final_res_preds, truth = outcomevar...13,
          estimate = .pred_class)
 
 #Specificity
-res_spec = spec(final_res_preds, truth = outcomevar...9,
+res_spec = spec(final_res_preds, truth = outcomevar...13,
          estimate = .pred_class)
 
 #Precision
-res_prec = precision(final_res_preds, truth = outcomevar...9,
+res_prec = precision(final_res_preds, truth = outcomevar...13,
          estimate = .pred_class)
 
 #Recall
-res_recall = recall(final_res_preds, truth = outcomevar...9,
+res_recall = recall(final_res_preds, truth = outcomevar...13,
          estimate = .pred_class)
 #Precision recall AUC
 # res_pr_auc = pr_auc(final_res_preds, outcomevar...9, .pred_RNA)
@@ -16285,7 +16299,7 @@ Multi ROC
 ```{r fig.height=5, fig.width=7}
 multi_roc = final_res_preds %>% 
   group_by(id) %>%
-  roc_curve(outcomevar...9, .pred_I:.pred_VV) %>%
+  roc_curve(outcomevar...13, .pred_I:.pred_VV) %>%
   ggplot(aes(1 - specificity, sensitivity, color = .level)) +
   geom_abline(lty = 2, color = "gray80", size = 0.5) +
   geom_path(show.legend = FALSE, alpha = 0.6, size = 1.2) +
@@ -16307,7 +16321,7 @@ multi_roc
 Confusion matrix
 ```{r fig.height=4, fig.width=4}
 conf_matrix_heat = final_res_preds %>% 
-  conf_mat(outcomevar...9, .pred_class) %>%
+  conf_mat(outcomevar...13, .pred_class) %>%
   autoplot(type = "heatmap") +
     theme_few() +
   theme(axis.text = element_text(size = 10, color = "black"),
@@ -16331,7 +16345,7 @@ conf_matrix_heat + multi_roc +
 Precision recall curve
 ```{r}
 # Precision recall
-pr_curve_res = pr_curve(final_res_preds, outcomevar...9, .pred_I) %>% 
+pr_curve_res = pr_curve(final_res_preds, outcomevar...13, .pred_I) %>% 
   ggplot(aes(x = recall, y = precision)) +
   geom_path(color = "#DC0000FF",
             size = 2) +
@@ -16540,7 +16554,7 @@ ImmuneGO_Annotated_Genes_all = ImmuneGO_Annotated_Genes %>%
 
 ImmuneGO_Genes = all_degs_p_05_vac_infected %>% 
   inner_join(genes_rf %>% 
-               slice_head(n = 10) %>% 
+               slice_head(n = 20) %>% 
                select(genes), by = "genes") %>% 
   # inner_join(ImmuneGO_Annotated_Genes %>% 
   #              select(genes, process) %>% 
@@ -16725,7 +16739,7 @@ heatmap_plot
 df = all_samples_l2fc %>% 
   inner_join(genes_rf %>% 
                arrange(-importance) %>% 
-               slice_head(n=10) %>% 
+               slice_head(n=20) %>% 
                select(genes), by = "genes")
 
 ann_vaccines_samples <- read_csv(here("Annotations and metadata", "ann_vaccines_samples.csv"))
@@ -16940,11 +16954,11 @@ pca_res <- prcomp(ann_vaccines_pca_matrix_ready, scale. = T)
 corr_matrix = cor(ann_vaccines_pca_matrix_ready %>% scale()) 
 var <- get_pca_var(pca_res)
 
-# corrplot = ggcorrplot(corr_matrix, hc.order = TRUE) + 
-#   theme(axis.text.x = element_text(angle = 90, size = 5), 
+# corrplot = ggcorrplot(corr_matrix, hc.order = TRUE) +
+#   theme(axis.text.x = element_text(angle = 90, size = 5),
 #         axis.text.y = element_text(size = 5))
 # #Salvar
-# ggsave(corrplot, file = paste0(filename, "_corrplot.png"), 
+# ggsave(corrplot, file = paste0(filename, "_corrplot.png"),
 #        width = 20, #Grande 20, pequeno 10
 #        height= 20) #Grande 20, pequeno 10
 # print(corrplot)
