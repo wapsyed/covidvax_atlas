@@ -199,7 +199,8 @@ ann_vaxsig_colors = list(
            "IN/SU" = "#8491B4FF",
            "PS" = "#F39B7FFF",
            'I'= "#DC0000FF",
-           "H" = "grey95"),
+           "H" = "grey95",
+           "V-I" = "#ffadc7"),
   Platform = c("VLP" = "#7E6148FF",
            "LA" =  "#EFC000FF",
            "CONJ" = "#F39B7FFF", 
@@ -16035,7 +16036,7 @@ Assess metrics
 ```{r fig.height=10, fig.width=10}
 # Assess data ----
 
-#Metricss
+#Metrics
 metrics_tuneres = tune_res %>%
   collect_metrics() %>%
   select(mean, min_n, mtry, .metric) %>%
@@ -16120,6 +16121,7 @@ final_rf <- finalize_model(
   tune_spec,
   best_auc
 )
+
 ```
 
 Important features
@@ -16192,6 +16194,12 @@ final_wf <- workflow() %>%
 
 final_res <- final_wf %>%
   last_fit(split)
+
+final_wf_extracted = workflow() %>%
+  add_recipe(tree_rec) %>%
+  add_model(final_rf) %>% 
+  last_fit(split) %>% 
+  extract_workflow()
 
 final_res_preds = final_res %>%
   collect_predictions() %>%
@@ -16293,6 +16301,11 @@ final_res_preds %>% rownames_to_column("sample") %>%
   view()
 
 final_model_metrics
+
+#Matrix counts of VIP genes
+all_matrices_counts_genesRF = all_samples_l2fc %>% 
+  inner_join(genes_rf %>% 
+               select(genes), by = "genes")
 ```
 
 Multi ROC
@@ -16362,14 +16375,8 @@ pr_curve_res %>%
                     paste0("PR_Curve_tidymodels_", filename, outcomevar,  ".png")),
          width = 4,
          height = 3)
-
-#Matrix counts of VIP genes
-all_matrices_counts_genesRF = all_samples_l2fc %>% 
-  inner_join(genes_rf %>% 
-               select(genes), by = "genes")
   
 ```
-
 
 
 Relative effects
@@ -16534,6 +16541,18 @@ plot = releffect_disease_vac$plot +
 
 plot
 
+```
+
+
+#### Randomforest explainer
+
+```{r}
+# install.packages("randomForestExplainer")
+# library(randomForestExplainer)
+# library(randomForest)
+# 
+# final_wf_extracted$fit$fit
+# seed(123)
 ```
 
 
@@ -16744,15 +16763,19 @@ df = all_samples_l2fc %>%
 
 ann_vaccines_samples <- read_csv(here("Annotations and metadata", "ann_vaccines_samples.csv"))
 ann_vaccines_samples = ann_vaccines_samples %>% 
-  mutate(type = if_else(day == 0 & type == "I", "I", type),
+   mutate(type = if_else(day == 0 & type == "I", "I", type),
          type = if_else(disease_vac == "I", "I", type),
          type = if_else(day == 0 & disease_vac != "I", "H", type),
          type = if_else(vaccine == "H", "H", type),
-         type = fct_relevel(type, "H"))
-```
+         # type = fct_relevel(type, "H"),
+         outcomevar = type) %>% 
+  select(condition, outcomevar, type, vaccine, everything()) %>% 
+  filter(type != "H") %>% 
+  mutate(type = fct_relevel(type, "I")) %>% 
+  mutate(vaccine = if_else(condition == "BNT-MO (V1, D6)", "MO", vaccine)) %>% 
+  mutate(type = if_else(type == "I" & vaccine != "I", "V-I", type),
+         outcomevar = type)
 
-
-```{r}
 #Inputs
 
 ImmuneGO_Genes = df %>% 
@@ -16763,14 +16786,16 @@ ImmuneGO_Genes = df %>%
   #              by = "genes") %>% 
   distinct() %>% 
   select(genes, sample, log2fc) %>% 
-  pivot_wider(names_from = sample, values_from = log2fc)
+  pivot_wider(names_from = sample, 
+              values_from = log2fc,              
+              values_fn = mean)
 
 
 sample_correct =final_res_preds %>% 
   rownames_to_column("sample") %>%  
   inner_join(ann_vaccines_samples %>% 
                select(condition, sample), by = "sample") %>% 
-  select(sample, type_pred = .pred_class, correct) 
+  select(sample, type_pred = .pred_class, correct)
 
 # Matrix
 l2fc_imps = ImmuneGO_Genes %>% 
@@ -16828,7 +16853,19 @@ matrix_data = matrix %>%
   replace(is.na(.), 0)
 
 ann_cols_heatmap = ann_cols_heatmap %>% 
-  select(!c(condition, sample))
+  select(!c(condition, sample)) %>% 
+  select(correct, 
+         # vaccine, 
+         type, 
+         type_pred,
+         # gse_id, 
+         dose, 
+         day,
+         sex, 
+         age, 
+         variant) %>% 
+  mutate(day = as.integer(day))
+  
 
 #Verificar dimensões do dataset
 dim(matrix_data)
@@ -16838,15 +16875,18 @@ dim(ann_rows_immune)
 
 #Column split
 column_split = ann_cols_heatmap$type %>% as.character()
+
+dend1 = cluster_between_groups(matrix_data, column_split)
 #Heatmap annotation
 ann_vaxsig_colors$age <- circlize::colorRamp2(c(0, 50, 100), c("white", "#4DBBD5FF", "black"))
+ann_vaxsig_colors$day <- circlize::colorRamp2(c(0, 50, 100), c("white", "#4DBBD5FF", "black"))
 ann_vaxsig_colors$type_pred <- ann_vaxsig_colors$type
 ha = HeatmapAnnotation(df = ann_cols_heatmap, 
                        col = ann_vaxsig_colors,
                        annotation_name_side = "right")
 min(matrix_data)
-
 max(matrix_data)
+
 # Values colors
 col_fun <- colorRamp2(c(-25, 0, 25), c("#4DBBD5FF", "white", "#DC0000FF"))
 
@@ -16889,10 +16929,11 @@ heatmap_plot = Heatmap(mat,
                         row_dend_width = unit(1, "cm"), 
                         column_dend_height =  unit(2, "cm"),
                         row_split = NULL,
-                        # column_split = NULL,
-                        column_split = column_split,
+                        column_split = 6,
+                        # column_split = column_split,
                         row_gap = unit(2, "mm"),
-                        cluster_columns = F,
+                        cluster_columns = dend1,
+                        # cluster_columns = F,
                         column_gap = unit(2, "mm"),
                         show_column_dend = T,
                         show_row_dend = T,
@@ -16910,6 +16951,116 @@ heatmap_plot = draw(heatmap_plot,
 dev.off()
 
 ```
+Clustered
+```{r}
+file = filename_2
+mat = matrix_data
+width_image = 60
+height_image = 20
+width = unit(50, "cm")
+height = unit(6, "cm")
+column_names_gp = gpar(fontsize = 5)
+row_names_gp = gpar(fontsize = 10)
+rect_gp = gpar(col = "white", lwd = 2)
+
+fileimageheatmap_grouped = paste0(file, sep ="_", "Complexheatmap_Clustered.png")
+
+png(file = here("Figures", fileimageheatmap_grouped), 
+    width = width_image, 
+    height = height_image, 
+    units="cm", 
+    res=900)
+
+heatmap_plot = Heatmap(mat,
+                        top_annotation = ha,
+                        # left_annotation = row_ha,
+                        show_row_names = TRUE,
+                        row_names_side = "right",
+                        show_heatmap_legend = TRUE, 
+                        heatmap_legend_param = list(direction = "vertical"),
+                        name = "L2FC",
+                        col = col_fun, #color
+                        show_column_names = T, 
+                        column_title = fileimageheatmap_grouped,
+                        column_title_gp = gpar(fontsize = 10, fontface = "bold"),
+                        column_names_rot = 45,
+                        column_names_gp = column_names_gp,
+                        rect_gp = rect_gp,
+                        na_col = "white",
+                        cluster_rows = TRUE,
+                        row_names_gp = row_names_gp,
+                        row_dend_width = unit(1, "cm"), 
+                        column_dend_height =  unit(2, "cm"),
+                        row_split = NULL,
+                        column_split = 5,
+                        # column_split = column_split,
+                        row_gap = unit(2, "mm"),
+                        cluster_columns = T,
+                        column_gap = unit(2, "mm"),
+                        show_column_dend = T,
+                        show_row_dend = T,
+                        row_dend_side = "left",
+                        column_dend_side = "top",
+                        clustering_distance_rows = "euclidean",
+                        border = TRUE,
+                        width = width,
+                        height = height)
+
+heatmap_plot = draw(heatmap_plot, 
+     annotation_legend_side = "left", 
+     heatmap_legend_side = "left")
+
+dev.off()
+```
+
+
+### Scatterplot
+```{r fig.height=20, fig.width=20, message=FALSE, warning=FALSE}
+library(GGally)
+genes_rf
+
+selected_genes_rf = df_input %>% 
+  select(outcomevar, age, sex, day, vaccine, any_of(genes_rf %>% slice_head(n = 20) %>% 
+                                                      pull(genes)))
+
+ggpairs_rf = ggpairs(selected_genes_rf, columns = 6:10, 
+        aes(color = outcomevar))
+
+ggpairs_rf = ggpairs_rf + 
+  scale_color_manual(values = ann_vaxsig_colors$type) +
+  scale_fill_manual(values = ann_vaxsig_colors$type) +
+  theme_minimal() +
+  theme(legend.position = "right",
+        strip.text.x = element_text(color = "black", size = 12),
+        axis.text.x = element_text(color = "black", size = 10),
+        axis.text.y = element_text(vjust = 0.5,
+                                   size = 10,
+                                   color = "black"),
+        axis.line = element_line(size = 1,
+                                 colour = "black",
+                                 linetype = 1),
+        axis.ticks = element_line(size = 0.5, color = "black"),
+        panel.grid.major.y = element_line(size = 0,
+                                          linetype = 2,
+                                          color = "gray75"),
+        panel.grid.major.x = element_line(size = 0.5,
+                                          linetype = 2,
+                                          color = "gray75"),
+        panel.spacing.x = unit(2, "lines"))
+
+ggpairs_rf
+
+ggpairs_rf %>% 
+  ggsave(filename = here("Figures", "ggpairs_rf_selected_genes.png"), width = 15,
+         height = 15)
+  
+```
+
+
+
+
+
+
 ### PCA with VIP genes
 **Input**
 
@@ -16918,6 +17069,7 @@ dev.off()
 # data_genes = all_matrices_counts_genesRF 
 data_genes = all_samples_l2fc %>% 
   filter(genes %in% c(genes_rf %>% 
+                        filter(!genes %in% c("vaccine_BNT", "vaccine_ChAd", "vaccine_I", "vaccine_ZF2001", "day")) %>% 
                         slice_head(n = 10) %>% 
                         pull(genes)))
 
@@ -16929,8 +17081,9 @@ data_annotation = ann_vaccines_samples_filtered
 
 ann_vaccines_pca_matrix = data_genes %>% 
   select(sample, genes, log2fc) %>% 
-  pivot_wider(., names_from = "sample", 
-                     values_from = "log2fc") %>% 
+  pivot_wider(names_from = sample, 
+              values_from = log2fc,              
+              values_fn = mean) %>% 
   replace(is.na(.), 0) %>%
   column_to_rownames("genes") %>% 
   t() %>% 
