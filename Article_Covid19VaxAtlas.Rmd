@@ -11511,8 +11511,8 @@ col_immune_sets = list(
           "ImmuneGO" = "#00A087FF",
           "None"="white"))
 
-ann_cols_heatmap <- ann_cols_heatmap %>%
-  mutate(day = factor(day, levels = unique(day[order(day)])))
+# ann_cols_heatmap <- ann_cols_heatmap %>%
+#   mutate(day = factor(day, levels = unique(day[order(day)])))
 
 
 #Heatmap annotation -----
@@ -11536,7 +11536,772 @@ file = filename_2
 mat = matrix_data
 width_image = 15
 height_image = 15
-width = unit(7, "cm")
+width = unit(5, "cm")
+height = unit(5, "cm")
+column_names_gp = gpar(fontsize = 10)
+row_names_gp = gpar(fontsize = 10)
+rect_gp = gpar(col = "black", lwd = 0.5)
+
+fileimageheatmap_grouped = paste0(file, sep ="_", "Complexheatmap.png")
+
+png(file = here("Figures", fileimageheatmap_grouped), 
+    width = width_image, 
+    height = height_image, 
+    units="cm", 
+    res=900)
+
+heatmap_plot = Heatmap(mat,
+                        top_annotation = ha,
+                        name = "L2FC",
+                        left_annotation = row_ha,
+                        show_row_names = TRUE,
+                        row_names_side = "right",
+                        show_heatmap_legend = TRUE,
+                        heatmap_legend_param = list(direction = "horizontal"),
+                        col = col_fun, #color
+                        show_column_names = TRUE,
+                        column_title = fileimageheatmap_grouped,
+                        column_title_gp = gpar(fontsize = 10, fontface = "bold"),
+                        column_names_rot = 45,
+                        column_names_gp = column_names_gp,
+                        rect_gp = rect_gp,
+                        na_col = "white",
+                        cluster_rows = TRUE,
+                        row_names_gp = row_names_gp,
+                        row_dend_width = unit(2, "cm"),
+                        column_split = NULL,
+                        row_split = NULL,
+                        row_gap = unit(2, "mm"),
+                        cluster_columns = TRUE,
+                        column_gap = unit(8, "mm"),
+                        show_column_dend = F,
+                        show_row_dend = F,
+                        row_dend_side = "left",
+                        column_dend_side = "top",
+                        clustering_distance_rows = "euclidean",
+                        border = TRUE,
+                        width = width,
+                        height = height 
+)
+
+draw(heatmap_plot, 
+     annotation_legend_side = "right", 
+     heatmap_legend_side = "bottom")
+dev.off()
+
+```
+
+```{r}
+## Get row and column orders
+ht_list = draw(heatmap_plot)
+rows_clustered = rownames(mat)[row_order(ht_list)]
+cols_clustered = colnames(mat)[column_order(ht_list)]
+
+mat_2 = mat %>% 
+  as.data.frame() %>% 
+  rownames_to_column("genes") %>% 
+  filter(genes %in% c(rev(rows_clustered))) %>% 
+  select(genes, c(cols_clustered)) %>% 
+  column_to_rownames("genes") %>% 
+  as.matrix()
+
+width = unit(15, "cm")
+height = unit(5, "cm")
+
+fileimageheatmap_grouped = paste0(file, sep ="_", "Complexheatmap_ForPCA.png")
+
+png(file = here("Figures", fileimageheatmap_grouped), 
+    width = width_image, 
+    height = height_image, 
+    units="cm", 
+    res=900)
+
+heatmap_plot_2 = Heatmap(mat_2,
+                        # top_annotation = ha,
+                        name = "L2FC",
+                        # left_annotation = row_ha,
+                        show_row_names = TRUE,
+                        row_names_side = "right",
+                        show_heatmap_legend = TRUE,
+                        heatmap_legend_param = list(direction = "horizontal"),
+                        col = col_fun, #color
+                        show_column_names = TRUE,
+                        column_title = fileimageheatmap_grouped,
+                        column_title_gp = gpar(fontsize = 10, fontface = "bold"),
+                        column_names_rot = 90,
+                        column_names_gp = column_names_gp,
+                        rect_gp = rect_gp,
+                        na_col = "white",
+                        cluster_rows = F,
+                        row_names_gp = row_names_gp,
+                        row_dend_width = unit(2, "cm"),
+                        column_split = NULL,
+                        row_split = NULL,
+                        row_gap = unit(2, "mm"),
+                        cluster_columns = F,
+                        column_gap = unit(8, "mm"),
+                        column_names_side = "top",
+                        show_column_dend = F,
+                        show_row_dend = F,
+                        row_dend_side = "left",
+                        column_dend_side = "top",
+                        clustering_distance_rows = "euclidean",
+                        border = F,
+                        width = width,
+                        height = height 
+)
+
+draw(heatmap_plot_2, 
+     annotation_legend_side = "right", 
+     heatmap_legend_side = "bottom")
+dev.off()
+```
+
+### PCA: COVID-19 Infection conditions only
+
+**Required files**
+
+```{r}
+# Genes in long table format
+all_degs_p_05_vac_infected = readRDS(here("DGE analysis", "all_studies_degs_weighted.rds")) %>% 
+  filter(if_else(n >= 5, fdr <= 0.05, fdr <= (0.05 * 6/n))) 
+
+# Sample or condition annotation
+ann_vaccines <- read_csv(here("Annotations and metadata", "ann_vaccines_conditions.csv"))
+
+data_annotation = ann_vaccines %>%
+  mutate(day = as.factor(day),
+         dose = as.factor(dose)) 
+```
+
+
+**Filtering data**
+
+```{r}
+# Gene set data.
+ImmuneGO_BTM_grouped_genes <- read_csv("VaxGO gene sets/ImmuneGO_BTM_grouped_genes.csv")
+
+ImmuneGO_Genes = all_degs_p_05_vac_infected %>%
+  ungroup() %>% 
+  inner_join(ImmuneGO_BTM_grouped_genes %>% select(genes) %>% distinct(), by = "genes") %>%
+  inner_join(data_annotation, by = "condition") %>% 
+  filter(disease_vac == "I")
+  
+  
+```
+
+
+
+**Input**
+
+```{r}
+#INPUT
+data_genes = ImmuneGO_Genes 
+filename = "COVID_InfectionOnly_ImmuneGO_BTM"
+
+#Convert long to wide table format.
+#Dataframe with sample annotation
+
+ann_vaccines_pca_matrix = data_genes %>% 
+  select(condition, genes, log2fold_change) %>% 
+  distinct() %>% 
+  pivot_wider(names_from = "condition", 
+              values_from = "log2fold_change") %>% 
+  replace(is.na(.), 0) %>%
+  column_to_rownames("genes") %>% 
+  t() %>% 
+  as.data.frame() %>% 
+  rownames_to_column("condition") %>% 
+  inner_join(data_annotation %>% 
+               select(condition, disease_vac, vaccine, day, week, dose, infection, type), by = "condition") 
+
+dim(ann_vaccines_pca_matrix) #1704 genes
+
+
+# Convert dataframe to matrix without annotation columns
+ann_vaccines_pca_matrix_ready = ann_vaccines_pca_matrix %>% 
+  column_to_rownames("condition") %>% 
+  select(!disease_vac:type) %>% 
+  as.matrix()
+
+dim(ann_vaccines_pca_matrix_ready) #1696 genes
+
+```
+
+
+```{r cache = TRUE}
+# Delete columns with near 0 variance
+nearZeroVarCols <- nearZeroVar(ann_vaccines_pca_matrix_ready, saveMetrics = TRUE)
+ann_vaccines_pca_matrix_ready <- ann_vaccines_pca_matrix_ready[, !nearZeroVarCols$nzv]
+dim(ann_vaccines_pca_matrix_ready)
+pca_res <- prcomp(ann_vaccines_pca_matrix_ready, scale. = T)
+
+# Correlation plot ----
+corr_matrix = cor(ann_vaccines_pca_matrix_ready %>% scale()) 
+var <- get_pca_var(pca_res)
+
+# corrplot = ggcorrplot(corr_matrix, hc.order = TRUE) + 
+#   theme(axis.text.x = element_text(angle = 90, size = 5), 
+#         axis.text.y = element_text(size = 5))
+
+# ggsave(corrplot, file = paste0(filename, "_corrplot.png"), 
+#        width = 20, #Grande 20, pequeno 10
+#        height= 20) #Grande 20, pequeno 10
+# print(corrplot)
+
+#PCA ----
+data.pca = prcomp(corr_matrix) #PCA
+
+#Scree plot ----
+
+scree_plot = fviz_eig(data.pca, 
+                      addlabels = TRUE, main = "", ylab = "Explained variances (%)",
+                      ylim = c(0, 100)) +
+  theme_few() +
+  scale_fill_npg()
+
+
+#Save
+ggsave(scree_plot, file = here("Figures", paste0(filename, "_screeplot.png")), width = 5, height = 3) 
+scree_plot
+
+```
+
+Loadings plot
+
+```{r fig.height=5, fig.width=5}
+# Loadings plot ----
+options(ggrepel.max.overlaps = Inf)
+PC1_top20_pos = pca_res$rotation %>% 
+  as.data.frame() %>% 
+  arrange(-PC1) %>% 
+  slice_head(n = 5) %>%
+  rownames_to_column("genes") %>% 
+  pull(genes)
+
+PC1_top20_neg = pca_res$rotation %>% 
+  as.data.frame() %>% 
+  arrange(PC1) %>% 
+  slice_head(n = 5) %>%
+  rownames_to_column("genes") %>% 
+  pull(genes)
+
+PC2_top20_pos = pca_res$rotation %>% 
+  as.data.frame() %>% 
+  arrange(PC2) %>% 
+  slice_head(n = 5) %>%
+  rownames_to_column("genes") %>% 
+  pull(genes)
+
+PC2_top20_neg = pca_res$rotation %>% 
+  as.data.frame() %>% 
+  arrange(-PC2) %>% 
+  slice_head(n = 5) %>%
+  rownames_to_column("genes") %>% 
+  pull(genes)
+
+
+circle_contrib= fviz_pca_var(pca_res, 
+                             col.var = "cos2",
+                              gradient.cols = c("#DC0000FF", "black"),
+                               col.ind = "black",
+                              # select.var= list(cos2 = 20), 
+                              select.var = list(name = c(PC1_top20_pos, PC1_top20_neg, PC2_top20_pos, PC2_top20_neg)),
+                              repel = T, 
+                              labelsize = 5, 
+                              col.circle = "gray90") +
+  labs(title = "",
+       x = "PC1",
+       y = "PC2") +
+  geom_vline(xintercept = 0, color = "white") +
+  geom_hline(yintercept = 0, color = "white") +
+  theme_void() +
+  theme(panel.grid = element_blank(),
+        axis.text = element_blank(),
+        axis.ticks = element_blank(),
+        panel.grid.major = element_blank(),
+        axis.line = element_line(size = 0, colour = "white", linetype=1)) 
+
+#Save
+ggsave(circle_contrib, file = here("Figures", paste0(filename, "_circle_contrib_wide.png")), width = 5, height = 5)
+
+circle_contrib
+
+
+```
+
+KNN
+
+```{r}
+#KNN classification -----
+#Use the screeplot generated % of explained variance for each dimension
+scree_plot #Dim 1 = 68.2%, Dim 2 = 15.9%
+
+
+# PC1-PC2 ------
+#Determine the number of clusters
+pca_scores <- data.frame(pca_res$x[, 1:2])
+fviz_nbclust(pca_scores,  
+                     FUNcluster = kmeans,
+                     method = "wss")
+
+pcas = "PC1-PC2"
+
+set.seed(666) # Set seed for randomization
+cluster_model <- kmeans(pca_res$x[, 1:2], centers = 3)  #Set the number of clusters
+
+ann_vaccines_pca_matrix$cluster <- as.factor(cluster_model$cluster)
+```
+
+
+#### Plot PC1-2
+```{r fig.height=7, fig.width=7, paged.print=FALSE, cache=TRUE}
+# Condition with density plot ------
+
+# ann_vaxsig_colors_linebreak = ann_vaxsig_colors
+# names(ann_vaxsig_colors_linebreak$condition_col) <- str_replace(names(ann_vaxsig_colors_linebreak$condition_col), " \\(", "\n(")
+
+pca_plot_knn_cluster_labels = autoplot(pca_res, 
+        data = ann_vaccines_pca_matrix)  +
+  # stat_ellipse(aes(color = cluster, fill = cluster),
+  #              geom = "polygon",
+  #              alpha = 0.2,
+  #              linetype = 1,
+  #              size = 0.3,
+  #              type = "t") +
+  geom_convexhull(aes(fill = cluster, colour = cluster), alpha = 0.2) +
+  labs(title=paste0(filename, "_bycondition"),
+       x = "PC1 (65.3%)",
+       y = "PC2 (19.4%)") + 
+  # geom_hline(yintercept = 0, size = 0.8, color = "gray50", linetype = 1, alpha = 1) +
+  # geom_vline(xintercept = 0, size = 0.8, color = "gray50", linetype = 1, alpha = 1) +
+  geom_point(color = "black",
+             size = 4,
+             stroke = 1) +
+  geom_point(aes(fill = condition,
+                 color = condition),
+             size = 3,
+             stroke = 1) +
+   scale_color_manual(values = c("1" = "#DC0000FF", 
+                               "2" = "#4DBBD5FF", 
+                               "3" = "#F5BB00",
+                               "4" = "#8491B4FF",
+                                ann_vaxsig_colors$condition_col), 
+                     guide = "none") +
+  scale_fill_manual(values = c("1" = "#DC0000FF", 
+                               "2" = "#4DBBD5FF", 
+                               "3" = "#F5BB00",
+                               "4" = "#8491B4FF",
+                               ann_vaxsig_colors$condition_col),
+                    guide = "none") + 
+  guides(col="none") +
+  theme_few() +
+  theme(axis.text = element_text(size = 10, color = "black"),
+      panel.grid.minor = element_blank(),
+      panel.grid.major = element_line(size = 1, 
+                                    linetype = 1,
+                                    color = "gray90"),
+        axis.line = element_line(size = 0, colour = "black", linetype=1),
+        # axis.line = element_line(size = 1, colour = "black", linetype=1),
+        text = element_text(color = "black", size = 10),
+        panel.border = element_rect(fill = NA, color = "gray90", size = 2))   +
+  geom_label_repel(aes(label = if_else(cluster != 2 | type == "I" & condition != c("I-BNT (D5)", "BNT-I-BNT (D51, hospital)"), condition, NA)),
+                  segment.colour="black",
+                  box.padding = 0.5, 
+                  # fill = "gray60",
+                  # color = "white",
+                  size = 3.5)  +
+  xlim(-0.5, 0.8)
+pca_plot_knn_cluster_labels
+
+ggsave(pca_plot_knn_cluster_labels, 
+       file = here(file = "Figures", paste0(filename, pcas, "_KNN_Clustered_labels.png")), width = 7, height = 7)
+```
+
+
+
+
+
+#### Heatmap of PC1 and PC2 genes
+
+Inputs
+```{r}
+####### INPUT
+PC1 = var$cos2 %>%
+  as.data.frame() %>%
+  arrange(desc(Dim.1)) %>%
+  filter(Dim.1 >= 0.5) %>% 
+  #slice_head(n=20) %>% 
+  rownames_to_column("genes") %>% 
+  distinct() %>% 
+  select(genes, cos2 = Dim.1) 
+
+PC1_top20_pos = pca_res$rotation %>% 
+  as.data.frame() %>% 
+  arrange(-PC1) %>% 
+  slice_head(n = 5) %>%
+  rownames_to_column("genes") 
+
+PC1_top20_neg = pca_res$rotation %>% 
+  as.data.frame() %>% 
+  arrange(PC1) %>% 
+  slice_head(n = 5) %>%
+  rownames_to_column("genes") 
+
+PC2_top20_pos = pca_res$rotation %>% 
+  as.data.frame() %>% 
+  arrange(PC2) %>% 
+  slice_head(n = 5) %>%
+  rownames_to_column("genes") 
+
+PC2_top20_neg = pca_res$rotation %>% 
+  as.data.frame() %>% 
+  arrange(-PC2) %>% 
+  slice_head(n = 5) %>%
+  rownames_to_column("genes") 
+
+
+
+PC2 = var$cos2 %>%
+  as.data.frame() %>%
+  filter(Dim.2 >= 0.5) %>% 
+  #slice_head(n=20) %>% 
+  rownames_to_column("genes") %>% 
+  distinct() %>% 
+  select(genes, cos2 = Dim.2) %>% 
+  mutate(dimension = "PC2")
+
+PC1_2 = bind_rows(PC1, PC2) 
+PC1_2 %>% 
+  select(genes) %>% distinct()
+
+PC1_2 %>% write_csv(file = here("PCA", paste(filename, "PC_1_2_cos2.csv")))
+
+```
+
+
+#### PC1 genes heatmap
+
+Horizontal
+```{r}
+# INPUT
+ann_genes = ImmuneGO_Annotated_Genes
+btm_annotation_genes <- readRDS(here("VaxGO gene sets", "btm_annotation_genes.rds"))
+btm_annotation_genes_immune = btm_annotation_genes
+pc = "PC1"
+# data_2 =  PC1 %>% 
+#   slice_max(order_by = cos2, n = 10) %>% 
+#   inner_join(data_genes, by = "genes")
+
+data_2 = PC1_top20_pos %>% 
+  bind_rows(PC1_top20_neg) %>% 
+  select(genes, value= PC1) %>% 
+  inner_join(data_genes, by = "genes")
+
+filename_2 = paste0(filename, "_PCA_",pc, "_COVID")
+
+######## Matrix
+matrix = data_2 %>% 
+  select(genes, condition, log2fold_change) %>%
+  pivot_wider(names_from = "condition", 
+              values_from = "log2fold_change", 
+              values_fn = mean) %>% 
+  replace(is.na(.), 0) %>%
+  arrange(genes) %>% 
+  column_to_rownames(var="genes") %>% 
+  as.matrix()
+
+######## Annotations
+ann_vaccines_covid = data_2 %>% 
+  select(condition) %>% 
+  distinct() %>% 
+  inner_join(ann_vaccines, by = "condition") %>% 
+  select(condition, disease_vac, type, day) %>% 
+  distinct()
+
+#Columns
+ann_cols_heatmap = matrix %>% 
+  colnames() %>% 
+  data.frame() %>% 
+  filter(. != "genes") %>% 
+  rename(condition = '.') %>% 
+  inner_join(ann_vaccines_covid, by = "condition") %>% 
+  distinct() %>% 
+  arrange(condition) %>% 
+  column_to_rownames("condition")
+
+matrix_data = matrix %>% 
+  t() %>% 
+  as.data.frame() %>% 
+  rownames_to_column(var= "condition") %>% 
+  inner_join(ann_cols_heatmap %>% rownames_to_column("condition"), by = "condition") %>% 
+  select(!c(disease_vac:day)) %>% 
+  arrange(condition) %>% 
+  column_to_rownames("condition") %>% 
+  t() %>% 
+  as.data.frame() %>% 
+  mutate_if(is.character, as.numeric) %>%
+  as.matrix()
+
+#Rows Immune ----
+ann_rows_immune = matrix_data %>%
+  as.data.frame() %>%
+  rownames_to_column("genes") %>%
+  left_join(ImmuneGO_Annotated_Genes %>% select(genes) %>% distinct() %>% mutate(set = "ImmuneGO"), by = "genes") %>%
+  left_join(btm_annotation_genes_immune %>% select(genes) %>% distinct() %>% mutate(set2 = "BTM"), by = "genes") %>%
+  select(genes, set, set2) %>%
+  distinct() %>%
+  group_by(genes) %>%
+  arrange(genes, factor(set, levels = c("ImmuneGO", "BTM")), .by_group = TRUE) %>%
+  column_to_rownames("genes") %>%
+  as.data.frame() %>%
+  mutate(set = if_else(is.na(set), set2, set),
+         set2 = if_else(set == set2, NA, set2)) %>% 
+  replace(is.na(.), "None") %>% 
+  select(set2, set)
+
+# Reorder columns (same order as lines in the annotation table)
+matrix_data_ordered = matrix_data %>% 
+  t() %>% 
+  as.data.frame() %>% 
+  rownames_to_column(var= "condition") %>% 
+  merge(ann_vaccines_covid, by.y = "condition", all.x=TRUE) %>% 
+  arrange(type, condition) %>% 
+  select(!c(disease_vac, type, day)) %>% 
+  column_to_rownames("condition") %>% 
+  t() %>% 
+  as.data.frame() %>% 
+  mutate_if(is.character, as.numeric) %>% 
+  replace(is.na(.), 0) %>% 
+  as.matrix() 
+
+
+#Check dimensions
+dim(matrix_data_ordered) 
+dim(ann_vaccines_heatmap) 
+dim(ann_rows_immune)
+
+col_immune_sets = list(
+  "set" = c("BTM" = "#5e60ce",
+          "ImmuneGO" = "#00A087FF",
+          "None"="white"),
+  "set2" = c("BTM" = "#5e60ce",
+          "ImmuneGO" = "#00A087FF",
+          "None"="white"))
+
+
+# ann_cols_heatmap <- ann_cols_heatmap %>%
+#   mutate(day = factor(day, levels = unique(day[order(day)])))
+  
+
+#Heatmap annotation -----
+ha = HeatmapAnnotation(df = ann_cols_heatmap, 
+                       col = ann_vaxsig_colors,
+                       annotation_name_side = "right")
+
+row_ha = HeatmapAnnotation(df = ann_rows_immune,
+                            which = "row",
+                       col = col_immune_sets, #col_process_immune / col_process_notimmune
+                       show_annotation_name = F,
+                       show_legend = T,
+                       simple_anno_size = unit(2, "mm"))
+
+# Values colors -----
+col_fun <- colorRamp2(c(-2, 0, 2), c("#4DBBD5FF", "white", "#ed6a5a"))
+
+
+# Parameters -----
+file = filename_2
+mat = matrix_data
+width_image = 20
+height_image = 15
+width = unit(5, "cm")
+height = unit(5, "cm")
+column_names_gp = gpar(fontsize = 10)
+row_names_gp = gpar(fontsize = 10)
+rect_gp = gpar(col = "black", lwd = 0.5)
+
+fileimageheatmap_grouped = paste0(file, sep ="_", "Complexheatmap.png")
+
+png(file = here("Figures", fileimageheatmap_grouped), 
+    width = width_image, 
+    height = height_image, 
+    units="cm", 
+    res=900)
+
+heatmap_plot = Heatmap(mat,
+                        top_annotation = ha,
+                        name = "L2FC",
+                        left_annotation = row_ha,
+                        show_row_names = TRUE,
+                        row_names_side = "right",
+                        show_heatmap_legend = TRUE,
+                        heatmap_legend_param = list(direction = "horizontal"),
+                        col = col_fun, #color
+                        show_column_names = TRUE,
+                        column_title = fileimageheatmap_grouped,
+                        column_title_gp = gpar(fontsize = 10, fontface = "bold"),
+                        column_names_rot = 45,
+                        column_names_gp = column_names_gp,
+                        rect_gp = rect_gp,
+                        na_col = "white",
+                        cluster_rows = TRUE,
+                        row_names_gp = row_names_gp,
+                        row_dend_width = unit(2, "cm"),
+                        column_split = NULL,
+                        row_split = NULL,
+                        row_gap = unit(2, "mm"),
+                        cluster_columns = TRUE,
+                        column_gap = unit(8, "mm"),
+                        show_column_dend = F,
+                        show_row_dend = F,
+                        row_dend_side = "left",
+                        column_dend_side = "top",
+                        clustering_distance_rows = "euclidean",
+                        border = TRUE,
+                        width = width,
+                        height = height 
+)
+
+draw(heatmap_plot, 
+     annotation_legend_side = "right", 
+     heatmap_legend_side = "bottom")
+dev.off()
+```
+
+
+#### PC2 genes heatmap
+```{r}
+# INPUT
+ann_genes = ImmuneGO_Annotated_Genes
+pc = "PC2"
+# data_2 =  PC2 %>% 
+#   slice_max(order_by = cos2, n = 10) %>% 
+#   inner_join(data_genes, by = "genes")
+
+data_2 = PC2_top20_pos %>% 
+  bind_rows(PC2_top20_neg) %>% 
+  select(genes, value= PC2) %>% 
+  inner_join(data_genes, by = "genes")
+
+
+filename_2 = paste0(filename, "_PCA_",pc, "_COVID")
+
+######## Matrix
+matrix = data_2 %>% 
+  select(genes, condition, log2fold_change) %>%
+  pivot_wider(names_from = "condition", 
+              values_from = "log2fold_change", 
+              values_fn = mean) %>% 
+  replace(is.na(.), 0) %>%
+  arrange(genes) %>% 
+  column_to_rownames(var="genes") %>% 
+  as.matrix()
+
+######## Annotations
+ann_vaccines_covid = data_2 %>% 
+  select(condition) %>% 
+  distinct() %>% 
+  inner_join(ann_vaccines, by = "condition") %>% 
+  select(condition, disease_vac, type, day) %>% 
+  distinct()
+
+#Columns
+ann_cols_heatmap = matrix %>% 
+  colnames() %>% 
+  data.frame() %>% 
+  filter(. != "genes") %>% 
+  rename(condition = '.') %>% 
+  inner_join(ann_vaccines_covid, by = "condition") %>% 
+  distinct() %>% 
+  arrange(condition) %>% 
+  column_to_rownames("condition")
+
+matrix_data = matrix %>% 
+  t() %>% 
+  as.data.frame() %>% 
+  rownames_to_column(var= "condition") %>% 
+  inner_join(ann_cols_heatmap %>% rownames_to_column("condition"), by = "condition") %>% 
+  select(!c(disease_vac:day)) %>% 
+  arrange(condition) %>% 
+  column_to_rownames("condition") %>% 
+  t() %>% 
+  as.data.frame() %>% 
+  mutate_if(is.character, as.numeric) %>%
+  as.matrix()
+
+#Rows Immune ----
+ann_rows_immune = matrix_data %>%
+  as.data.frame() %>%
+  rownames_to_column("genes") %>%
+  left_join(ImmuneGO_Annotated_Genes %>% select(genes) %>% distinct() %>% mutate(set = "ImmuneGO"), by = "genes") %>%
+  left_join(btm_annotation_genes_immune %>% select(genes) %>% distinct() %>% mutate(set2 = "BTM"), by = "genes") %>%
+  select(genes, set, set2) %>%
+  distinct() %>%
+  group_by(genes) %>%
+  arrange(genes, factor(set, levels = c("ImmuneGO", "BTM")), .by_group = TRUE) %>%
+  column_to_rownames("genes") %>%
+  as.data.frame() %>%
+  mutate(set = if_else(is.na(set), set2, set),
+         set2 = if_else(set == set2, NA, set2)) %>% 
+  replace(is.na(.), "None") %>% 
+  select(set2, set)
+
+# Reorder columns (same order as lines in the annotation table)
+matrix_data_ordered = matrix_data %>% 
+  t() %>% 
+  as.data.frame() %>% 
+  rownames_to_column(var= "condition") %>% 
+  merge(ann_vaccines_covid, by.y = "condition", all.x=TRUE) %>% 
+  arrange(type, condition) %>% 
+  select(!c(disease_vac, type, day)) %>% 
+  column_to_rownames("condition") %>% 
+  t() %>% 
+  as.data.frame() %>% 
+  mutate_if(is.character, as.numeric) %>% 
+  replace(is.na(.), 0) %>% 
+  as.matrix() 
+
+
+#Check dimensions
+dim(matrix_data_ordered) 
+dim(ann_vaccines_heatmap) 
+dim(ann_rows_immune)
+
+col_immune_sets = list(
+  "set" = c("BTM" = "#5e60ce",
+          "ImmuneGO" = "#00A087FF",
+          "None"="white"),
+  "set2" = c("BTM" = "#5e60ce",
+          "ImmuneGO" = "#00A087FF",
+          "None"="white"))
+
+# ann_cols_heatmap <- ann_cols_heatmap %>%
+#   mutate(day = factor(day, levels = unique(day[order(day)])))
+
+
+#Heatmap annotation -----
+ha = HeatmapAnnotation(df = ann_cols_heatmap, 
+                       col = ann_vaxsig_colors,
+                       annotation_name_side = "right")
+
+row_ha = HeatmapAnnotation(df = ann_rows_immune,
+                            which = "row",
+                       col = col_immune_sets, #col_process_immune / col_process_notimmune
+                       show_annotation_name = F,
+                       show_legend = T,
+                       simple_anno_size = unit(2, "mm"))
+
+# Values colors -----
+col_fun <- colorRamp2(c(-2, 0, 2), c("#4DBBD5FF", "white", "#ed6a5a"))
+
+
+# Parameters -----
+file = filename_2
+mat = matrix_data
+width_image = 15
+height_image = 15
+width = unit(5, "cm")
 height = unit(5, "cm")
 column_names_gp = gpar(fontsize = 10)
 row_names_gp = gpar(fontsize = 10)
@@ -11661,1275 +12426,6 @@ dev.off()
 
 
 
-## (DELETE) COVID-19 and other vaccines
-
-```{r}
-# Input files ------
-immunego = ImmuneGO_Annotated_Genes # ImmuneGO Annotation
-degs_updown_p_05_vac_infected = readRDS(here("DGE analysis", "all_studies_degs_weighted.rds")) # DEGs
-ann_vaccines_covid_other = read_csv(here("Annotations and metadata", "ann_vaccines_vaxsig_covid.csv")) #Conditions annotation
-VAX_Genes_Annotated_RAW_2 = read_csv(here("VaxGO gene sets", "VaxSigDB_Gene_sets_Annotated_RAW.csv")) %>% 
-  separate_rows(GENE_SYMBOLS)
-ann_vaccines = read_csv(here("Annotations and metadata", "ann_vaccines_conditions.csv"))
-
-
-# Processing
-VAX_Genes_Annotated_RAW_3 = VAX_Genes_Annotated_RAW_2 %>% 
-  clean_names() %>% 
-  filter(study_subtype == "VAC ONLY",
-         sample_source == "PBMC") %>% 
-  mutate(condition = paste0(vaccine, " (", date_time, ")")) %>% 
-  select(condition, everything())
-
-degs_all_updown_vax = VAX_Genes_Annotated_RAW_3 %>%
-  clean_names() %>% 
-  mutate(condition = paste0(vaccine, " (", date_time, ")")) %>% 
-  select(condition, genes = gene_symbols) %>% 
-  distinct()
-
-degs_all_updown_covid= degs_updown_p_05_vac_infected %>% 
-  as.data.frame() %>% 
-  select(genes, condition:direction) %>% 
-  filter(direction %in% c("UP", "DOWN")) %>% 
-  inner_join(ann_vaccines, by = "condition") %>%
-  distinct() %>% 
-  select(condition, genes)
-
-degs_all_updown_covid_other = bind_rows(degs_all_updown_vax, degs_all_updown_covid) %>% 
-  distinct()
-
-
-degs_all_updown_covid_other_immune = degs_all_updown_covid_other %>% 
-  inner_join(ImmuneGO_Annotated_Genes %>% select(genes) %>% distinct(), by = "genes") %>% 
-  distinct()
-
-degs_all_updown_covid_other_nonimmune = degs_all_updown_covid_other %>% 
-  anti_join(ImmuneGO_Annotated_Genes %>% select(genes) %>% distinct(), by = "genes") %>% 
-  distinct()
-
-write.csv(degs_all_updown_covid_other, file = here("VaxGO gene sets", "degs_all_updown_covid_vax_other.csv"))
-write.csv(degs_all_updown_covid_other_immune, file = here("VaxGO gene sets","degs_all_updown_covid_vax_other_immune.csv"))
-write.csv(degs_all_updown_covid_other_nonimmune, file = here("VaxGO gene sets","degs_all_updown_covid_vax_other_nonimmune.csv"))
-
-
-degs_covid = degs_updown_p_05_vac_infected %>% 
-  select(condition, genes, direction) %>% 
-  filter(direction != "NEUTRAL") %>% 
-  mutate(regulation_numeric = if_else(direction == "UP", "1", "-1"),
-         regulation_numeric = as.numeric(regulation_numeric))
-
-
-degs_vax = VAX_Genes_Annotated_RAW_2 %>% 
-  filter(STUDY_SUBTYPE == "VAC ONLY") %>% 
-  mutate(condition_vaccine = paste0(VACCINE, " (", `DATE-TIME`, ")")) %>% 
-  select(condition_vaccine, SYSTEMATIC_NAME, VACCINE, everything()) %>% 
-  separate_rows(GENE_SYMBOLS, sep = ",")
-degs_vax %>% saveRDS(file = here("VaxGO gene sets","VAXSigDB_Genes.rds"))
-
-
-degs_vaxsig = degs_vax %>% 
-  filter(STUDY_SUBTYPE == "VAC ONLY") %>% 
-  select(condition = condition_vaccine, genes = GENE_SYMBOLS, regulation = REGULATION) %>% 
-  mutate(regulation_numeric = if_else(regulation == "UP", 1, -1))
-
-
-degs_covid_vax = degs_covid %>% 
-  bind_rows(degs_vaxsig) %>% 
-  select(-regulation) %>% 
-  inner_join(ImmuneGO_Annotated_Genes %>%
-               filter(process != c("TCR REPERTOIRE", "BCR REPERTOIRE")) %>% 
-               select(genes) %>%
-               distinct(), 
-             by = "genes")
-
-degs_covid_vax %>% 
-  saveRDS(file = here("VaxGO gene sets", "degs_covid_vaxsig_up_down_immune.rds"))
-
-```
-
-### Gene overlap analysis
-
-```{r}
-#Input
-data = degs_all_updown_covid_other_immune %>% 
-  rename(process = condition) %>% 
-  select(process, genes)
-
-filename = "degs_all_updown_covid_other_immune"
-  
-```
-
-Function for overlapping
-```{r}
-
-# Function for overlapping -------
-overlap_genes <- function(cond1, cond2, data) {
-  genes_cond1 <- data$genes[data$process == cond1]
-  genes_cond2 <- data$genes[data$process == cond2]
-  
-  genes_shared <- intersect(genes_cond1, genes_cond2)
-  
-  genes_notshared_cond1 <- setdiff(genes_cond1, genes_cond2)
-  genes_notshared_cond2 <- setdiff(genes_cond2, genes_cond1)
-  
-  total_genes_cond1 <- length(genes_cond1)
-  total_genes_cond2 <- length(genes_cond2)
-  
-  percentage_shared_cond1 <- length(genes_shared) / total_genes_cond1 * 100
-  percentage_shared_cond2 <- length(genes_shared) / total_genes_cond2 * 100
-  
-  shared_genes <- data.frame(
-    Cond1 = cond1,
-    Cond2 = cond2,
-    Shared = length(genes_shared),
-    NotShared_cond1 = length(genes_notshared_cond1),
-    NotShared_cond2 = length(genes_notshared_cond2),
-    Total_Genes_Cond1 = total_genes_cond1,
-    Total_Genes_Cond2 = total_genes_cond2,
-    Genes_Names = paste(genes_shared, collapse = ", "),
-    Percentage_Shared_Cond1 = percentage_shared_cond1,
-    Percentage_Shared_Cond2 = percentage_shared_cond2
-  )
-  
-  return(shared_genes)
-}
-conflicted::conflicts_prefer(base::intersect)
-conflicted::conflicts_prefer(base::setdiff)
-conflicted::conflicts_prefer(janitor::fisher.test)
-```
-
-Perform calculations
-```{r}
-# Perform calculations
-unique_cond <- unique(data$process) # List sets
-shared_genes_df <- data.frame() # Store data
-
-for (i in 1:(length(unique_cond) - 1)) {
-  for (j in (i + 1):length(unique_cond)) {
-    resultado_temp <- overlap_genes(unique_cond[i], unique_cond[j], data)
-    shared_genes_df <- bind_rows(shared_genes_df, resultado_temp)
-  }
-}
-
-# Fisher's exact test
-fisher_exact_test <- function(shared, notshared1, notshared2) {
-  cont_table <- matrix(c(shared, notshared1, notshared2, 0), nrow = 2)
-  results_fisher <- fisher.test(cont_table)
-  return(results_fisher$p.value)
-}
-shared_genes_df = shared_genes_df %>%
-  mutate(pvalue = pmap_dbl(list(Shared, NotShared_cond1, NotShared_cond2), fisher_exact_test)) %>% 
-  mutate("-log(p)" = -log10(pvalue),
-         padj = p.adjust(pvalue))
-
-
-#Mirror table
-shared_genes_df2 = shared_genes_df %>% 
-  rename(Cond1_temp = Cond1, Cond2_temp = Cond2) %>%
-  rename(Cond1 = Cond2_temp, Cond2 = Cond1_temp)
-
-shared_genes_df_mirror = shared_genes_df %>% 
-  bind_rows(shared_genes_df2) %>% 
-  mutate(Percentage_Shared_Cond1 = round(Percentage_Shared_Cond1, 2),
-         Percentage_Shared_Cond2 = round(Percentage_Shared_Cond2, 2))
-  
-#Jaccard distance
-jaccard.matrix <- data %>%
-  mutate(present = 1) %>% 
-  distinct() %>% 
-  pivot_wider(names_from = genes, values_from = present, values_fill = 0) %>%
-  column_to_rownames(var = "process") %>%
-  vegdist(binary = TRUE, method = "jaccard", diag = TRUE, upper = TRUE) %>%
-  as.matrix() %>%
-  {1 - .}
-
-shared_genes_df_mirror = jaccard.matrix %>% 
-  as.data.frame() %>% 
-  rownames_to_column("Cond1") %>% 
-  pivot_longer(cols = -"Cond1",
-               names_to = "Cond2",
-               values_to = "jaccard_distance") %>% 
-  inner_join(shared_genes_df_mirror, by = join_by(Cond1, Cond2)) %>% 
-  mutate(jaccard_distance = round(jaccard_distance, 3))
-
-#Save
-write_csv(shared_genes_df_mirror, 
-          file = here("VaxGO gene sets", paste0(filename, "_sharedgenes_Fisher_Jaccard.csv")))
-```
-
-
-### Other comparisons
-
-```{r}
-############# VACCINE
-#Use "vax_degs_up_VAXSigDB_sharedgenes_ann.csv" for comparing UP degs with UP degs from other conditions
-
-#VAC ONLY
-shared_genes_ann_vac = shared_genes_df_mirror %>%
-  select(vac_condition, vaccine_condition, vac_ref, Cond2:sample_source, pmid, gene_symbols:participants) %>% 
-  filter(study_type == "VACCINE", 
-         sample_source == "PBMC",
-         !(vaccine_condition %in% c("BBIBP", "ZF2001"))) 
-
-vac_only = shared_genes_ann_vac %>%
-  filter(study_subtype == "VAC ONLY")
-
-```
-
-### Heatmap
-
-```{r}
-# INPUT ------
-
-degs_all_updown_covid_other_immune_shared = read_csv(here("VaxGO gene sets", "degs_all_updown_covid_other_immune_sharedgenes_Fisher_Jaccard.csv"))
-
-table = degs_all_updown_covid_other_immune_shared
-filename = "ImmuneGO_Genes_JaccardDistance" 
-
-data = table %>% 
-  filter(pvalue <0.25) %>% 
-  inner_join(ann_vaccines_covid_other %>% 
-               select(Cond1 = condition, everything()), by = "Cond1") %>% 
-  inner_join(ann_vaccines %>% 
-               select(Cond2 = condition, everything()), by = "Cond2") %>% 
-  clean_names() %>% 
-  rename(vac_ref = cond1, vac_condition = cond2)
-
-# Matrix ------
-matrix = data %>%
-  filter(pvalue <= 0.10) %>% 
-  select(vac_condition, vac_ref, jaccard_distance) %>% 
-  pivot_wider(names_from = vac_condition, values_from = jaccard_distance, values_fn = mean) %>% 
-  replace(is.na(.), 0) %>%
-  column_to_rownames(var="vac_ref") %>%
-  as.matrix()
-
-matrix = matrix*100
-
-# Annotations -------
-ann_vaccines_covid = ann_vaccines_covid_other %>% 
-  filter(covid_other == "COVID")
-ann_vaccines_other = ann_vaccines_covid_other %>% 
-  filter(covid_other == "OTHER")
-
-# Columns
-ann_cols_heatmap = matrix %>% 
-  colnames() %>% 
-  data.frame() %>% 
-  filter(. != "process") %>% 
-  rename(vac_condition = '.') %>% 
-  merge(ann_vaccines_covid, by.x = "vac_condition", by.y = "condition", all.y = F) %>% 
-  select(vac_condition, type, vaccine, week) %>% #ordenar colunas para anotação
-  distinct() %>% 
-  column_to_rownames(var = "vac_condition") %>% 
-  mutate_all(as.factor)
-
-# Rows
-ann_rows_heatmap = matrix %>%  
-  as.data.frame() %>% 
-  rownames_to_column("condition") %>% 
-  distinct() %>% 
-  inner_join(ann_vaccines_other, by = "condition") %>% 
-  mutate_all(as.factor) %>%
-  arrange(condition) %>%
-  distinct() %>% 
-  column_to_rownames(var= "condition") %>% 
-  select(vaccine:infection) %>% 
-  select(microbe_type, type, week)
-
-# Arrange cols and rows in matrix
-matrix_data = matrix %>% 
-  t() %>% 
-  as.data.frame() %>% 
-  rownames_to_column(var= "condition") %>% 
-  arrange(condition) %>% 
-  column_to_rownames("condition") %>% 
-  t() %>% 
-  as.data.frame() %>%
-  rownames_to_column("condition") %>% 
-  inner_join(ann_rows_heatmap %>% 
-               rownames_to_column("condition") %>% 
-               select(condition),
-             by = "condition") %>% 
-  arrange(condition) %>% 
-  column_to_rownames("condition") %>% 
-  mutate_if(is.character, as.numeric) %>%
-  replace(is.na(.), 0) %>% 
-  as.matrix()
-
-#Check dimensions
-dim(matrix_data)
-dim(ann_rows_heatmap)
-dim(ann_cols_heatmap)
-
-```
-
-Plot
-```{r}
-
-#Heatmap annotation
-ha = HeatmapAnnotation(df = ann_cols_heatmap, 
-                       col = ann_vaxsig_colors,
-                       annotation_name_side = "left")
-
-row_ha = HeatmapAnnotation(df = ann_rows_heatmap,
-                       col = ann_vaxsig_colors,
-                       which= "row",
-                       show_annotation_name = F,
-                       show_legend = F)
-
-# Values colors
-col_fun <- colorRamp2(c(0, max(matrix_data)), c("white", "#ed6a5a"))
-
-
-mat = matrix_data
-width_image = 30
-height_image = 25
-width = unit(20, "cm")
-height = unit(15, "cm")
-column_names_gp = gpar(fontsize = 10)
-row_names_gp = gpar(fontsize = 10)
-file = paste0("VAXSig_", filename)
-
-fileimageheatmap_grouped = paste0(filename, sep ="_", "Complexheatmap_ALL_CLUSTERED.png")
-
-png(file = here("Figures", fileimageheatmap_grouped), 
-    width = width_image, 
-    height = height_image,
-    units="cm", res=900)
-
-heatmap_plot = Heatmap(mat,
-                        top_annotation = ha,
-                        left_annotation = row_ha,
-                        show_row_names = TRUE,
-                        row_names_side = "left",
-                        show_heatmap_legend = TRUE,
-                        heatmap_legend_param = list(title = "Jaccard distance", direction = "vertical"),
-                        col = col_fun, #color
-                        cell_fun = function(j, i, x, y, width, height, fill) {
-                                            if(mat[i, j] > 0)
-                                            grid.text(sprintf("%.f", mat[i, j]), 
-                                                      x, y, 
-                                                      gp = gpar(fontsize = 8))},
-                        row_title = "",
-                        show_column_names = TRUE,
-                        column_title = fileimageheatmap_grouped,
-                        column_title_gp = gpar(fontsize = 10, fontface = "bold"),
-                        column_names_rot = 45,
-                        column_names_gp = column_names_gp,
-                        rect_gp = gpar(col = "gray90", lwd = 1),
-                        cluster_rows = TRUE,
-                        row_names_gp = row_names_gp, #Grande = 6, Pequeno 15
-                        row_dend_width = unit(5, "cm"), #Altura do dendrograma
-                        column_split = NULL, #Split column clusters 
-                        row_split = NULL, #Split row clusters
-                        row_gap = unit(2, "mm"),
-                        cluster_columns = TRUE,
-                        column_gap = unit(8, "mm"),
-                        show_column_dend = F,
-                        show_row_dend = F,
-                        row_dend_side = "left",
-                        column_dend_side = "top",
-                        clustering_distance_rows = "euclidean",
-                        border = TRUE,
-                        column_dend_reorder = TRUE,
-                        width = width, # 20 para pequeno e grande
-                        height = height # 20 para pequeno, 60 para grande
-)
-
-draw(heatmap_plot,
-     merge_legend = TRUE,
-     annotation_legend_side = "right", 
-     heatmap_legend_side = "right")
-dev.off()
-
-```
-
-##ORA COVID vs. VAXGO with ImmuneGO
-
-```{r}
-#Input
-degs_all_updown_covid = degs_updown_p_05_vac_infected %>% 
-   as.data.frame() %>% 
-   select(genes, condition:direction) %>% 
-   filter(direction %in% c("UP", "DOWN")) %>% 
-  inner_join(ann_vaccines, by = "condition") %>% 
-   distinct() %>% 
-  select(condition, genes)
-
-VAX_Genes_Annotated_RAW = VAX_Genes_Annotated_RAW_2 %>% 
-  clean_names() %>% 
-  mutate(condition = paste0(vaccine, " (", date_time, ")"))
-
-ann_vaccines_covid_other 
-
-degs_all_updown_vax_immunego = VAX_Genes_Annotated_RAW %>%
-  clean_names() %>% 
-  mutate(condition = paste0(vaccine, " (", date_time, ")")) %>% 
-  select(condition, genes = gene_symbols) %>% 
-  inner_join(ImmuneGO_Annotated_Genes %>% 
-               select(genes), by = "genes") %>% 
-  distinct()
-
-degs_all_updown_covid_other = bind_rows(degs_all_updown_vax_immunego, degs_all_updown_covid) %>% 
-  distinct()
-
-Immune_GO_T2G = ImmuneGO_Annotated_Genes %>% 
-  filter(go_term == "Manual",
-         !process %in% c("TCR REPERTOIRE", "BCR REPERTOIRE", "ADAPTIVE IMMUNE SYSTEM", "INNATE IMMUNE SYSTEM")) %>% 
-  select(process, genes)
-```
-
-```{r}
-# ORA function
-perform_ORA <- function(df, Immune_GO_T2G) {
-  resultados <- list()
-  
-  # Obter condições únicas na coluna "condition"
-  condicoes <- df$condition %>% 
-    unique() %>% 
-    as.character()
-  
-  for (condicao in condicoes) {
-    # Selecionar DEGs para a condição atual
-    degs_condicao <- df %>% 
-      filter(condition == condicao) %>%
-      select(genes) %>%
-      distinct()
-
-    # Preparar gene list
-    gene_list_ora <- degs_condicao$genes
-
-    ############ IMMUNE GO
-    immune_GO_ORA <- tryCatch({
-      enricher(gene_list_ora, 
-               TERM2GENE = Immune_GO_T2G, 
-               minGSSize = 1,
-               maxGSSize = 1000,
-               pvalueCutoff = 0.25,
-               pAdjustMethod = "BH") %>% 
-        as.data.frame() %>% 
-        arrange(qvalue) %>% 
-        mutate(condition = condicao,
-               ora_enrichment = "ImmuneGO")
-    }, error = function(e) {
-      return(NULL)  # Retorna NULL caso ocorra o erro
-    })
-
-    if (!is.null(immune_GO_ORA)) {
-      resultados[[paste(condicao, "ImmuneGO", sep = "_")]] <- immune_GO_ORA
-    }
-  }
-
-  # Combinar todos os resultados em um único dataframe
-  resultado_final <- bind_rows(resultados)
-
-  return(resultado_final)
-}
-
-df_resultados <- perform_ORA(degs_all_updown_covid_other, Immune_GO_T2G)
-print(df_resultados)
-
-#Anotar
-immune_GO_ORA_covid_other = df_resultados %>% 
-  clean_names() %>% 
-  select(process = id, gene_ratio:ora_enrichment) %>% 
-  inner_join(ann_vaccines_covid_other, by = "condition") %>% 
-  distinct() %>% 
-  mutate(log_q = -log10(qvalue))
-
-write.csv(immune_GO_ORA_covid_other, file = here("VaxGO gene sets", "COVID_VAX_immune_GO_ORA.csv"))
-
-```
-
-#### Heatmap
-
-```{r}
-####### INPUT
-data_2 = immune_GO_ORA_covid_other
-  
-filename_2 = "immune_GO_ORA_covid_other"
-
-######## Matrix
-matrix = data_2 %>% 
-  filter(qvalue <= 0.25) %>% 
-  select(condition, process, log_q) %>% #Percentage_Shared_Cond1
-  pivot_wider(names_from = "condition", 
-              values_from = "log_q",  #Percentage_Shared_Cond1
-              values_fn = mean) %>% 
-  replace(is.na(.), 0) %>% 
-  column_to_rownames(var="process") %>% 
-  as.matrix() %>% 
-  round(2)
-
-######## Annotations
-ann_cols = matrix %>% 
-  as.data.frame() %>% 
-  t() %>% 
-  as.data.frame() %>% 
-  rownames_to_column("condition") %>% 
-  select(condition) %>% 
-  inner_join(ann_vaccines_covid_other, by = "condition") %>% 
-  select(condition, covid_other, microbe_type, disease_vac, type, week) %>% 
-  distinct() %>% 
-  arrange(condition) %>% 
-  column_to_rownames("condition") 
-
-matrix_data = matrix %>% 
-  t() %>% 
-  as.data.frame() %>% 
-  rownames_to_column(var= "condition") %>% 
-  arrange(condition) %>% 
-  column_to_rownames("condition") %>% 
-  t() %>% 
-  as.data.frame()%>%  
-  mutate_if(is.character, as.numeric) %>%
-  replace(is.na(.), 0) %>% 
-  as.matrix() 
-
-#Check dimensions
-dim(matrix_data)
-dim(ann_cols)
-```
-
-```{r}
-################# Plotar
-
-#Heatmap annotation
-ha = HeatmapAnnotation(df = ann_cols, 
-                       col = ann_vaxsig_colors,
-                       annotation_name_side = "right")
-
-
-# Values colors
-col_fun <- colorRamp2(c(0, 2), c("white", "#ED6A5A"))
-
-
-# Parameters
-file = filename_2
-mat = matrix_data
-width_image = 40
-height_image = 20
-width = unit(25, "cm")
-height = unit(7, "cm")
-column_names_gp = gpar(fontsize = 9)
-row_names_gp = gpar(fontsize = 9)
-rect_gp = gpar(col = "gray90", lwd = 0.5)
-
-###### CLUSTERIZED ALL VS ALL
-
-fileimageheatmap_grouped = paste0(file, sep ="_", "Complexheatmap.png")
-
-png(file = here("Figures", fileimageheatmap_grouped), width = width_image, height = height_image, units="cm", res=900)
-
-heatmap_plot = Heatmap(mat,
-                        top_annotation = ha,
-                        show_row_names = TRUE,
-                        row_names_side = "left",
-                        show_heatmap_legend = TRUE,
-                        heatmap_legend_param = list(direction = "vertical",
-                                                    title = "-log(FDR)"),
-                        col = col_fun, #color
-                        cell_fun = function(j, i, x, y, w, h, fill) {
-                              if (mat[i, j] >= 2) {
-                                grid.text("***", x, y, gp = gpar(fontsize = 8))
-                              } else if (mat[i, j] > 1.5) {
-                                grid.text("**", x, y, gp = gpar(fontsize = 9))
-                              } else if (mat[i, j] >= 1) {
-                                grid.text("*", x, y, gp = gpar(fontsize = 8))
-                              } else {
-                                grid.text("", x, y)
-                              }
-                            },
-                        show_column_names = TRUE,
-                        column_title = fileimageheatmap_grouped,
-                        column_title_gp = gpar(fontsize = 10, fontface = "bold"),
-                        column_names_rot = 45,
-                        column_names_gp = column_names_gp,
-                        rect_gp = rect_gp,
-                        cluster_rows = TRUE,
-                        row_names_gp = row_names_gp, #Grande = 6, Pequeno 15
-                        row_dend_width = unit(5, "cm"), #Altura do dendrograma
-                        row_split = NULL, #Split row clusters
-                        row_gap = unit(2, "mm"),
-                        cluster_columns = TRUE,
-                        column_gap = unit(8, "mm"),
-                        show_column_dend = F,
-                        show_row_dend = F,
-                        row_dend_side = "left",
-                        column_dend_side = "top",
-                        clustering_distance_rows = "euclidean",
-                        border = TRUE,
-                        width = width, # 20 para pequeno e grande
-                        height = height # 20 para pequeno, 60 para grande
-)
-
-draw(heatmap_plot, 
-     annotation_legend_side = "left", 
-     heatmap_legend_side = "left",
-          merge_legend = TRUE)
-dev.off()
-
-
-```
-
-## COVID-19 genes vs. VaxGO genes with ImmuneGO genes
-
-```{r}
-# VAX Genes  ------
-VAX_Genes_Annotated_RAW = VAX_Genes_Annotated_RAW %>% 
-  clean_names() %>% 
-  mutate(condition = paste0(vaccine, " (", date_time, ")"))
-
-#ImmuneGO
-degs_all_updown_vax_immunego = VAX_Genes_Annotated_RAW %>%
-  clean_names() %>% 
-  mutate(condition = paste0(vaccine, " (", date_time, ")")) %>% 
-  select(condition, genes = gene_symbols, regulation) %>% 
-  inner_join(ImmuneGO_Annotated_Genes %>% 
-               select(genes), by = "genes") %>% 
-  distinct()
-
-# Covid-19 conditions ----
-degs_all_updown = degs_updown_p_05_vac_infected
-
-#Immune
-degs_all_updown_covid_immune = degs_all_updown %>% 
-  as.data.frame() %>% 
-  select(genes,  condition:fdr) %>% 
-  mutate(direction = case_when(log2fold_change >= 1 ~ "UP",
-                               log2fold_change <= -1 ~ "DOWN",
-                               TRUE ~ "NEUTRAL")) %>% 
-  inner_join(ann_vaccines, by = "condition") %>% 
-  inner_join(ImmuneGO_Annotated_Genes %>% select(genes) %>% distinct(), by = "genes") %>% 
-  distinct() %>% 
-  filter(vaccine != "I", 
-         gse_id != "GSE189039") %>% 
-  select(condition, genes, regulation = direction)  %>% 
-  distinct()
-
-
-# Bind Immune ------
-degs_all_updown_covid_other = bind_rows(degs_all_updown_vax_immunego, degs_all_updown_covid_immune) %>% 
-  distinct()
-
-
-covid_other_immunego_genes = degs_all_updown_covid_other %>% 
-  distinct() %>% 
-  filter(regulation %in% c("UP", "DOWN")) %>% 
-  mutate(regulation_numeric = case_when(
-    regulation %in% c("UP") ~ 1,
-    regulation %in% c("DOWN") ~ -1,
-    TRUE ~ as.numeric(regulation)
-  )) %>% 
-  distinct()
-
-saveRDS(covid_other_immunego_genes, file = "covid_other_immunego_genes.rds")
-
-```
-
-```{r}
-###### Gene sets Immune GO ------
-
-Immune_GO_genes_All = covid_other_immunego_genes 
-
-# Immune_GO_genes_Innate = Immune_GO_genes_All %>%
-#    filter(process == "INNATE IMMUNE SYSTEM")
-# Immune_GO_genes_Adaptive = Immune_GO_genes_All %>%
-#    filter(process == "ADAPTIVE IMMUNE SYSTEM")
-# Immune_GO_genes_Complement = Immune_GO_genes_All %>%
-#    filter(process == "COMPLEMENT IMMUNE SYSTEM")
-# 
-# # Sistema inato
-# Immune_GO_genes_Inflammation = Immune_GO_genes_All %>%
-#   filter(process == "INFLAMMATION")
-# Immune_GO_genes_ARPP = Immune_GO_genes_All %>%
-#   filter(process == "ARPP")
-# Immune_GO_genes_IFN = Immune_GO_genes_All %>%
-#   filter(process == "ANTIVIRAL AND INTERFERON")
-# Immune_GO_genes_Neutrophil = Immune_GO_genes_All %>%
-#   filter(process == "NEUTROPHIL")
-# Immune_GO_genes_Eosinophil = Immune_GO_genes_All %>%
-#   filter(process == "EOSINOPHIL")
-# Immune_GO_genes_Complement = Immune_GO_genes_All %>%
-#   filter(process == "COMPLEMENT IMMUNE SYSTEM")
-# Immune_GO_genes_Monocytes = Immune_GO_genes_All %>%
-#   filter(process == "MONOCYTES")
-# Immune_GO_genes_DC = Immune_GO_genes_All %>%
-#   filter(process == "DENDRITIC CELLS")
-# Immune_GO_genes_Macro = Immune_GO_genes_All %>%
-#   filter(process == "MACROPHAGES")
-# Immune_GO_genes_NK = Immune_GO_genes_All %>%
-#   filter(process == "NK CELL")
-# 
-# # Sistema adaptativo
-# Immune_GO_genes_Cellular = Immune_GO_genes_All %>%
-#   filter(process == "CELLULAR ADAPTIVE IMMUNE SYSTEM")
-# Immune_GO_genes_Humoral = Immune_GO_genes_All %>%
-#   filter(process == "HUMORAL ADAPTIVE IMMUNE SYSTEM")
-# Immune_GO_genes_Tcells = Immune_GO_genes_All %>%
-#   filter(process == "T CELLS")
-# Immune_GO_genes_Bcells = Immune_GO_genes_All %>%
-#   filter(process == "B CELLS")
-# Immune_GO_genes_Ig = Immune_GO_genes_All %>%
-#   filter(process == "IMMUNOGLOBULIN MEDIATED IMMUNE RESPONSE")
-
-```
-
-#### Heatmap
-
-```{r}
-####### INPUT
-data_2 = covid_other_immunego_genes
-filename_2 = paste0("Immune_GO_genes_All", "_VAX_COVID")
-
-######## Matrix
-matrix = data_2 %>% 
-  select(genes, condition, regulation_numeric) %>%
-  pivot_wider(names_from = "condition", 
-              values_from = "regulation_numeric", 
-              values_fn = mean) %>% 
-  replace(is.na(.), 0) %>%
-  arrange(genes) %>% 
-  column_to_rownames(var="genes") %>% 
-  as.matrix()
-
-######## Annotations
-ann_vaccines_covid_other_2 = data_2 %>% 
-  inner_join(ann_vaccines_covid_other, by = "condition") %>% 
-  select(condition, covid_other, microbe_type, disease_vac, type, week) %>% 
-  distinct()
-
-#Columns
-ann_cols_heatmap = matrix %>% 
-  colnames() %>% 
-  data.frame() %>% 
-  filter(. != "genes") %>% 
-  rename(condition = '.') %>% 
-  inner_join(ann_vaccines_covid_other_2, by = "condition") %>% 
-  distinct() %>% 
-  arrange(condition) %>% 
-  column_to_rownames("condition")
-
-matrix_data = matrix %>% 
-  t() %>% 
-  as.data.frame() %>% 
-  rownames_to_column(var= "condition") %>% 
-  inner_join(ann_cols_heatmap %>% rownames_to_column("condition"), by = "condition") %>% 
-  select(!c(covid_other:week)) %>% 
-  arrange(condition) %>% 
-  column_to_rownames("condition") %>% 
-  t() %>% 
-  as.data.frame() %>% 
-  filter(rowSums(. != 0) > 1) %>% 
-  mutate_if(is.character, as.numeric) %>%
-  as.matrix() 
-
-#Rows Immune ----
-ann_rows_immune = matrix_data %>%
-  as.data.frame() %>%
-  rownames_to_column("genes") %>%
-  left_join(ImmuneGO_Annotated_Genes %>%
-              filter(go_term == "Manual",
-                     !process %in% c("TCR REPERTOIRE", "BCR REPERTOIRE")), by = "genes") %>%
-  select(genes, process) %>%
-  distinct() %>%
-  group_by(genes) %>%
-  arrange(genes, factor(process, levels = c("INNATE IMMUNE SYSTEM", "ADAPTIVE IMMUNE SYSTEM")), .by_group = TRUE) %>%
-  mutate(i_process = row_number()) %>%
-  pivot_wider(., names_from = "i_process", values_from = "process") %>%
-  column_to_rownames("genes") %>%
-  t() %>%
-  as.data.frame() %>%
-  rownames_to_column("index") %>%
-  mutate(index = as.numeric(index)) %>%
-  arrange(desc(index)) %>%
-  column_to_rownames("index") %>%
-  t() %>%
-  as.data.frame() %>%
-  replace(is.na(.), ".")
-
-
-#Check dimensions
-dim(matrix_data)
-dim(ann_cols_heatmap)
-dim(ann_rows_immune)
-
-```
-
-Sizes: 1. Cellular adaptive immune system: width = unit(25, "cm"),
-height = unit(60, "cm") #254 genes 2. Humoral adaptive immune system:
-width = unit(25, "cm"), height = unit(30, "cm") #51 genes 3. T cells:
-width = unit(25, "cm"), height = unit(60, "cm") #221 genes 4. B cells:
-width = unit(25, "cm"), height = unit(50, "cm") #146 genes 5. Ig
-mediated: width = unit(25, "cm"), height = unit(10, "cm") #146 genes 6.
-Inflammation: width = unit(25, "cm"), height = unit(10, "cm") 7. ARPP:
-width = unit(25, "cm"), height = unit(30, "cm") 60 genes 8. IFN: width =
-unit(25, "cm"), height = unit(30, "cm") 93 genes 9. DC: width = unit(25,
-"cm"), height = unit(20, "cm") #29 genes 10. Macrophages: width =
-unit(25, "cm"), height = unit(25, "cm") \# 52 genes 11. Neutrophils:
-width = unit(25, "cm"), height = unit(40, "cm") \# 70 genes 12.
-Eosinophil: width = unit(25, "cm"), height = unit(10, "cm") \# 42 genes
-13. Complement: width = unit(25, "cm"), height = unit(10, "cm") \# 40
-genes 13. Monocytes: width = unit(25, "cm"), height = unit(15, "cm") \#
-48 genes 15. All immune genes: width_image = 60, height_image = 70,
-width = unit(30, "cm"), height = unit(60, "cm"), row_split = 7,
-column_split = 2
-
-More refs:
-<https://debrowser.readthedocs.io/en/master/heatmap/heatmap.html>
-
-#### All genes
-
-```{r}
-################# Immune 
-#Heatmap annotation
-ha = HeatmapAnnotation(df = ann_cols_heatmap, 
-                       col = ann_vaxsig_colors,
-                       annotation_name_side = "left")
-
-row_ha = HeatmapAnnotation(df = ann_rows_immune,
-                       col = col_process_immune,
-                       which= "row",
-                       show_annotation_name = F,
-                       show_legend = F,
-                       simple_anno_size = unit(2, "mm")
-                       )
-
-# Values colors
-col_fun <- colorRamp2(c(-1, 0, 1), c("#9bc1bc", "white", "#ed6a5a"))
-
-file = filename_2
-mat = matrix_data
-width_image = 60
-height_image = 50
-width = unit(30, "cm")
-height = unit(40, "cm")
-column_names_gp = gpar(fontsize = 10)
-row_names_gp = gpar(fontsize = 0)
-rect_gp = gpar(col = "gray80", lwd = 0)
-row_split = 3
-column_split = 3
-
-
-fileimageheatmap_grouped = paste0(file, sep ="_", "Complexheatmap.png")
-
-png(file = here("Figures", fileimageheatmap_grouped), 
-    width = width_image, 
-    height = height_image, 
-    units="cm", 
-    res=900)
-
-heatmap_plot = Heatmap(mat,
-                        top_annotation = ha,
-                        left_annotation = row_ha,
-                        show_row_names = TRUE,
-                        row_names_side = "right",
-                        show_heatmap_legend = TRUE,
-                        heatmap_legend_param = list(direction = "vertical"),
-                        col = col_fun, #color
-                        name = "L2FC",
-                        show_column_names = TRUE,
-                        column_title = fileimageheatmap_grouped,
-                        column_title_gp = gpar(fontsize = 10, fontface = "bold"),
-                        column_names_rot = 45,
-                        column_names_gp = column_names_gp,
-                        rect_gp = rect_gp,
-                        na_col = "white",
-                        cluster_rows = TRUE,
-                        row_names_gp = row_names_gp,
-                        row_dend_width = unit(5, "cm"),
-                        row_split = row_split,
-                        column_split = column_split,
-                        row_gap = unit(2, "mm"),
-                        cluster_columns = TRUE,
-                        column_gap = unit(8, "mm"),
-                        show_column_dend = F,
-                        show_row_dend = F,
-                        row_dend_side = "right",
-                        column_dend_side = "top",
-                        clustering_distance_rows = "euclidean",
-                        clustering_distance_columns = "euclidean",
-                        border = TRUE,
-                        width = width,
-                        height = height,
-                        use_raster = F)
-
-heatmap_plot = draw(heatmap_plot)
-
-dev.off()
-
-```
-#### Interactive heatmap
-```{r}
-library(InteractiveComplexHeatmap)
-
-####### Input
-heatmap_data = Immune_GO_genes_All
-file = "Immune_GO_genes_All"
-
-###### Process data
-
-heatmap_data_l2fc= heatmap_data %>% 
-  filter(condition != "NA", 
-         process != "NA") %>% 
-  select(genes, condition, log2fold_change)
-
-# Convert to wide table
-matrix_data <- dcast(heatmap_data_l2fc, 
-                         genes ~ condition, 
-                         value.var = "log2fold_change", 
-                         fun.aggregate = mean) %>% 
-  column_to_rownames('genes') %>% 
-  mutate_if(is.character, as.numeric) %>% 
-  replace(is.na(.), 0)
-
-matrix_data_ready =  matrix_data %>% 
-  round(2)
-
-# Check if all vaccines are in the matrix and join annotations
-ann_vaccines_complex = heatmap_data %>% 
-  select(condition) %>% 
-  distinct() %>% 
-  inner_join(ann_vaccines %>% select(condition, disease_vac, type, week), by = "condition")
-
-# Join annotations
-ann_vaccines_heatmap = matrix_data %>% 
-  colnames() %>% 
-  data.frame() %>% 
-  filter(. != "genes") %>% 
-  rename(condition = '.') %>% 
-  merge(ann_vaccines_complex, by = "condition", all.x = TRUE) %>% 
-  arrange(condition) %>% 
-  column_to_rownames(var= "condition") 
-
-
-#Rows Immune ----
-ann_rows_immune = matrix_data %>%
-  as.data.frame() %>%
-  rownames_to_column("genes") %>%
-  left_join(ImmuneGO_Annotated_Genes %>%
-              filter(go_term == "Manual",
-                     !process %in% c("TCR REPERTOIRE", "BCR REPERTOIRE")), by = "genes") %>%
-  select(genes, process) %>%
-  distinct() %>%
-  group_by(genes) %>%
-  arrange(genes, factor(process, levels = c("INNATE IMMUNE SYSTEM", "ADAPTIVE IMMUNE SYSTEM")), .by_group = TRUE) %>%
-  mutate(i_process = row_number()) %>%
-  pivot_wider(., names_from = "i_process", values_from = "process") %>%
-  column_to_rownames("genes") %>%
-  t() %>%
-  as.data.frame() %>%
-  rownames_to_column("index") %>%
-  mutate(index = as.numeric(index)) %>%
-  arrange(desc(index)) %>%
-  column_to_rownames("index") %>%
-  t() %>%
-  as.data.frame() %>%
-  replace(is.na(.), ".")
-
-# Reorder columns (same order as lines in the annotation table)
-matrix_data_ordered = matrix_data %>% 
-  t() %>% 
-  as.data.frame() %>% 
-  rownames_to_column(var= "condition") %>% 
-  merge(ann_vaccines_complex, by.y = "condition", all.x=TRUE) %>% 
-  arrange(condition) %>% 
-  select(!c(disease_vac, type, week)) %>% 
-  column_to_rownames("condition") %>% 
-  t() %>% 
-  as.data.frame() %>% 
-  mutate_if(is.character, as.numeric) %>% 
-  replace(is.na(.), 0) %>% 
-  as.matrix() 
-
-
-#Check dimensions
-dim(matrix_data_ordered) 
-dim(ann_vaccines_heatmap) 
-dim(ann_rows_immune)
-
-#Create heatmap annotation
-ha = HeatmapAnnotation(df = ann_vaccines_heatmap, 
-                       col = ann_colors, 
-                       annotation_name_side = "left")
-
-row_ha = HeatmapAnnotation(df = ann_rows_immune,
-                       col = col_process_immune,
-                       which= "row",
-                       show_annotation_name = F,
-                       show_legend = F)
-
-col_fun <- colorRamp2(c(-2, 0, 2), 
-                      c("#9bc1bc", "white", "#ed6a5a"))
-
-
-#Parameters
-#Parameters
-mat = matrix_data_ordered
-width_image = 40
-height_image = 90
-width = unit(30, "cm")
-height = unit(80, "cm")
-column_names_gp = gpar(fontsize = 10)
-row_names_gp = gpar(fontsize = 10)
-
-heatmap_plot_all = Heatmap(mat,
-                        top_annotation = ha,
-                        left_annotation = row_ha,
-                        show_heatmap_legend = TRUE, 
-                        heatmap_legend_param = list(direction = "vertical"),
-                        name = "L2FC", #Legend
-                        col = col_fun,
-                        show_row_dend = F,
-                        row_split = 2, #Split group clusters
-                        show_row_names = T,
-                        column_names_gp = column_names_gp,
-                        row_names_gp = row_names_gp)
-
-ht_list = draw(heatmap_plot_all, 
-               annotation_legend_side = "right", 
-               heatmap_legend_side = "right")
-htShiny(ht_list)
-
-htShiny(ht_list, save = "Interactive_Covid_Other_Vax_Heatmap")
-
-```
-
-
-
-#### Get Cluster 1 Immune genes
-Get row clusters
-
-```{r}
-r.dend <- row_dend(heatmap_plot)  #Extract row dendrogram
-rcl.list <- row_order(heatmap_plot)  #Extract clusters (output is a list)
-lapply(rcl.list, function(x) length(x))  #check/confirm size cluster
-
-gene_cluster <- NULL
-for (i in 1:length(rcl.list)) {
-  a <- row.names(mat[row_order(heatmap_plot)[[i]], ])
-  gene_cluster <- rbind(gene_cluster, data.frame(genes = a, cluster = paste0("cluster ", i), gene_set = "Immune genes"))
-}
-write.csv(gene_cluster, file = here("DGE analysis", paste0(file, "_clustered_genes.csv")), row.names = F)
-```
-
-```{r}
-####### INPUT
-data_2 = Immune_GO_genes_All %>% 
-  inner_join(gene_cluster %>% filter(cluster == "cluster 1") %>% select(genes), by = "genes")
-filename_2 = paste0("Immune_GO_genes_cluster1", "_VAX_COVID")
-
-######## Matrix
-matrix = data_2 %>% 
-  select(genes, condition, regulation_numeric) %>%
-  pivot_wider(names_from = "condition", 
-              values_from = "regulation_numeric", 
-              values_fn = mean) %>% 
-  replace(is.na(.), 0) %>%
-  arrange(genes) %>% 
-  column_to_rownames(var="genes") %>% 
-  as.matrix()
-
-######## Annotations
-ann_vaccines_covid_other_2 = data_2 %>% 
-  inner_join(ann_vaccines_covid_other, by = "condition") %>% 
-  select(condition, covid_other, microbe_type, disease_vac, type, week) %>% 
-  distinct()
-
-#Columns
-ann_cols_heatmap = matrix %>% 
-  colnames() %>% 
-  data.frame() %>% 
-  filter(. != "genes") %>% 
-  rename(condition = '.') %>% 
-  inner_join(ann_vaccines_covid_other_2, by = "condition") %>% 
-  distinct() %>% 
-  arrange(condition) %>% 
-  column_to_rownames("condition")
-
-matrix_data = matrix %>% 
-  t() %>% 
-  as.data.frame() %>% 
-  rownames_to_column(var= "condition") %>% 
-  inner_join(ann_cols_heatmap %>% rownames_to_column("condition"), by = "condition") %>% 
-  select(!c(covid_other:week)) %>% 
-  arrange(condition) %>% 
-  column_to_rownames("condition") %>% 
-  t() %>% 
-  as.data.frame() %>% 
-  mutate_if(is.character, as.numeric) %>%
-  as.matrix() 
-
-#Rows Immune ----
-ann_rows_immune = matrix_data %>%
-  as.data.frame() %>%
-  rownames_to_column("genes") %>%
-  left_join(ImmuneGO_Annotated_Genes %>% filter(go_term == "Manual"), by = "genes") %>%
-  select(genes, process) %>%
-  distinct() %>%
-  group_by(genes) %>%
-  arrange(genes, factor(process, levels = c("INNATE IMMUNE SYSTEM", "ADAPTIVE IMMUNE SYSTEM")), .by_group = TRUE) %>%
-  mutate(i_process = row_number()) %>%
-  pivot_wider(., names_from = "i_process", values_from = "process") %>%
-  column_to_rownames("genes") %>%
-  t() %>%
-  as.data.frame() %>%
-  rownames_to_column("index") %>%
-  mutate(index = as.numeric(index)) %>%
-  arrange(desc(index)) %>%
-  column_to_rownames("index") %>%
-  t() %>%
-  as.data.frame() %>%
-  replace(is.na(.), ".") %>% 
-  mutate(`1` = if_else(`1` == ".", "INNATE IMMUNE SYSTEM", `1`))
-
-dim(matrix)
-dim(matrix_data)
-dim(ann_cols_heatmap)
-dim(ann_rows_immune)
-
-```
-
-More refs:
-<https://debrowser.readthedocs.io/en/master/heatmap/heatmap.html>
-
-```{r}
-################# Immune 
-#Heatmap annotation
-ha = HeatmapAnnotation(df = ann_cols_heatmap, 
-                       col = ann_vaxsig_colors,
-                       annotation_name_side = "right")
-
-row_ha = row_ha = HeatmapAnnotation(df = ann_rows_immune,
-                       col = col_process_immune,
-                       which= "row",
-                       show_annotation_name = F,
-                       show_legend = F,
-                       simple_anno_size = unit(2, "mm"))
-
-# Values colors
-col_fun <- colorRamp2(c(-1, 0, 1), c("#9bc1bc", "white", "#ed6a5a"))
-
-file = filename_2
-mat = matrix_data
-width_image = 50
-height_image = 50
-width = unit(30, "cm")
-height = unit(30, "cm")
-column_names_gp = gpar(fontsize = 12)
-row_names_gp = gpar(fontsize = 12)
-rect_gp = gpar(col = "gray80", lwd = 0.5)
-
-fileimageheatmap_grouped = here("Figures", paste0(file, sep ="_", "Complexheatmap.png"))
-
-png(file = fileimageheatmap_grouped, 
-    width = width_image, 
-    height = height_image, 
-    units="cm", 
-    res=900)
-
-heatmap_plot = Heatmap(mat,
-                        top_annotation = ha,
-                       left_annotation = row_ha,
-                        show_row_names = TRUE,
-                        row_names_side = "right",
-                        show_heatmap_legend = TRUE,
-                        heatmap_legend_param = list(direction = "horizontal"),
-                        col = col_fun, #color
-                        show_column_names = TRUE,
-                        column_title = fileimageheatmap_grouped,
-                       name = "L2FC",
-                        column_title_gp = gpar(fontsize = 10, fontface = "bold"),
-                        column_names_rot = 45,
-                        column_names_gp = column_names_gp,
-                        rect_gp = rect_gp,
-                        na_col = "white",
-                        cluster_rows = TRUE,
-                        row_names_gp = row_names_gp,
-                        row_dend_width = unit(0, "cm"),
-                        row_split = NULL,
-                        column_split = 2,
-                        row_gap = unit(2, "mm"),
-                        cluster_columns = TRUE,
-                        column_gap = unit(8, "mm"),
-                        show_column_dend = F,
-                        show_row_dend = F,
-                        row_dend_side = "left",
-                        column_dend_side = "top",
-                        clustering_distance_rows = "euclidean",
-                        border = TRUE,
-                        width = width,
-                        height = height)
-
-heatmap_plot = draw(heatmap_plot, 
-     annotation_legend_side = "left", 
-     heatmap_legend_side = "left",
-     merge_legend = TRUE)
-
-heatmap_plot
-
-dev.off()
-
-```
-
-#### 50 most shared genes
-
-```{r fig.height=10, fig.width=10}
-#### Immune -----
-
-degs_all_updown_covid_vax_other_immune = degs_all_updown_covid_other_immune
-
-stats_1 = degs_all_updown_covid_vax_other_immune %>% 
-  inner_join(ann_vaccines_covid_other, by = "condition") %>% 
-  group_by(genes, covid_other) %>% 
-  summarise(n_conditions = n()) %>% 
-  filter(all(c("COVID", "OTHER") %in% covid_other)) %>% 
-  arrange(desc(n_conditions), genes) %>% 
-  group_by(genes) %>% 
-  pivot_wider(., names_from = "covid_other", values_from = n_conditions) %>% 
-  arrange(desc(OTHER)) %>% 
-  ungroup() %>% 
-  slice_head(n = 50) %>% 
-  pivot_longer(-genes, names_to = "covid_other", values_to = "n_conditions")
-
-stats_1 %>% 
-  select(genes) %>% 
-  distinct()
-
-ggplot_stats1 = stats_1 %>% 
-  ggplot() +
-  aes(x = reorder(genes, n_conditions), fill = covid_other, weight = n_conditions) +
-  geom_bar() +
-  theme_minimal() +
-  scale_fill_manual(
-    values = ann_vaxsig_colors$covid_other) +
-  theme_minimal() +
-  labs(fill = "Covid or non-covid",
-       title = "Genes shared",
-       x = "",
-       y = "Number of shared conditions") +
-  theme(legend.position = "top",
-        axis.text.x = element_text(vjust = 0, hjust=0, size = 12),
-        axis.text.y = element_text(size = 12, angle = 0, color = "black"),
-        panel.grid.minor.y = element_blank(),
-        legend.text = element_text(size=12),
-        legend.title = element_text(size = 12, face = "bold")) +
-  coord_flip() +
-    ylim(-0.1, 22)
-ggplot_stats1
-
-
-ggsave(ggplot_stats1, file = here("Figures", "Covid_Vax_genes_shared_column.png"), width = 10, height = 10)
-
-
-# Subset the 50 most shared genes
-covid_other_immune_genes_50_mostshared_all = stats_1 %>% 
-  select(genes) %>% 
-  distinct() %>% 
-  inner_join(degs_all_updown_covid_vax_other_immune %>% 
-               select(condition, genes), by = "genes")
-```
 
 # 9. Machine learning descriptors
 
@@ -31960,7 +31456,1275 @@ dev.off()
 ```
 
 
+# MSigDB Vax: COVID-19 and other vaccines
 
+```{r}
+# Input files ------
+immunego = ImmuneGO_Annotated_Genes # ImmuneGO Annotation
+degs_updown_p_05_vac_infected = readRDS(here("DGE analysis", "all_studies_degs_weighted.rds")) # DEGs
+ann_vaccines_covid_other = read_csv(here("Annotations and metadata", "ann_vaccines_vaxsig_covid.csv")) #Conditions annotation
+VAX_Genes_Annotated_RAW_2 = read_csv(here("VaxGO gene sets", "VaxSigDB_Gene_sets_Annotated_RAW.csv")) %>% 
+  separate_rows(GENE_SYMBOLS)
+ann_vaccines = read_csv(here("Annotations and metadata", "ann_vaccines_conditions.csv"))
+
+
+# Processing
+VAX_Genes_Annotated_RAW_3 = VAX_Genes_Annotated_RAW_2 %>% 
+  clean_names() %>% 
+  filter(study_subtype == "VAC ONLY",
+         sample_source == "PBMC") %>% 
+  mutate(condition = paste0(vaccine, " (", date_time, ")")) %>% 
+  select(condition, everything())
+
+degs_all_updown_vax = VAX_Genes_Annotated_RAW_3 %>%
+  clean_names() %>% 
+  mutate(condition = paste0(vaccine, " (", date_time, ")")) %>% 
+  select(condition, genes = gene_symbols) %>% 
+  distinct()
+
+degs_all_updown_covid= degs_updown_p_05_vac_infected %>% 
+  as.data.frame() %>% 
+  select(genes, condition:direction) %>% 
+  filter(direction %in% c("UP", "DOWN")) %>% 
+  inner_join(ann_vaccines, by = "condition") %>%
+  distinct() %>% 
+  select(condition, genes)
+
+degs_all_updown_covid_other = bind_rows(degs_all_updown_vax, degs_all_updown_covid) %>% 
+  distinct()
+
+
+degs_all_updown_covid_other_immune = degs_all_updown_covid_other %>% 
+  inner_join(ImmuneGO_Annotated_Genes %>% select(genes) %>% distinct(), by = "genes") %>% 
+  distinct()
+
+degs_all_updown_covid_other_nonimmune = degs_all_updown_covid_other %>% 
+  anti_join(ImmuneGO_Annotated_Genes %>% select(genes) %>% distinct(), by = "genes") %>% 
+  distinct()
+
+write.csv(degs_all_updown_covid_other, file = here("VaxGO gene sets", "degs_all_updown_covid_vax_other.csv"))
+write.csv(degs_all_updown_covid_other_immune, file = here("VaxGO gene sets","degs_all_updown_covid_vax_other_immune.csv"))
+write.csv(degs_all_updown_covid_other_nonimmune, file = here("VaxGO gene sets","degs_all_updown_covid_vax_other_nonimmune.csv"))
+
+
+degs_covid = degs_updown_p_05_vac_infected %>% 
+  select(condition, genes, direction) %>% 
+  filter(direction != "NEUTRAL") %>% 
+  mutate(regulation_numeric = if_else(direction == "UP", "1", "-1"),
+         regulation_numeric = as.numeric(regulation_numeric))
+
+
+degs_vax = VAX_Genes_Annotated_RAW_2 %>% 
+  filter(STUDY_SUBTYPE == "VAC ONLY") %>% 
+  mutate(condition_vaccine = paste0(VACCINE, " (", `DATE-TIME`, ")")) %>% 
+  select(condition_vaccine, SYSTEMATIC_NAME, VACCINE, everything()) %>% 
+  separate_rows(GENE_SYMBOLS, sep = ",")
+degs_vax %>% saveRDS(file = here("VaxGO gene sets","VAXSigDB_Genes.rds"))
+
+
+degs_vaxsig = degs_vax %>% 
+  filter(STUDY_SUBTYPE == "VAC ONLY") %>% 
+  select(condition = condition_vaccine, genes = GENE_SYMBOLS, regulation = REGULATION) %>% 
+  mutate(regulation_numeric = if_else(regulation == "UP", 1, -1))
+
+
+degs_covid_vax = degs_covid %>% 
+  bind_rows(degs_vaxsig) %>% 
+  select(-regulation) %>% 
+  inner_join(ImmuneGO_Annotated_Genes %>%
+               filter(process != c("TCR REPERTOIRE", "BCR REPERTOIRE")) %>% 
+               select(genes) %>%
+               distinct(), 
+             by = "genes")
+
+degs_covid_vax %>% 
+  saveRDS(file = here("VaxGO gene sets", "degs_covid_vaxsig_up_down_immune.rds"))
+
+```
+
+### Gene overlap analysis
+
+```{r}
+#Input
+data = degs_all_updown_covid_other_immune %>% 
+  rename(process = condition) %>% 
+  select(process, genes)
+
+filename = "degs_all_updown_covid_other_immune"
+  
+```
+
+Function for overlapping
+```{r}
+
+# Function for overlapping -------
+overlap_genes <- function(cond1, cond2, data) {
+  genes_cond1 <- data$genes[data$process == cond1]
+  genes_cond2 <- data$genes[data$process == cond2]
+  
+  genes_shared <- intersect(genes_cond1, genes_cond2)
+  
+  genes_notshared_cond1 <- setdiff(genes_cond1, genes_cond2)
+  genes_notshared_cond2 <- setdiff(genes_cond2, genes_cond1)
+  
+  total_genes_cond1 <- length(genes_cond1)
+  total_genes_cond2 <- length(genes_cond2)
+  
+  percentage_shared_cond1 <- length(genes_shared) / total_genes_cond1 * 100
+  percentage_shared_cond2 <- length(genes_shared) / total_genes_cond2 * 100
+  
+  shared_genes <- data.frame(
+    Cond1 = cond1,
+    Cond2 = cond2,
+    Shared = length(genes_shared),
+    NotShared_cond1 = length(genes_notshared_cond1),
+    NotShared_cond2 = length(genes_notshared_cond2),
+    Total_Genes_Cond1 = total_genes_cond1,
+    Total_Genes_Cond2 = total_genes_cond2,
+    Genes_Names = paste(genes_shared, collapse = ", "),
+    Percentage_Shared_Cond1 = percentage_shared_cond1,
+    Percentage_Shared_Cond2 = percentage_shared_cond2
+  )
+  
+  return(shared_genes)
+}
+conflicted::conflicts_prefer(base::intersect)
+conflicted::conflicts_prefer(base::setdiff)
+conflicted::conflicts_prefer(janitor::fisher.test)
+```
+
+Perform calculations
+```{r}
+# Perform calculations
+unique_cond <- unique(data$process) # List sets
+shared_genes_df <- data.frame() # Store data
+
+for (i in 1:(length(unique_cond) - 1)) {
+  for (j in (i + 1):length(unique_cond)) {
+    resultado_temp <- overlap_genes(unique_cond[i], unique_cond[j], data)
+    shared_genes_df <- bind_rows(shared_genes_df, resultado_temp)
+  }
+}
+
+# Fisher's exact test
+fisher_exact_test <- function(shared, notshared1, notshared2) {
+  cont_table <- matrix(c(shared, notshared1, notshared2, 0), nrow = 2)
+  results_fisher <- fisher.test(cont_table)
+  return(results_fisher$p.value)
+}
+shared_genes_df = shared_genes_df %>%
+  mutate(pvalue = pmap_dbl(list(Shared, NotShared_cond1, NotShared_cond2), fisher_exact_test)) %>% 
+  mutate("-log(p)" = -log10(pvalue),
+         padj = p.adjust(pvalue))
+
+
+#Mirror table
+shared_genes_df2 = shared_genes_df %>% 
+  rename(Cond1_temp = Cond1, Cond2_temp = Cond2) %>%
+  rename(Cond1 = Cond2_temp, Cond2 = Cond1_temp)
+
+shared_genes_df_mirror = shared_genes_df %>% 
+  bind_rows(shared_genes_df2) %>% 
+  mutate(Percentage_Shared_Cond1 = round(Percentage_Shared_Cond1, 2),
+         Percentage_Shared_Cond2 = round(Percentage_Shared_Cond2, 2))
+  
+#Jaccard distance
+jaccard.matrix <- data %>%
+  mutate(present = 1) %>% 
+  distinct() %>% 
+  pivot_wider(names_from = genes, values_from = present, values_fill = 0) %>%
+  column_to_rownames(var = "process") %>%
+  vegdist(binary = TRUE, method = "jaccard", diag = TRUE, upper = TRUE) %>%
+  as.matrix() %>%
+  {1 - .}
+
+shared_genes_df_mirror = jaccard.matrix %>% 
+  as.data.frame() %>% 
+  rownames_to_column("Cond1") %>% 
+  pivot_longer(cols = -"Cond1",
+               names_to = "Cond2",
+               values_to = "jaccard_distance") %>% 
+  inner_join(shared_genes_df_mirror, by = join_by(Cond1, Cond2)) %>% 
+  mutate(jaccard_distance = round(jaccard_distance, 3))
+
+#Save
+write_csv(shared_genes_df_mirror, 
+          file = here("VaxGO gene sets", paste0(filename, "_sharedgenes_Fisher_Jaccard.csv")))
+```
+
+
+### Other comparisons
+
+```{r}
+############# VACCINE
+#Use "vax_degs_up_VAXSigDB_sharedgenes_ann.csv" for comparing UP degs with UP degs from other conditions
+
+#VAC ONLY
+shared_genes_ann_vac = shared_genes_df_mirror %>%
+  select(vac_condition, vaccine_condition, vac_ref, Cond2:sample_source, pmid, gene_symbols:participants) %>% 
+  filter(study_type == "VACCINE", 
+         sample_source == "PBMC",
+         !(vaccine_condition %in% c("BBIBP", "ZF2001"))) 
+
+vac_only = shared_genes_ann_vac %>%
+  filter(study_subtype == "VAC ONLY")
+
+```
+
+### Heatmap
+
+```{r}
+# INPUT ------
+
+degs_all_updown_covid_other_immune_shared = read_csv(here("VaxGO gene sets", "degs_all_updown_covid_other_immune_sharedgenes_Fisher_Jaccard.csv"))
+
+table = degs_all_updown_covid_other_immune_shared
+filename = "ImmuneGO_Genes_JaccardDistance" 
+
+data = table %>% 
+  filter(pvalue <0.25) %>% 
+  inner_join(ann_vaccines_covid_other %>% 
+               select(Cond1 = condition, everything()), by = "Cond1") %>% 
+  inner_join(ann_vaccines %>% 
+               select(Cond2 = condition, everything()), by = "Cond2") %>% 
+  clean_names() %>% 
+  rename(vac_ref = cond1, vac_condition = cond2)
+
+# Matrix ------
+matrix = data %>%
+  filter(pvalue <= 0.10) %>% 
+  select(vac_condition, vac_ref, jaccard_distance) %>% 
+  pivot_wider(names_from = vac_condition, values_from = jaccard_distance, values_fn = mean) %>% 
+  replace(is.na(.), 0) %>%
+  column_to_rownames(var="vac_ref") %>%
+  as.matrix()
+
+matrix = matrix*100
+
+# Annotations -------
+ann_vaccines_covid = ann_vaccines_covid_other %>% 
+  filter(covid_other == "COVID")
+ann_vaccines_other = ann_vaccines_covid_other %>% 
+  filter(covid_other == "OTHER")
+
+# Columns
+ann_cols_heatmap = matrix %>% 
+  colnames() %>% 
+  data.frame() %>% 
+  filter(. != "process") %>% 
+  rename(vac_condition = '.') %>% 
+  merge(ann_vaccines_covid, by.x = "vac_condition", by.y = "condition", all.y = F) %>% 
+  select(vac_condition, type, vaccine, week) %>% #ordenar colunas para anotação
+  distinct() %>% 
+  column_to_rownames(var = "vac_condition") %>% 
+  mutate_all(as.factor)
+
+# Rows
+ann_rows_heatmap = matrix %>%  
+  as.data.frame() %>% 
+  rownames_to_column("condition") %>% 
+  distinct() %>% 
+  inner_join(ann_vaccines_other, by = "condition") %>% 
+  mutate_all(as.factor) %>%
+  arrange(condition) %>%
+  distinct() %>% 
+  column_to_rownames(var= "condition") %>% 
+  select(vaccine:infection) %>% 
+  select(microbe_type, type, week)
+
+# Arrange cols and rows in matrix
+matrix_data = matrix %>% 
+  t() %>% 
+  as.data.frame() %>% 
+  rownames_to_column(var= "condition") %>% 
+  arrange(condition) %>% 
+  column_to_rownames("condition") %>% 
+  t() %>% 
+  as.data.frame() %>%
+  rownames_to_column("condition") %>% 
+  inner_join(ann_rows_heatmap %>% 
+               rownames_to_column("condition") %>% 
+               select(condition),
+             by = "condition") %>% 
+  arrange(condition) %>% 
+  column_to_rownames("condition") %>% 
+  mutate_if(is.character, as.numeric) %>%
+  replace(is.na(.), 0) %>% 
+  as.matrix()
+
+#Check dimensions
+dim(matrix_data)
+dim(ann_rows_heatmap)
+dim(ann_cols_heatmap)
+
+```
+
+Plot
+```{r}
+
+#Heatmap annotation
+ha = HeatmapAnnotation(df = ann_cols_heatmap, 
+                       col = ann_vaxsig_colors,
+                       annotation_name_side = "left")
+
+row_ha = HeatmapAnnotation(df = ann_rows_heatmap,
+                       col = ann_vaxsig_colors,
+                       which= "row",
+                       show_annotation_name = F,
+                       show_legend = F)
+
+# Values colors
+col_fun <- colorRamp2(c(0, max(matrix_data)), c("white", "#ed6a5a"))
+
+
+mat = matrix_data
+width_image = 30
+height_image = 25
+width = unit(20, "cm")
+height = unit(15, "cm")
+column_names_gp = gpar(fontsize = 10)
+row_names_gp = gpar(fontsize = 10)
+file = paste0("VAXSig_", filename)
+
+fileimageheatmap_grouped = paste0(filename, sep ="_", "Complexheatmap_ALL_CLUSTERED.png")
+
+png(file = here("Figures", fileimageheatmap_grouped), 
+    width = width_image, 
+    height = height_image,
+    units="cm", res=900)
+
+heatmap_plot = Heatmap(mat,
+                        top_annotation = ha,
+                        left_annotation = row_ha,
+                        show_row_names = TRUE,
+                        row_names_side = "left",
+                        show_heatmap_legend = TRUE,
+                        heatmap_legend_param = list(title = "Jaccard distance", direction = "vertical"),
+                        col = col_fun, #color
+                        cell_fun = function(j, i, x, y, width, height, fill) {
+                                            if(mat[i, j] > 0)
+                                            grid.text(sprintf("%.f", mat[i, j]), 
+                                                      x, y, 
+                                                      gp = gpar(fontsize = 8))},
+                        row_title = "",
+                        show_column_names = TRUE,
+                        column_title = fileimageheatmap_grouped,
+                        column_title_gp = gpar(fontsize = 10, fontface = "bold"),
+                        column_names_rot = 45,
+                        column_names_gp = column_names_gp,
+                        rect_gp = gpar(col = "gray90", lwd = 1),
+                        cluster_rows = TRUE,
+                        row_names_gp = row_names_gp, #Grande = 6, Pequeno 15
+                        row_dend_width = unit(5, "cm"), #Altura do dendrograma
+                        column_split = NULL, #Split column clusters 
+                        row_split = NULL, #Split row clusters
+                        row_gap = unit(2, "mm"),
+                        cluster_columns = TRUE,
+                        column_gap = unit(8, "mm"),
+                        show_column_dend = F,
+                        show_row_dend = F,
+                        row_dend_side = "left",
+                        column_dend_side = "top",
+                        clustering_distance_rows = "euclidean",
+                        border = TRUE,
+                        column_dend_reorder = TRUE,
+                        width = width, # 20 para pequeno e grande
+                        height = height # 20 para pequeno, 60 para grande
+)
+
+draw(heatmap_plot,
+     merge_legend = TRUE,
+     annotation_legend_side = "right", 
+     heatmap_legend_side = "right")
+dev.off()
+
+```
+
+##ORA COVID vs. VAXGO with ImmuneGO
+
+```{r}
+#Input
+degs_all_updown_covid = degs_updown_p_05_vac_infected %>% 
+   as.data.frame() %>% 
+   select(genes, condition:direction) %>% 
+   filter(direction %in% c("UP", "DOWN")) %>% 
+  inner_join(ann_vaccines, by = "condition") %>% 
+   distinct() %>% 
+  select(condition, genes)
+
+VAX_Genes_Annotated_RAW = VAX_Genes_Annotated_RAW_2 %>% 
+  clean_names() %>% 
+  mutate(condition = paste0(vaccine, " (", date_time, ")"))
+
+ann_vaccines_covid_other 
+
+degs_all_updown_vax_immunego = VAX_Genes_Annotated_RAW %>%
+  clean_names() %>% 
+  mutate(condition = paste0(vaccine, " (", date_time, ")")) %>% 
+  select(condition, genes = gene_symbols) %>% 
+  inner_join(ImmuneGO_Annotated_Genes %>% 
+               select(genes), by = "genes") %>% 
+  distinct()
+
+degs_all_updown_covid_other = bind_rows(degs_all_updown_vax_immunego, degs_all_updown_covid) %>% 
+  distinct()
+
+Immune_GO_T2G = ImmuneGO_Annotated_Genes %>% 
+  filter(go_term == "Manual",
+         !process %in% c("TCR REPERTOIRE", "BCR REPERTOIRE", "ADAPTIVE IMMUNE SYSTEM", "INNATE IMMUNE SYSTEM")) %>% 
+  select(process, genes)
+```
+
+```{r}
+# ORA function
+perform_ORA <- function(df, Immune_GO_T2G) {
+  resultados <- list()
+  
+  # Obter condições únicas na coluna "condition"
+  condicoes <- df$condition %>% 
+    unique() %>% 
+    as.character()
+  
+  for (condicao in condicoes) {
+    # Selecionar DEGs para a condição atual
+    degs_condicao <- df %>% 
+      filter(condition == condicao) %>%
+      select(genes) %>%
+      distinct()
+
+    # Preparar gene list
+    gene_list_ora <- degs_condicao$genes
+
+    ############ IMMUNE GO
+    immune_GO_ORA <- tryCatch({
+      enricher(gene_list_ora, 
+               TERM2GENE = Immune_GO_T2G, 
+               minGSSize = 1,
+               maxGSSize = 1000,
+               pvalueCutoff = 0.25,
+               pAdjustMethod = "BH") %>% 
+        as.data.frame() %>% 
+        arrange(qvalue) %>% 
+        mutate(condition = condicao,
+               ora_enrichment = "ImmuneGO")
+    }, error = function(e) {
+      return(NULL)  # Retorna NULL caso ocorra o erro
+    })
+
+    if (!is.null(immune_GO_ORA)) {
+      resultados[[paste(condicao, "ImmuneGO", sep = "_")]] <- immune_GO_ORA
+    }
+  }
+
+  # Combinar todos os resultados em um único dataframe
+  resultado_final <- bind_rows(resultados)
+
+  return(resultado_final)
+}
+
+df_resultados <- perform_ORA(degs_all_updown_covid_other, Immune_GO_T2G)
+print(df_resultados)
+
+#Anotar
+immune_GO_ORA_covid_other = df_resultados %>% 
+  clean_names() %>% 
+  select(process = id, gene_ratio:ora_enrichment) %>% 
+  inner_join(ann_vaccines_covid_other, by = "condition") %>% 
+  distinct() %>% 
+  mutate(log_q = -log10(qvalue))
+
+write.csv(immune_GO_ORA_covid_other, file = here("VaxGO gene sets", "COVID_VAX_immune_GO_ORA.csv"))
+
+```
+
+#### Heatmap
+
+```{r}
+####### INPUT
+data_2 = immune_GO_ORA_covid_other
+  
+filename_2 = "immune_GO_ORA_covid_other"
+
+######## Matrix
+matrix = data_2 %>% 
+  filter(qvalue <= 0.25) %>% 
+  select(condition, process, log_q) %>% #Percentage_Shared_Cond1
+  pivot_wider(names_from = "condition", 
+              values_from = "log_q",  #Percentage_Shared_Cond1
+              values_fn = mean) %>% 
+  replace(is.na(.), 0) %>% 
+  column_to_rownames(var="process") %>% 
+  as.matrix() %>% 
+  round(2)
+
+######## Annotations
+ann_cols = matrix %>% 
+  as.data.frame() %>% 
+  t() %>% 
+  as.data.frame() %>% 
+  rownames_to_column("condition") %>% 
+  select(condition) %>% 
+  inner_join(ann_vaccines_covid_other, by = "condition") %>% 
+  select(condition, covid_other, microbe_type, disease_vac, type, week) %>% 
+  distinct() %>% 
+  arrange(condition) %>% 
+  column_to_rownames("condition") 
+
+matrix_data = matrix %>% 
+  t() %>% 
+  as.data.frame() %>% 
+  rownames_to_column(var= "condition") %>% 
+  arrange(condition) %>% 
+  column_to_rownames("condition") %>% 
+  t() %>% 
+  as.data.frame()%>%  
+  mutate_if(is.character, as.numeric) %>%
+  replace(is.na(.), 0) %>% 
+  as.matrix() 
+
+#Check dimensions
+dim(matrix_data)
+dim(ann_cols)
+```
+
+```{r}
+################# Plotar
+
+#Heatmap annotation
+ha = HeatmapAnnotation(df = ann_cols, 
+                       col = ann_vaxsig_colors,
+                       annotation_name_side = "right")
+
+
+# Values colors
+col_fun <- colorRamp2(c(0, 2), c("white", "#ED6A5A"))
+
+
+# Parameters
+file = filename_2
+mat = matrix_data
+width_image = 40
+height_image = 20
+width = unit(25, "cm")
+height = unit(7, "cm")
+column_names_gp = gpar(fontsize = 9)
+row_names_gp = gpar(fontsize = 9)
+rect_gp = gpar(col = "gray90", lwd = 0.5)
+
+###### CLUSTERIZED ALL VS ALL
+
+fileimageheatmap_grouped = paste0(file, sep ="_", "Complexheatmap.png")
+
+png(file = here("Figures", fileimageheatmap_grouped), width = width_image, height = height_image, units="cm", res=900)
+
+heatmap_plot = Heatmap(mat,
+                        top_annotation = ha,
+                        show_row_names = TRUE,
+                        row_names_side = "left",
+                        show_heatmap_legend = TRUE,
+                        heatmap_legend_param = list(direction = "vertical",
+                                                    title = "-log(FDR)"),
+                        col = col_fun, #color
+                        cell_fun = function(j, i, x, y, w, h, fill) {
+                              if (mat[i, j] >= 2) {
+                                grid.text("***", x, y, gp = gpar(fontsize = 8))
+                              } else if (mat[i, j] > 1.5) {
+                                grid.text("**", x, y, gp = gpar(fontsize = 9))
+                              } else if (mat[i, j] >= 1) {
+                                grid.text("*", x, y, gp = gpar(fontsize = 8))
+                              } else {
+                                grid.text("", x, y)
+                              }
+                            },
+                        show_column_names = TRUE,
+                        column_title = fileimageheatmap_grouped,
+                        column_title_gp = gpar(fontsize = 10, fontface = "bold"),
+                        column_names_rot = 45,
+                        column_names_gp = column_names_gp,
+                        rect_gp = rect_gp,
+                        cluster_rows = TRUE,
+                        row_names_gp = row_names_gp, #Grande = 6, Pequeno 15
+                        row_dend_width = unit(5, "cm"), #Altura do dendrograma
+                        row_split = NULL, #Split row clusters
+                        row_gap = unit(2, "mm"),
+                        cluster_columns = TRUE,
+                        column_gap = unit(8, "mm"),
+                        show_column_dend = F,
+                        show_row_dend = F,
+                        row_dend_side = "left",
+                        column_dend_side = "top",
+                        clustering_distance_rows = "euclidean",
+                        border = TRUE,
+                        width = width, # 20 para pequeno e grande
+                        height = height # 20 para pequeno, 60 para grande
+)
+
+draw(heatmap_plot, 
+     annotation_legend_side = "left", 
+     heatmap_legend_side = "left",
+          merge_legend = TRUE)
+dev.off()
+
+
+```
+
+## COVID-19 genes vs. VaxGO genes with ImmuneGO genes
+
+```{r}
+# VAX Genes  ------
+VAX_Genes_Annotated_RAW = VAX_Genes_Annotated_RAW %>% 
+  clean_names() %>% 
+  mutate(condition = paste0(vaccine, " (", date_time, ")"))
+
+#ImmuneGO
+degs_all_updown_vax_immunego = VAX_Genes_Annotated_RAW %>%
+  clean_names() %>% 
+  mutate(condition = paste0(vaccine, " (", date_time, ")")) %>% 
+  select(condition, genes = gene_symbols, regulation) %>% 
+  inner_join(ImmuneGO_Annotated_Genes %>% 
+               select(genes), by = "genes") %>% 
+  distinct()
+
+# Covid-19 conditions ----
+degs_all_updown = degs_updown_p_05_vac_infected
+
+#Immune
+degs_all_updown_covid_immune = degs_all_updown %>% 
+  as.data.frame() %>% 
+  select(genes,  condition:fdr) %>% 
+  mutate(direction = case_when(log2fold_change >= 1 ~ "UP",
+                               log2fold_change <= -1 ~ "DOWN",
+                               TRUE ~ "NEUTRAL")) %>% 
+  inner_join(ann_vaccines, by = "condition") %>% 
+  inner_join(ImmuneGO_Annotated_Genes %>% select(genes) %>% distinct(), by = "genes") %>% 
+  distinct() %>% 
+  filter(vaccine != "I", 
+         gse_id != "GSE189039") %>% 
+  select(condition, genes, regulation = direction)  %>% 
+  distinct()
+
+
+# Bind Immune ------
+degs_all_updown_covid_other = bind_rows(degs_all_updown_vax_immunego, degs_all_updown_covid_immune) %>% 
+  distinct()
+
+
+covid_other_immunego_genes = degs_all_updown_covid_other %>% 
+  distinct() %>% 
+  filter(regulation %in% c("UP", "DOWN")) %>% 
+  mutate(regulation_numeric = case_when(
+    regulation %in% c("UP") ~ 1,
+    regulation %in% c("DOWN") ~ -1,
+    TRUE ~ as.numeric(regulation)
+  )) %>% 
+  distinct()
+
+saveRDS(covid_other_immunego_genes, file = "covid_other_immunego_genes.rds")
+
+```
+
+```{r}
+###### Gene sets Immune GO ------
+
+Immune_GO_genes_All = covid_other_immunego_genes 
+
+# Immune_GO_genes_Innate = Immune_GO_genes_All %>%
+#    filter(process == "INNATE IMMUNE SYSTEM")
+# Immune_GO_genes_Adaptive = Immune_GO_genes_All %>%
+#    filter(process == "ADAPTIVE IMMUNE SYSTEM")
+# Immune_GO_genes_Complement = Immune_GO_genes_All %>%
+#    filter(process == "COMPLEMENT IMMUNE SYSTEM")
+# 
+# # Sistema inato
+# Immune_GO_genes_Inflammation = Immune_GO_genes_All %>%
+#   filter(process == "INFLAMMATION")
+# Immune_GO_genes_ARPP = Immune_GO_genes_All %>%
+#   filter(process == "ARPP")
+# Immune_GO_genes_IFN = Immune_GO_genes_All %>%
+#   filter(process == "ANTIVIRAL AND INTERFERON")
+# Immune_GO_genes_Neutrophil = Immune_GO_genes_All %>%
+#   filter(process == "NEUTROPHIL")
+# Immune_GO_genes_Eosinophil = Immune_GO_genes_All %>%
+#   filter(process == "EOSINOPHIL")
+# Immune_GO_genes_Complement = Immune_GO_genes_All %>%
+#   filter(process == "COMPLEMENT IMMUNE SYSTEM")
+# Immune_GO_genes_Monocytes = Immune_GO_genes_All %>%
+#   filter(process == "MONOCYTES")
+# Immune_GO_genes_DC = Immune_GO_genes_All %>%
+#   filter(process == "DENDRITIC CELLS")
+# Immune_GO_genes_Macro = Immune_GO_genes_All %>%
+#   filter(process == "MACROPHAGES")
+# Immune_GO_genes_NK = Immune_GO_genes_All %>%
+#   filter(process == "NK CELL")
+# 
+# # Sistema adaptativo
+# Immune_GO_genes_Cellular = Immune_GO_genes_All %>%
+#   filter(process == "CELLULAR ADAPTIVE IMMUNE SYSTEM")
+# Immune_GO_genes_Humoral = Immune_GO_genes_All %>%
+#   filter(process == "HUMORAL ADAPTIVE IMMUNE SYSTEM")
+# Immune_GO_genes_Tcells = Immune_GO_genes_All %>%
+#   filter(process == "T CELLS")
+# Immune_GO_genes_Bcells = Immune_GO_genes_All %>%
+#   filter(process == "B CELLS")
+# Immune_GO_genes_Ig = Immune_GO_genes_All %>%
+#   filter(process == "IMMUNOGLOBULIN MEDIATED IMMUNE RESPONSE")
+
+```
+
+#### Heatmap
+
+```{r}
+####### INPUT
+data_2 = covid_other_immunego_genes
+filename_2 = paste0("Immune_GO_genes_All", "_VAX_COVID")
+
+######## Matrix
+matrix = data_2 %>% 
+  select(genes, condition, regulation_numeric) %>%
+  pivot_wider(names_from = "condition", 
+              values_from = "regulation_numeric", 
+              values_fn = mean) %>% 
+  replace(is.na(.), 0) %>%
+  arrange(genes) %>% 
+  column_to_rownames(var="genes") %>% 
+  as.matrix()
+
+######## Annotations
+ann_vaccines_covid_other_2 = data_2 %>% 
+  inner_join(ann_vaccines_covid_other, by = "condition") %>% 
+  select(condition, covid_other, microbe_type, disease_vac, type, week) %>% 
+  distinct()
+
+#Columns
+ann_cols_heatmap = matrix %>% 
+  colnames() %>% 
+  data.frame() %>% 
+  filter(. != "genes") %>% 
+  rename(condition = '.') %>% 
+  inner_join(ann_vaccines_covid_other_2, by = "condition") %>% 
+  distinct() %>% 
+  arrange(condition) %>% 
+  column_to_rownames("condition")
+
+matrix_data = matrix %>% 
+  t() %>% 
+  as.data.frame() %>% 
+  rownames_to_column(var= "condition") %>% 
+  inner_join(ann_cols_heatmap %>% rownames_to_column("condition"), by = "condition") %>% 
+  select(!c(covid_other:week)) %>% 
+  arrange(condition) %>% 
+  column_to_rownames("condition") %>% 
+  t() %>% 
+  as.data.frame() %>% 
+  filter(rowSums(. != 0) > 1) %>% 
+  mutate_if(is.character, as.numeric) %>%
+  as.matrix() 
+
+#Rows Immune ----
+ann_rows_immune = matrix_data %>%
+  as.data.frame() %>%
+  rownames_to_column("genes") %>%
+  left_join(ImmuneGO_Annotated_Genes %>%
+              filter(go_term == "Manual",
+                     !process %in% c("TCR REPERTOIRE", "BCR REPERTOIRE")), by = "genes") %>%
+  select(genes, process) %>%
+  distinct() %>%
+  group_by(genes) %>%
+  arrange(genes, factor(process, levels = c("INNATE IMMUNE SYSTEM", "ADAPTIVE IMMUNE SYSTEM")), .by_group = TRUE) %>%
+  mutate(i_process = row_number()) %>%
+  pivot_wider(., names_from = "i_process", values_from = "process") %>%
+  column_to_rownames("genes") %>%
+  t() %>%
+  as.data.frame() %>%
+  rownames_to_column("index") %>%
+  mutate(index = as.numeric(index)) %>%
+  arrange(desc(index)) %>%
+  column_to_rownames("index") %>%
+  t() %>%
+  as.data.frame() %>%
+  replace(is.na(.), ".")
+
+
+#Check dimensions
+dim(matrix_data)
+dim(ann_cols_heatmap)
+dim(ann_rows_immune)
+
+```
+
+Sizes: 1. Cellular adaptive immune system: width = unit(25, "cm"),
+height = unit(60, "cm") #254 genes 2. Humoral adaptive immune system:
+width = unit(25, "cm"), height = unit(30, "cm") #51 genes 3. T cells:
+width = unit(25, "cm"), height = unit(60, "cm") #221 genes 4. B cells:
+width = unit(25, "cm"), height = unit(50, "cm") #146 genes 5. Ig
+mediated: width = unit(25, "cm"), height = unit(10, "cm") #146 genes 6.
+Inflammation: width = unit(25, "cm"), height = unit(10, "cm") 7. ARPP:
+width = unit(25, "cm"), height = unit(30, "cm") 60 genes 8. IFN: width =
+unit(25, "cm"), height = unit(30, "cm") 93 genes 9. DC: width = unit(25,
+"cm"), height = unit(20, "cm") #29 genes 10. Macrophages: width =
+unit(25, "cm"), height = unit(25, "cm") \# 52 genes 11. Neutrophils:
+width = unit(25, "cm"), height = unit(40, "cm") \# 70 genes 12.
+Eosinophil: width = unit(25, "cm"), height = unit(10, "cm") \# 42 genes
+13. Complement: width = unit(25, "cm"), height = unit(10, "cm") \# 40
+genes 13. Monocytes: width = unit(25, "cm"), height = unit(15, "cm") \#
+48 genes 15. All immune genes: width_image = 60, height_image = 70,
+width = unit(30, "cm"), height = unit(60, "cm"), row_split = 7,
+column_split = 2
+
+More refs:
+<https://debrowser.readthedocs.io/en/master/heatmap/heatmap.html>
+
+#### All genes
+
+```{r}
+################# Immune 
+#Heatmap annotation
+ha = HeatmapAnnotation(df = ann_cols_heatmap, 
+                       col = ann_vaxsig_colors,
+                       annotation_name_side = "left")
+
+row_ha = HeatmapAnnotation(df = ann_rows_immune,
+                       col = col_process_immune,
+                       which= "row",
+                       show_annotation_name = F,
+                       show_legend = F,
+                       simple_anno_size = unit(2, "mm")
+                       )
+
+# Values colors
+col_fun <- colorRamp2(c(-1, 0, 1), c("#9bc1bc", "white", "#ed6a5a"))
+
+file = filename_2
+mat = matrix_data
+width_image = 60
+height_image = 50
+width = unit(30, "cm")
+height = unit(40, "cm")
+column_names_gp = gpar(fontsize = 10)
+row_names_gp = gpar(fontsize = 0)
+rect_gp = gpar(col = "gray80", lwd = 0)
+row_split = 3
+column_split = 3
+
+
+fileimageheatmap_grouped = paste0(file, sep ="_", "Complexheatmap.png")
+
+png(file = here("Figures", fileimageheatmap_grouped), 
+    width = width_image, 
+    height = height_image, 
+    units="cm", 
+    res=900)
+
+heatmap_plot = Heatmap(mat,
+                        top_annotation = ha,
+                        left_annotation = row_ha,
+                        show_row_names = TRUE,
+                        row_names_side = "right",
+                        show_heatmap_legend = TRUE,
+                        heatmap_legend_param = list(direction = "vertical"),
+                        col = col_fun, #color
+                        name = "L2FC",
+                        show_column_names = TRUE,
+                        column_title = fileimageheatmap_grouped,
+                        column_title_gp = gpar(fontsize = 10, fontface = "bold"),
+                        column_names_rot = 45,
+                        column_names_gp = column_names_gp,
+                        rect_gp = rect_gp,
+                        na_col = "white",
+                        cluster_rows = TRUE,
+                        row_names_gp = row_names_gp,
+                        row_dend_width = unit(5, "cm"),
+                        row_split = row_split,
+                        column_split = column_split,
+                        row_gap = unit(2, "mm"),
+                        cluster_columns = TRUE,
+                        column_gap = unit(8, "mm"),
+                        show_column_dend = F,
+                        show_row_dend = F,
+                        row_dend_side = "right",
+                        column_dend_side = "top",
+                        clustering_distance_rows = "euclidean",
+                        clustering_distance_columns = "euclidean",
+                        border = TRUE,
+                        width = width,
+                        height = height,
+                        use_raster = F)
+
+heatmap_plot = draw(heatmap_plot)
+
+dev.off()
+
+```
+#### Interactive heatmap
+```{r}
+library(InteractiveComplexHeatmap)
+
+####### Input
+heatmap_data = Immune_GO_genes_All
+file = "Immune_GO_genes_All"
+
+###### Process data
+
+heatmap_data_l2fc= heatmap_data %>% 
+  filter(condition != "NA", 
+         process != "NA") %>% 
+  select(genes, condition, log2fold_change)
+
+# Convert to wide table
+matrix_data <- dcast(heatmap_data_l2fc, 
+                         genes ~ condition, 
+                         value.var = "log2fold_change", 
+                         fun.aggregate = mean) %>% 
+  column_to_rownames('genes') %>% 
+  mutate_if(is.character, as.numeric) %>% 
+  replace(is.na(.), 0)
+
+matrix_data_ready =  matrix_data %>% 
+  round(2)
+
+# Check if all vaccines are in the matrix and join annotations
+ann_vaccines_complex = heatmap_data %>% 
+  select(condition) %>% 
+  distinct() %>% 
+  inner_join(ann_vaccines %>% select(condition, disease_vac, type, week), by = "condition")
+
+# Join annotations
+ann_vaccines_heatmap = matrix_data %>% 
+  colnames() %>% 
+  data.frame() %>% 
+  filter(. != "genes") %>% 
+  rename(condition = '.') %>% 
+  merge(ann_vaccines_complex, by = "condition", all.x = TRUE) %>% 
+  arrange(condition) %>% 
+  column_to_rownames(var= "condition") 
+
+
+#Rows Immune ----
+ann_rows_immune = matrix_data %>%
+  as.data.frame() %>%
+  rownames_to_column("genes") %>%
+  left_join(ImmuneGO_Annotated_Genes %>%
+              filter(go_term == "Manual",
+                     !process %in% c("TCR REPERTOIRE", "BCR REPERTOIRE")), by = "genes") %>%
+  select(genes, process) %>%
+  distinct() %>%
+  group_by(genes) %>%
+  arrange(genes, factor(process, levels = c("INNATE IMMUNE SYSTEM", "ADAPTIVE IMMUNE SYSTEM")), .by_group = TRUE) %>%
+  mutate(i_process = row_number()) %>%
+  pivot_wider(., names_from = "i_process", values_from = "process") %>%
+  column_to_rownames("genes") %>%
+  t() %>%
+  as.data.frame() %>%
+  rownames_to_column("index") %>%
+  mutate(index = as.numeric(index)) %>%
+  arrange(desc(index)) %>%
+  column_to_rownames("index") %>%
+  t() %>%
+  as.data.frame() %>%
+  replace(is.na(.), ".")
+
+# Reorder columns (same order as lines in the annotation table)
+matrix_data_ordered = matrix_data %>% 
+  t() %>% 
+  as.data.frame() %>% 
+  rownames_to_column(var= "condition") %>% 
+  merge(ann_vaccines_complex, by.y = "condition", all.x=TRUE) %>% 
+  arrange(condition) %>% 
+  select(!c(disease_vac, type, week)) %>% 
+  column_to_rownames("condition") %>% 
+  t() %>% 
+  as.data.frame() %>% 
+  mutate_if(is.character, as.numeric) %>% 
+  replace(is.na(.), 0) %>% 
+  as.matrix() 
+
+
+#Check dimensions
+dim(matrix_data_ordered) 
+dim(ann_vaccines_heatmap) 
+dim(ann_rows_immune)
+
+#Create heatmap annotation
+ha = HeatmapAnnotation(df = ann_vaccines_heatmap, 
+                       col = ann_colors, 
+                       annotation_name_side = "left")
+
+row_ha = HeatmapAnnotation(df = ann_rows_immune,
+                       col = col_process_immune,
+                       which= "row",
+                       show_annotation_name = F,
+                       show_legend = F)
+
+col_fun <- colorRamp2(c(-2, 0, 2), 
+                      c("#9bc1bc", "white", "#ed6a5a"))
+
+
+#Parameters
+#Parameters
+mat = matrix_data_ordered
+width_image = 40
+height_image = 90
+width = unit(30, "cm")
+height = unit(80, "cm")
+column_names_gp = gpar(fontsize = 10)
+row_names_gp = gpar(fontsize = 10)
+
+heatmap_plot_all = Heatmap(mat,
+                        top_annotation = ha,
+                        left_annotation = row_ha,
+                        show_heatmap_legend = TRUE, 
+                        heatmap_legend_param = list(direction = "vertical"),
+                        name = "L2FC", #Legend
+                        col = col_fun,
+                        show_row_dend = F,
+                        row_split = 2, #Split group clusters
+                        show_row_names = T,
+                        column_names_gp = column_names_gp,
+                        row_names_gp = row_names_gp)
+
+ht_list = draw(heatmap_plot_all, 
+               annotation_legend_side = "right", 
+               heatmap_legend_side = "right")
+htShiny(ht_list)
+
+htShiny(ht_list, save = "Interactive_Covid_Other_Vax_Heatmap")
+
+```
+
+
+
+#### Get Cluster 1 Immune genes
+Get row clusters
+
+```{r}
+r.dend <- row_dend(heatmap_plot)  #Extract row dendrogram
+rcl.list <- row_order(heatmap_plot)  #Extract clusters (output is a list)
+lapply(rcl.list, function(x) length(x))  #check/confirm size cluster
+
+gene_cluster <- NULL
+for (i in 1:length(rcl.list)) {
+  a <- row.names(mat[row_order(heatmap_plot)[[i]], ])
+  gene_cluster <- rbind(gene_cluster, data.frame(genes = a, cluster = paste0("cluster ", i), gene_set = "Immune genes"))
+}
+write.csv(gene_cluster, file = here("DGE analysis", paste0(file, "_clustered_genes.csv")), row.names = F)
+```
+
+```{r}
+####### INPUT
+data_2 = Immune_GO_genes_All %>% 
+  inner_join(gene_cluster %>% filter(cluster == "cluster 1") %>% select(genes), by = "genes")
+filename_2 = paste0("Immune_GO_genes_cluster1", "_VAX_COVID")
+
+######## Matrix
+matrix = data_2 %>% 
+  select(genes, condition, regulation_numeric) %>%
+  pivot_wider(names_from = "condition", 
+              values_from = "regulation_numeric", 
+              values_fn = mean) %>% 
+  replace(is.na(.), 0) %>%
+  arrange(genes) %>% 
+  column_to_rownames(var="genes") %>% 
+  as.matrix()
+
+######## Annotations
+ann_vaccines_covid_other_2 = data_2 %>% 
+  inner_join(ann_vaccines_covid_other, by = "condition") %>% 
+  select(condition, covid_other, microbe_type, disease_vac, type, week) %>% 
+  distinct()
+
+#Columns
+ann_cols_heatmap = matrix %>% 
+  colnames() %>% 
+  data.frame() %>% 
+  filter(. != "genes") %>% 
+  rename(condition = '.') %>% 
+  inner_join(ann_vaccines_covid_other_2, by = "condition") %>% 
+  distinct() %>% 
+  arrange(condition) %>% 
+  column_to_rownames("condition")
+
+matrix_data = matrix %>% 
+  t() %>% 
+  as.data.frame() %>% 
+  rownames_to_column(var= "condition") %>% 
+  inner_join(ann_cols_heatmap %>% rownames_to_column("condition"), by = "condition") %>% 
+  select(!c(covid_other:week)) %>% 
+  arrange(condition) %>% 
+  column_to_rownames("condition") %>% 
+  t() %>% 
+  as.data.frame() %>% 
+  mutate_if(is.character, as.numeric) %>%
+  as.matrix() 
+
+#Rows Immune ----
+ann_rows_immune = matrix_data %>%
+  as.data.frame() %>%
+  rownames_to_column("genes") %>%
+  left_join(ImmuneGO_Annotated_Genes %>% filter(go_term == "Manual"), by = "genes") %>%
+  select(genes, process) %>%
+  distinct() %>%
+  group_by(genes) %>%
+  arrange(genes, factor(process, levels = c("INNATE IMMUNE SYSTEM", "ADAPTIVE IMMUNE SYSTEM")), .by_group = TRUE) %>%
+  mutate(i_process = row_number()) %>%
+  pivot_wider(., names_from = "i_process", values_from = "process") %>%
+  column_to_rownames("genes") %>%
+  t() %>%
+  as.data.frame() %>%
+  rownames_to_column("index") %>%
+  mutate(index = as.numeric(index)) %>%
+  arrange(desc(index)) %>%
+  column_to_rownames("index") %>%
+  t() %>%
+  as.data.frame() %>%
+  replace(is.na(.), ".") %>% 
+  mutate(`1` = if_else(`1` == ".", "INNATE IMMUNE SYSTEM", `1`))
+
+dim(matrix)
+dim(matrix_data)
+dim(ann_cols_heatmap)
+dim(ann_rows_immune)
+
+```
+
+More refs:
+<https://debrowser.readthedocs.io/en/master/heatmap/heatmap.html>
+
+```{r}
+################# Immune 
+#Heatmap annotation
+ha = HeatmapAnnotation(df = ann_cols_heatmap, 
+                       col = ann_vaxsig_colors,
+                       annotation_name_side = "right")
+
+row_ha = row_ha = HeatmapAnnotation(df = ann_rows_immune,
+                       col = col_process_immune,
+                       which= "row",
+                       show_annotation_name = F,
+                       show_legend = F,
+                       simple_anno_size = unit(2, "mm"))
+
+# Values colors
+col_fun <- colorRamp2(c(-1, 0, 1), c("#9bc1bc", "white", "#ed6a5a"))
+
+file = filename_2
+mat = matrix_data
+width_image = 50
+height_image = 50
+width = unit(30, "cm")
+height = unit(30, "cm")
+column_names_gp = gpar(fontsize = 12)
+row_names_gp = gpar(fontsize = 12)
+rect_gp = gpar(col = "gray80", lwd = 0.5)
+
+fileimageheatmap_grouped = here("Figures", paste0(file, sep ="_", "Complexheatmap.png"))
+
+png(file = fileimageheatmap_grouped, 
+    width = width_image, 
+    height = height_image, 
+    units="cm", 
+    res=900)
+
+heatmap_plot = Heatmap(mat,
+                        top_annotation = ha,
+                       left_annotation = row_ha,
+                        show_row_names = TRUE,
+                        row_names_side = "right",
+                        show_heatmap_legend = TRUE,
+                        heatmap_legend_param = list(direction = "horizontal"),
+                        col = col_fun, #color
+                        show_column_names = TRUE,
+                        column_title = fileimageheatmap_grouped,
+                       name = "L2FC",
+                        column_title_gp = gpar(fontsize = 10, fontface = "bold"),
+                        column_names_rot = 45,
+                        column_names_gp = column_names_gp,
+                        rect_gp = rect_gp,
+                        na_col = "white",
+                        cluster_rows = TRUE,
+                        row_names_gp = row_names_gp,
+                        row_dend_width = unit(0, "cm"),
+                        row_split = NULL,
+                        column_split = 2,
+                        row_gap = unit(2, "mm"),
+                        cluster_columns = TRUE,
+                        column_gap = unit(8, "mm"),
+                        show_column_dend = F,
+                        show_row_dend = F,
+                        row_dend_side = "left",
+                        column_dend_side = "top",
+                        clustering_distance_rows = "euclidean",
+                        border = TRUE,
+                        width = width,
+                        height = height)
+
+heatmap_plot = draw(heatmap_plot, 
+     annotation_legend_side = "left", 
+     heatmap_legend_side = "left",
+     merge_legend = TRUE)
+
+heatmap_plot
+
+dev.off()
+
+```
+
+#### 50 most shared genes
+
+```{r fig.height=10, fig.width=10}
+#### Immune -----
+
+degs_all_updown_covid_vax_other_immune = degs_all_updown_covid_other_immune
+
+stats_1 = degs_all_updown_covid_vax_other_immune %>% 
+  inner_join(ann_vaccines_covid_other, by = "condition") %>% 
+  group_by(genes, covid_other) %>% 
+  summarise(n_conditions = n()) %>% 
+  filter(all(c("COVID", "OTHER") %in% covid_other)) %>% 
+  arrange(desc(n_conditions), genes) %>% 
+  group_by(genes) %>% 
+  pivot_wider(., names_from = "covid_other", values_from = n_conditions) %>% 
+  arrange(desc(OTHER)) %>% 
+  ungroup() %>% 
+  slice_head(n = 50) %>% 
+  pivot_longer(-genes, names_to = "covid_other", values_to = "n_conditions")
+
+stats_1 %>% 
+  select(genes) %>% 
+  distinct()
+
+ggplot_stats1 = stats_1 %>% 
+  ggplot() +
+  aes(x = reorder(genes, n_conditions), fill = covid_other, weight = n_conditions) +
+  geom_bar() +
+  theme_minimal() +
+  scale_fill_manual(
+    values = ann_vaxsig_colors$covid_other) +
+  theme_minimal() +
+  labs(fill = "Covid or non-covid",
+       title = "Genes shared",
+       x = "",
+       y = "Number of shared conditions") +
+  theme(legend.position = "top",
+        axis.text.x = element_text(vjust = 0, hjust=0, size = 12),
+        axis.text.y = element_text(size = 12, angle = 0, color = "black"),
+        panel.grid.minor.y = element_blank(),
+        legend.text = element_text(size=12),
+        legend.title = element_text(size = 12, face = "bold")) +
+  coord_flip() +
+    ylim(-0.1, 22)
+ggplot_stats1
+
+
+ggsave(ggplot_stats1, file = here("Figures", "Covid_Vax_genes_shared_column.png"), width = 10, height = 10)
+
+
+# Subset the 50 most shared genes
+covid_other_immune_genes_50_mostshared_all = stats_1 %>% 
+  select(genes) %>% 
+  distinct() %>% 
+  inner_join(degs_all_updown_covid_vax_other_immune %>% 
+               select(condition, genes), by = "genes")
+```
 
 
 
