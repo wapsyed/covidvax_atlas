@@ -182,6 +182,8 @@ library(tidymodels)
 library(purrr)
 # library(immunedeconv)
 tidymodels_prefer()
+
+
 ```
 
 ## Standardize figures
@@ -210,24 +212,27 @@ ann_vaxsig_colors = list(
            'SU' = "#8491B4FF",
            'I'= "#DC0000FF",
            "H" = "grey95"),
-  target_pathogen_disease = c('MENINGOCOCCUS'	= "#00A087FF",
+  target_pathogen_disease = c('MENINGOCOCCUS'	= "#F39B7FFF",
                               'PNEUMOCOCCUS'	= "#44C199",
                               'TUBERCULOSIS'	= "#99e2b4",
                               'F TULARENSIS'	= "#4DBBD5FF",
                               'LEISHMANIA'	= "#118ab2",
-                              'MALARIA' = "#015BA0",
+                              'MALARIA' = "#7E6148FF",
                               'EBOV'	= "#5e60ce",
-                              'HBV'	= "#D7B0EE",
-                              'HBV, HAV'	= "#D7B0EE",
+                              'HBV'	= "#4DBBD5FF",
+                              'HBV, HAV'	= "#4DBBD5FF",
+                              'HEPATITIS A/B'	= "#4DBBD5FF",
                               'HIV'	= "#b5179e",
                               'HPV'	= "#c77dff",
-                              'INFLUENZA'	= "#deaaff",
-                              'MEASLES'	= "#9d4edd",
-                              'MMR'	= "#7b2cbf",
-                              'SMALLPOX'	= "#e5b3fe",
+                              'INFLUENZA'	= "#00A087FF",
+                              'MEASLES'	= "#ffadc7",
+                              'MMR'	= "#8491B4FF",
+                              'SMALLPOX'	= "#EFC000FF",
                               'VEEV'	= "#ecbcfd",
                               'VZV'	= "#c8b6ff",
-                              'YF'	= "#b8c0ff"),
+                              'YF'	= "#b8c0ff",
+                              'YELLOW FEVER'	= "#b8c0ff"
+                              ),
   covid_other = c("COVID" = "#3C5488FF",
                   "OTHER" = "#4DBBD5FF"),
   set = c("COVID-19" = "#3C5488FF",
@@ -21593,7 +21598,7 @@ pca_plot_knn_cluster
 
 
 
-# 10. Heatmaps - Genes - ImmuneGO
+# 10. Heatmaps - Genes - Immune sets
 
 Import files
 
@@ -28481,6 +28486,8 @@ write_tsv(nodes, file = paste0(filename, "Network_Covid_Other_sharedgenes_nodes.
 
 # 12. 13 Vax Atlas
 
+
+Standardize tables
 ```{r}
 IS2_FDR05_genes <- readRDS(here("13VaxAtlas", "IS2_FDR05_genes.rds"))
 
@@ -28564,18 +28571,33 @@ degs_covid_vax$genes %>% unique() %>% length()
 degs_covid_vax %>% 
   saveRDS(file = here("VaxGO gene sets", "degs_covid_vaxhagan.rds"))
 
+```
 
+
+Inputs
+```{r}
+#Input
+degs_covid_vax = read_rds(file = here("VaxGO gene sets", "degs_covid_vaxhagan.rds"))
 ImmuneGO_BTM_grouped_genes <- read_csv("VaxGO gene sets/ImmuneGO_BTM_grouped_genes.csv")
 immunego_btm_genes = ImmuneGO_BTM_grouped_genes
-
+all_degs_p_05_vac_infected = readRDS(here("DGE analysis", "all_studies_degs_weighted.rds")) %>% 
+  filter(if_else(n >= 5, fdr <= 0.05, fdr <= (0.05 * 6/n))) 
+ann_vaccines_covid_other_conditions = read_csv(file = here("Annotations and metadata", "ann_vaccines_covid_other_conditions.csv")) %>% 
+  mutate(day = factor(day) %>%
+           fct_reorder(as.numeric(as.character(day))),
+        dose = factor(dose) %>% 
+           fct_reorder(as.numeric(as.character(dose))),
+        week = factor(week) %>% 
+           fct_reorder(as.numeric(as.character(week))))
 ```
+
 
 
 
 ## Overlapping genes
 
 ```{r}
-#Input
+
 data = degs_covid_vax %>%
   filter(genes %in% immunego_btm_genes$genes) %>% 
   rename(process = condition) %>% 
@@ -29811,7 +29833,9 @@ patch_immune_main
 df = All_covid_13VaxImmune_GO_T2G_specfic_GSEA_ALL %>% 
   filter(p_adjust <= 0.25) %>%
   inner_join(ann_vaccines_covid_other_conditions, by = "condition") %>% 
-    mutate(logq = -log10(qvalue)) 
+    mutate(logpadj = -log10(p_adjust)) 
+
+btm_annotation_immune_table_labelled
   
 df =  df %>% 
     mutate(day = fct_relevel(day, df %>% 
@@ -29837,23 +29861,18 @@ row_clustered = df %>%
 
 row_shared =  df %>%
   filter(p_adjust <= 0.10) %>% 
-  mutate(id = factor(id, levels = row_clustered$labels[row_clustered$order]),
-         id = str_to_title(id),
-         id = case_when(id == "Humoral Adaptive Immune System" ~ "Humoral Adap.",
-                        id == "Cellular Adaptive Immune System" ~ "Cellular Adap.",
-                        id == "Adaptive Immune System" ~ "Adap.",
-                        id == "Innate Immune System" ~ "Innate",
-                        id == "Complement Immune System" ~ "Complement",
-                        id == "Immunoglobulin Mediated Response" ~ "Ig-mediated",
-                        id == "Antiviral And Interferon" ~ "Antiviral/IFN",.default = id)) %>% 
+  mutate(id = factor(id, levels = row_clustered$labels[row_clustered$order])) %>% 
   group_by(id) %>% 
   summarize(n = n()) %>% 
   ungroup() %>% 
-  arrange(-n)
-```
+  arrange(-n) %>% 
+  filter(n >= 15)
 
 
-```{r fig.height=45, fig.width=25}
+df = df %>% 
+  filter(id %in% c(row_shared$id))
+
+
 result_vac <- cluster_by_day(df %>% filter(disease_vac == "V"), day_column = "day", condition_column = "condition") %>%
   distinct() %>% 
   mutate(day = fct_relevel(day, df$day %>% unique() %>% sort() %>% as.character()))
@@ -29948,17 +29967,7 @@ dotplot = df %>%
   filter(id %in% row_clustered$labels) %>% 
   mutate(signific = case_when(p_adjust <= 0.10 ~ "*",
                               TRUE ~ "")) %>% 
-  mutate(condition = factor(condition, column_order),
-         # id = factor(id, levels = row_clustered$labels[row_clustered$order]),
-         id = str_to_title(id),
-         id = case_when(id == "Humoral Adaptive Immune System" ~ "Humoral Adap.",
-                        id == "Cellular Adaptive Immune System" ~ "Cellular Adap.",
-                        id == "Adaptive Immune System" ~ "Adap.",
-                        id == "Innate Immune System" ~ "Innate",
-                        id == "Complement Immune System" ~ "Complement",
-                        id == "Immunoglobulin Mediated Response" ~ "Ig-mediated",
-                        id == "Antiviral And Interferon" ~ "Antiviral/IFN",.default = id),
-         id = fct_relevel(id, c(row_shared$id))) %>% 
+  mutate(condition = factor(condition, column_order)) %>% 
   ggplot(aes(x=condition, y = fct_rev(id), 
              fill = nes, 
              color = nes
@@ -30022,7 +30031,7 @@ Specific filtered
 ```{r fig.height=15, fig.width=30}
 df = All_covid_13VaxImmune_GO_T2G_specfic_GSEA_ALL %>% 
   inner_join(ann_vaccines_covid_other_conditions, by = "condition") %>% 
-    mutate(logq = -log10(qvalue))
+    mutate(logpadj = -log10(p_adjust))
 
 #Filter most shared modules
 filtered_mods = df %>% 
@@ -32227,11 +32236,16 @@ btm_annotation_genes_immune = ImmuneGO_BTM_grouped_genes %>%
   select(genes) %>% distinct()
 
 # Sample or condition annotation
-ann_vaccines_covid_other_conditions = read_csv(file = here("Annotations and metadata", "ann_vaccines_covid_other_conditions.csv"))
+ann_vaccines_covid_other_conditions = read_csv(file = here("Annotations and metadata", "ann_vaccines_covid_other_conditions.csv")) %>% 
+  mutate(day = factor(day) %>%
+           fct_reorder(as.numeric(as.character(day))),
+        dose = factor(dose) %>% 
+           fct_reorder(as.numeric(as.character(dose))),
+        week = factor(week) %>% 
+           fct_reorder(as.numeric(as.character(week))))
 
-data_annotation = ann_vaccines_covid_other_conditions %>%
-  mutate(day = as.factor(day),
-         dose = as.factor(dose)) 
+data_annotation = ann_vaccines_covid_other_conditions
+
 ```
 
 **Filtering data**
@@ -32693,7 +32707,7 @@ dotplot = df %>%
   labs(x = "", y = "") + 
   scale_y_discrete(position = "right") + 
   scale_fill_gradientn(
-    colors = c("white", "#4DBBD5FF", "#EFC000FF", "#F39C12", "#d90429"),  # cores para os quartis
+    colors = c("white", "#4DBBD5FF", "#EFC000FF", "#F39C12", "#DC0000FF"),  # cores para os quartis
     values = c(0, 0.10, 0.25, 0.5, 0.75, 1),                       # limites dos quartis
     name = "Regularized\nscore",
     limits = c(0, 1),
@@ -32761,11 +32775,13 @@ ImmuneGO_BTM_grouped_genes <- read_csv("VaxGO gene sets/ImmuneGO_BTM_grouped_gen
 
 # Informations about gene sets
 ImmuneGO = ImmuneGO_BTM_grouped_genes %>% 
-  mutate(immune_system = if_else(is.na(immune_system), process, immune_system)) %>% 
+  mutate(annotation = if_else(is.na(immune_system),"Manual", "Specific"),
+         immune_system = if_else(is.na(immune_system), process, immune_system)) %>% 
   distinct()
 
 # Filter only manual annotated gene sets
 immunego_genes = ImmuneGO %>%
+  filter(annotation == "Manual") %>% 
   select(process,genes)
 
 ann_vaccines = ann_vaccines_covid_other_conditions
@@ -32808,6 +32824,9 @@ Immune_GO_genes_Innate = Immune_GO_genes_All %>%
 Immune_GO_genes_Adaptive = Immune_GO_genes_All %>%
  filter(process == "ADAPTIVE IMMUNE SYSTEM") %>% 
   distinct()
+Immune_GO_genes_Signaling = Immune_GO_genes_All %>%
+ filter(process == "SIGNALING") %>% 
+  distinct()
 
 # Innate immune system
 Immune_GO_genes_Inflammation = Immune_GO_genes_All %>%
@@ -32821,6 +32840,9 @@ Immune_GO_genes_IFN = Immune_GO_genes_All %>%
   distinct()
 Immune_GO_genes_Neutrophil = Immune_GO_genes_All %>%
   filter(process == "NEUTROPHIL") %>% 
+  distinct()
+Immune_GO_genes_Myeloid = Immune_GO_genes_All %>%
+  filter(process == "MYELOID CELL") %>% 
   distinct()
 Immune_GO_genes_Eosinophil = Immune_GO_genes_All %>%
   filter(process == "EOSINOPHIL") %>% 
@@ -32854,9 +32876,9 @@ Immune_GO_genes_Humoral = Immune_GO_genes_All %>%
 Immune_GO_genes_Tcells = Immune_GO_genes_All %>%
   filter(process == "T CELL") %>% 
   distinct()
-Immune_GO_genes_Th = Immune_GO_genes_All %>%
-  filter(process == "T HELPER CELLS") %>% 
-  distinct()
+# Immune_GO_genes_Th = Immune_GO_genes_All %>%
+#   filter(process == "T HELPER CELLS") %>% 
+#   distinct()
 Immune_GO_genes_Bcells = Immune_GO_genes_All %>%
   filter(process == "B CELL") %>% 
   distinct()
@@ -32891,7 +32913,7 @@ matrix_data <- dcast(heatmap_data_l2fc,
                          fun.aggregate = mean) %>% 
   column_to_rownames('genes') %>% 
   mutate_if(is.character, as.numeric) %>% 
-  replace(is.na(.), 0)
+  replace(is.na(.), 0) 
 
 matrix_data_ready =  matrix_data %>% 
   round(2)
@@ -32910,7 +32932,11 @@ ann_vaccines_heatmap = matrix_data %>%
   rename(condition = '.') %>% 
   merge(ann_vaccines_complex, by = "condition", all.x = TRUE) %>% 
   arrange(day) %>% 
-  column_to_rownames(var= "condition") 
+  column_to_rownames(var= "condition")  %>% 
+  mutate(day = factor(day) %>%
+           fct_reorder(as.numeric(as.character(day))),
+         week = factor(week) %>%
+           fct_reorder(as.numeric(as.character(week))))
 
 
 #Rows Immune ----
@@ -32978,8 +33004,8 @@ row_ha = HeatmapAnnotation(df = ann_rows_immune,
                        show_annotation_name = F,
                        show_legend = F)
 
-col_fun <- colorRamp2(c(-1, 0, 0.1), 
-                      c("#4DBBD5FF", "white", "#ed6a5a"))
+col_fun <- colorRamp2(c(-1, 0, 1), 
+                      c("#4DBBD5FF", "white", "#DC0000FF"))
 
 #Parameters
 mat = matrix_data_ordered
@@ -32998,15 +33024,15 @@ png(file = fileimageheatmap_ungrouped, width=width_image, height=height_image,un
 
 heatmap_plot_all = Heatmap(mat,
                         top_annotation = ha,
-                        left_annotation = row_ha,
+                        # left_annotation = row_ha,
                         show_heatmap_legend = TRUE,
                         heatmap_legend_param = list(direction = "vertical"),
                         name = "L2FC", #Legend
                         col = col_fun, 
                         cluster_columns = dend1,
                         column_names_rot = 45,
-                        show_row_dend = T,
-                        row_split = 2, #Split group clusters
+                        show_row_dend = F,
+                        row_split = NULL, #Split group clusters
                         show_row_names = F,
                         column_names_gp = column_names_gp,
                         width = width,
@@ -33026,10 +33052,6 @@ dev.off()
 
 By day
 ```{r}
-column_split = ann_vaccines_heatmap$day %>% as.character()
-
-dend1 = cluster_between_groups(matrix_data_ordered, column_split)
-
 
 #Create heatmap annotation
 ha = HeatmapAnnotation(df = ann_vaccines_heatmap, 
@@ -33043,8 +33065,8 @@ row_ha = HeatmapAnnotation(df = ann_rows_immune,
                        show_annotation_name = F,
                        show_legend = F)
 
-col_fun <- colorRamp2(c(-0.5, 0, 0.5), 
-                      c("#4DBBD5FF", "white", "#ed6a5a"))
+col_fun <- colorRamp2(c(-1, 0, 1), 
+                      c("#4DBBD5FF", "white", "#DC0000FF"))
 
 #Parameters
 mat = matrix_data_ordered
@@ -33068,7 +33090,7 @@ heatmap_plot_all = Heatmap(mat,
                         heatmap_legend_param = list(direction = "vertical"),
                         name = "L2FC", #Legend
                         col = col_fun, 
-                        cluster_columns = dend1,
+                        cluster_columns = F,
                         column_names_rot = 45,
                         show_row_dend = T,
                         row_split = 2, #Split group clusters
@@ -33173,7 +33195,7 @@ row_ha = HeatmapAnnotation(df = ann_rows_immune,
                        show_legend = F)
 
 col_fun <- colorRamp2(c(-0.5, 0, 0.5), 
-                      c("#4DBBD5FF", "white", "#ed6a5a"))
+                      c("#4DBBD5FF", "white", "#DC0000FF"))
 
 #Parameters
 mat = matrix_data_ordered
@@ -33237,7 +33259,7 @@ row_ha = HeatmapAnnotation(df = ann_rows_immune,
                        show_legend = F)
 
 col_fun <- colorRamp2(c(-0.5, 0, 0.5), 
-                      c("#4DBBD5FF", "white", "#ed6a5a"))
+                      c("#4DBBD5FF", "white", "#DC0000FF"))
 
 #Parameters
 mat = matrix_data_ordered
@@ -33352,7 +33374,7 @@ matrix_data_ready =  matrix_data %>%
 ann_vaccines_complex = heatmap_data %>% 
   select(condition) %>% 
   distinct() %>% 
-  inner_join(ann_vaccines %>% select(condition, disease_vac, type, week), by = "condition")
+  inner_join(ann_vaccines %>% select(condition, disease_vac, type, day), by = "condition")
 
 # Join annotations
 ann_vaccines_heatmap = matrix_data %>% 
@@ -33370,8 +33392,8 @@ matrix_data_ordered = matrix_data %>%
   as.data.frame() %>% 
   rownames_to_column(var= "condition") %>% 
   merge(ann_vaccines_complex, by.y = "condition", all.x=TRUE) %>% 
-  arrange(condition) %>% 
-  select(!c(disease_vac, type, week)) %>% 
+  arrange(day) %>% 
+  select(!c(disease_vac, type, day)) %>% 
   column_to_rownames("condition") %>% 
   t() %>% 
   as.data.frame() %>% 
@@ -33391,7 +33413,7 @@ ha = HeatmapAnnotation(df = ann_vaccines_heatmap,
 
 
 col_fun <- colorRamp2(c(-2, 0, 2), 
-                      c("#4DBBD5FF", "white", "#ed6a5a"))
+                      c("#4DBBD5FF", "white", "#DC0000FF"))
 
 
 #Parameters
@@ -33425,12 +33447,12 @@ heatmap_plot_all = Heatmap(mat,
                         row_names_gp = row_names_gp,
                         row_split = NULL, #Split row clusters
                         row_gap = unit(2, "mm"),
-                        cluster_columns = TRUE,
+                        cluster_columns = F,
                         #column_split = 2, #Split group clusters
                         #column_km = 2,
                         column_gap = unit(8, "mm"),
-                        show_column_dend = TRUE,
-                        show_row_dend = TRUE,
+                        show_column_dend = F,
+                        show_row_dend = F,
                         row_dend_side = "left",
                         column_dend_side = "top",
                         clustering_distance_rows = "euclidean",
@@ -33489,7 +33511,7 @@ matrix_data_ordered = matrix_data %>%
   rownames_to_column(var= "condition") %>% 
   merge(ann_vaccines_complex, by.y = "condition", all.x=TRUE) %>% 
   arrange(day) %>% 
-  select(!c(disease_vac, type,  day)) %>% 
+  select(!c(set, disease_vac, type,  day)) %>% 
   column_to_rownames("condition") %>% 
   t() %>% 
   as.data.frame() %>% 
@@ -33506,7 +33528,7 @@ ha = HeatmapAnnotation(df = ann_vaccines_heatmap,
 
 
 col_fun <- colorRamp2(c(-1, 0, 1), 
-                      c("#4DBBD5FF", "white", "#ed6a5a"))
+                      c("#4DBBD5FF", "white", "#DC0000FF"))
 
 mat = matrix_data_ordered
 width = unit(30, "cm")
@@ -33530,14 +33552,14 @@ heatmap_plot_all = Heatmap(mat,
                         column_names_rot = 45,
                         column_names_gp = gpar(fontsize = 10),
                         rect_gp = gpar(col = "gray90", lwd = 1),
-                        cluster_rows = TRUE,
+                        cluster_rows = T,
                         row_names_gp = row_names_gp,
                         row_split = NULL, 
                         row_gap = unit(2, "mm"),
                         cluster_columns = F,
                         column_gap = unit(8, "mm"),
-                        show_column_dend = TRUE,
-                        show_row_dend = TRUE,
+                        show_column_dend = F,
+                        show_row_dend = F,
                         row_dend_side = "left",
                         column_dend_side = "top",
                         clustering_distance_rows = "euclidean",
@@ -33552,6 +33574,7 @@ draw(heatmap_plot_all, annotation_legend_side = "right", heatmap_legend_side = "
 dev.off()
 ```
 
+Clustered all
 ```{r}
 ####### Input
 
@@ -33577,7 +33600,7 @@ matrix_data_ready =  matrix_data %>%
 ann_vaccines_complex = heatmap_data %>% 
   select(condition) %>% 
   distinct() %>% 
-  inner_join(ann_vaccines %>% select(condition, disease_vac, type, day), by = "condition")
+  inner_join(ann_vaccines %>% select(condition, set, disease_vac, type, day), by = "condition")
 
 ann_vaccines_heatmap = matrix_data %>% 
   colnames() %>% 
@@ -33594,7 +33617,7 @@ matrix_data_ordered = matrix_data %>%
   rownames_to_column(var= "condition") %>% 
   merge(ann_vaccines_complex, by.y = "condition", all.x=TRUE) %>% 
   arrange(day) %>% 
-  select(!c(disease_vac, type,  day)) %>% 
+  select(!c(set, disease_vac, type,  day)) %>% 
   column_to_rownames("condition") %>% 
   t() %>% 
   as.data.frame() %>% 
@@ -33610,8 +33633,8 @@ ha = HeatmapAnnotation(df = ann_vaccines_heatmap,
                        annotation_name_side = "left")
 
 
-col_fun <- colorRamp2(c(-1, 0, 1), 
-                      c("#4DBBD5FF", "white", "#ed6a5a"))
+col_fun <- colorRamp2(c(-2, 0, 2), 
+                      c("#4DBBD5FF", "white", "#DC0000FF"))
 
 mat = matrix_data_ordered
 width = unit(30, "cm")
@@ -33641,8 +33664,8 @@ heatmap_plot_all = Heatmap(mat,
                         row_gap = unit(2, "mm"),
                         cluster_columns = T,
                         column_gap = unit(8, "mm"),
-                        show_column_dend = TRUE,
-                        show_row_dend = TRUE,
+                        show_column_dend = F,
+                        show_row_dend = F,
                         row_dend_side = "left",
                         column_dend_side = "top",
                         clustering_distance_rows = "euclidean",
@@ -33682,7 +33705,7 @@ matrix_data_ready =  matrix_data %>%
 ann_vaccines_complex = heatmap_data %>% 
   select(condition) %>% 
   distinct() %>% 
-  inner_join(ann_vaccines %>% select(condition, disease_vac, type, week), by = "condition")
+  inner_join(ann_vaccines %>% select(condition, set, disease_vac, type, day), by = "condition")
 
 ann_vaccines_heatmap = matrix_data %>% 
   colnames() %>% 
@@ -33690,7 +33713,7 @@ ann_vaccines_heatmap = matrix_data %>%
   filter(. != "genes") %>% 
   rename(condition = '.') %>% 
   inner_join(ann_vaccines_complex, by = "condition") %>% 
-  arrange(condition) %>% 
+  arrange(day) %>% 
   column_to_rownames(var= "condition") 
 
 matrix_data_ordered = matrix_data %>% 
@@ -33698,8 +33721,8 @@ matrix_data_ordered = matrix_data %>%
   as.data.frame() %>% 
   rownames_to_column(var= "condition") %>% 
   inner_join(ann_vaccines_complex, by = "condition") %>% 
-  arrange(condition) %>% 
-  select(!c(disease_vac, type, week)) %>% 
+  arrange(day) %>% 
+  select(!c(set, disease_vac, type, day)) %>% 
   column_to_rownames("condition") %>% 
   t() %>% 
   as.data.frame() %>% 
@@ -33716,7 +33739,7 @@ ha = HeatmapAnnotation(df = ann_vaccines_heatmap,
                        annotation_name_side = "left")
 
 
-col_fun <- colorRamp2(c(-2, 0, 2), c("#4DBBD5FF", "white", "#ed6a5a"))
+col_fun <- colorRamp2(c(-2, 0, 2), c("#4DBBD5FF", "white", "#DC0000FF"))
 
 
 mat = matrix_data_ordered
@@ -33745,12 +33768,12 @@ heatmap_plot_all = Heatmap(mat,
                         row_names_gp = row_names_gp,
                         row_split = NULL, #Split row clusters
                         row_gap = unit(2, "mm"),
-                        cluster_columns = TRUE,
-                        column_split = 2, #Split group clusters
+                        cluster_columns = F,
+                        column_split = NULL, #Split group clusters
                         #column_km = 2,
                         column_gap = unit(8, "mm"),
-                        show_column_dend = TRUE,
-                        show_row_dend = TRUE,
+                        show_column_dend = F,
+                        show_row_dend = F,
                         row_dend_side = "left",
                         column_dend_side = "top",
                         clustering_distance_rows = "euclidean",
@@ -33789,7 +33812,7 @@ matrix_data_ready =  matrix_data %>%
 ann_vaccines_complex = heatmap_data %>% 
   select(condition) %>% 
   distinct() %>% 
-  inner_join(ann_vaccines %>% select(condition, disease_vac, type, week), by = "condition")
+  inner_join(ann_vaccines %>% select(condition, set, disease_vac, type, day), by = "condition")
 
 ann_vaccines_heatmap = matrix_data %>% 
   colnames() %>% 
@@ -33797,7 +33820,7 @@ ann_vaccines_heatmap = matrix_data %>%
   filter(. != "genes") %>% 
   rename(condition = '.') %>% 
   merge(ann_vaccines_complex, by = "condition", all.x = TRUE) %>% 
-  arrange(condition) %>% 
+  arrange(day) %>% 
   column_to_rownames(var= "condition") 
 
 matrix_data_ordered = matrix_data %>% 
@@ -33805,8 +33828,8 @@ matrix_data_ordered = matrix_data %>%
   as.data.frame() %>% 
   rownames_to_column(var= "condition") %>% 
   merge(ann_vaccines_complex, by.y = "condition", all.x=TRUE) %>% 
-  arrange(condition) %>% 
-  select(!c(disease_vac, type, week)) %>% 
+  arrange(day) %>% 
+  select(!c(set, disease_vac, type, day)) %>% 
   column_to_rownames("condition") %>% 
   t() %>% 
   as.data.frame() %>% 
@@ -33823,13 +33846,13 @@ ha = HeatmapAnnotation(df = ann_vaccines_heatmap,
 
 
 col_fun <- colorRamp2(c(-2, 0, 2), 
-                      c("#4DBBD5FF", "white", "#ed6a5a"))
+                      c("#4DBBD5FF", "white", "#DC0000FF"))
 
 mat = matrix_data_ordered
 width_image = 40
-height_image = 20
+height_image = 30
 width = unit(30, "cm")
-height = unit(10, "cm")
+height = unit(20, "cm")
 column_names_gp = gpar(fontsize = 10)
 row_names_gp = gpar(fontsize = 10)
 
@@ -33853,10 +33876,10 @@ heatmap_plot_all = Heatmap(mat,
                         row_names_gp = row_names_gp,
                         row_split = NULL, 
                         row_gap = unit(2, "mm"),
-                        cluster_columns = TRUE,
+                        cluster_columns = F,
                         column_gap = unit(8, "mm"),
-                        show_column_dend = TRUE,
-                        show_row_dend = TRUE,
+                        show_column_dend = F,
+                        show_row_dend = F,
                         row_dend_side = "left",
                         column_dend_side = "top",
                         clustering_distance_rows = "euclidean",
@@ -33905,7 +33928,7 @@ matrix_data_ready =  matrix_data %>%
 ann_vaccines_complex = heatmap_data %>% 
   select(condition) %>% 
   distinct() %>% 
-  inner_join(ann_vaccines %>% select(condition, disease_vac, type, week), by = "condition")
+  inner_join(ann_vaccines %>% select(condition, set, disease_vac, type, day), by = "condition")
 
 # Unir tabela de anotações
 ann_vaccines_heatmap = matrix_data %>% 
@@ -33914,7 +33937,7 @@ ann_vaccines_heatmap = matrix_data %>%
   filter(. != "genes") %>% 
   rename(condition = '.') %>% 
   merge(ann_vaccines_complex, by = "condition", all.x = TRUE) %>% 
-  arrange(condition) %>% 
+  arrange(day) %>% 
   column_to_rownames(var= "condition") 
 
 # Ordenar colunas da matriz para a mesma ordem das linhas da tabela de anotações
@@ -33923,8 +33946,8 @@ matrix_data_ordered = matrix_data %>%
   as.data.frame() %>% 
   rownames_to_column(var= "condition") %>% 
   merge(ann_vaccines_complex, by.y = "condition", all.x=TRUE) %>% 
-  arrange(condition) %>% #Trocar a variável pela qual deseja ordenar (Vaccine, Day, Condition, etc.)
-  select(!c(disease_vac, type, week)) %>% 
+  arrange(day) %>% #Trocar a variável pela qual deseja ordenar (Vaccine, Day, Condition, etc.)
+  select(!c(set, disease_vac, type, day)) %>% 
   column_to_rownames("condition") %>% 
   t() %>% 
   as.data.frame() %>% 
@@ -33943,17 +33966,17 @@ ha = HeatmapAnnotation(df = ann_vaccines_heatmap,
                        annotation_name_side = "left")
 
 
-col_fun <- colorRamp2(c(-2, 0, 2), c("#4DBBD5FF", "white", "#ed6a5a"))
+col_fun <- colorRamp2(c(-2, 0, 2), c("#4DBBD5FF", "white", "#DC0000FF"))
 
 
 #Parameters
 mat = matrix_data_ordered
 width = unit(30, "cm")
-height = unit(50, "cm")
+height = unit(55, "cm")
 width_image = 40
-height_image = 60
+height_image = 65
 column_names_gp = gpar(fontsize = 10)
-row_names_gp = gpar(fontsize = 10)
+row_names_gp = gpar(fontsize = 5)
 
 
 #Plotar e salvar imagem
@@ -33977,12 +34000,12 @@ heatmap_plot_all = Heatmap(mat,
                         row_names_gp = row_names_gp,
                         row_split = NULL, #Split row clusters
                         row_gap = unit(2, "mm"),
-                        cluster_columns = TRUE,
+                        cluster_columns = F,
                         # column_split = 2, #Split group clusters
                         #column_km = 2,
                         column_gap = unit(8, "mm"),
-                        show_column_dend = TRUE,
-                        show_row_dend = TRUE,
+                        show_column_dend = F,
+                        show_row_dend = F,
                         row_dend_side = "left",
                         column_dend_side = "top",
                         clustering_distance_rows = "euclidean",
@@ -34031,7 +34054,7 @@ matrix_data_ready =  matrix_data %>%
 ann_vaccines_complex = heatmap_data %>% 
   select(condition) %>% 
   distinct() %>% 
-  inner_join(ann_vaccines %>% select(condition, disease_vac, type, day), by = "condition")
+  inner_join(ann_vaccines %>% select(condition, set, disease_vac, type, day), by = "condition")
 
 # Unir tabela de anotações
 ann_vaccines_heatmap = matrix_data %>% 
@@ -34050,7 +34073,7 @@ matrix_data_ordered = matrix_data %>%
   rownames_to_column(var= "condition") %>% 
   merge(ann_vaccines_complex, by.y = "condition", all.x=TRUE) %>% 
   arrange(day) %>% #Trocar a variável pela qual deseja ordenar (Vaccine, Day, Condition, etc.)
-  select(!c(disease_vac, type, day)) %>% 
+  select(!c(set, disease_vac, type, day)) %>% 
   column_to_rownames("condition") %>% 
   t() %>% 
   as.data.frame() %>% 
@@ -34091,7 +34114,7 @@ heatmap_plot_all = Heatmap(mat,
                         top_annotation = ha,
                         show_row_names = TRUE,
                         show_heatmap_legend = TRUE,
-                        heatmap_legend_param = list(direction = "horizontal"),
+                        heatmap_legend_param = list(direction = "vertical"),
                         name = "L2FC", #Legend
                         col = col_fun, #color
                         column_title = fileimageheatmap_ungrouped,
@@ -34157,7 +34180,7 @@ matrix_data_ready =  matrix_data %>%
 ann_vaccines_complex = heatmap_data %>% 
   select(condition) %>% 
   distinct() %>% 
-  inner_join(ann_vaccines %>% select(condition, disease_vac, type, week), by = "condition")
+  inner_join(ann_vaccines %>% select(condition, set, disease_vac, type, day), by = "condition")
 
 # Unir tabela de anotações
 ann_vaccines_heatmap = matrix_data %>% 
@@ -34166,7 +34189,7 @@ ann_vaccines_heatmap = matrix_data %>%
   filter(. != "genes") %>% 
   rename(condition = '.') %>% 
   merge(ann_vaccines_complex, by = "condition", all.x = TRUE) %>% 
-  arrange(condition) %>% 
+  arrange(day) %>% 
   column_to_rownames(var= "condition") 
 
 # Ordenar colunas da matriz para a mesma ordem das linhas da tabela de anotações
@@ -34175,8 +34198,8 @@ matrix_data_ordered = matrix_data %>%
   as.data.frame() %>% 
   rownames_to_column(var= "condition") %>% 
   merge(ann_vaccines_complex, by.y = "condition", all.x=TRUE) %>% 
-  arrange(condition) %>% #Trocar a variável pela qual deseja ordenar (Vaccine, Day, Condition, etc.)
-  select(!c(disease_vac, type, week)) %>% 
+  arrange(day) %>% #Trocar a variável pela qual deseja ordenar (Vaccine, Day, Condition, etc.)
+  select(!c(set, disease_vac, type, day)) %>% 
   column_to_rownames("condition") %>% 
   t() %>% 
   as.data.frame() %>% 
@@ -34195,7 +34218,7 @@ ha = HeatmapAnnotation(df = ann_vaccines_heatmap,
                        annotation_name_side = "left")
 
 
-col_fun <- colorRamp2(c(-2, 0, 2), c("#4DBBD5FF", "white", "#ed6a5a"))
+col_fun <- colorRamp2(c(-2, 0, 2), c("#4DBBD5FF", "white", "#DC0000FF"))
 
 
 #Parameters
@@ -34205,7 +34228,7 @@ height = unit(40, "cm")
 width_image = 40
 height_image = 50
 column_names_gp = gpar(fontsize = 10)
-row_names_gp = gpar(fontsize = 10)
+row_names_gp = gpar(fontsize = 5)
 
 
 #Plotar e salvar imagem
@@ -34217,7 +34240,7 @@ heatmap_plot_all = Heatmap(mat,
                         top_annotation = ha,
                         show_row_names = TRUE,
                         show_heatmap_legend = TRUE,
-                        heatmap_legend_param = list(direction = "horizontal"),
+                        heatmap_legend_param = list(direction = "vertical"),
                         name = "L2FC", #Legend
                         col = col_fun, #color
                         column_title = fileimageheatmap_ungrouped,
@@ -34229,12 +34252,12 @@ heatmap_plot_all = Heatmap(mat,
                         row_names_gp = row_names_gp,
                         row_split = NULL, #Split row clusters
                         row_gap = unit(2, "mm"),
-                        cluster_columns = TRUE,
+                        cluster_columns = F,
                         # column_split = 2, #Split group clusters
                         #column_km = 2,
                         column_gap = unit(8, "mm"),
-                        show_column_dend = TRUE,
-                        show_row_dend = TRUE,
+                        show_column_dend = F,
+                        show_row_dend = F,
                         row_dend_side = "left",
                         column_dend_side = "top",
                         clustering_distance_rows = "euclidean",
@@ -34283,7 +34306,7 @@ matrix_data_ready =  matrix_data %>%
 ann_vaccines_complex = heatmap_data %>% 
   select(condition) %>% 
   distinct() %>% 
-  inner_join(ann_vaccines %>% select(condition, disease_vac, type, week), by = "condition")
+  inner_join(ann_vaccines %>% select(condition, set, disease_vac, type, day), by = "condition")
 
 # Unir tabela de anotações
 ann_vaccines_heatmap = matrix_data %>% 
@@ -34292,7 +34315,7 @@ ann_vaccines_heatmap = matrix_data %>%
   filter(. != "genes") %>% 
   rename(condition = '.') %>% 
   merge(ann_vaccines_complex, by = "condition", all.x = TRUE) %>% 
-  arrange(condition) %>% 
+  arrange(day) %>% 
   column_to_rownames(var= "condition") 
 
 # Ordenar colunas da matriz para a mesma ordem das linhas da tabela de anotações
@@ -34301,8 +34324,8 @@ matrix_data_ordered = matrix_data %>%
   as.data.frame() %>% 
   rownames_to_column(var= "condition") %>% 
   merge(ann_vaccines_complex, by.y = "condition", all.x=TRUE) %>% 
-  arrange(condition) %>% #Trocar a variável pela qual deseja ordenar (Vaccine, Day, Condition, etc.)
-  select(!c(disease_vac, type, week)) %>% 
+  arrange(day) %>% #Trocar a variável pela qual deseja ordenar (Vaccine, Day, Condition, etc.)
+  select(!c(set, disease_vac, type, day)) %>% 
   column_to_rownames("condition") %>% 
   t() %>% 
   as.data.frame() %>% 
@@ -34321,7 +34344,7 @@ ha = HeatmapAnnotation(df = ann_vaccines_heatmap,
                        annotation_name_side = "left")
 
 
-col_fun <- colorRamp2(c(-2, 0, 2), c("#4DBBD5FF", "white", "#ed6a5a"))
+col_fun <- colorRamp2(c(-2, 0, 2), c("#4DBBD5FF", "white", "#DC0000FF"))
 
 
 #Parameters
@@ -34343,7 +34366,7 @@ heatmap_plot_all = Heatmap(mat,
                         top_annotation = ha,
                         show_row_names = TRUE,
                         show_heatmap_legend = TRUE,
-                        heatmap_legend_param = list(direction = "horizontal"),
+                        heatmap_legend_param = list(direction = "vertical"),
                         name = "L2FC", #Legend
                         col = col_fun, #color
                         column_title = fileimageheatmap_ungrouped,
@@ -34355,12 +34378,12 @@ heatmap_plot_all = Heatmap(mat,
                         row_names_gp = row_names_gp,
                         row_split = NULL, #Split row clusters
                         row_gap = unit(2, "mm"),
-                        cluster_columns = TRUE,
+                        cluster_columns = F,
                         # column_split = 2, #Split group clusters
                         #column_km = 2,
                         column_gap = unit(8, "mm"),
-                        show_column_dend = TRUE,
-                        show_row_dend = TRUE,
+                        show_column_dend = F,
+                        show_row_dend = F,
                         row_dend_side = "left",
                         column_dend_side = "top",
                         clustering_distance_rows = "euclidean",
@@ -34409,7 +34432,7 @@ matrix_data_ready =  matrix_data %>%
 ann_vaccines_complex = heatmap_data %>% 
   select(condition) %>% 
   distinct() %>% 
-  inner_join(ann_vaccines %>% select(condition, disease_vac, type, week), by = "condition")
+  inner_join(ann_vaccines %>% select(condition, set, disease_vac, type, day), by = "condition")
 
 # Unir tabela de anotações
 ann_vaccines_heatmap = matrix_data %>% 
@@ -34418,7 +34441,7 @@ ann_vaccines_heatmap = matrix_data %>%
   filter(. != "genes") %>% 
   rename(condition = '.') %>% 
   merge(ann_vaccines_complex, by = "condition", all.x = TRUE) %>% 
-  arrange(condition) %>% 
+  arrange(day) %>% 
   column_to_rownames(var= "condition") 
 
 # Ordenar colunas da matriz para a mesma ordem das linhas da tabela de anotações
@@ -34427,8 +34450,8 @@ matrix_data_ordered = matrix_data %>%
   as.data.frame() %>% 
   rownames_to_column(var= "condition") %>% 
   merge(ann_vaccines_complex, by.y = "condition", all.x=TRUE) %>% 
-  arrange(condition) %>% #Trocar a variável pela qual deseja ordenar (Vaccine, Day, Condition, etc.)
-  select(!c(disease_vac, type, week)) %>% 
+  arrange(day) %>% #Trocar a variável pela qual deseja ordenar (Vaccine, Day, Condition, etc.)
+  select(!c(set, disease_vac, type, day)) %>% 
   column_to_rownames("condition") %>% 
   t() %>% 
   as.data.frame() %>% 
@@ -34447,17 +34470,17 @@ ha = HeatmapAnnotation(df = ann_vaccines_heatmap,
                        annotation_name_side = "left")
 
 
-col_fun <- colorRamp2(c(-2, 0, 2), c("#4DBBD5FF", "white", "#ed6a5a"))
+col_fun <- colorRamp2(c(-2, 0, 2), c("#4DBBD5FF", "white", "#DC0000FF"))
 
 
 #Parameters
 mat = matrix_data_ordered
-width = unit(30, "cm")
-height = unit(15, "cm")
-width_image = 40
-height_image = 25
+width = unit(35, "cm")
+height = unit(50, "cm")
+width_image = 45
+height_image = 60
 column_names_gp = gpar(fontsize = 10)
-row_names_gp = gpar(fontsize = 10)
+row_names_gp = gpar(fontsize = 5)
 
 
 #Plotar e salvar imagem
@@ -34469,7 +34492,7 @@ heatmap_plot_all = Heatmap(mat,
                         top_annotation = ha,
                         show_row_names = TRUE,
                         show_heatmap_legend = TRUE,
-                        heatmap_legend_param = list(direction = "horizontal"),
+                        heatmap_legend_param = list(direction = "vertical"),
                         name = "L2FC", #Legend
                         col = col_fun, #color
                         column_title = fileimageheatmap_ungrouped,
@@ -34481,12 +34504,12 @@ heatmap_plot_all = Heatmap(mat,
                         row_names_gp = row_names_gp,
                         row_split = NULL, #Split row clusters
                         row_gap = unit(2, "mm"),
-                        cluster_columns = TRUE,
+                        cluster_columns = F,
                         #column_split = 2, #Split group clusters
                         #column_km = 2,
                         column_gap = unit(8, "mm"),
-                        show_column_dend = TRUE,
-                        show_row_dend = TRUE,
+                        show_column_dend = F,
+                        show_row_dend = F,
                         row_dend_side = "left",
                         column_dend_side = "top",
                         clustering_distance_rows = "euclidean",
@@ -34535,7 +34558,7 @@ matrix_data_ready =  matrix_data %>%
 ann_vaccines_complex = heatmap_data %>% 
   select(condition) %>% 
   distinct() %>% 
-  inner_join(ann_vaccines %>% select(condition, disease_vac, type, week), by = "condition")
+  inner_join(ann_vaccines %>% select(condition, set, disease_vac, type, day), by = "condition")
 
 # Unir tabela de anotações
 ann_vaccines_heatmap = matrix_data %>% 
@@ -34544,7 +34567,7 @@ ann_vaccines_heatmap = matrix_data %>%
   filter(. != "genes") %>% 
   rename(condition = '.') %>% 
   merge(ann_vaccines_complex, by = "condition", all.x = TRUE) %>% 
-  arrange(condition) %>% 
+  arrange(day) %>% 
   column_to_rownames(var= "condition") 
 
 # Ordenar colunas da matriz para a mesma ordem das linhas da tabela de anotações
@@ -34553,8 +34576,8 @@ matrix_data_ordered = matrix_data %>%
   as.data.frame() %>% 
   rownames_to_column(var= "condition") %>% 
   merge(ann_vaccines_complex, by.y = "condition", all.x=TRUE) %>% 
-  arrange(condition) %>% #Trocar a variável pela qual deseja ordenar (Vaccine, Day, Condition, etc.)
-  select(!c(disease_vac, type, week)) %>% 
+  arrange(day) %>% #Trocar a variável pela qual deseja ordenar (Vaccine, Day, Condition, etc.)
+  select(!c(set, disease_vac, type, day)) %>% 
   column_to_rownames("condition") %>% 
   t() %>% 
   as.data.frame() %>% 
@@ -34573,17 +34596,17 @@ ha = HeatmapAnnotation(df = ann_vaccines_heatmap,
                        annotation_name_side = "left")
 
 
-col_fun <- colorRamp2(c(-2, 0, 2), c("#4DBBD5FF", "white", "#ed6a5a"))
+col_fun <- colorRamp2(c(-2, 0, 2), c("#4DBBD5FF", "white", "#DC0000FF"))
 
 
 #Parameters
 mat = matrix_data_ordered
-width = unit(30, "cm")
-height = unit(15, "cm")
-width_image = 40
-height_image = 25
+width = unit(35, "cm")
+height = unit(50, "cm")
+width_image = 45
+height_image = 60
 column_names_gp = gpar(fontsize = 10)
-row_names_gp = gpar(fontsize = 10)
+row_names_gp = gpar(fontsize = 5)
 
 
 #Plotar e salvar imagem
@@ -34595,7 +34618,7 @@ heatmap_plot_all = Heatmap(mat,
                         top_annotation = ha,
                         show_row_names = TRUE,
                         show_heatmap_legend = TRUE,
-                        heatmap_legend_param = list(direction = "horizontal"),
+                        heatmap_legend_param = list(direction = "vertical"),
                         name = "L2FC", #Legend
                         col = col_fun, #color
                         column_title = fileimageheatmap_ungrouped,
@@ -34607,12 +34630,12 @@ heatmap_plot_all = Heatmap(mat,
                         row_names_gp = row_names_gp,
                         row_split = NULL, #Split row clusters
                         row_gap = unit(2, "mm"),
-                        cluster_columns = TRUE,
+                        cluster_columns = F,
                         #column_split = 2, #Split group clusters
                         #column_km = 2,
                         column_gap = unit(8, "mm"),
-                        show_column_dend = TRUE,
-                        show_row_dend = TRUE,
+                        show_column_dend = F,
+                        show_row_dend = F,
                         row_dend_side = "left",
                         column_dend_side = "top",
                         clustering_distance_rows = "euclidean",
@@ -34661,7 +34684,7 @@ matrix_data_ready =  matrix_data %>%
 ann_vaccines_complex = heatmap_data %>% 
   select(condition) %>% 
   distinct() %>% 
-  inner_join(ann_vaccines %>% select(condition, disease_vac, type, week), by = "condition")
+  inner_join(ann_vaccines %>% select(condition, set, disease_vac, type, day), by = "condition")
 
 # Unir tabela de anotações
 ann_vaccines_heatmap = matrix_data %>% 
@@ -34670,7 +34693,7 @@ ann_vaccines_heatmap = matrix_data %>%
   filter(. != "genes") %>% 
   rename(condition = '.') %>% 
   merge(ann_vaccines_complex, by = "condition", all.x = TRUE) %>% 
-  arrange(condition) %>% 
+  arrange(day) %>% 
   column_to_rownames(var= "condition") 
 
 # Ordenar colunas da matriz para a mesma ordem das linhas da tabela de anotações
@@ -34679,8 +34702,8 @@ matrix_data_ordered = matrix_data %>%
   as.data.frame() %>% 
   rownames_to_column(var= "condition") %>% 
   merge(ann_vaccines_complex, by.y = "condition", all.x=TRUE) %>% 
-  arrange(condition) %>% #Trocar a variável pela qual deseja ordenar (Vaccine, Day, Condition, etc.)
-  select(!c(disease_vac, type, week)) %>% 
+  arrange(day) %>% #Trocar a variável pela qual deseja ordenar (Vaccine, Day, Condition, etc.)
+  select(!c(set, disease_vac, type, day)) %>% 
   column_to_rownames("condition") %>% 
   t() %>% 
   as.data.frame() %>% 
@@ -34699,7 +34722,7 @@ ha = HeatmapAnnotation(df = ann_vaccines_heatmap,
                        annotation_name_side = "left")
 
 
-col_fun <- colorRamp2(c(-2, 0, 2), c("#4DBBD5FF", "white", "#ed6a5a"))
+col_fun <- colorRamp2(c(-2, 0, 2), c("#4DBBD5FF", "white", "#DC0000FF"))
 
 
 #Parameters
@@ -34721,7 +34744,7 @@ heatmap_plot_all = Heatmap(mat,
                         top_annotation = ha,
                         show_row_names = TRUE,
                         show_heatmap_legend = TRUE,
-                        heatmap_legend_param = list(direction = "horizontal"),
+                        heatmap_legend_param = list(direction = "vertical"),
                         name = "L2FC", #Legend
                         col = col_fun, #color
                         column_title = fileimageheatmap_ungrouped,
@@ -34733,12 +34756,12 @@ heatmap_plot_all = Heatmap(mat,
                         row_names_gp = row_names_gp,
                         row_split = NULL, #Split row clusters
                         row_gap = unit(2, "mm"),
-                        cluster_columns = TRUE,
+                        cluster_columns = F,
                         #column_split = 2, #Split group clusters
                         #column_km = 2,
                         column_gap = unit(8, "mm"),
-                        show_column_dend = TRUE,
-                        show_row_dend = TRUE,
+                        show_column_dend = F,
+                        show_row_dend = F,
                         row_dend_side = "left",
                         column_dend_side = "top",
                         clustering_distance_rows = "euclidean",
@@ -34787,7 +34810,7 @@ matrix_data_ready =  matrix_data %>%
 ann_vaccines_complex = heatmap_data %>% 
   select(condition) %>% 
   distinct() %>% 
-  inner_join(ann_vaccines %>% select(condition, disease_vac, type, week), by = "condition")
+  inner_join(ann_vaccines %>% select(condition, set, disease_vac, type, day), by = "condition")
 
 # Unir tabela de anotações
 ann_vaccines_heatmap = matrix_data %>% 
@@ -34796,7 +34819,7 @@ ann_vaccines_heatmap = matrix_data %>%
   filter(. != "genes") %>% 
   rename(condition = '.') %>% 
   merge(ann_vaccines_complex, by = "condition", all.x = TRUE) %>% 
-  arrange(condition) %>% 
+  arrange(day) %>% 
   column_to_rownames(var= "condition") 
 
 # Ordenar colunas da matriz para a mesma ordem das linhas da tabela de anotações
@@ -34805,8 +34828,8 @@ matrix_data_ordered = matrix_data %>%
   as.data.frame() %>% 
   rownames_to_column(var= "condition") %>% 
   merge(ann_vaccines_complex, by.y = "condition", all.x=TRUE) %>% 
-  arrange(condition) %>% #Trocar a variável pela qual deseja ordenar (Vaccine, Day, Condition, etc.)
-  select(!c(disease_vac, type, week)) %>% 
+  arrange(day) %>% #Trocar a variável pela qual deseja ordenar (Vaccine, Day, Condition, etc.)
+  select(!c(set, disease_vac, type, day)) %>% 
   column_to_rownames("condition") %>% 
   t() %>% 
   as.data.frame() %>% 
@@ -34825,15 +34848,15 @@ ha = HeatmapAnnotation(df = ann_vaccines_heatmap,
                        annotation_name_side = "left")
 
 
-col_fun <- colorRamp2(c(-2, 0, 2), c("#4DBBD5FF", "white", "#ed6a5a"))
+col_fun <- colorRamp2(c(-2, 0, 2), c("#4DBBD5FF", "white", "#DC0000FF"))
 
 
 #Parameters
 mat = matrix_data_ordered
 width = unit(30, "cm")
-height = unit(15, "cm")
+height = unit(40, "cm")
 width_image = 40
-height_image = 25
+height_image = 50
 column_names_gp = gpar(fontsize = 10)
 row_names_gp = gpar(fontsize = 10)
 
@@ -34847,7 +34870,7 @@ heatmap_plot_all = Heatmap(mat,
                         top_annotation = ha,
                         show_row_names = TRUE,
                         show_heatmap_legend = TRUE,
-                        heatmap_legend_param = list(direction = "horizontal"),
+                        heatmap_legend_param = list(direction = "vertical"),
                         name = "L2FC", #Legend
                         col = col_fun, #color
                         column_title = fileimageheatmap_ungrouped,
@@ -34859,12 +34882,12 @@ heatmap_plot_all = Heatmap(mat,
                         row_names_gp = row_names_gp,
                         row_split = NULL, #Split row clusters
                         row_gap = unit(2, "mm"),
-                        cluster_columns = TRUE,
+                        cluster_columns = F,
                         #column_split = 2, #Split group clusters
                         #column_km = 2,
                         column_gap = unit(8, "mm"),
-                        show_column_dend = TRUE,
-                        show_row_dend = TRUE,
+                        show_column_dend = F,
+                        show_row_dend = F,
                         row_dend_side = "left",
                         column_dend_side = "top",
                         clustering_distance_rows = "euclidean",
@@ -34913,7 +34936,7 @@ matrix_data_ready =  matrix_data %>%
 ann_vaccines_complex = heatmap_data %>% 
   select(condition) %>% 
   distinct() %>% 
-  inner_join(ann_vaccines %>% select(condition, disease_vac, type, week), by = "condition")
+  inner_join(ann_vaccines %>% select(condition, set, disease_vac, type, day), by = "condition")
 
 # Unir tabela de anotações
 ann_vaccines_heatmap = matrix_data %>% 
@@ -34922,7 +34945,7 @@ ann_vaccines_heatmap = matrix_data %>%
   filter(. != "genes") %>% 
   rename(condition = '.') %>% 
   merge(ann_vaccines_complex, by = "condition", all.x = TRUE) %>% 
-  arrange(condition) %>% 
+  arrange(day) %>% 
   column_to_rownames(var= "condition") 
 
 # Ordenar colunas da matriz para a mesma ordem das linhas da tabela de anotações
@@ -34931,8 +34954,8 @@ matrix_data_ordered = matrix_data %>%
   as.data.frame() %>% 
   rownames_to_column(var= "condition") %>% 
   merge(ann_vaccines_complex, by.y = "condition", all.x=TRUE) %>% 
-  arrange(condition) %>% #Trocar a variável pela qual deseja ordenar (Vaccine, Day, Condition, etc.)
-  select(!c(disease_vac, type, week)) %>% 
+  arrange(day) %>% #Trocar a variável pela qual deseja ordenar (Vaccine, Day, Condition, etc.)
+  select(!c(set, disease_vac, type, day)) %>% 
   column_to_rownames("condition") %>% 
   t() %>% 
   as.data.frame() %>% 
@@ -34951,7 +34974,7 @@ ha = HeatmapAnnotation(df = ann_vaccines_heatmap,
                        annotation_name_side = "left")
 
 
-col_fun <- colorRamp2(c(-2, 0, 2), c("#4DBBD5FF", "white", "#ed6a5a"))
+col_fun <- colorRamp2(c(-2, 0, 2), c("#4DBBD5FF", "white", "#DC0000FF"))
 
 
 #Parameters
@@ -34973,7 +34996,7 @@ heatmap_plot_all = Heatmap(mat,
                         top_annotation = ha,
                         show_row_names = TRUE,
                         show_heatmap_legend = TRUE,
-                        heatmap_legend_param = list(direction = "horizontal"),
+                        heatmap_legend_param = list(direction = "vertical"),
                         name = "L2FC", #Legend
                         col = col_fun, #color
                         column_title = fileimageheatmap_ungrouped,
@@ -34985,12 +35008,12 @@ heatmap_plot_all = Heatmap(mat,
                         row_names_gp = row_names_gp,
                         row_split = NULL, #Split row clusters
                         row_gap = unit(2, "mm"),
-                        cluster_columns = TRUE,
+                        cluster_columns = F,
                         #column_split = 2, #Split group clusters
                         #column_km = 2,
                         column_gap = unit(8, "mm"),
-                        show_column_dend = TRUE,
-                        show_row_dend = TRUE,
+                        show_column_dend = F,
+                        show_row_dend = F,
                         row_dend_side = "left",
                         column_dend_side = "top",
                         clustering_distance_rows = "euclidean",
@@ -35039,7 +35062,7 @@ matrix_data_ready =  matrix_data %>%
 ann_vaccines_complex = heatmap_data %>% 
   select(condition) %>% 
   distinct() %>% 
-  inner_join(ann_vaccines %>% select(condition, disease_vac, type, week), by = "condition")
+  inner_join(ann_vaccines %>% select(condition, set, disease_vac, type, day), by = "condition")
 
 # Unir tabela de anotações
 ann_vaccines_heatmap = matrix_data %>% 
@@ -35048,7 +35071,7 @@ ann_vaccines_heatmap = matrix_data %>%
   filter(. != "genes") %>% 
   rename(condition = '.') %>% 
   merge(ann_vaccines_complex, by = "condition", all.x = TRUE) %>% 
-  arrange(condition) %>% 
+  arrange(day) %>% 
   column_to_rownames(var= "condition") 
 
 # Ordenar colunas da matriz para a mesma ordem das linhas da tabela de anotações
@@ -35057,8 +35080,8 @@ matrix_data_ordered = matrix_data %>%
   as.data.frame() %>% 
   rownames_to_column(var= "condition") %>% 
   merge(ann_vaccines_complex, by.y = "condition", all.x=TRUE) %>% 
-  arrange(condition) %>% #Trocar a variável pela qual deseja ordenar (Vaccine, Day, Condition, etc.)
-  select(!c(disease_vac, type, week)) %>% 
+  arrange(day) %>% #Trocar a variável pela qual deseja ordenar (Vaccine, Day, Condition, etc.)
+  select(!c(set, disease_vac, type, day)) %>% 
   column_to_rownames("condition") %>% 
   t() %>% 
   as.data.frame() %>% 
@@ -35077,7 +35100,7 @@ ha = HeatmapAnnotation(df = ann_vaccines_heatmap,
                        annotation_name_side = "left")
 
 
-col_fun <- colorRamp2(c(-2, 0, 2), c("#4DBBD5FF", "white", "#ed6a5a"))
+col_fun <- colorRamp2(c(-2, 0, 2), c("#4DBBD5FF", "white", "#DC0000FF"))
 
 
 #Parameters
@@ -35099,7 +35122,7 @@ heatmap_plot_all = Heatmap(mat,
                         top_annotation = ha,
                         show_row_names = TRUE,
                         show_heatmap_legend = TRUE,
-                        heatmap_legend_param = list(direction = "horizontal"),
+                        heatmap_legend_param = list(direction = "vertical"),
                         name = "L2FC", #Legend
                         col = col_fun, #color
                         column_title = fileimageheatmap_ungrouped,
@@ -35111,12 +35134,12 @@ heatmap_plot_all = Heatmap(mat,
                         row_names_gp = row_names_gp,
                         row_split = NULL, #Split row clusters
                         row_gap = unit(2, "mm"),
-                        cluster_columns = TRUE,
+                        cluster_columns = F,
                         #column_split = 2, #Split group clusters
                         #column_km = 2,
                         column_gap = unit(8, "mm"),
-                        show_column_dend = TRUE,
-                        show_row_dend = TRUE,
+                        show_column_dend = F,
+                        show_row_dend = F,
                         row_dend_side = "left",
                         column_dend_side = "top",
                         clustering_distance_rows = "euclidean",
@@ -35157,7 +35180,7 @@ matrix_data_ready =  matrix_data %>%
 ann_vaccines_complex = heatmap_data %>% 
   select(condition) %>% 
   distinct() %>% 
-  inner_join(ann_vaccines %>% select(condition, disease_vac, type, week), by = "condition")
+  inner_join(ann_vaccines %>% select(condition, set, disease_vac, type, day), by = "condition")
 
 ann_vaccines_heatmap = matrix_data %>% 
   colnames() %>% 
@@ -35165,7 +35188,7 @@ ann_vaccines_heatmap = matrix_data %>%
   filter(. != "genes") %>% 
   rename(condition = '.') %>% 
   merge(ann_vaccines_complex, by = "condition", all.x = TRUE) %>% 
-  arrange(condition) %>% 
+  arrange(day) %>% 
   column_to_rownames(var= "condition") 
 
 matrix_data_ordered = matrix_data %>% 
@@ -35173,8 +35196,8 @@ matrix_data_ordered = matrix_data %>%
   as.data.frame() %>% 
   rownames_to_column(var= "condition") %>% 
   merge(ann_vaccines_complex, by.y = "condition", all.x=TRUE) %>% 
-  arrange(condition) %>% 
-  select(!c(disease_vac, type, week)) %>% 
+  arrange(day) %>% 
+  select(!c(set, disease_vac, type, day)) %>% 
   column_to_rownames("condition") %>% 
   t() %>% 
   as.data.frame() %>% 
@@ -35192,7 +35215,7 @@ ha = HeatmapAnnotation(df = ann_vaccines_heatmap,
                        annotation_name_side = "left")
 
 
-col_fun <- colorRamp2(c(-2, 0, 2), c("#9bc1bc", "white", "#ed6a5a"))
+col_fun <- colorRamp2(c(-2, 0, 2), c("#4DBBD5FF", "white", "#DC0000FF"))
 
 
 #Parameters
@@ -35201,8 +35224,8 @@ width = unit(30, "cm")
 height = unit(80, "cm")
 width_image = 40
 height_image = 90
-column_names_gp = gpar(fontsize = 10)
-row_names_gp = gpar(fontsize = 10)
+column_names_gp = gpar(fontsize = 5)
+row_names_gp = gpar(fontsize = 5)
 
 
 #Plotar e salvar imagem
@@ -35214,24 +35237,24 @@ heatmap_plot_all = Heatmap(mat,
                         top_annotation = ha,
                         show_row_names = TRUE,
                         show_heatmap_legend = TRUE,
-                        heatmap_legend_param = list(direction = "horizontal"),
+                        heatmap_legend_param = list(direction = "vertical"),
                         name = "L2FC", #Legend
                         col = col_fun, #color
                         column_title = fileimageheatmap_ungrouped,
                         column_title_gp = gpar(fontsize = 15, fontface = "bold"),
                         column_names_rot = 45,
-                        column_names_gp = gpar(fontsize = 10),
+                        column_names_gp = column_names_gp,
                         rect_gp = gpar(col = "gray90", lwd = 1),
                         cluster_rows = TRUE,
                         row_names_gp = row_names_gp,
                         row_split = NULL, #Split row clusters
                         row_gap = unit(2, "mm"),
-                        cluster_columns = TRUE,
+                        cluster_columns = F,
                         #column_split = 2, #Split group clusters
                         #column_km = 2,
                         column_gap = unit(8, "mm"),
-                        show_column_dend = TRUE,
-                        show_row_dend = TRUE,
+                        show_column_dend = F,
+                        show_row_dend = F,
                         row_dend_side = "left",
                         column_dend_side = "top",
                         clustering_distance_rows = "euclidean",
@@ -35318,7 +35341,7 @@ ha = HeatmapAnnotation(df = ann_vaccines_heatmap,
                        annotation_name_side = "left")
 
 
-col_fun <- colorRamp2(c(-2, 0, 2), c("#9bc1bc", "white", "#ed6a5a"))
+col_fun <- colorRamp2(c(-2, 0, 2), c("#4DBBD5FF", "white", "#DC0000FF"))
 
 
 #Parameters
@@ -35444,7 +35467,7 @@ ha = HeatmapAnnotation(df = ann_vaccines_heatmap,
                        annotation_name_side = "left")
 
 
-col_fun <- colorRamp2(c(-2, 0, 2), c("#9bc1bc", "white", "#ed6a5a"))
+col_fun <- colorRamp2(c(-2, 0, 2), c("#4DBBD5FF", "white", "#DC0000FF"))
 
 
 #Parameters
@@ -35570,7 +35593,7 @@ ha = HeatmapAnnotation(df = ann_vaccines_heatmap,
                        annotation_name_side = "left")
 
 
-col_fun <- colorRamp2(c(-2, 0, 2), c("#9bc1bc", "white", "#ed6a5a"))
+col_fun <- colorRamp2(c(-2, 0, 2), c("#4DBBD5FF", "white", "#DC0000FF"))
 
 
 #Parameters
@@ -35658,7 +35681,7 @@ matrix_data_ready =  matrix_data %>%
 ann_vaccines_complex = heatmap_data %>% 
   select(condition) %>% 
   distinct() %>% 
-  inner_join(ann_vaccines %>% select(condition, disease_vac, type, week), by = "condition")
+  inner_join(ann_vaccines %>% select(condition, set, disease_vac, type, dose, day), by = "condition")
 
 # Unir tabela de anotações
 ann_vaccines_heatmap = matrix_data %>% 
@@ -35667,7 +35690,7 @@ ann_vaccines_heatmap = matrix_data %>%
   filter(. != "genes") %>% 
   rename(condition = '.') %>% 
   merge(ann_vaccines_complex, by = "condition", all.x = TRUE) %>% 
-  arrange(condition) %>% 
+  arrange(day) %>% 
   column_to_rownames(var= "condition") 
 
 # Ordenar colunas da matriz para a mesma ordem das linhas da tabela de anotações
@@ -35676,8 +35699,8 @@ matrix_data_ordered = matrix_data %>%
   as.data.frame() %>% 
   rownames_to_column(var= "condition") %>% 
   merge(ann_vaccines_complex, by.y = "condition", all.x=TRUE) %>% 
-  arrange(condition) %>% #Trocar a variável pela qual deseja ordenar (Vaccine, Day, Condition, etc.)
-  select(!c(disease_vac, type, week)) %>% 
+  arrange(day) %>% #Trocar a variável pela qual deseja ordenar (Vaccine, Day, Condition, etc.)
+  select(!c(set, disease_vac, dose, type, day)) %>% 
   column_to_rownames("condition") %>% 
   t() %>% 
   as.data.frame() %>% 
@@ -35696,7 +35719,7 @@ ha = HeatmapAnnotation(df = ann_vaccines_heatmap,
                        annotation_name_side = "left")
 
 
-col_fun <- colorRamp2(c(-2, 0, 2), c("#9bc1bc", "white", "#ed6a5a"))
+col_fun <- colorRamp2(c(-2, 0, 2), c("#4DBBD5FF", "white", "#DC0000FF"))
 
 
 #Parameters
@@ -35705,7 +35728,7 @@ width = unit(30, "cm")
 height = unit(50, "cm")
 width_image = 40
 height_image = 60
-column_names_gp = gpar(fontsize = 10)
+column_names_gp = gpar(fontsize = 7)
 row_names_gp = gpar(fontsize = 10)
 
 
@@ -35718,24 +35741,24 @@ heatmap_plot_all = Heatmap(mat,
                         top_annotation = ha,
                         show_row_names = TRUE,
                         show_heatmap_legend = TRUE,
-                        heatmap_legend_param = list(direction = "horizontal"),
+                        heatmap_legend_param = list(direction = "vertical"),
                         name = "L2FC", #Legend
                         col = col_fun, #color
                         column_title = fileimageheatmap_ungrouped,
                         column_title_gp = gpar(fontsize = 15, fontface = "bold"),
                         column_names_rot = 45,
-                        column_names_gp = gpar(fontsize = 10),
+                        column_names_gp = column_names_gp,
                         rect_gp = gpar(col = "gray90", lwd = 1),
                         cluster_rows = TRUE,
                         row_names_gp = row_names_gp,
                         row_split = NULL, #Split row clusters
                         row_gap = unit(2, "mm"),
-                        cluster_columns = TRUE,
+                        cluster_columns = F,
                         #column_split = 2, #Split group clusters
                         #column_km = 2,
                         column_gap = unit(8, "mm"),
-                        show_column_dend = TRUE,
-                        show_row_dend = TRUE,
+                        show_column_dend = F,
+                        show_row_dend = F,
                         row_dend_side = "left",
                         column_dend_side = "top",
                         clustering_distance_rows = "euclidean",
@@ -35751,7 +35774,7 @@ dev.off()
 ```
 
 ## All genes
-### ImmuneGO genes
+### Immune genes
 Process data
 
 ```{r }
@@ -35764,8 +35787,6 @@ AllGenes = data %>%
   clean_names()
 
 ```
-
-### Interactive heatmap version - All immmune genes
 
 ```{r}
 library(InteractiveComplexHeatmap)
@@ -35817,16 +35838,16 @@ ann_vaccines_heatmap = matrix_data %>%
 ann_rows_immune = matrix_data %>%
   as.data.frame() %>%
   rownames_to_column("genes") %>%
-  left_join(ImmuneGO_Annotated_Genes %>% select(genes) %>% distinct() %>% mutate(set = "ImmuneGO"), by = "genes") %>%
-  left_join(btm_annotation_genes_immune %>% select(genes) %>% distinct() %>% mutate(set2 = "BTM"), by = "genes") %>%
-  select(genes, set, set2) %>%
+  left_join(ImmuneGO_Annotated_Genes %>% select(genes) %>% distinct() %>% mutate(Immune = "ImmuneGO"), by = "genes") %>%
+  left_join(btm_annotation_genes_immune %>% select(genes) %>% distinct() %>% mutate(Immune2 = "BTM"), by = "genes") %>%
+  select(genes, Immune, Immune2) %>%
   distinct() %>%
   group_by(genes) %>%
-  arrange(genes, factor(set, levels = c("ImmuneGO", "BTM")), .by_group = TRUE) %>%
+  arrange(genes, factor(Immune, levels = c("ImmuneGO", "BTM")), .by_group = TRUE) %>%
   column_to_rownames("genes") %>%
   as.data.frame() %>%
-  mutate(set = if_else(is.na(set), set2, set),
-         set2 = if_else(set == set2, NA, set2)) %>% 
+  mutate(Immune = if_else(is.na(Immune), Immune2, Immune),
+         Immune2 = if_else(Immune == Immune2, NA, Immune2)) %>% 
   replace(is.na(.), "None")
 
 # Reorder columns (same order as lines in the annotation table)
@@ -35852,12 +35873,13 @@ dim(ann_rows_immune)
 
 
 col_immune_sets = list(
-  "set" = c("BTM" = "#F5BB00",
-          "ImmuneGO" = "#7E6148FF",
+  "Immune" = c("BTM" = "#5e60ce",
+          "ImmuneGO" = "#00A087FF",
           "None"="white"),
-  "set2" = c("BTM" = "#F5BB00",
-          "ImmuneGO" = "#7E6148FF",
+  "Immune2" = c("BTM" = "#5e60ce",
+          "ImmuneGO" = "#00A087FF",
           "None"="white"))
+
 ```
 
 
@@ -35875,14 +35897,14 @@ row_ha = HeatmapAnnotation(df = ann_rows_immune,
                        show_legend = T)
 
 col_fun <- colorRamp2(c(-1, 0, 1), 
-                      c("#9bc1bc", "white", "#ed6a5a"))
+                      c("#4DBBD5FF", "white", "#DC0000FF"))
 
 #Parameters
 mat = matrix_data_ordered
 width_image = 50
-height_image = 60
+height_image = 30
 width = unit(40, "cm")
-height = unit(50, "cm")
+height = unit(20, "cm")
 column_names_gp = gpar(fontsize = 10)
 row_names_gp = gpar(fontsize = 10)
 
@@ -35939,7 +35961,7 @@ heatmap_plot_all = Heatmap(mat,
                         column_names_rot = 45,
                         cluster_columns = F,
                         show_row_dend = F,
-                        row_split = 2, #Split group clusters
+                        row_split = NULL, #Split group clusters
                         show_row_names = F,
                         column_names_gp = column_names_gp,
                         row_names_gp = row_names_gp)
@@ -36250,6 +36272,41 @@ draw(heatmap_plot_all, annotation_legend_side = "right", heatmap_legend_side = "
 dev.off()
 
 ```
+
+#### Get distribution
+
+```{r}
+
+mean_l2fc_tbl = heatmap_data %>% 
+  group_by(vaccine, dose, day, process) %>% 
+  mutate(median_l2fc = median(log2fold_change)) %>% 
+  ungroup() %>% 
+  select(-genes, - log2fold_change) %>% 
+  distinct() %>% 
+  select(condition, process, median_l2fc, everything()) %>% 
+  mutate(day = as.integer(day),
+         pathogen = if_else(is.na(pathogen), "SARS-CoV-2", pathogen),
+         pathogen = str_to_upper(pathogen))
+
+mean_l2fc_tbl %>% 
+  filter(process %in% "ADAPTIVE IMMUNE SYSTEM") %>%
+ ggplot() +
+  aes(
+    x = day,
+    y = median_l2fc,
+    colour = pathogen,
+    group = vaccine
+  ) +
+  geom_line() +
+  geom_point(aes(color = pathogen, shape = dose)) +
+  scale_color_manual(values = c(ann_vaxsig_colors$target_pathogen_disease)) +
+  ggthemes::theme_few() +
+  facet_wrap(vars(process), scales = "free")
+
+```
+
+
+
 
 
 # MSigDB Vax: COVID-19 and other vaccines
