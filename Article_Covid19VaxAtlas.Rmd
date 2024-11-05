@@ -36326,7 +36326,7 @@ idorder = c(
 )
 ```
 
-```{r fig.height=10, fig.width=20}
+```{r fig.height=15, fig.width=20}
 all_together = gsea_l2fc_tbl_2 %>%
   # filter(dose == "1", disease_vac == "V") %>%
   mutate(id = case_when(id == "HUMORAL ADAPTIVE IMMUNE SYSTEM" ~ "HUMORAL ADAP.",
@@ -36394,7 +36394,7 @@ all_together
 all_together %>% 
   ggsave(filename = here("Figures", "GSEA_Linechart_ByImmuneProcess_AllVaccines_Infection.png"),
          width = 20,
-         height = 10)
+         height = 15)
 ```
 
 
