@@ -36291,36 +36291,81 @@ gsea_l2fc_tbl_2 = gsea_l2fc_tbl %>%
   arrange(day)
 
 gsea_l2fc_tbl_2$set %>% unique()
-```
 
+idorder = c(
+  "IMMUNE SYSTEM",
+  "ANTIMICROBIAL",
+  "LEUKOCYTES",
+  "COMPLEMENT",
+  "INNATE IMMUNE SYSTEM",
+  "INNATE",
+  "INFLAMMATION",
+  "SIGNALING",
+  "ANTIVIRAL & IFN",
+  "NEUTROPHIL",
+  "MAST CELL",
+  "EOSINOPHIL",
+  "MAST CELL",
+  "MYELOID CELL",
+  "ARPP",
+  "MONOCYTE",
+  "MACROPHAGE",
+  "DENDRITIC CELL",
+  "NK CELL",
+  "ADAPTIVE IMMUNE SYSTEM",
+  "ADAPTIVE",
+  "LYMPHOCYTE",
+  "CELLULAR ADAPTIVE IMMUNE SYSTEM",
+  "CELULLAR ADAP.",
+  "T CELL",
+  "HUMORAL ADAPTIVE IMMUNE SYSTEM",
+  "HUMORAL ADAP.",
+  "B CELL",
+  "IMMUNOGLOBULIN MEDIATED RESPONSE",
+  "IMMUNOGLOBULIN\nMEDIATED RESPONSE"
+)
+```
 
 ```{r fig.height=10, fig.width=20}
 all_together = gsea_l2fc_tbl_2 %>%
   filter(dose == "1", disease_vac == "V") %>%
+  mutate(id = case_when(id == "HUMORAL ADAPTIVE IMMUNE SYSTEM" ~ "HUMORAL ADAP.",
+                        id == "CELLULAR ADAPTIVE IMMUNE SYSTEM" ~ "CELULLAR ADAP.",
+                        id == "ADAPTIVE IMMUNE SYSTEM" ~ "ADAPTATIVE",
+                        id == "INNATE IMMUNE SYSTEM" ~ "INNATE",
+                        id == "IMMUNOGLOBULIN MEDIATED RESPONSE" ~ "IMMUNOGLOBULIN\nMEDIATED RESPONSE",
+                        TRUE ~id),
+                  id = fct_relevel(id, c(idorder)))  %>% 
+  
   ggplot() +
   aes(x = day, y = nes, group = vaccine) +
   # Line for each group, with color for pathogen
-  geom_line(aes(color = pathogen,
-                alpha = set), size = 1) +
+  geom_line(aes(color = pathogen), 
+            alpha = 0.7,
+            size = 1) +
   # Points with shape and color; alpha is set to 1 for "COVID-19", 0.5 otherwise
-  geom_point(aes(shape = type, color = pathogen, 
-                 alpha = set), size = 3) +
+  geom_point(aes(shape = type, color = pathogen), 
+             alpha = 0.7,
+             size = 3) +
   # Additional points with color for pathogen, alpha is adjusted the same way
-  geom_point(aes(color = pathogen, 
-                 alpha = set), size = 2) +
+  geom_point(aes(color = pathogen), 
+            alpha = 0.7,
+             size = 2) +
   # Horizontal line at y = 0
-  geom_hline(yintercept = 0, linetype = 2, alpha = 0.5) +
+  geom_hline(yintercept = 0, linetype = 1, alpha = 0.8) +
   # Manual color scale for pathogen and custom colors for specific vaccines
   scale_color_manual(values = c(ann_vaxsig_colors$type, 
                                 ann_vaxsig_colors$target_pathogen_disease,
                                 ann_vaxsig_colors$dose,
-                                "SARS-COV-2/BBIBP" = "#00A087FF",
-                                "SARS-COV-2/BNT" = "#4DBBD5FF",
-                                "SARS-COV-2/MO" = "#72ddf7",
-                                "SARS-COV-2/CHAD" = "#3C5488FF")) +
+                                "SARS-COV-2/BBIBP" = "#ee2677",
+                                "SARS-COV-2/ZF2001" = "#f46036",
+                                "SARS-COV-2/BNT" = "#ff5a5f",
+                                "SARS-COV-2/MO" = "#800016",
+                                "SARS-COV-2/CHAD" = "#bf4342",
+                                "SARS-COV-2/I" = "black"
+                                )) +
   # Manual shape scale
   scale_shape_manual(values = c(0:8, 15:25)) +  
-  scale_alpha_manual(values = c("COVID-19" = 1, "13Vax Atlas" = 0.2)) +
   theme_minimal()+
   # ggthemes::theme_few() +
   # Faceting by `id`, with free scales
@@ -36336,10 +36381,145 @@ all_together = gsea_l2fc_tbl_2 %>%
                                     color = "white"),
         panel.grid.major.x = element_line(size = 0.5, 
                                     linetype = 2,
-                                    color = "gray75"))
+                                    color = "gray75")) +
+  labs(x = "Day",
+       y = "NES",
+       color = "Pathogen",
+       shape = "Type",
+       alpha = "COVID-19 or Other",
+       title = "Temporal dynamics of immunization")
 
 all_together
 ```
+
+
+Focus on sarscov2 vaccines
+```{r fig.height=10, fig.width=20}
+all_together_sarsfocus = gsea_l2fc_tbl_2 %>%
+  # filter(
+  #   # dose == "1", 
+  #        disease_vac == "") %>%
+  mutate(id = case_when(id == "HUMORAL ADAPTIVE IMMUNE SYSTEM" ~ "HUMORAL ADAP.",
+                        id == "CELLULAR ADAPTIVE IMMUNE SYSTEM" ~ "CELULLAR ADAP.",
+                        id == "ADAPTIVE IMMUNE SYSTEM" ~ "ADAPTATIVE",
+                        id == "INNATE IMMUNE SYSTEM" ~ "INNATE",
+                        id == "IMMUNOGLOBULIN MEDIATED RESPONSE" ~ "IMMUNOGLOBULIN\nMEDIATED RESPONSE",
+                        TRUE ~id),
+                  id = fct_relevel(id, c(idorder))) %>%  
+  
+  ggplot() +
+  aes(x = day, y = nes, group = vaccine) +
+  # Line for each group, with color for pathogen
+  geom_line(aes(color = pathogen,
+                alpha = set), size = 1) +
+  # Points with shape and color; alpha is set to 1 for "COVID-19", 0.5 otherwise
+  geom_point(aes(shape = type, color = pathogen, 
+                 alpha = set), size = 3) +
+  # Additional points with color for pathogen, alpha is adjusted the same way
+  geom_point(aes(color = pathogen, 
+                 alpha = set), size = 2) +
+  # Horizontal line at y = 0
+  geom_hline(yintercept = 0, linetype = 1, alpha = 0.8) +
+  # Manual color scale for pathogen and custom colors for specific vaccines
+  scale_color_manual(values = c(ann_vaxsig_colors$type, 
+                                ann_vaxsig_colors$target_pathogen_disease,
+                                ann_vaxsig_colors$dose,
+                                "SARS-COV-2/BBIBP" = "#ee2677",
+                                "SARS-COV-2/ZF2001" = "#f46036",
+                                "SARS-COV-2/BNT" = "#ff5a5f",
+                                "SARS-COV-2/MO" = "#800016",
+                                "SARS-COV-2/CHAD" = "#bf4342",
+                                "SARS-COV-2/I" = "black"
+                                )) +
+  # Manual shape scale
+  scale_shape_manual(values = c(0:8, 15:25)) +  
+  scale_alpha_manual(values = c("COVID-19" = 1, "13Vax Atlas" = 0.2), guide = "none") +
+  theme_minimal()+
+  # ggthemes::theme_few() +
+  # Faceting by `id`, with free scales
+  facet_wrap(~id, scales = "free") +
+  theme(legend.position = "right",
+        strip.text.x = element_text(color = "black", size = 12), 
+        axis.text.x = element_text(color = "black", size = 10),
+        axis.text.y = element_text(vjust = 0.5, size = 10, color = "black"),
+        axis.line = element_line(size = 1, colour = "black", linetype=1),
+        axis.ticks = element_line(size = 0.5, color = "black"),
+        panel.grid.major.y = element_line(size = 0, 
+                                    linetype = 2,
+                                    color = "white"),
+        panel.grid.major.x = element_line(size = 0.5, 
+                                    linetype = 2,
+                                    color = "gray75")) +
+  labs(x = "Day",
+       y = "NES",
+       color = "Pathogen",
+       shape = "Type",
+       alpha = "COVID-19 or Other",
+       title = "Temporal dynamics of immunization, Dose 1 only")
+
+all_together_sarsfocus
+```
+
+Filtered
+```{r fig.height=10, fig.width=20}
+all_together = gsea_l2fc_tbl_2 %>%
+  # filter(dose == "1", disease_vac == "V") %>%
+  mutate(id = case_when(id == "HUMORAL ADAPTIVE IMMUNE SYSTEM" ~ "HUMORAL ADAP.",
+                        id == "CELLULAR ADAPTIVE IMMUNE SYSTEM" ~ "CELULLAR ADAP.",
+                        id == "ADAPTIVE IMMUNE SYSTEM" ~ "ADAPTIVE",
+                        id == "INNATE IMMUNE SYSTEM" ~ "INNATE",
+                        id == "IMMUNOGLOBULIN MEDIATED RESPONSE" ~ "IMMUNOGLOBULIN\nMEDIATED RESPONSE",
+                        TRUE ~id),
+         id = fct_relevel(id, c(idorder))) %>% 
+  
+  ggplot() +
+  aes(x = day, y = nes, group = vaccine) +
+  # Line for each group, with color for pathogen
+  geom_line(aes(color = pathogen), size = 1) +
+  # Points with shape and color; alpha is set to 1 for "COVID-19", 0.5 otherwise
+  geom_point(aes(shape = type, color = pathogen), size = 3) +
+  # Additional points with color for pathogen, alpha is adjusted the same way
+  geom_point(aes(color = pathogen), size = 2) +
+  # Horizontal line at y = 0
+  geom_hline(yintercept = 0, linetype = 1, alpha = 0.8) +
+  # Manual color scale for pathogen and custom colors for specific vaccines
+  scale_color_manual(values = c(ann_vaxsig_colors$type, 
+                                ann_vaxsig_colors$target_pathogen_disease,
+                                ann_vaxsig_colors$dose,
+                                "SARS-COV-2/BBIBP" = "#ee2677",
+                                "SARS-COV-2/ZF2001" = "#f46036",
+                                "SARS-COV-2/BNT" = "#ff5a5f",
+                                "SARS-COV-2/MO" = "#800016",
+                                "SARS-COV-2/CHAD" = "#bf4342",
+                                "SARS-COV-2/I" = "black"
+                                )) +
+  scale_shape_manual(values = c(0:8, 15:25)) +  
+  theme_minimal()+
+  # ggthemes::theme_few() +
+  # Faceting by `id`, with free scales
+  facet_wrap(~id, scales = "free") +
+  theme(legend.position = "right",
+        strip.text.x = element_text(color = "black", size = 12), 
+        axis.text.x = element_text(color = "black", size = 10),
+        axis.text.y = element_text(vjust = 0.5, size = 10, color = "black"),
+        axis.line = element_line(size = 1, colour = "black", linetype=1),
+        axis.ticks = element_line(size = 0.5, color = "black"),
+        panel.grid.major.y = element_line(size = 0, 
+                                    linetype = 2,
+                                    color = "white"),
+        panel.grid.major.x = element_line(size = 0.5, 
+                                    linetype = 2,
+                                    color = "gray75")) +
+  labs(x = "Day",
+       y = "NES",
+       color = "Pathogen",
+       shape = "Type",
+       alpha = "COVID-19 or Other",
+       title = "Temporal dynamics of immunization, Dose 1 only")
+
+all_together
+```
+
 
 
 ```{r fig.height=10, fig.width=10}
