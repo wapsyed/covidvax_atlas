@@ -35180,7 +35180,8 @@ gsea_l2fc_tbl_2 %>%
 
 ```
 
-```{r}
+
+```{r fig.height=20, fig.width=15}
 idorder = c("immune score",
             "Neutrophil",
             "Macrophage",
@@ -35194,9 +35195,6 @@ idorder = c("immune score",
             # "T cell CD4+ (non-regulatory)",
             "T cell regulatory (Tregs)",
             "B cell")
-```
-
-```{r fig.height=20, fig.width=15}
 
 day_filter = 30
 
@@ -35388,7 +35386,7 @@ gsea_l2fc_tbl_2 = bind_rows(gsea_l2fc_tbl,
   select(condition, type, type_grouped, dose, day, pathogen, everything()) 
 
 gsea_l2fc_day0 <- gsea_l2fc_tbl_2 %>%
-  filter(type_grouped != "Genetic") %>% 
+  # filter(type_grouped != "Genetic") %>% 
   mutate(day = 0, 
          value_minmax = 0, 
          value = 0,
