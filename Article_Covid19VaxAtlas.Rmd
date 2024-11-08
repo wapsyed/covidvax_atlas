@@ -28635,6 +28635,11 @@ ann_vaccines_covid_other_conditions_ordered = ann_vaccines_covid_other_condition
 
 ann_vaccines_covid_other_conditions_ordered$condition %>% levels()
 ```
+
+
+
+
+
 ## DEGs analysis
 
 ### Up and down-regulated DEGs
@@ -28724,185 +28729,10 @@ ggplot_degs_bars_directions
 ```
 
 
-Lineplot of total DEGs
-```{r fig.height=5, fig.width=10}
-# total DEGs
-all_degs_OtherVaccines_plot_line = all_degs %>%
-  group_by(condition) %>% 
-  mutate(total = sum(n_degs)) %>% 
-  select(-direction, -n_degs) %>% 
-  distinct() %>% 
-  
-  filter(type != "IN/SU") %>% 
-  mutate(condition = fct_relevel(condition,
-                                 ann_vaccines_covid_other_conditions_ordered$condition %>% 
-                                   levels()),
-         title = "Total DEGs",
-         day = as.character(day) %>% 
-           as.integer(),
-         pathogen = str_to_upper(pathogen)) %>% 
-  filter(day <30) %>% 
-  ggplot(.) +
-  aes(x = day, y = total, 
-      colour = vaccine, 
-      group = vaccine) +
-  geom_line(aes(color = pathogen), 
-          alpha = 0.7,
-          size = 1) +
-  geom_point(aes(shape = type), 
-               alpha = 1,
-               size = 3,
-             color = "black") +
-  geom_point(aes(shape = type, color = pathogen), 
-               alpha = 1,
-               size = 2) +
-  scale_shape_manual(values = c( 15, 17, 18, 19, 0, 1, 2, 5, 6)) +
-  scale_color_manual(values = ann_vaxsig_colors$pathogen) +
-  theme_minimal() +
-  scale_shape_manual(values = c( 15, 17, 18, 19, 0, 1, 2, 5, 6)) +
-  scale_color_manual(values = ann_vaxsig_colors$pathogen) +
-  theme_minimal() +
-  theme(legend.position = "right",
-        strip.text.x = element_text(color = "black", size = 12), 
-        axis.text.x = element_text(color = "black", size = 10),
-        axis.text.y = element_text(vjust = 0.5, size = 10, color = "black"),
-        axis.line.x = element_line(size = 1, colour = "black", linetype=1),
-        axis.line.y = element_line(size = 1, colour = "black", linetype=1),
-        axis.ticks.y = element_line(size = 0.5, color = "black"),
-        axis.ticks.x = element_line(size = 0, color = "black"),
-        panel.grid.major.y = element_line(size = 0.5, 
-                                            linetype = 2,
-                                            color = "gray75"),
-          panel.grid.minor.y = element_line(size = 0, 
-                                            linetype = 2,
-                                            color = "gray75"),
-          panel.grid.major.x = element_line(size = 0.5, 
-                                            linetype = 2,
-                                            color = "gray75"),
-        panel.grid.minor.x = element_blank(),
-        axis.text.x.top = element_blank(),
-        axis.ticks.x.top = element_blank(),
-        axis.line.x.top = element_blank()
-        ) +
-  labs(x = "Day",
-       y = "Total",
-       shape = "Type",
-       color = "Pathogen",
-       title = "") +
-  scale_x_continuous(expand = c(0,0), 
-                     breaks = c(0, 3, 7, 14, 21, 28, 60, 70, 84),
-                     limits = c(-1, 30)) + 
-  # scale_x_break(c(30,58)) +
-  facet_wrap(~title)
-    
-
-all_degs_OtherVaccines_plot_line %>% 
-  ggsave(file = here("Figures", "OtherVaccines_all_degs_Total_line_plot.png"),
-         width = 10,
-         height = 5)
-  
-all_degs_OtherVaccines_plot_line
-```
-
-```{r fig.height=5, fig.width=15}
-# total DEGs
-all_degs_OtherVaccines_plot_line_separated = all_degs %>%
-  group_by(condition) %>% 
-  mutate(total = sum(n_degs)) %>% 
-  select(-direction, -n_degs) %>% 
-  distinct() %>% 
-  filter(type != "IN/SU") %>% 
-  mutate(condition = fct_relevel(condition,
-                                 ann_vaccines_covid_other_conditions_ordered$condition %>% 
-                                   levels()),
-         title = "Total DEGs",
-         day = as.character(day) %>% 
-           as.integer(),
-         pathogen = str_to_upper(pathogen)) %>% 
-  mutate(type_grouped = case_when(type == "CONJ" ~ "Conjugated/PS",
-                                 type == "PS" ~ "Conjugated/PS",
-                                 type == "VV" ~ "Genetic",
-                                 type == "RNA" ~ "Genetic",
-                                 type == "LA" ~ "Live attenuated",
-                                 type == "IN" ~ "Inactivated",
-                                 type == "SU" ~ "Subunit",
-                                 disease_vac == "I" ~ "Infection",
-                                 TRUE ~ type),
-         type = case_when(disease_vac == "I" ~ "I",
-                                 TRUE ~ type),
-         type_grouped = as.factor(type_grouped),
-         type_grouped = fct_relevel(type_grouped, 
-                            "Infection",
-                            "Live Attenuated",
-                            "Inactivated",
-                            "Conjugated/PS",
-                            "Subunit",
-                            "Genetic")) %>% 
-  # filter(day <30) %>% 
-  ggplot(.) +
-  aes(x = day, y = total, 
-      colour = vaccine, 
-      group = vaccine) +
-  geom_line(aes(color = pathogen), 
-          alpha = 0.7,
-          size = 2) +
-  geom_point(aes(shape = type, 
-                 color = pathogen), 
-             alpha = 1,
-              size = 3,
-             color = "black") +
-  geom_point(aes(shape = type, 
-                 color = pathogen), 
-               alpha = 1,
-               size = 2) +
-  scale_shape_manual(values = c( 15, 17, 18, 19, 0, 1, 2, 5, 6)) +
-  scale_color_manual(values = ann_vaxsig_colors$pathogen) +
-  theme_minimal() +
-  theme(legend.position = "right",
-        strip.text.x = element_text(color = "black", size = 12), 
-        axis.text.x = element_text(color = "black", size = 10),
-        axis.text.y = element_text(vjust = 0.5, size = 10, color = "black"),
-        axis.line.x = element_line(size = 1, colour = "black", linetype=1),
-        axis.line.y = element_line(size = 1, colour = "black", linetype=1),
-        axis.ticks.y = element_line(size = 0.5, color = "black"),
-        axis.ticks.x = element_line(size = 0, color = "black"),
-        panel.grid.major.y = element_line(size = 0.5, 
-                                            linetype = 2,
-                                            color = "gray75"),
-          panel.grid.minor.y = element_line(size = 0, 
-                                            linetype = 2,
-                                            color = "gray75"),
-          panel.grid.major.x = element_line(size = 0.5, 
-                                            linetype = 2,
-                                            color = "gray75"),
-        panel.grid.minor.x = element_blank(),
-        axis.text.x.top = element_blank(),
-        axis.ticks.x.top = element_blank(),
-        axis.line.x.top = element_blank()
-        ) +
-  labs(x = "Day",
-       y = "Total",
-       shape = "Type",
-       color = "Pathogen",
-       title = "") +
-  scale_x_continuous(expand = c(0,0), 
-                     breaks = c(0, 3, 7, 14, 21, 28, 60, 70, 84)                     ) + 
-  # scale_x_break(c(30,58)) +
-  facet_wrap(~type_grouped, 
-             scales = "free",
-             nrow = 1)
-  
-all_degs_OtherVaccines_plot_line_separated
-
-all_degs_OtherVaccines_plot_line_separated %>%
-  ggsave(file = here("Figures", "OtherVaccines_all_degs_Total_line_plot_separated.png"),
-         width = 20,
-         height = 5)
-```
 
 Unite with SARS
 
-```{r}
+```{r fig.height=5, fig.width=30}
 all_degs = degs_covid_vax %>%
   mutate(direction = case_when(log2fold_change >= 1 ~ "UP",
                                log2fold_change <= -1 ~ "DOWN",
@@ -28932,11 +28762,7 @@ all_degs = all_degs %>%
                select(condition, total = TOTAL),
              by = "condition")
 all_degs
-```
 
-
-
-```{r fig.height=10, fig.width=10}
 degs_tbl = all_degs %>% 
   filter(!condition %in% c("ChAd-BNT (V2, D0)",
                            "BNT-I-BNT (D51, hospital)")) %>% 
@@ -29009,13 +28835,9 @@ degs_tbl_2 %>%
   distinct() %>% 
   arrange(pathogen, day)
 
-```
-
-Separated
-```{r fig.height=5, fig.width=30}
 
 day_filter = 30
-time_bytype_DEGs = degs_tbl_2 %>%
+time_bytype_DEGs_covid = degs_tbl_2 %>%
   filter(day <= day_filter, 
          type != "IN/SU") %>% 
   mutate(dose = as.factor(dose),
@@ -29036,16 +28858,11 @@ time_bytype_DEGs = degs_tbl_2 %>%
   ggplot() +
   aes(x = day, 
       y = total, 
-     # label = condition,
     group = pathogen
       ) +
   geom_line(
   aes(color = pathogen,
       group = pathogen
-    # alpha = set
-    # position = position_jitter(width = 0, height = 0.2),
-    # linetype = if_else(set == "COVID-19", "dashed",  "solid"),
-    # size = if_else(set == "COVID-19", 1,  0.5)
     ),
   size = 1) +
   geom_point(aes(shape = dose,
@@ -29057,7 +28874,7 @@ time_bytype_DEGs = degs_tbl_2 %>%
                  color = pathogen),             
              size = 3,
              alpha = 0.7) +
-  geom_hline(yintercept = 0, linetype = 1, alpha = 1) +
+  # geom_hline(yintercept = 0, linetype = 1, alpha = 1) +
   scale_color_manual(values = c(ann_vaxsig_colors$type, 
                                 ann_vaxsig_colors$target_pathogen_disease,
                                 ann_vaxsig_colors$dose,
@@ -29078,8 +28895,8 @@ time_bytype_DEGs = degs_tbl_2 %>%
                                 "1" = 16, 
                                 "2" = 17, 
                                 "3" = 18)) +
-  scale_alpha_manual(values = c("COVID-19" = 1, "13Vax Atlas" = 1), guide = "none") +
-  scale_x_continuous(breaks = c(0, 3, 7, 14, 21, 28, 30)) +
+  scale_alpha_manual(values = c("COVID-19" = 1, 
+                                "13Vax Atlas" = 1), guide = "none") +
   theme_minimal() +
   labs(x = "Day",
        y = "Total",
@@ -29091,18 +28908,20 @@ time_bytype_DEGs = degs_tbl_2 %>%
        linetype = "Set") +
   facet_grid(~title~type_grouped, scales = "free_x") +
   theme(legend.position = "right",
-        strip.text.x = element_text(color = "black", 
-                                    size = 12,
+        strip.text.x = element_text(color = "black", size = 12,
                                     face = "bold"), 
         strip.text.y = element_text(color = "black", 
                                     size = 12, 
                                     hjust = 0,
                                     angle = 360,
                                     face = "bold"), 
-        axis.text.x = element_text(color = "black", size = 12),
-        axis.text.y = element_text(vjust = 0.5, size = 10, color = "black"),
-        axis.line = element_line(size = 1, colour = "black", linetype=1),
-        axis.ticks = element_line(size = 0.5, color = "black"),
+        axis.title.x = element_blank(),
+        axis.text.x = element_blank(),
+        axis.text.y = element_text(vjust = 0.5, size = 12, color = "black"),
+        axis.line.y = element_line(size = 1, colour = "black", linetype=1),
+        axis.line.x = element_blank(),
+        axis.ticks.y = element_line(size = 0.5, color = "black"),
+        axis.ticks.x = element_blank(),
         panel.grid.major.y = element_line(size = 0.5, 
                                     linetype = 2,
                                     color = "gray75"),
@@ -29114,132 +28933,19 @@ time_bytype_DEGs = degs_tbl_2 %>%
                                     color = "gray75"),
         panel.grid.minor.x = element_line(size = 0, 
                                     linetype = 2,
-                                    color = "gray75")) 
-
-time_bytype_DEGs 
-
-time_bytype_DEGs %>%
-  ggsave(filename = here("Figures", "OtherVaccines_COVID_DEGs_Linechart_FacetByType.png"),
-         width = 30,
-         height = 5)
-
-```
+                                    color = "gray75")) +
+    scale_x_continuous(breaks = c(0, 3, 7, 14, 21, 28, 30))
 
 
-All
+time_bytype_DEGs_covid 
 
-```{r fig.height=5, fig.width=15}
-
-day_filter = 30
-time_bytype_DEGs_all = degs_tbl_2 %>%
-  filter(day <= day_filter, 
-         type != "IN/SU") %>% 
-  mutate(dose = as.factor(dose),
-         dose = fct_relevel(dose, "0", "1", "2", "3")) %>%
-  mutate(type_grouped = str_to_upper(type_grouped),
-         type_grouped = as.factor(type_grouped),
-         type_grouped = fct_relevel(type_grouped, 
-                            "INFECTION",
-                            "LIVE ATTENUATED",
-                            "INACTIVATED",
-                            "CONJUGATED/PS",
-                            "SUBUNIT",
-                            "GENETIC")) %>% 
-
-  arrange(condition) %>% 
-  distinct() %>% 
-  ggplot() +
-  aes(x = day, 
-      y = total, 
-     # label = condition,
-    group = pathogen
-      ) +
-  geom_line(
-  aes(color = pathogen,
-      group = pathogen
-    # alpha = set
-    # position = position_jitter(width = 0, height = 0.2),
-    # linetype = if_else(set == "COVID-19", "dashed",  "solid"),
-    # size = if_else(set == "COVID-19", 1,  0.5)
-    ),
-  size = 1) +
-  geom_point(aes(shape = dose,
-                 color = pathogen),
-             size = 3.5,
-             color = "black",
-             alpha = 1) +
-  geom_point(aes(shape = dose,
-                 color = pathogen),             
-             size = 3,
-             alpha = 0.7) +
-  geom_hline(yintercept = 0, linetype = 1, alpha = 1) +
-  scale_color_manual(values = c(ann_vaxsig_colors$type, 
-                                ann_vaxsig_colors$target_pathogen_disease,
-                                ann_vaxsig_colors$dose,
-                                "SARS-COV-2/BBIBP" = "#00A087FF",
-                                "SARS-COV-2/ZF2001" = "#8491B4FF",
-                                "SARS-COV-2/BNT" = "#4DBBD5FF",
-                                "SARS-COV-2/MO" = "blue",
-                                "SARS-COV-2/CHAD" = "#3C5488FF",
-                                "SARS-COV-2/I" = "red",
-                                "SARS-COV-2/I Hospital" = "red",
-                                "SARS-COV-2/I-I" = "purple",
-                                "SARS-COV-2/BNT-I" = "pink",
-                                "SARS-COV-2/BNT-I Hospital" = "pink",
-                                "SARS-COV-2/I-BNT" = "#Af101e"
-                                
-                                )) +
-  scale_shape_manual(values = c("0" = 15, 
-                                "1" = 16, 
-                                "2" = 17, 
-                                "3" = 18)) +
-  scale_alpha_manual(values = c("COVID-19" = 1, "13Vax Atlas" = 1), guide = "none") +
-  scale_x_continuous(breaks = c(0, 3, 7, 14, 21, 28, 30)) +
-  theme_minimal() +
-  labs(x = "Day",
-       y = "Total",
-       color = "Pathogen",
-       shape = "Dose",
-       alpha = "COVID-19 or Other",
-       # title = "Temporal dynamics of immunization", 
-       # subtitle = "Immune System process",
-       linetype = "Set") +
-  # facet_wrap(~type_grouped, scales = "free",
-  #            nrow = 1) +
-  theme(legend.position = "right",
-        strip.text.x = element_text(color = "black", 
-                                    size = 10,
-                                    face = "bold"), 
-        strip.text.y = element_text(color = "black", 
-                                    size = 10, 
-                                    hjust = 0,
-                                    angle = 360,
-                                    face = "bold"), 
-        axis.text.x = element_text(color = "black", size = 10),
-        axis.text.y = element_text(vjust = 0.5, size = 10, color = "black"),
-        axis.line = element_line(size = 1, colour = "black", linetype=1),
-        axis.ticks = element_line(size = 0.5, color = "black"),
-        panel.grid.major.y = element_line(size = 0.5, 
-                                    linetype = 2,
-                                    color = "gray75"),
-        panel.grid.minor.y = element_line(size = 0, 
-                                    linetype = 2,
-                                    color = "gray75"),
-        panel.grid.major.x = element_line(size = 0.5, 
-                                    linetype = 2,
-                                    color = "gray75"),
-        panel.grid.minor.x = element_line(size = 0, 
-                                    linetype = 2,
-                                    color = "gray75")) 
-
-time_bytype_DEGs_all 
-
-time_bytype_DEGs_all %>%
-  ggsave(filename = here("Figures", "OtherVaccines_COVID_DEGs_Linechart.png"),
-         width = 15,
-         height = 5)
+# time_bytype_DEGs_covid %>%
+#   ggsave(filename = here("Figures", "OtherVaccines_COVID_DEGs_Linechart_FacetByType.png"),
+#          width = 30,
+#          height = 5)
 
 ```
+
 
 
 
@@ -29344,6 +29050,247 @@ all_degs_biotypes_plot_totals %>%
 all_degs_biotypes_plot_totals
 
 ```
+### By immune genes
+
+```{r}
+ImmuneGO_BTM_grouped_genes <- read_csv("VaxGO gene sets/ImmuneGO_BTM_grouped_genes.csv")
+
+all_degs_immuneGO_BTM_totals_covid = degs_covid_vax %>% 
+  select(genes, condition) %>% 
+  left_join(ImmuneGO_BTM_grouped_genes %>% 
+               select(genes) %>% 
+               distinct() %>% 
+              mutate(set = "Immune"),
+               by = "genes") %>% 
+  mutate(set = if_else(is.na(set), "Other", set)) %>% 
+  group_by(condition,set) %>% 
+  summarise(n = n()) %>%
+  ungroup() %>% 
+  group_by(condition) %>% 
+  summarize(ntotal = sum(n),
+            n = n,
+            set = set) %>% 
+  distinct() %>% 
+    ungroup() %>%  
+  mutate(n_perc = round(100*(n/ntotal), 1)) %>% 
+  inner_join(ann_vaccines_covid_other_conditions_ordered %>% 
+               select(-set),
+             by="condition")
+
+all_degs_immuneGO_BTM_reg_covid = degs_covid_vax %>% 
+  select(genes, direction, condition) %>% 
+  inner_join(ImmuneGO_BTM_grouped_genes %>% 
+               select(genes) %>% 
+               distinct() %>% 
+               mutate(set = "Immune"),
+               by = "genes") %>% 
+  mutate(set = if_else(is.na(set), "Other", set)) %>% 
+  group_by(condition, direction, set) %>% 
+  summarise(n = n()) %>%
+  ungroup() %>% 
+  group_by(condition) %>% 
+  summarize(ntotal = sum(n),
+            direction = direction,
+            n = n,
+            set = set) %>% 
+  distinct() %>% 
+    ungroup() %>% 
+  inner_join(ann_vaccines_covid_other_conditions_ordered %>% 
+               select(-set), by="condition")
+
+all_degs_immuneGO_BTM_totals_covid
+
+immune_others_covid = all_degs_immuneGO_BTM_totals_covid %>%
+  filter(set == "Immune") %>% 
+  rename(immune = set) %>% 
+  ungroup() %>% 
+  arrange(condition) %>% 
+  mutate(condition = fct_relevel(condition,
+                                 ann_vaccines_covid_other_conditions_ordered$condition %>% 
+                                   levels()),
+         day = as.character(day) %>% 
+           as.integer(),
+         pathogen = str_to_upper(pathogen))
+
+immune_others_covid_tbl = immune_others_covid %>% 
+  filter(!condition %in% c("ChAd-BNT (V2, D0)",
+                           "BNT-I-BNT (D51, hospital)")) %>% 
+  select(condition, type, dose, day, pathogen, everything())  
+
+immune_others_covid_tbl_BNT_MO_before <- immune_others_covid_tbl %>%
+  filter(condition %in% c("BNT (V2, D1)", "BNT (V1, D6)")) %>% 
+  mutate(condition = if_else(condition == "BNT (V1, D6)", "BNT-MO (V1, D6)", "BNT-MO (V2, D1)"),
+         vaccine = "MO")
+
+immune_others_covid_tbl_I <- immune_others_covid_tbl %>%
+  filter(disease_vac == "I") %>% 
+  select(condition, pathogen, everything())
+
+immune_others_covid_tbl = immune_others_covid_tbl %>% 
+  filter(!condition %in% c(immune_others_covid_tbl_I$condition %>% unique()))
+
+immune_others_covid_tbl_2 = bind_rows(immune_others_covid_tbl,
+            immune_others_covid_tbl_BNT_MO_before,
+            immune_others_covid_tbl_I) %>% 
+    mutate(day = as.character(day),
+           day = as.numeric(day),
+         pathogen = if_else(is.na(pathogen) & disease_vac == "V", 
+                            paste0("SARS-CoV-2/", vaccine), 
+                            pathogen),
+         pathogen = str_to_upper(pathogen),
+         pathogen = case_when(str_detect(condition, "BNT-I.*hospital") ~ "SARS-COV-2/BNT-I Hospital",
+                              str_detect(condition, "I.*hospital") ~ "SARS-COV-2/I Hospital", 
+                              condition == "BNT-I (D0-5)" ~ "SARS-COV-2/BNT-I", 
+                              condition == "I (D0-4)" ~ "SARS-COV-2/I", 
+                              condition == "I-BNT (D5)" ~ "SARS-COV-2/I-BNT", 
+                              condition == "I-I (D0-5)" ~ "SARS-COV-2/I-I", 
+                              .default = pathogen)) %>% 
+    arrange(day) %>% 
+    mutate(type_grouped = case_when(type == "CONJ" ~ "Conjugated/PS",
+                                 type == "PS" ~ "Conjugated/PS",
+                                 type == "VV" ~ "Genetic",
+                                 type == "RNA" ~ "Genetic",
+                                 type == "LA" ~ "Live attenuated",
+                                 type == "IN" ~ "Inactivated",
+                                 type == "SU" ~ "Subunit",
+                                 disease_vac == "I" ~ "Infection",
+                                 TRUE ~ type),
+         type = case_when(disease_vac == "I" ~ "I",
+                                 TRUE ~ type),
+         type_grouped = as.factor(type_grouped),
+         type_grouped = fct_relevel(type_grouped, 
+                            "Infection",
+                            "Live Attenuated",
+                            "Inactivated",
+                            "Conjugated/PS",
+                            "Subunit",
+                            "Genetic")) %>% 
+  select(condition, type, type_grouped, dose, day, pathogen, everything()) 
+
+immune_others_covid_day0 <- immune_others_covid_tbl_2 %>%
+  select(condition, type, type_grouped, dose, pathogen, day,immune, n_perc) %>% 
+  mutate(day = 0, 
+         n_perc = 0, 
+         dose = "0",
+         condition = paste0(pathogen, " D(0)")) %>% 
+  distinct()
+
+immune_others_covid_tbl_2 = immune_others_covid_tbl_2 %>% 
+  bind_rows(immune_others_covid_day0) %>% 
+  arrange(condition)
+
+immune_others_covid_tbl_2 %>% 
+  select(condition, type, type_grouped, dose, pathogen, day, immune, n_perc) %>% 
+  distinct() %>% 
+  arrange(pathogen, day)
+
+```
+
+Separated
+```{r fig.height=5, fig.width=30}
+
+day_filter = 30
+time_bytype_Immune_COVID = immune_others_covid_tbl_2 %>%
+  filter(day <= day_filter, 
+         type != "IN/SU") %>% 
+  mutate(dose = as.factor(dose),
+         dose = fct_relevel(dose, "0", "1", "2", "3")) %>%
+  mutate(type_grouped = str_to_upper(type_grouped),
+         type_grouped = as.factor(type_grouped),
+         type_grouped = fct_relevel(type_grouped, 
+                            "INFECTION",
+                            "LIVE ATTENUATED",
+                            "INACTIVATED",
+                            "CONJUGATED/PS",
+                            "SUBUNIT",
+                            "GENETIC"),
+         title = immune) %>% 
+
+  arrange(condition) %>% 
+  distinct() %>% 
+  ggplot() +
+  aes(x = day, 
+      y = n_perc, 
+     # label = condition,
+    group = pathogen
+      ) +
+  geom_line(
+  aes(color = pathogen,
+      group = pathogen
+    ),
+  size = 1) +
+  geom_point(aes(shape = dose,
+                 color = pathogen),
+             size = 3.5,
+             color = "black",
+             alpha = 1) +
+  geom_point(aes(shape = dose,
+                 color = pathogen),             
+             size = 3,
+             alpha = 0.7) +
+  # geom_hline(yintercept = 0, linetype = 1, alpha = 1) +
+  scale_color_manual(values = c(ann_vaxsig_colors$type, 
+                                ann_vaxsig_colors$target_pathogen_disease,
+                                ann_vaxsig_colors$dose,
+                                "SARS-COV-2/BBIBP" = "#00A087FF",
+                                "SARS-COV-2/ZF2001" = "#8491B4FF",
+                                "SARS-COV-2/BNT" = "#4DBBD5FF",
+                                "SARS-COV-2/MO" = "blue",
+                                "SARS-COV-2/CHAD" = "#3C5488FF",
+                                "SARS-COV-2/I" = "red",
+                                "SARS-COV-2/I Hospital" = "red",
+                                "SARS-COV-2/I-I" = "purple",
+                                "SARS-COV-2/BNT-I" = "pink",
+                                "SARS-COV-2/BNT-I Hospital" = "pink",
+                                "SARS-COV-2/I-BNT" = "#Af101e"
+                                
+                                )) +
+  scale_shape_manual(values = c("0" = 15, 
+                                "1" = 16, 
+                                "2" = 17, 
+                                "3" = 18)) +
+  scale_alpha_manual(values = c("COVID-19" = 1, "13Vax Atlas" = 1), guide = "none") +
+  theme_minimal() +
+  labs(x = "Day",
+       y = "Total",
+       color = "Pathogen",
+       shape = "Dose",
+       alpha = "COVID-19 or Other",
+       # title = "Temporal dynamics of immunization", 
+       # subtitle = "Immune System process",
+       linetype = "Set") +
+  facet_grid(~title~type_grouped, scales = "free_x") +
+  theme(legend.position = "right",
+        strip.text.x = element_blank(),
+        strip.text.y = element_text(color = "black", 
+                                    size = 12, 
+                                    hjust = 0,
+                                    angle = 360,
+                                    face = "bold"), 
+        axis.title.x = element_blank(),
+        axis.text.x = element_blank(),
+        axis.text.y = element_text(vjust = 0.5, size = 12, color = "black"),
+        axis.line.y = element_line(size = 1, colour = "black", linetype=1),
+        axis.line.x = element_blank(),
+        axis.ticks.y = element_line(size = 0.5, color = "black"),
+        axis.ticks.x = element_blank(),
+        panel.grid.major.y = element_line(size = 0.5, 
+                                    linetype = 2,
+                                    color = "gray75"),
+        panel.grid.minor.y = element_line(size = 0, 
+                                    linetype = 2,
+                                    color = "gray75"),
+        panel.grid.major.x = element_line(size = 0.5, 
+                                    linetype = 2,
+                                    color = "gray75"),
+        panel.grid.minor.x = element_line(size = 0, 
+                                    linetype = 2,
+                                    color = "gray75")) +
+    scale_x_continuous(breaks = c(0, 3, 7, 14, 21, 28, 30)) 
+
+
+```
+
 
 ### DEGs by Main GO
 ```{r}
@@ -29424,295 +29371,6 @@ main_go_2 = read_csv(file = here("DGE analysis", "OtherVaccines_degs_annotated_m
   filter(condition %in% c(ann_vaccines_covid_other_conditions_ordered %>% 
            pull(condition)))
 
-main_go_2_plot_alldirections = main_go_2 %>%
-  group_by(condition, term_ancestor) %>%
-  summarize(n_genes = sum(n_genes),
-            n_genes_total = sum(n_genes_total),
-            n_genes_perc = round((n_genes/n_genes_total)*100, 1)) %>% 
-  ungroup() %>% 
-  inner_join(ann_vaccines_covid_other_conditions_ordered, by = "condition") %>% 
-  filter(set == "13Vax Atlas") %>% 
-  mutate(term_ancestor = fct_relevel(term_ancestor,
-                                     "Immune system",
-                                     "Cellular",
-                                     "Metabolism",
-                                     "Reg. of BP")) %>%
-  filter(term_ancestor %in% c("Cellular", "Metabolism")) %>% 
-  mutate(condition = fct_relevel(condition,
-                                 ann_vaccines_covid_other_conditions_ordered$condition %>% 
-                                   levels())) %>% 
-  arrange(condition) %>% 
-  filter(type != "IN/SU") %>% 
-  ggplot() +
- aes(x = fct_rev(condition), y = n_genes_perc, fill = type) +
- geom_col(size = 0.5, 
-          color = "black",
-          width = 0.6) +
- coord_flip() +
- theme_minimal() +
-   scale_fill_manual(name = "Type",
-    values = ann_vaxsig_colors$type) +
-  theme(legend.position = "right",
-        strip.text.x = element_text(color = "black", size = 12), 
-        axis.text.x = element_text(color = "black", size = 10),
-        axis.text.y = element_text(vjust = 0.5, size = 10, color = "black"),
-        axis.line = element_line(size = 1, colour = "black", linetype=1),
-        axis.ticks = element_line(size = 0.5, color = "black"),
-        panel.grid.major.y = element_line(size = 0, 
-                                    linetype = 2,
-                                    color = "white"),
-        panel.grid.major.x = element_line(size = 0.5, 
-                                    linetype = 2,
-                                    color = "gray75")) +
-  geom_text(aes(label = paste0(n_genes_perc, "% (", n_genes, ")"), 
-                y = n_genes_perc), 
-            hjust = -0.1, 
-            size = 3,
-            angle = 0) +
-  labs(title = "Biological processes",
-       x = "",
-       y = "Number of genes (%)") +
-  facet_wrap(~term_ancestor, ncol = 3) +
-  scale_y_continuous(expand = c(0,0), limits = c(0,130))
-
-main_go_2_plot_alldirections
-
-
-ggsave(main_go_2_plot_alldirections, file = here("Figures", "OtherVaccines_MainGO_values_AllDirections_regulated.png"), 
-                                           width = 10, 
-                                           height = 10)
-```
-
-
-No labels
-```{r fig.height=10, fig.width=10, message=FALSE, warning=FALSE}
-main_go_2_plot_alldirections_nolabels = main_go_2 %>%
-  group_by(condition, term_ancestor) %>%
-  summarize(n_genes = sum(n_genes),
-            n_genes_total = sum(n_genes_total),
-            n_genes_perc = round((n_genes/n_genes_total)*100, 1)) %>% 
-  ungroup() %>% 
-  inner_join(ann_vaccines_covid_other_conditions_ordered, by = "condition") %>% 
-  filter(set == "13Vax Atlas")
-  mutate(term_ancestor = fct_relevel(term_ancestor,
-                                     "Immune system",
-                                     "Cellular",
-                                     "Metabolism",
-                                     "Reg. of BP")) %>%
-  filter(term_ancestor %in% c("Cellular", "Metabolism")) %>% 
-  mutate(condition = fct_relevel(condition,
-                                 ann_vaccines_covid_other_conditions_ordered$condition %>% 
-                                   levels())) %>% 
-  arrange(condition) %>% 
-  filter(type != "IN/SU") %>% 
-  ggplot() +
- aes(x = fct_rev(condition), y = n_genes_perc, fill = type) +
- geom_col(size = 0.5, 
-          color = "black",
-          width = 0.6) +
- coord_flip() +
- theme_minimal() +
-   scale_fill_manual(name = "Type",
-    values = ann_vaxsig_colors$type) +
-  theme(legend.position = "right",
-        strip.text.x = element_text(color = "black", size = 12), 
-        axis.text.x = element_text(color = "black", size = 10),
-        axis.text.y = element_text(vjust = 0.5, size = 10, color = "black"),
-        axis.line = element_line(size = 1, colour = "black", linetype=1),
-        axis.ticks = element_line(size = 0.5, color = "black"),
-        panel.grid.major.y = element_line(size = 0, 
-                                    linetype = 2,
-                                    color = "white"),
-        panel.grid.major.x = element_line(size = 0.5, 
-                                    linetype = 2,
-                                    color = "gray75")) +
-  # geom_text(aes(label = paste0(n_genes_perc, "% (", n_genes, ")"), 
-  #               y = n_genes_perc), 
-  #           hjust = -0.1, 
-  #           size = 3,
-  #           angle = 0) +
-  labs(title = "Biological processes",
-       x = "",
-       y = "Number of genes (%)") +
-  facet_wrap(~term_ancestor, ncol = 3) +
-  scale_y_continuous(expand = c(0,0), limits = c(0,100))
-
-main_go_2_plot_alldirections_nolabels
-
-
-ggsave(main_go_2_plot_alldirections_nolabels, file = here("Figures", "OtherVaccines_MainGO_NoLabels_AllDirections_regulated.png"), 
-                                           width = 10, 
-                                           height = 10)
-```
-
-Lineplot - vertical
-```{r fig.height=5, fig.width=10}
-
-#Percentage total DEGs
-OtherGOs_plot_line =  main_go_2 %>%
-  group_by(condition, term_ancestor) %>%
-  summarize(n_genes = sum(n_genes),
-            n_genes_total = sum(n_genes_total),
-            n_genes_perc = round((n_genes/n_genes_total)*100, 1)) %>% 
-  ungroup() %>% 
-  inner_join(ann_vaccines_covid_other_conditions_ordered, by = "condition") %>% 
-  mutate(term_ancestor = fct_relevel(term_ancestor,
-                                     "Immune system",
-                                     "Cellular",
-                                     "Metabolism",
-                                     "Reg. of BP")) %>%
-  filter(term_ancestor %in% c("Cellular", "Metabolism")) %>% 
-  arrange(condition) %>% 
-  filter(type != "IN/SU") %>% 
-  mutate(condition = fct_relevel(condition,
-                                 ann_vaccines_covid_other_conditions_ordered$condition %>% 
-                                   levels()),
-         day = as.character(day) %>% 
-           as.integer(),
-         pathogen = str_to_upper(pathogen)) %>% 
-    filter(day <30) %>% 
-  ggplot(.) +
-  aes(x = day, y = n_genes_perc, 
-      colour = vaccine, 
-      group = vaccine) +
-  geom_line(aes(color = pathogen), 
-          alpha = 0.7,
-          size = 1) +
-  geom_point(aes(shape = type), 
-               alpha = 1,
-               size = 3,
-             color = "black") +
-  geom_point(aes(shape = type, color = pathogen), 
-               alpha = 1,
-               size = 2) +
-  scale_shape_manual(values = c( 15, 17, 18, 19, 0, 1, 2, 5, 6)) +
-  scale_color_manual(values = ann_vaxsig_colors$pathogen) +
-  theme_minimal() +
-  theme(legend.position = "right",
-        strip.text.x = element_text(color = "black", size = 12), 
-        axis.text.x = element_text(color = "black", size = 10),
-        axis.text.y = element_text(vjust = 0.5, size = 10, color = "black"),
-        axis.line.x = element_line(size = 1, colour = "black", linetype=1),
-        axis.line.y = element_line(size = 1, colour = "black", linetype=1),
-        axis.ticks.y = element_line(size = 0.5, color = "black"),
-        axis.ticks.x = element_line(size = 0, color = "black"),
-        panel.grid.major.y = element_line(size = 0.5, 
-                                            linetype = 2,
-                                            color = "gray75"),
-          panel.grid.minor.y = element_line(size = 0, 
-                                            linetype = 2,
-                                            color = "gray75"),
-          panel.grid.major.x = element_line(size = 0.5, 
-                                            linetype = 2,
-                                            color = "gray75"),
-        panel.grid.minor.x = element_blank(),
-        axis.text.x.top = element_blank(),
-        axis.ticks.x.top = element_blank(),
-        axis.line.x.top = element_blank()
-        ) +
-  labs(x = "Day",
-       y = "%Coverage",
-       shape = "Type",
-       color = "Pathogen",
-       title = "") +
-  scale_x_continuous(expand = c(0,0), 
-                     breaks = c(0, 3, 7, 14, 21, 28, 60, 70, 84),
-                     limits = c(-1, 30)) + 
-  # scale_x_break(c(30,58)) +
-  facet_wrap(~term_ancestor, scales = "free_y", nrow = 2)
-    
-
-OtherGOs_plot_line %>% 
-  ggsave(file = here("Figures", "OtherVaccines_all_degs_OtherGOs_percentage_line_plot.png"),
-         width = 10,
-         height = 10)
-  
-OtherGOs_plot_line
-```
-
-```{r fig.height=5, fig.width=10}
-#Percentage total DEGs
-OtherGOs_plot_line_horizontal =  main_go_2 %>%
-  group_by(condition, term_ancestor) %>%
-  summarize(n_genes = sum(n_genes),
-            n_genes_total = sum(n_genes_total),
-            n_genes_perc = round((n_genes/n_genes_total)*100, 1)) %>% 
-  ungroup() %>% 
-  inner_join(ann_vaccines_covid_other_conditions_ordered, by = "condition") %>% 
-  mutate(term_ancestor = fct_relevel(term_ancestor,
-                                     "Immune system",
-                                     "Cellular",
-                                     "Metabolism",
-                                     "Reg. of BP")) %>%
-  filter(term_ancestor %in% c("Cellular", "Metabolism")) %>% 
-  arrange(condition) %>% 
-  filter(type != "IN/SU") %>% 
-  mutate(condition = fct_relevel(condition,
-                                 ann_vaccines_covid_other_conditions_ordered$condition %>% 
-                                   levels()),
-         day = as.character(day) %>% 
-           as.integer(),
-         pathogen = str_to_upper(pathogen)) %>% 
-    filter(day <30) %>% 
-  ggplot(.) +
-  aes(x = day, y = n_genes_perc, 
-      colour = vaccine, 
-      group = vaccine) +
-  geom_line(aes(color = pathogen), 
-          alpha = 0.7,
-          size = 1) +
-  geom_point(aes(shape = type), 
-               alpha = 1,
-               size = 3,
-             color = "black") +
-  geom_point(aes(shape = type, color = pathogen), 
-               alpha = 1,
-               size = 2) +
-  scale_shape_manual(values = c( 15, 17, 18, 19, 0, 1, 2, 5, 6)) +
-  scale_color_manual(values = ann_vaxsig_colors$pathogen) +
-  theme_minimal() +
-  theme(legend.position = "right",
-        strip.text.x = element_text(color = "black", size = 12), 
-        axis.text.x = element_text(color = "black", size = 10),
-        axis.text.y = element_text(vjust = 0.5, size = 10, color = "black"),
-        axis.line.x = element_line(size = 1, colour = "black", linetype=1),
-        axis.line.y = element_line(size = 1, colour = "black", linetype=1),
-        axis.ticks.y = element_line(size = 0.5, color = "black"),
-        axis.ticks.x = element_line(size = 0, color = "black"),
-        panel.grid.major.y = element_line(size = 0.5, 
-                                            linetype = 2,
-                                            color = "gray75"),
-          panel.grid.minor.y = element_line(size = 0, 
-                                            linetype = 2,
-                                            color = "gray75"),
-          panel.grid.major.x = element_line(size = 0.5, 
-                                            linetype = 2,
-                                            color = "gray75"),
-        panel.grid.minor.x = element_blank(),
-        axis.text.x.top = element_blank(),
-        axis.ticks.x.top = element_blank(),
-        axis.line.x.top = element_blank()
-        ) +
-  labs(x = "Day",
-       y = "%Coverage",
-       shape = "Type",
-       color = "Pathogen",
-       title = "") +
-  scale_x_continuous(expand = c(0,0), 
-                     breaks = c(0, 3, 7, 14, 21, 28, 60, 70, 84),
-                     limits = c(-1, 30)) + 
-  # scale_x_break(c(30,58)) +
-  facet_wrap(~term_ancestor, scales = "free_y", nrow = 1)
-  
-OtherGOs_plot_line_horizontal
-```
-
-
-
-
-With COVID
-
-```{r fig.height=10, fig.width=10}
 main_go_2covid = main_go_2 %>%
   group_by(condition, term_ancestor) %>%
   summarize(n_genes = sum(n_genes),
@@ -29808,12 +29466,10 @@ degs_notimmune_tbl_2 %>%
   select(condition, type, type_grouped, dose, pathogen, day, term_ancestor, n_genes_perc) %>% 
   distinct() %>% 
   arrange(pathogen, day)
-
 ```
 
-Separated
-```{r fig.height=7, fig.width=30}
 
+```{r fig.height=10, fig.width=30}
 day_filter = 30
 time_bytype_MainGOs_COVID = degs_notimmune_tbl_2 %>%
   filter(day <= day_filter, 
@@ -29828,7 +29484,8 @@ time_bytype_MainGOs_COVID = degs_notimmune_tbl_2 %>%
                             "INACTIVATED",
                             "CONJUGATED/PS",
                             "SUBUNIT",
-                            "GENETIC")) %>% 
+                            "GENETIC"),
+         title = term_ancestor) %>% 
 
   arrange(condition) %>% 
   distinct() %>% 
@@ -29852,7 +29509,7 @@ time_bytype_MainGOs_COVID = degs_notimmune_tbl_2 %>%
                  color = pathogen),             
              size = 3,
              alpha = 0.7) +
-  geom_hline(yintercept = 0, linetype = 1, alpha = 1) +
+  # geom_hline(yintercept = 0, linetype = 1, alpha = 1) +
   scale_color_manual(values = c(ann_vaxsig_colors$type, 
                                 ann_vaxsig_colors$target_pathogen_disease,
                                 ann_vaxsig_colors$dose,
@@ -29874,7 +29531,6 @@ time_bytype_MainGOs_COVID = degs_notimmune_tbl_2 %>%
                                 "2" = 17, 
                                 "3" = 18)) +
   scale_alpha_manual(values = c("COVID-19" = 1, "13Vax Atlas" = 1), guide = "none") +
-  scale_x_continuous(breaks = c(0, 3, 7, 14, 21, 28, 30)) +
   theme_minimal() +
   labs(x = "Day",
        y = "Total",
@@ -29884,18 +29540,16 @@ time_bytype_MainGOs_COVID = degs_notimmune_tbl_2 %>%
        # title = "Temporal dynamics of immunization", 
        # subtitle = "Immune System process",
        linetype = "Set") +
-  facet_grid(~term_ancestor~type_grouped, scales = "free_x") +
+  facet_grid(~title~type_grouped, scales = "free_x") +
   theme(legend.position = "right",
-        strip.text.x = element_text(color = "black", 
-                                    size = 12,
-                                    face = "bold"), 
+        strip.text.x = element_blank(), 
         strip.text.y = element_text(color = "black", 
                                     size = 12, 
                                     hjust = 0,
                                     angle = 360,
                                     face = "bold"), 
         axis.text.x = element_text(color = "black", size = 12),
-        axis.text.y = element_text(vjust = 0.5, size = 10, color = "black"),
+        axis.text.y = element_text(vjust = 0.5, size = 12, color = "black"),
         axis.line = element_line(size = 1, colour = "black", linetype=1),
         axis.ticks = element_line(size = 0.5, color = "black"),
         panel.grid.major.y = element_line(size = 0.5, 
@@ -29909,7 +29563,9 @@ time_bytype_MainGOs_COVID = degs_notimmune_tbl_2 %>%
                                     color = "gray75"),
         panel.grid.minor.x = element_line(size = 0, 
                                     linetype = 2,
-                                    color = "gray75")) 
+                                    color = "gray75")) +
+    scale_x_continuous(breaks = c(0, 3, 7, 14, 21, 28, 30)) 
+ 
 
 time_bytype_MainGOs_COVID 
 
@@ -29922,502 +29578,28 @@ time_bytype_MainGOs_COVID %>%
 
 
 
-### By immune genes
-
-
-```{r}
-
-ImmuneGO_BTM_grouped_genes <- read_csv("VaxGO gene sets/ImmuneGO_BTM_grouped_genes.csv")
-
-all_degs_immuneGO_BTM_totals = degs_covid_vax %>% 
-  select(genes, condition) %>% 
-  left_join(ImmuneGO_BTM_grouped_genes %>% 
-               select(genes) %>% 
-               distinct() %>% 
-              mutate(set = "Immune"),
-               by = "genes") %>% 
-  mutate(set = if_else(is.na(set), "Other", set)) %>% 
-  group_by(condition,set) %>% 
-  summarise(n = n()) %>%
-  ungroup() %>% 
-  group_by(condition) %>% 
-  summarize(ntotal = sum(n),
-            n = n,
-            set = set) %>% 
-  distinct() %>% 
-    ungroup() %>%  
-  mutate(n_perc = round(100*(n/ntotal), 1)) %>% 
-  inner_join(ann_vaccines_covid_other_conditions_ordered %>% 
-               filter(set == "13Vax Atlas") %>% 
-               select(-set),
-             by="condition")
-
-all_degs_immuneGO_BTM_reg = degs_covid_vax %>% 
-  select(genes, direction, condition) %>% 
-  inner_join(ImmuneGO_BTM_grouped_genes %>% 
-               select(genes) %>% 
-               distinct() %>% 
-               mutate(set = "Immune"),
-               by = "genes") %>% 
-  mutate(set = if_else(is.na(set), "Other", set)) %>% 
-  group_by(condition, direction, set) %>% 
-  summarise(n = n()) %>%
-  ungroup() %>% 
-  group_by(condition) %>% 
-  summarize(ntotal = sum(n),
-            direction = direction,
-            n = n,
-            set = set) %>% 
-  distinct() %>% 
-    ungroup() %>% 
-  inner_join(ann_vaccines_covid_other_conditions_ordered %>% 
-               filter(set == "13Vax Atlas") %>% 
-               select(-set), by="condition")
-
-
-median_immune = all_degs_immuneGO_BTM_totals %>%
-  group_by(set) %>% 
-  summarize(n_median = median(n_perc)) %>% 
-  ungroup() %>% 
-  filter(set == "Immune")
-```
-
-
-```{r fig.height=10, fig.width=7}
-#Percentage total DEGs
-other_vaccines_all_degs_immuneGO_BTM_plot = all_degs_immuneGO_BTM_totals %>% 
-  filter(set != "Other") %>%
-  filter(type != "IN/SU") %>% 
-  mutate(condition = fct_relevel(condition,
-                                 ann_vaccines_covid_other_conditions_ordered$condition %>% 
-                                   levels()),
-         title = "Immune system") %>% 
-  ggplot(.) +
-  aes(x = n_perc, y = fct_rev(condition), fill = type) +
-  geom_col(color = "black",
-           size = 0.5,
-           width = 0.6) +
-  #Median
-  # geom_vline(xintercept = median_immune$n_median,
-  #            color = "black",
-  #            linetype = "solid") +
-  scale_fill_manual(values = ann_vaxsig_colors$type) +
-    theme_minimal() +
-  theme(legend.position = "right",
-        strip.text.x = element_text(color = "black", size = 12), 
-        axis.text.x = element_text(color = "black", size = 10),
-        axis.text.y = element_text(vjust = 0.5, size = 10, color = "black"),
-        axis.line = element_line(size = 1, colour = "black", linetype=1),
-        axis.ticks = element_line(size = 0.5, color = "black"),
-        panel.grid.major.y = element_line(size = 0, 
-                                    linetype = 2,
-                                    color = "white"),
-        panel.grid.major.x = element_line(size = 0.5, 
-                                    linetype = 2,
-                                    color = "gray75")) +
-  labs(x = "%Coverage",
-       y = "",
-       fill = "Type",
-       title = "") +
-  scale_x_continuous(expand = c(0,0),
-                     limits = c(0, 45)) +
-  facet_wrap(~title)
-  # geom_text(aes(x = n_perc,
-  #               label = paste0(n_perc)), 
-  #           hjust = -0.2,
-  #           size = 3, 
-  #           color = "black")
-
-other_vaccines_all_degs_immuneGO_BTM_plot %>% 
-  ggsave(file = here("Figures", "OtherVaccines_all_degs_immuneGO_BTM_percentage_Labelled_plot.png"),
-         width = 7,
-         height = 10)
-  
-other_vaccines_all_degs_immuneGO_BTM_plot
-```
-
-
-
-
-Lineplot
-```{r fig.height=5, fig.width=10}
-#Percentage total DEGs
-all_degs_immuneGO_BTM_plot_line = all_degs_immuneGO_BTM_totals %>% 
-  filter(type != "IN/SU") %>% 
-  filter(set != "Other") %>%
-  mutate(condition = fct_relevel(condition,
-                                 ann_vaccines_covid_other_conditions_ordered$condition %>% 
-                                   levels()),
-         title = "Immune system",
-         day = as.character(day) %>% 
-           as.integer(),
-         pathogen = str_to_upper(pathogen)) %>% 
-  filter(day <30) %>% 
-  ggplot(.) +
-  aes(x = day, y = n_perc, 
-      colour = vaccine, 
-      group = vaccine) +
-  geom_line(aes(color = pathogen), 
-          alpha = 0.7,
-          size = 1) +
-  geom_point(aes(shape = type), 
-               alpha = 1,
-               size = 3,
-             color = "black") +
-  geom_point(aes(shape = type, color = pathogen), 
-               alpha = 1,
-               size = 2) +
-  scale_shape_manual(values = c( 15, 17, 18, 19, 0, 1, 2, 5, 6)) +
-  scale_color_manual(values = ann_vaxsig_colors$pathogen) +
-  theme_minimal() +
-  scale_shape_manual(values = c( 15, 17, 18, 19, 0, 1, 2, 5, 6)) +
-  scale_color_manual(values = ann_vaxsig_colors$pathogen) +
-  theme_minimal() +
-  theme(legend.position = "right",
-        strip.text.x = element_text(color = "black", size = 12), 
-        axis.text.x = element_text(color = "black", size = 10),
-        axis.text.y = element_text(vjust = 0.5, size = 10, color = "black"),
-        axis.line.x = element_line(size = 1, colour = "black", linetype=1),
-        axis.line.y = element_line(size = 1, colour = "black", linetype=1),
-        axis.ticks.y = element_line(size = 0.5, color = "black"),
-        axis.ticks.x = element_line(size = 0, color = "black"),
-        panel.grid.major.y = element_line(size = 0.5, 
-                                            linetype = 2,
-                                            color = "gray75"),
-          panel.grid.minor.y = element_line(size = 0, 
-                                            linetype = 2,
-                                            color = "gray75"),
-          panel.grid.major.x = element_line(size = 0.5, 
-                                            linetype = 2,
-                                            color = "gray75"),
-        panel.grid.minor.x = element_blank(),
-        axis.text.x.top = element_blank(),
-        axis.ticks.x.top = element_blank(),
-        axis.line.x.top = element_blank()
-        ) +
-  labs(x = "Day",
-       y = "%Coverage",
-       shape = "Type",
-       color = "Pathogen",
-       title = "") +
-  scale_x_continuous(expand = c(0,0), 
-                     breaks = c(0, 3, 7, 14, 21, 28, 60, 70, 84),
-                     limits = c(-1, 30)) + 
-  # scale_x_break(c(30,58)) +
-  facet_wrap(~title)
-    
-
-all_degs_immuneGO_BTM_plot_line %>% 
-  ggsave(file = here("Figures", "OtherVaccines_all_degs_immuneGO_BTM_percentage_line_plot.png"),
-         width = 10,
-         height = 5)
-  
-all_degs_immuneGO_BTM_plot_line
-```
-
-
-With COVID
-
-```{r}
-all_degs_immuneGO_BTM_totals_covid = degs_covid_vax %>% 
-  select(genes, condition) %>% 
-  left_join(ImmuneGO_BTM_grouped_genes %>% 
-               select(genes) %>% 
-               distinct() %>% 
-              mutate(set = "Immune"),
-               by = "genes") %>% 
-  mutate(set = if_else(is.na(set), "Other", set)) %>% 
-  group_by(condition,set) %>% 
-  summarise(n = n()) %>%
-  ungroup() %>% 
-  group_by(condition) %>% 
-  summarize(ntotal = sum(n),
-            n = n,
-            set = set) %>% 
-  distinct() %>% 
-    ungroup() %>%  
-  mutate(n_perc = round(100*(n/ntotal), 1)) %>% 
-  inner_join(ann_vaccines_covid_other_conditions_ordered %>% 
-               select(-set),
-             by="condition")
-
-all_degs_immuneGO_BTM_reg_covid = degs_covid_vax %>% 
-  select(genes, direction, condition) %>% 
-  inner_join(ImmuneGO_BTM_grouped_genes %>% 
-               select(genes) %>% 
-               distinct() %>% 
-               mutate(set = "Immune"),
-               by = "genes") %>% 
-  mutate(set = if_else(is.na(set), "Other", set)) %>% 
-  group_by(condition, direction, set) %>% 
-  summarise(n = n()) %>%
-  ungroup() %>% 
-  group_by(condition) %>% 
-  summarize(ntotal = sum(n),
-            direction = direction,
-            n = n,
-            set = set) %>% 
-  distinct() %>% 
-    ungroup() %>% 
-  inner_join(ann_vaccines_covid_other_conditions_ordered %>% 
-               select(-set), by="condition")
-
-all_degs_immuneGO_BTM_totals_covid
-```
-
-
-```{r fig.height=10, fig.width=10}
-immune_others_covid = all_degs_immuneGO_BTM_totals_covid %>%
-  filter(set == "Immune") %>% 
-  rename(immune = set) %>% 
-  ungroup() %>% 
-  arrange(condition) %>% 
-  mutate(condition = fct_relevel(condition,
-                                 ann_vaccines_covid_other_conditions_ordered$condition %>% 
-                                   levels()),
-         day = as.character(day) %>% 
-           as.integer(),
-         pathogen = str_to_upper(pathogen))
-
-immune_others_covid_tbl = immune_others_covid %>% 
-  filter(!condition %in% c("ChAd-BNT (V2, D0)",
-                           "BNT-I-BNT (D51, hospital)")) %>% 
-  select(condition, type, dose, day, pathogen, everything())  
-
-immune_others_covid_tbl_BNT_MO_before <- immune_others_covid_tbl %>%
-  filter(condition %in% c("BNT (V2, D1)", "BNT (V1, D6)")) %>% 
-  mutate(condition = if_else(condition == "BNT (V1, D6)", "BNT-MO (V1, D6)", "BNT-MO (V2, D1)"),
-         vaccine = "MO")
-
-immune_others_covid_tbl_I <- immune_others_covid_tbl %>%
-  filter(disease_vac == "I") %>% 
-  select(condition, pathogen, everything())
-
-immune_others_covid_tbl = immune_others_covid_tbl %>% 
-  filter(!condition %in% c(immune_others_covid_tbl_I$condition %>% unique()))
-
-immune_others_covid_tbl_2 = bind_rows(immune_others_covid_tbl,
-            immune_others_covid_tbl_BNT_MO_before,
-            immune_others_covid_tbl_I) %>% 
-    mutate(day = as.character(day),
-           day = as.numeric(day),
-         pathogen = if_else(is.na(pathogen) & disease_vac == "V", 
-                            paste0("SARS-CoV-2/", vaccine), 
-                            pathogen),
-         pathogen = str_to_upper(pathogen),
-         pathogen = case_when(str_detect(condition, "BNT-I.*hospital") ~ "SARS-COV-2/BNT-I Hospital",
-                              str_detect(condition, "I.*hospital") ~ "SARS-COV-2/I Hospital", 
-                              condition == "BNT-I (D0-5)" ~ "SARS-COV-2/BNT-I", 
-                              condition == "I (D0-4)" ~ "SARS-COV-2/I", 
-                              condition == "I-BNT (D5)" ~ "SARS-COV-2/I-BNT", 
-                              condition == "I-I (D0-5)" ~ "SARS-COV-2/I-I", 
-                              .default = pathogen)) %>% 
-    arrange(day) %>% 
-    mutate(type_grouped = case_when(type == "CONJ" ~ "Conjugated/PS",
-                                 type == "PS" ~ "Conjugated/PS",
-                                 type == "VV" ~ "Genetic",
-                                 type == "RNA" ~ "Genetic",
-                                 type == "LA" ~ "Live attenuated",
-                                 type == "IN" ~ "Inactivated",
-                                 type == "SU" ~ "Subunit",
-                                 disease_vac == "I" ~ "Infection",
-                                 TRUE ~ type),
-         type = case_when(disease_vac == "I" ~ "I",
-                                 TRUE ~ type),
-         type_grouped = as.factor(type_grouped),
-         type_grouped = fct_relevel(type_grouped, 
-                            "Infection",
-                            "Live Attenuated",
-                            "Inactivated",
-                            "Conjugated/PS",
-                            "Subunit",
-                            "Genetic")) %>% 
-  select(condition, type, type_grouped, dose, day, pathogen, everything()) 
-
-immune_others_covid_day0 <- immune_others_covid_tbl_2 %>%
-  select(condition, type, type_grouped, dose, pathogen, day,immune, n_perc) %>% 
-  mutate(day = 0, 
-         n_perc = 0, 
-         dose = "0",
-         condition = paste0(pathogen, " D(0)")) %>% 
-  distinct()
-
-immune_others_covid_tbl_2 = immune_others_covid_tbl_2 %>% 
-  bind_rows(immune_others_covid_day0) %>% 
-  arrange(condition)
-
-immune_others_covid_tbl_2 %>% 
-  select(condition, type, type_grouped, dose, pathogen, day, immune, n_perc) %>% 
-  distinct() %>% 
-  arrange(pathogen, day)
-
-```
-
-Separated
-```{r fig.height=7, fig.width=30}
-
-day_filter = 30
-time_bytype_Immune_COVID = immune_others_covid_tbl_2 %>%
-  filter(day <= day_filter, 
-         type != "IN/SU") %>% 
-  mutate(dose = as.factor(dose),
-         dose = fct_relevel(dose, "0", "1", "2", "3")) %>%
-  mutate(type_grouped = str_to_upper(type_grouped),
-         type_grouped = as.factor(type_grouped),
-         type_grouped = fct_relevel(type_grouped, 
-                            "INFECTION",
-                            "LIVE ATTENUATED",
-                            "INACTIVATED",
-                            "CONJUGATED/PS",
-                            "SUBUNIT",
-                            "GENETIC")) %>% 
-
-  arrange(condition) %>% 
-  distinct() %>% 
-  ggplot() +
-  aes(x = day, 
-      y = n_perc, 
-     # label = condition,
-    group = pathogen
-      ) +
-  geom_line(
-  aes(color = pathogen,
-      group = pathogen
-    ),
-  size = 1) +
-  geom_point(aes(shape = dose,
-                 color = pathogen),
-             size = 3.5,
-             color = "black",
-             alpha = 1) +
-  geom_point(aes(shape = dose,
-                 color = pathogen),             
-             size = 3,
-             alpha = 0.7) +
-  geom_hline(yintercept = 0, linetype = 1, alpha = 1) +
-  scale_color_manual(values = c(ann_vaxsig_colors$type, 
-                                ann_vaxsig_colors$target_pathogen_disease,
-                                ann_vaxsig_colors$dose,
-                                "SARS-COV-2/BBIBP" = "#00A087FF",
-                                "SARS-COV-2/ZF2001" = "#8491B4FF",
-                                "SARS-COV-2/BNT" = "#4DBBD5FF",
-                                "SARS-COV-2/MO" = "blue",
-                                "SARS-COV-2/CHAD" = "#3C5488FF",
-                                "SARS-COV-2/I" = "red",
-                                "SARS-COV-2/I Hospital" = "red",
-                                "SARS-COV-2/I-I" = "purple",
-                                "SARS-COV-2/BNT-I" = "pink",
-                                "SARS-COV-2/BNT-I Hospital" = "pink",
-                                "SARS-COV-2/I-BNT" = "#Af101e"
-                                
-                                )) +
-  scale_shape_manual(values = c("0" = 15, 
-                                "1" = 16, 
-                                "2" = 17, 
-                                "3" = 18)) +
-  scale_alpha_manual(values = c("COVID-19" = 1, "13Vax Atlas" = 1), guide = "none") +
-  scale_x_continuous(breaks = c(0, 3, 7, 14, 21, 28, 30)) +
-  theme_minimal() +
-  labs(x = "Day",
-       y = "Total",
-       color = "Pathogen",
-       shape = "Dose",
-       alpha = "COVID-19 or Other",
-       # title = "Temporal dynamics of immunization", 
-       # subtitle = "Immune System process",
-       linetype = "Set") +
-  facet_grid(~term_ancestor~type_grouped, scales = "free_x") +
-  theme(legend.position = "right",
-        strip.text.x = element_text(color = "black", 
-                                    size = 12,
-                                    face = "bold"), 
-        strip.text.y = element_text(color = "black", 
-                                    size = 12, 
-                                    hjust = 0,
-                                    angle = 360,
-                                    face = "bold"), 
-        axis.text.x = element_text(color = "black", size = 12),
-        axis.text.y = element_text(vjust = 0.5, size = 10, color = "black"),
-        axis.line = element_line(size = 1, colour = "black", linetype=1),
-        axis.ticks = element_line(size = 0.5, color = "black"),
-        panel.grid.major.y = element_line(size = 0.5, 
-                                    linetype = 2,
-                                    color = "gray75"),
-        panel.grid.minor.y = element_line(size = 0, 
-                                    linetype = 2,
-                                    color = "gray75"),
-        panel.grid.major.x = element_line(size = 0.5, 
-                                    linetype = 2,
-                                    color = "gray75"),
-        panel.grid.minor.x = element_line(size = 0, 
-                                    linetype = 2,
-                                    color = "gray75")) 
-
-time_bytype_Immune_COVID 
-
-time_bytype_Immune_COVID %>%
-  ggsave(filename = here("Figures", "OtherVaccines_COVID_Immune_Linechart_FacetByType.png"),
-         width = 30,
-         height = 7)
-
-```
 
 
 ### Merge plots
 
-Barplots
-```{r fig.height=10, fig.width=20}
-ggplot_degs_bars_directions_biotype_bps_OtherVaccines =
-  ggplot_degs_bars_directions +
-  all_degs_biotypes_plot_totals 
+
+```{r fig.height=7, fig.width=25}
+othervaccines_degs_lineplots = (time_bytype_DEGs_covid / 
+   time_bytype_Immune_COVID / 
+   time_bytype_MainGOs_COVID)  +
   plot_layout(guides = "collect", 
-              axes = "collect", 
-              axis_titles = "collect", 
-              nrow = 1,
-              widths = c(3, 1)) 
-
-ggplot_degs_bars_directions_biotype_bps_OtherVaccines
-
-# ggplot_degs_bars_directions_biotype_bps_OtherVaccines %>% 
-#   ggsave(filename = here("Figures", "OtherVaccines_DEGs_Directions_Biotype_BioProcesses_Up_Down.png"),
-#          width = 20,
-#          height = 10)
-
-```
-
-Lineplots
-
-```{r fig.height=5, fig.width=15}
-othervaccines_degs_lineplots_horizontal = all_degs_OtherVaccines_plot_line +
-  all_degs_immuneGO_BTM_plot_line + OtherGOs_plot_line_horizontal +
-   plot_layout(guides = "collect", 
                axes = "collect", 
                axis_titles = "collect", 
-               widths = c(1, 1, 2)) 
+               heights = c(1, 1, 2))
 
-othervaccines_degs_lineplots_horizontal
-othervaccines_degs_lineplots_horizontal %>% 
-  ggsave(filename = here("Figures", "OtherVaccines_DEGs_lineplots_horizontal.png"),
-         height = 10,
-         width = 10)
-```
-
-
-```{r fig.height=10, fig.width=10}
-othervaccines_degs_lineplots = all_degs_immuneGO_BTM_plot_line/
-  OtherGOs_plot_line +
-   plot_layout(guides = "collect", 
-               axes = "collect", 
-               axis_titles = "collect", 
-               heights = c(1, 2)) 
+othervaccines_degs_lineplots
   
-othervaccines_degs_lineplots %>% 
+othervaccines_degs_lineplots %>%
   ggsave(filename = here("Figures", "OtherVaccines_DEGs_lineplots.png"),
-         height = 10,
-         width = 10)
+         height = 7,
+         width = 30)
 othervaccines_degs_lineplots
 ```
-
 
 
 
@@ -31694,6 +30876,9 @@ patch_immune_main
 ###### Main Processes GSEA Timeline
 
 ```{r fig.height=10, fig.width=10}
+
+ann_vaccines = ann_vaccines_covid_other_conditions
+
 gsea_l2fc_tbl = All_covid_13VaxImmune_GO_T2G_general_GSEA_ALL %>% 
   inner_join(ann_vaccines, by = "condition")  %>% 
   filter(!condition %in% c("ChAd-BNT (V2, D0)",
@@ -31816,32 +31001,41 @@ idorder = c(
 
 ```
 
-```{r fig.height=15, fig.width=25}
+```{r fig.height=20, fig.width=15}
+day_filter = 30
 all_together = gsea_l2fc_tbl_2 %>%
-  filter(!pathogen %in% c("SARS-COV-2/I-BNT",
-                          "SARS-COV-2/BNT-I HOSPITAL",
-                          "SARS-COV-2/I HOSPITAL")) %>% 
-  mutate(id = fct_relevel(id, c(idorder)))  %>% 
+  filter(day <= day_filter, 
+         type != "IN/SU") %>% 
+  mutate(id = fct_relevel(id, c(idorder)),
+         dose = as.factor(dose),
+         dose = fct_relevel(dose, "0", "1", "2", "3")) %>%
+  mutate(type_grouped = str_to_upper(type_grouped),
+         type_grouped = as.factor(type_grouped),
+         type_grouped = fct_relevel(type_grouped, 
+                            "INFECTION",
+                            "LIVE ATTENUATED",
+                            "INACTIVATED",
+                            "CONJUGATED/PS",
+                            "SUBUNIT",
+                            "GENETIC")) %>% 
   
   ggplot() +
   aes(x = day, y = nes, group = vaccine) +
-  # Line for each group, with color for pathogen
-  geom_line(aes(color = pathogen), 
-            alpha = 0.7,
-            size = 0.5) +
-  geom_point(aes(shape = type), 
-             alpha = 0.7,
+  geom_line(
+  aes(color = pathogen,
+      group = pathogen
+    ),
+  size = 1) +
+  geom_point(aes(shape = dose,
+                 color = pathogen),
              size = 3.5,
-             color = "black") +
-  geom_point(aes(shape = type, color = pathogen), 
-             alpha = 0.7,
-             size = 3) +
-  geom_point(aes(color = pathogen), 
-            alpha = 0.7,
-             size = 2) +
-  # Horizontal line at y = 0
-  geom_hline(yintercept = 0, linetype = 1, alpha = 0.8) +
-  # Manual color scale for pathogen and custom colors for specific vaccines
+             color = "black",
+             alpha = 1) +
+  geom_point(aes(shape = dose,
+                 color = pathogen),             
+             size = 3,
+             alpha = 0.7) +
+  geom_hline(yintercept = 0, linetype = 1, alpha = 1) +
   scale_color_manual(values = c(ann_vaxsig_colors$type, 
                                 ann_vaxsig_colors$target_pathogen_disease,
                                 ann_vaxsig_colors$dose,
@@ -31855,7 +31049,10 @@ all_together = gsea_l2fc_tbl_2 %>%
                                 "SARS-COV-2/I-BNT" = "#Af101e"
                                 )) +
   # Manual shape scale
-  scale_shape_manual(values = c(0:8, 15:25)) +  
+    scale_shape_manual(values = c("0" = 15, 
+                                "1" = 16, 
+                                "2" = 17, 
+                                "3" = 18)) +
   theme_minimal()+
   # ggthemes::theme_few() +
   theme(legend.position = "top",
@@ -31878,21 +31075,21 @@ all_together = gsea_l2fc_tbl_2 %>%
        title = "Temporal dynamics of immunization, GSEA of Immune processes (BTM + ImmuneGO)") +
     facet_wrap(~id, 
                scales = "free",
-               nrow = 3)
+               nrow = 6)
 
 all_together
 
 all_together %>%
   ggsave(filename = here("Figures", "GSEA_Linechart_ByImmuneProcess_AllVaccines_Infection.png"),
-         width = 25,
-         height = 15)
+         width = 15,
+         height = 20)
 ```
 
 
 
 Separated
 Main processes
-```{r fig.height=8, fig.width=20}
+```{r fig.height=8, fig.width=25}
 
 process_filter = c("IMMUNE SYSTEM",
                    "COMPLEMENT",
@@ -31930,10 +31127,6 @@ time_bytype_main = gsea_l2fc_tbl_2 %>%
   geom_line(
   aes(color = pathogen,
       group = pathogen
-    # alpha = set
-    # position = position_jitter(width = 0, height = 0.2),
-    # linetype = if_else(set == "COVID-19", "dashed",  "solid"),
-    # size = if_else(set == "COVID-19", 1,  0.5)
     ),
   size = 1) +
   geom_point(aes(shape = dose,
@@ -31946,9 +31139,6 @@ time_bytype_main = gsea_l2fc_tbl_2 %>%
              size = 3,
              alpha = 0.7) +
   geom_hline(yintercept = 0, linetype = 1, alpha = 1) +
-  # geom_hline(yintercept = 1, linetype = "dashed", alpha = 0.8) +
-  # geom_hline(yintercept = -1, linetype = "dashed", alpha = 0.8) +
-  # Manual color scale for pathogen and custom colors for specific vaccines
   scale_color_manual(values = c(ann_vaxsig_colors$type, 
                                 ann_vaxsig_colors$target_pathogen_disease,
                                 ann_vaxsig_colors$dose,
@@ -31972,29 +31162,7 @@ time_bytype_main = gsea_l2fc_tbl_2 %>%
   scale_alpha_manual(values = c("COVID-19" = 1, "13Vax Atlas" = 1), guide = "none") +
   scale_x_continuous(breaks = c(0, 3, 7, 14, 21, 28, 30)) +
   theme_minimal() +
-  # geom_text_repel(mapping = aes(label = condition),
-  #                 size = 3,
-  #                 box.padding = 0.5,
-  #                 # nudge_y = 0.5,
-  #                 # nudge_x = 0,
-  #                 min.segment.length = 0,
-  #                 data = gsea_l2fc_tbl_2 %>%
-  #                   filter(id %in% process_filter,
-  #                          day > 0,
-  #                          condition %in% c("I-I (D0-5)",
-  #                                           "I (D0-4)"))) +
-  # geom_text_repel(label = "Hosp.",
-  #                 size = 3,
-  #                 box.padding = 0.5,
-  #                 min.segment.length = 0, 
-  #                 # nudge_y = 0.5,
-  #                 # nudge_x = -1,
-  #                 data = gsea_l2fc_tbl_2 %>%
-  #                   filter(id %in% process_filter,
-  #                          day <= day_filter,
-  #                          day > 0,
-  #                          pathogen %in% c("SARS-COV-2/BNT-I Hospital",
-  #                                          "SARS-COV-2/I Hospital"))) +
+
   labs(x = "Day",
        y = "NES",
        color = "Pathogen",
@@ -32041,7 +31209,7 @@ time_bytype_main %>%
 ```
 
 Subprocesses
-```{r fig.height=20, fig.width=15}
+```{r fig.height=25, fig.width=15}
 process_filter = c(
   "ANTIMICROBIAL",
   "LEUKOCYTES",
@@ -32086,10 +31254,6 @@ time_bytype_sub = gsea_l2fc_tbl_2 %>%
   geom_line(
   aes(color = pathogen,
       group = pathogen
-    # alpha = set
-    # position = position_jitter(width = 0, height = 0.2),
-    # linetype = if_else(set == "COVID-19", "dashed",  "solid"),
-    # size = if_else(set == "COVID-19", 1,  0.5)
     ),
   size = 0.7) +
   geom_point(aes(shape = dose,
@@ -32102,9 +31266,6 @@ time_bytype_sub = gsea_l2fc_tbl_2 %>%
              size = 3,
              alpha = 0.7) +
   geom_hline(yintercept = 0, linetype = 1, alpha = 1) +
-  # geom_hline(yintercept = 1, linetype = "dashed", alpha = 0.8) +
-  # geom_hline(yintercept = -1, linetype = "dashed", alpha = 0.8) +
-  # Manual color scale for pathogen and custom colors for specific vaccines
   scale_color_manual(values = c(ann_vaxsig_colors$type, 
                                 ann_vaxsig_colors$target_pathogen_disease,
                                 ann_vaxsig_colors$dose,
@@ -32128,29 +31289,7 @@ time_bytype_sub = gsea_l2fc_tbl_2 %>%
   scale_alpha_manual(values = c("COVID-19" = 1, "13Vax Atlas" = 1), guide = "none") +
   scale_x_continuous(breaks = c(0, 3, 7, 14, 21, 28, 30)) +
   theme_minimal() +
-  # geom_text_repel(mapping = aes(label = condition),
-  #                 size = 3,
-  #                 box.padding = 0.5,
-  #                 # nudge_y = 0.5,
-  #                 # nudge_x = 0,
-  #                 min.segment.length = 0,
-  #                 data = gsea_l2fc_tbl_2 %>%
-  #                   filter(id %in% process_filter,
-  #                          day > 0,
-  #                          condition %in% c("I-I (D0-5)",
-  #                                           "I (D0-4)"))) +
-  # geom_text_repel(label = "Hosp.",
-  #                 size = 3,
-  #                 box.padding = 0.5,
-  #                 min.segment.length = 0, 
-  #                 # nudge_y = 0.5,
-  #                 # nudge_x = -1,
-  #                 data = gsea_l2fc_tbl_2 %>%
-  #                   filter(id %in% process_filter,
-  #                          day <= day_filter,
-  #                          day > 0,
-  #                          pathogen %in% c("SARS-COV-2/BNT-I Hospital",
-  #                                          "SARS-COV-2/I Hospital"))) +
+
   labs(x = "Day",
        y = "NES",
        color = "Pathogen",
@@ -32191,13 +31330,13 @@ time_bytype_sub
 time_bytype_sub %>%
   ggsave(filename = here("Figures", "GSEA_Linechart_SubProcesses_AllVaccines_Infection_FacetByType.png"),
          width = 15,
-         height = 15)
+         height = 20)
 ```
 
 ###### COVID-19 ONLY
 Separated
 All processes
-```{r fig.height=8, fig.width=20}
+```{r fig.height=17, fig.width=12}
 
 process_filter = c("IMMUNE SYSTEM",
                    "COMPLEMENT",
@@ -32287,7 +31426,7 @@ time_bytype_all_COVID = gsea_l2fc_tbl_2 %>%
        subtitle = "Immune System process",
        linetype = "Set") +
   facet_wrap(~id, scales = "free",
-             nrow = 3) +
+             ncol = 4) +
   theme(legend.position = "right",
         strip.text.x = element_text(color = "black", 
                                     size = 10,
@@ -32318,8 +31457,8 @@ time_bytype_all_COVID
 
 time_bytype_all_COVID %>%
   ggsave(filename = here("Figures", "GSEA_Linechart_AllProcesses_COVID_Infection_FacetByType.png"),
-         width = 20,
-         height = 8)
+         width = 12,
+         height = 17)
 
 # all_together_sarsfocus %>% ggplotly()
 ```
