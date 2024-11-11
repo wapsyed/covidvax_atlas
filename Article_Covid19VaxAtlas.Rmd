@@ -33080,7 +33080,7 @@ dev.off()
 
 
 
-Function to plot all processes
+###### Plot all processes
 ```{r}
 generate_heatmap <- function(process_filter, filename_prefix = "All_covid_ImmuneGO_BTM_Correlation") {
   # Filtra os genes para o processo especificado
