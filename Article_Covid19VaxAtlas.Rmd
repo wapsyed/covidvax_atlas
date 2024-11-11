@@ -3120,6 +3120,8 @@ samples_by_condition  = ann_vaccines_samples %>%
 
 samples_by_condition %>% 
   summarize(ntotal = sum(samples))
+
+
 ```
 
 
@@ -3435,19 +3437,17 @@ samples_by_gse = ann_vaccines_samples %>%
   distinct() %>% 
   group_by(gse_id) %>% 
   summarise(gse_sample_total = n()) %>% 
-  inner_join(ann_vaccines_conditions %>% select(vaccine, condition) %>% distinct(), by = "condition") %>% 
-  mutate(condition = fct_relevel(condition, c(ann_vaccines_conditions_ordered$condition_grouped %>% 
-                                                as.character() %>% 
-                                                unique()))) %>% 
-  select(condition, samples, vaccine) %>% 
+  inner_join(ann_vaccines_conditions %>% select(vaccine, gse_id) %>% distinct(), by = "gse_id") %>% 
+  select(gse_id, gse_sample_total) %>% 
   distinct() %>% 
-  arrange(condition)
+  arrange(gse_sample_total)
 
 #Samples by day
-demographics_time = participants_condition %>%
+
+demographics_time_grouped = participants_condition %>%
   distinct() %>% 
-  select(condition_grouped, day, type) %>% 
-  group_by(condition_grouped) %>% 
+  select(condition, day, type) %>% 
+  group_by(condition) %>% 
   summarise(day = median(day) %>% round(., 0),
             type = type) %>% 
   ungroup() %>% 
@@ -3468,7 +3468,7 @@ participants_condition_day = ann_vaccines_samples %>%
 
 ```{r fig.height=5, fig.width=8, cache = TRUE}
 #Conditions
-demographics_time_plot = demographics_time %>% 
+demographics_time_plot = demographics_time_grouped %>% 
   mutate(day_f = fct_relevel(day_f, c(demographics_time$day_f %>% unique()))) %>% 
   ggplot(.) +
   aes(x = day_f, fill = fct_relevel(type, "H", "I", "RNA", "VV", "SU", "IN")) +
@@ -3513,9 +3513,9 @@ demographics_time_plot = demographics_time %>%
   scale_y_continuous(expand = c(0,0), 
                      breaks = seq(0, 350, by = 50))
 
-demographics_time_plot %>%
-  ggsave(file = here("Figures", "Demographics_Time.png"),
-         width = 8, height = 5)
+# demographics_time_plot %>%
+#   ggsave(file = here("Figures", "Demographics_Time.png"),
+#          width = 8, height = 5)
 
 demographics_time_plot
 
@@ -3618,10 +3618,10 @@ demographics_plot_days_samples_doses =
 
 demographics_plot_days_samples_doses
 
-# demographics_plot_days_samples_doses %>%
-#   ggsave(filename = here("Figures", "Demographics_studies_design.png"),
-#          width = 6,
-#          height = 6)
+demographics_plot_days_samples_doses %>%
+  ggsave(filename = here("Figures", "Demographics_studies_design.png"),
+         width = 6,
+         height = 6)
 
 
 ```
@@ -3656,7 +3656,7 @@ demographics_plot_days_samples_doses =
   ungroup() %>% 
   mutate(condition_2 = fct_relevel(condition_2,
                                    as.character(unique(demographics_days_samples_doses$condition_2)))) %>% 
-    mutate(day_f = fct_relevel(day_f, c(demographics_time$day_f %>% unique()))) %>% 
+    mutate(day_f = fct_relevel(day_f, c(demographics_time_grouped$day_f %>% unique()))) %>% 
   # group_by(gse_id, dose_f) %>% 
   ggplot(.) +
   aes(x = day_f,
@@ -3708,7 +3708,7 @@ demographics_plot_days_samples_doses =
     axis.ticks.y = element_line(size = 0, color = "black"),
     panel.grid.minor = element_blank(),
     plot.margin = margin(0, 2, 0, 0, unit = "cm")) +
-  scale_x_discrete(limits = c(demographics_time$day_f %>% unique())) +
+  scale_x_discrete(limits = c(demographics_time_grouped$day_f %>% unique())) +
   labs(x = "Days",
        y = "",
        # title = "Studies design - Grouped conditions",
@@ -3720,17 +3720,17 @@ demographics_plot_days_samples_doses =
 
 demographics_plot_days_samples_doses
 
-demographics_plot_days_samples_doses %>%
-  ggsave(filename = here("Figures", "Demographics_studies_design_Grouped.png"),
-         width = 6,
-         height = 6)
+# demographics_plot_days_samples_doses %>%
+#   ggsave(filename = here("Figures", "Demographics_studies_design_Grouped.png"),
+#          width = 6,
+#          height = 6)
 ```
 
 ```{r fig.height=10, fig.width=7}
 
 #Conditions
-demographics_time_plot_2 = demographics_time %>% 
-  mutate(day_f = fct_relevel(day_f, c(demographics_time$day_f %>% unique()))) %>% 
+demographics_time_plot_2 = demographics_time_grouped %>% 
+  mutate(day_f = fct_relevel(day_f, c(demographics_time_grouped$day_f %>% unique()))) %>% 
   ggplot(.) +
   aes(x = day_f, fill = fct_relevel(type, "H", "I", "RNA", "VV", "SU", "IN")) +
   geom_bar(size = 0.2, color = "black") +
@@ -3780,7 +3780,7 @@ demographics_plot_days_samples_doses_2 =
   ungroup() %>% 
   mutate(condition_2 = fct_relevel(condition_2,
                                    as.character(unique(demographics_days_samples_doses$condition_2)))) %>% 
-    mutate(day_f = fct_relevel(day_f, c(demographics_time$day_f %>% unique()))) %>% 
+    mutate(day_f = fct_relevel(day_f, c(demographics_time_grouped$day_f %>% unique()))) %>% 
   # group_by(gse_id, dose_f) %>% 
   ggplot(.) +
   aes(x = day_f,
@@ -3832,7 +3832,7 @@ demographics_plot_days_samples_doses_2 =
     axis.ticks.y = element_line(size = 0, color = "black"),
     panel.grid.minor = element_blank(),
     plot.margin = margin(0, 2, 0, 0, unit = "cm")) +
-  scale_x_discrete(limits = c(demographics_time$day_f %>% unique())) +
+  scale_x_discrete(limits = c(demographics_time_grouped$day_f %>% unique())) +
   labs(x = "Days",
        y = "",
        # title = "Studies design - Grouped conditions",
@@ -3845,8 +3845,13 @@ demographics_plot_days_samples_doses_2 =
 
  (samples_by_study_plot/ age_stats) 
 
-(demographics_time_plot_2 / demographics_plot_days_samples_doses_2) +
+patch_studies = (demographics_time_plot_2 / demographics_plot_days_samples_doses_2) +
   plot_layout(axes = "collect", guides = "collect", heights = c(1, 2))
+
+patch_studies %>% 
+  ggsave(filename = here("Figures", "Demographics_samplesbyday_gridplot.png"), 
+         width = 7,
+         height = 10)
 ```
 
 
@@ -5671,7 +5676,7 @@ ggsave(patch_maingo, file = here("Figures", "main_go_2_plot_values_UP_DOWN_regul
 ```
 
 
-#### All DEGs
+All DEGs
 ```{r fig.height=10, fig.width=10, message=FALSE, warning=FALSE}
 main_go_2_plot_alldirections = main_go_2 %>%
   group_by(condition, term_ancestor) %>%
@@ -10865,6 +10870,9 @@ set.seed(666) # Set seed for randomization
 cluster_model <- kmeans(pca_res$x[, 1:2], centers = 3)  #Set the number of clusters
 
 ann_vaccines_pca_matrix$cluster <- as.factor(cluster_model$cluster)
+
+ann_vaccines_pca_matrix %>% 
+  select(condition, cluster)
 ```
 
 
@@ -10885,8 +10893,8 @@ pca_plot_knn_cluster_labels = autoplot(pca_res,
   #              type = "t") +
   geom_convexhull(aes(fill = cluster, colour = cluster), alpha = 0.2) +
   labs(title=paste0(filename, "_bycondition"),
-       x = "PC1 (71.8%)",
-       y = "PC2 (13%)") + 
+       x = "PC1 (72.8%)",
+       y = "PC2 (12.6%)") + 
   # geom_hline(yintercept = 0, size = 0.8, color = "gray50", linetype = 1, alpha = 1) +
   # geom_vline(xintercept = 0, size = 0.8, color = "gray50", linetype = 1, alpha = 1) +
   geom_point(color = "black",
@@ -10919,7 +10927,7 @@ pca_plot_knn_cluster_labels = autoplot(pca_res,
         # axis.line = element_line(size = 1, colour = "black", linetype=1),
         text = element_text(color = "black", size = 10),
         panel.border = element_rect(fill = NA, color = "gray90", size = 2))   +
-  geom_label_repel(aes(label = if_else(cluster != 2 | type == "I" & condition != c("I-BNT (D5)", "BNT-I-BNT (D51, hospital)"), condition, NA)),
+  geom_label_repel(aes(label = if_else(disease_vac == "I" | cluster == "2", condition, NA)),
                   segment.colour="black",
                   box.padding = 0.5, 
                   # fill = "gray60",
@@ -10931,205 +10939,6 @@ pca_plot_knn_cluster_labels
 ggsave(pca_plot_knn_cluster_labels, 
        file = here(file = "Figures", paste0(filename, pcas, "_KNN_Clustered_labels.png")), width = 7, height = 7)
 ```
-
-
-
-
-#### Without normalization
-```{r cache = TRUE}
-# Delete columns with near 0 variance
-nearZeroVarCols <- nearZeroVar(ann_vaccines_pca_matrix_ready, saveMetrics = TRUE)
-ann_vaccines_pca_matrix_ready <- ann_vaccines_pca_matrix_ready[, !nearZeroVarCols$nzv]
-dim(ann_vaccines_pca_matrix_ready)
-# pca_res <- prcomp(ann_vaccines_pca_matrix_ready, scale. = T)
-pca_res <- prcomp(ann_vaccines_pca_matrix_ready, scale. = F)
-
-# Correlation plot ----
-# corr_matrix = cor(ann_vaccines_pca_matrix_ready %>% scale()) 
-corr_matrix = cor(ann_vaccines_pca_matrix_ready)
-var <- get_pca_var(pca_res)
-
-# corrplot = ggcorrplot(corr_matrix, hc.order = TRUE) + 
-#   theme(axis.text.x = element_text(angle = 90, size = 5), 
-#         axis.text.y = element_text(size = 5))
-
-# ggsave(corrplot, file = paste0(filename, "_corrplot.png"), 
-#        width = 20, #Grande 20, pequeno 10
-#        height= 20) #Grande 20, pequeno 10
-# print(corrplot)
-
-#PCA ----
-data.pca = prcomp(corr_matrix) #PCA
-
-#Scree plot ----
-
-scree_plot = fviz_eig(data.pca, 
-                      addlabels = TRUE, main = "", ylab = "Explained variances (%)",
-                      ylim = c(0, 100)) +
-  theme_few() +
-  scale_fill_npg()
-
-
-#Save
-ggsave(scree_plot, file = here("Figures", paste0(filename, "_NoNormal_screeplot.png")), width = 5, height = 3) 
-scree_plot
-
-```
-
-Loadings plot
-
-```{r fig.height=5, fig.width=5}
-# Loadings plot ----
-options(ggrepel.max.overlaps = Inf)
-PC1_top20_pos = pca_res$rotation %>% 
-  as.data.frame() %>% 
-  arrange(-PC1) %>% 
-  slice_head(n = 5) %>%
-  rownames_to_column("genes") %>% 
-  pull(genes)
-
-PC1_top20_neg = pca_res$rotation %>% 
-  as.data.frame() %>% 
-  arrange(PC1) %>% 
-  slice_head(n = 5) %>%
-  rownames_to_column("genes") %>% 
-  pull(genes)
-
-PC2_top20_pos = pca_res$rotation %>% 
-  as.data.frame() %>% 
-  arrange(PC2) %>% 
-  slice_head(n = 5) %>%
-  rownames_to_column("genes") %>% 
-  pull(genes)
-
-PC2_top20_neg = pca_res$rotation %>% 
-  as.data.frame() %>% 
-  arrange(-PC2) %>% 
-  slice_head(n = 5) %>%
-  rownames_to_column("genes") %>% 
-  pull(genes)
-
-
-circle_contrib= fviz_pca_var(pca_res, 
-                             col.var = "cos2",
-                              gradient.cols = c("#DC0000FF", "black"),
-                               col.ind = "black",
-                              # select.var= list(cos2 = 20), 
-                              select.var = list(name = c(PC1_top20_pos, PC1_top20_neg, PC2_top20_pos, PC2_top20_neg)),
-                              repel = T, 
-                              labelsize = 5, 
-                              col.circle = "gray90") +
-  labs(title = "",
-       x = "PC1",
-       y = "PC2") +
-  geom_vline(xintercept = 0, color = "white") +
-  geom_hline(yintercept = 0, color = "white") +
-  theme_void() +
-  theme(panel.grid = element_blank(),
-        axis.text = element_blank(),
-        axis.ticks = element_blank(),
-        panel.grid.major = element_blank(),
-        axis.line = element_line(size = 0, colour = "white", linetype=1)) 
-
-#Save
-ggsave(circle_contrib, file = here("Figures", paste0(filename, "_NoNormal__circle_contrib_wide.png")), width = 5, height = 5)
-
-circle_contrib
-
-
-```
-
-KNN
-
-```{r}
-#KNN classification -----
-#Use the screeplot generated % of explained variance for each dimension
-
-
-# PC1-PC2 ------
-#Determine the number of clusters
-pca_scores <- data.frame(pca_res$x[, 1:2])
-fviz_nbclust(pca_scores,  
-                     FUNcluster = kmeans,
-                     method = "wss")
-
-pcas = "PC1-PC2"
-
-set.seed(666) # Set seed for randomization
-cluster_model <- kmeans(pca_res$x[, 1:2], centers = 3)  #Set the number of clusters
-
-ann_vaccines_pca_matrix$cluster <- as.factor(cluster_model$cluster)
-```
-
-
-#### Plot PC1-2
-```{r fig.height=7, fig.width=7, paged.print=FALSE, cache=TRUE}
-# Condition with density plot ------
-
-# ann_vaxsig_colors_linebreak = ann_vaxsig_colors
-# names(ann_vaxsig_colors_linebreak$condition_col) <- str_replace(names(ann_vaxsig_colors_linebreak$condition_col), " \\(", "\n(")
-
-pca_plot_knn_cluster_labels = autoplot(pca_res, 
-        data = ann_vaccines_pca_matrix)  +
-  # stat_ellipse(aes(color = cluster, fill = cluster),
-  #              geom = "polygon",
-  #              alpha = 0.2,
-  #              linetype = 1,
-  #              size = 0.3,
-  #              type = "t") +
-  geom_convexhull(aes(fill = cluster, colour = cluster), alpha = 0.2) +
-  labs(title=paste0(filename, "_bycondition"),
-       x = "PC1 (71.8%)",
-       y = "PC2 (13%)") + 
-  # geom_hline(yintercept = 0, size = 0.8, color = "gray50", linetype = 1, alpha = 1) +
-  # geom_vline(xintercept = 0, size = 0.8, color = "gray50", linetype = 1, alpha = 1) +
-  geom_point(color = "black",
-             size = 4,
-             stroke = 1) +
-  geom_point(aes(fill = condition,
-                 color = condition),
-             size = 3,
-             stroke = 1) +
-   scale_color_manual(values = c("1" = "#DC0000FF", 
-                               "2" = "#4DBBD5FF", 
-                               "3" = "#F5BB00",
-                               "4" = "#8491B4FF",
-                                ann_vaxsig_colors$condition_col), 
-                     guide = "none") +
-  scale_fill_manual(values = c("1" = "#DC0000FF", 
-                               "2" = "#4DBBD5FF", 
-                               "3" = "#F5BB00",
-                               "4" = "#8491B4FF",
-                               ann_vaxsig_colors$condition_col),
-                    guide = "none") + 
-  guides(col="none") +
-  theme_few() +
-  theme(axis.text = element_text(size = 10, color = "black"),
-      panel.grid.minor = element_blank(),
-      panel.grid.major = element_line(size = 1, 
-                                    linetype = 1,
-                                    color = "gray90"),
-        axis.line = element_line(size = 0, colour = "black", linetype=1),
-        # axis.line = element_line(size = 1, colour = "black", linetype=1),
-        text = element_text(color = "black", size = 10),
-        panel.border = element_rect(fill = NA, color = "gray90", size = 2))   +
-  geom_label_repel(aes(label = if_else(cluster != 2 | type == "I" & condition != c("I-BNT (D5)", "BNT-I-BNT (D51, hospital)"), condition, NA)),
-                  segment.colour="black",
-                  box.padding = 0.5, 
-                  # fill = "gray60",
-                  # color = "white",
-                  size = 3.5)  +
-  xlim(-0.3, 0.8)
-pca_plot_knn_cluster_labels
-
-ggsave(pca_plot_knn_cluster_labels, 
-       file = here(file = "Figures", paste0(filename, pcas, "_NoNormal__KNN_Clustered_labels.png")), width = 7, height = 7)
-```
-
-
-
-
-
 
 
 
@@ -30120,6 +29929,401 @@ othervaccines_degs_lineplots
 
 
 
+## Correlation analysis
+### Immune genes
+
+
+```{r fig.height=20, fig.width=15}
+library(corrplot)
+
+genes_ImmuneSystem = degs_covid_vax %>%
+  inner_join(immunego_btm_genes %>% 
+               select(genes) %>% 
+               distinct(), by = "genes") %>% 
+  select(condition, genes, log2fold_change) %>% 
+  distinct() %>% 
+  pivot_wider(names_from = "condition",
+              values_from = "log2fold_change", values_fn = mean) %>% 
+  column_to_rownames("genes") %>% 
+  mutate_all(~ replace_na(., 0)) %>% 
+  select(any_of(c(ann_vaccines_covid_other_conditions %>% 
+                    arrange(day)  %>% 
+                    pull(condition) %>% 
+                    as.character())))
+
+correlation_genes_ImmuneSystem = genes_ImmuneSystem %>% 
+  cor(method = "spearman") %>% 
+  as.data.frame() %>% 
+  select(any_of(c(ann_vaccines_conditions_ordered %>% 
+                  filter(disease_vac == "V") %>% 
+                  arrange(condition, day) %>% 
+                  pull(condition_grouped) %>% 
+                  as.character(),
+                ann_vaccines_conditions_ordered %>% 
+                  filter(disease_vac == "I") %>% 
+                  arrange(condition, day) %>% 
+                  pull(condition_grouped) %>% 
+                  as.character()))) %>% 
+  rownames_to_column("condition") %>% 
+  filter(!condition %in% c(ann_vaccines_conditions_ordered %>% 
+                  arrange(condition, day) %>% 
+                  pull(condition_grouped) %>% 
+                  as.character())) %>% 
+  inner_join(ann_vaccines_covid_other_conditions %>%
+                select(condition, day) %>%
+                mutate(day_numeric = as.numeric(gsub("D", "", day))) %>%  # Convert "D1" to 1, "D10" to 10, etc.
+                arrange(condition, day_numeric) %>%
+                mutate(day = factor(day, levels = unique(day[order(day_numeric)]))) %>%  # Re-level `day` based on sorted numeric days
+                select(-day), 
+                           by = "condition") %>% 
+  arrange(day_numeric) %>% 
+  select(-day_numeric) %>%
+  column_to_rownames("condition") %>% 
+  as.matrix()
+  
+
+col<- colorRampPalette(c("#4DBBD5FF", "white", "#DC0000FF"))(11)
+correlation_genes_ImmuneSystem_plot = corrplot(correlation_genes_ImmuneSystem, 
+         # p.mat = p.mat,
+         title = "All immune genes",
+         # sig.level = 0.10,
+         pch.col = "gray80",
+         # insig = "blank",
+         diag = F,
+         col = col,
+         method= c("color"),
+         # type="upper",
+         # order="hclust",
+         tl.col="black",
+         mar=c(0,0,5,0),
+         tl.cex = 1,
+         tl.srt = 45)
+
+```
+
+
+Clustered
+```{r}
+# INPUT ------
+correlation_genes_ImmuneSystem
+
+table = degs_all_updown_covid_other_immune_shared
+filename = "ImmuneGO_Genes_CorrelationAnalysis_COVID_Other" 
+
+# Matrix ------
+matrix = correlation_genes_ImmuneSystem
+
+# Annotations -------
+ann_vaccines_covid = ann_vaccines_covid_other_conditions %>% 
+  filter(set == "COVID-19")
+ann_vaccines_other = ann_vaccines_covid_other_conditions %>% 
+  filter(set == "13Vax Atlas")
+
+# Columns
+ann_cols_heatmap = matrix %>% 
+  colnames() %>% 
+  data.frame() %>% 
+  rename(vac_condition = '.') %>% 
+  merge(ann_vaccines_covid, by.x = "vac_condition", by.y = "condition", all.y = F) %>% 
+  mutate(day = as.character(day) %>% 
+           as.numeric(),
+         pathogen = if_else(is.na(pathogen),"SARS-COV-2", pathogen) %>% 
+           str_to_upper()) %>% 
+  select(vac_condition, type, pathogen, day) %>% 
+  distinct() %>% 
+  column_to_rownames(var = "vac_condition") %>% 
+  arrange(day) %>% 
+  mutate(day = as.character(day) %>% fct_reorder(., day))
+
+# Rows
+ann_rows_heatmap = matrix %>%  
+  as.data.frame() %>% 
+  rownames_to_column("condition") %>% 
+  distinct() %>% 
+  inner_join(ann_vaccines_other, by = "condition") %>% 
+  mutate(day = as.character(day) %>% 
+           as.numeric(),
+         pathogen = if_else(is.na(pathogen),"SARS-COV-2", pathogen) %>% 
+           str_to_upper()) %>% 
+  arrange(day) %>%
+  mutate(day = as.character(day) %>% fct_reorder(., day)) %>% 
+  distinct() %>% 
+  column_to_rownames(var= "condition") %>% 
+  select(type, pathogen, day)
+
+# Arrange cols and rows in matrix
+matrix_data = matrix %>% 
+  t() %>% 
+  as.data.frame() %>% 
+  rownames_to_column(var= "condition") %>% 
+  arrange(condition) %>% 
+  column_to_rownames("condition") %>% 
+  t() %>% 
+  as.data.frame() %>%
+  rownames_to_column("condition") %>% 
+  inner_join(ann_rows_heatmap %>% 
+               rownames_to_column("condition") %>% 
+               select(condition, day),
+             by = "condition") %>% 
+  arrange(day) %>% 
+  select(-day) %>% 
+  column_to_rownames("condition") %>% 
+  mutate_if(is.character, as.numeric) %>%
+  replace(is.na(.), 0) %>% 
+  as.matrix()
+
+#Check dimensions
+dim(matrix_data)
+dim(ann_rows_heatmap)
+dim(ann_cols_heatmap)
+
+col_fun <- colorRamp2(
+  breaks = c(-1, -0.5, 0,0.5, 1), 
+  colors = c("darkblue", "#4DBBD5FF", "white", "red", "#DC0000FF")
+)
+
+#Heatmap annotation
+ha = HeatmapAnnotation(df = ann_cols_heatmap, 
+                       col = ann_vaxsig_colors,
+                       annotation_name_side = "left")
+
+row_ha = HeatmapAnnotation(df = ann_rows_heatmap,
+                       col = ann_vaxsig_colors,
+                       which= "row",
+                       show_annotation_name = F,
+                       show_legend = T)
+
+
+mat = matrix_data
+width_image = 35
+height_image = 40
+width = unit(20, "cm")
+height = unit(25, "cm")
+column_names_gp = gpar(fontsize = 10)
+row_names_gp = gpar(fontsize = 10)
+file = paste0("Hagan_", filename)
+
+fileimageheatmap_grouped = paste0(filename, sep ="_", "Complexheatmap_ALL_CLUSTERED.png")
+
+png(file = here("Figures", fileimageheatmap_grouped), 
+    width = width_image, 
+    height = height_image,
+    units="cm", res=900)
+
+heatmap_plot = Heatmap(mat,
+                        top_annotation = ha,
+                        left_annotation = row_ha,
+                        show_row_names = TRUE,
+                        row_names_side = "left",
+                        show_heatmap_legend = TRUE,
+                        heatmap_legend_param = list(direction = "vertical"),
+                        name = "Spearman\ncorrelation", #Legend
+                        col = col_fun, #color
+cell_fun = function(j, i, x, y, width, height, fill) {
+  # Define um limite próximo de zero
+  if(abs(mat[i, j]) > 0.1) {
+    grid.text(sprintf("%.2f", mat[i, j]), 
+              x, y, 
+              gp = gpar(fontsize = 7))
+  }
+},
+                        row_title = "",
+                        show_column_names = TRUE,
+                        column_title = fileimageheatmap_grouped,
+                        column_title_gp = gpar(fontsize = 10, fontface = "bold"),
+                        column_names_rot = 45,
+                        column_names_gp = column_names_gp,
+                        rect_gp = gpar(col = "white", lwd = 2),
+                        cluster_rows = TRUE,
+                        row_names_gp = row_names_gp,
+                        row_dend_width = unit(5, "cm"),
+                        column_split = NULL, 
+                        row_split = NULL, 
+                        row_gap = unit(2, "mm"),
+                        cluster_columns = TRUE,
+                        column_gap = unit(8, "mm"),
+                        show_column_dend = F,
+                        show_row_dend = F,
+                        row_dend_side = "left",
+                        column_dend_side = "top",
+                        clustering_distance_rows = "euclidean",
+                        border = TRUE,
+                        column_dend_reorder = TRUE,
+                        width = width,
+                        height = height 
+)
+
+draw(heatmap_plot,
+     merge_legend = TRUE,
+     annotation_legend_side = "right", 
+     heatmap_legend_side = "right")
+dev.off()
+
+```
+
+```{r}
+# INPUT ------
+correlation_genes_ImmuneSystem
+
+table = degs_all_updown_covid_other_immune_shared
+filename = "ImmuneGO_Genes_CorrelationAnalysis_COVID_Other" 
+
+# Matrix ------
+matrix = correlation_genes_ImmuneSystem
+
+# Annotations -------
+ann_vaccines_covid = ann_vaccines_covid_other_conditions %>% 
+  filter(set == "COVID-19")
+ann_vaccines_other = ann_vaccines_covid_other_conditions %>% 
+  filter(set == "13Vax Atlas")
+
+# Columns
+ann_cols_heatmap = matrix %>% 
+  colnames() %>% 
+  data.frame() %>% 
+  rename(vac_condition = '.') %>% 
+  merge(ann_vaccines_covid, by.x = "vac_condition", by.y = "condition", all.y = F) %>% 
+  mutate(day = as.character(day) %>% 
+           as.numeric(),
+         pathogen = if_else(is.na(pathogen),"SARS-COV-2", pathogen) %>% 
+           str_to_upper()) %>% 
+  select(vac_condition, type, pathogen, day) %>% 
+  distinct() %>% 
+  column_to_rownames(var = "vac_condition") %>% 
+  arrange(day) %>% 
+  mutate(day = as.character(day) %>% fct_reorder(., day))
+
+# Rows
+ann_rows_heatmap = matrix %>%  
+  as.data.frame() %>% 
+  rownames_to_column("condition") %>% 
+  distinct() %>% 
+  inner_join(ann_vaccines_other, by = "condition") %>% 
+  mutate(day = as.character(day) %>% 
+           as.numeric(),
+         pathogen = if_else(is.na(pathogen),"SARS-COV-2", pathogen) %>% 
+           str_to_upper()) %>% 
+  arrange(day) %>%
+  mutate(day = as.character(day) %>% fct_reorder(., day)) %>% 
+  distinct() %>% 
+  column_to_rownames(var= "condition") %>% 
+  select(type, pathogen, day)
+
+# Arrange cols and rows in matrix
+matrix_data = matrix %>% 
+  t() %>% 
+  as.data.frame() %>% 
+  rownames_to_column(var= "condition") %>% 
+  inner_join(ann_cols_heatmap %>% 
+               rownames_to_column("condition") %>% 
+               select(condition, day),
+             by = "condition") %>% 
+  arrange(day) %>% 
+  select(-day) %>% 
+  column_to_rownames("condition") %>% 
+  t() %>% 
+  as.data.frame() %>%
+  rownames_to_column("condition") %>% 
+  inner_join(ann_rows_heatmap %>% 
+               rownames_to_column("condition") %>% 
+               select(condition, day),
+             by = "condition") %>% 
+  arrange(day) %>% 
+  select(-day) %>% 
+  column_to_rownames("condition") %>% 
+  mutate_if(is.character, as.numeric) %>%
+  replace(is.na(.), 0) %>% 
+  as.matrix()
+
+#Check dimensions
+dim(matrix_data)
+dim(ann_rows_heatmap)
+dim(ann_cols_heatmap)
+
+col_fun <- colorRamp2(
+  breaks = c(-1, -0.5, 0,0.5, 1), 
+  colors = c("darkblue", "#4DBBD5FF", "white", "red", "#DC0000FF")
+)
+
+#Heatmap annotation
+ha = HeatmapAnnotation(df = ann_cols_heatmap, 
+                       col = ann_vaxsig_colors,
+                       annotation_name_side = "right")
+
+row_ha = HeatmapAnnotation(df = ann_rows_heatmap,
+                       col = ann_vaxsig_colors,
+                       which= "row",
+                       show_annotation_name = F,
+                       show_legend = T)
+
+
+mat = matrix_data
+width_image = 35
+height_image = 40
+width = unit(20, "cm")
+height = unit(25, "cm")
+column_names_gp = gpar(fontsize = 10)
+row_names_gp = gpar(fontsize = 10)
+file = paste0("Hagan_", filename)
+
+fileimageheatmap_grouped = paste0(filename, sep ="_", "Complexheatmap_Days.png")
+
+png(file = here("Figures", fileimageheatmap_grouped), 
+    width = width_image, 
+    height = height_image,
+    units="cm", res=900)
+
+heatmap_plot = Heatmap(mat,
+                        top_annotation = ha,
+                        left_annotation = row_ha,
+                        show_row_names = TRUE,
+                        row_names_side = "left",
+                        show_heatmap_legend = TRUE,
+                        heatmap_legend_param = list(direction = "vertical"),
+                        name = "Spearman\ncorrelation", #Legend
+                        col = col_fun, #color
+cell_fun = function(j, i, x, y, width, height, fill) {
+  if(abs(mat[i, j]) > 0.05) {
+    grid.text(sprintf("%.2f", mat[i, j]), 
+              x, y, 
+              gp = gpar(fontsize = 7))
+  }
+},
+                        row_title = "",
+                        show_column_names = TRUE,
+                        column_title = fileimageheatmap_grouped,
+                        column_title_gp = gpar(fontsize = 10, fontface = "bold"),
+                        column_names_rot = 45,
+                        column_names_gp = column_names_gp,
+                        rect_gp = gpar(col = "white", lwd = 2),
+                        cluster_rows = F,
+                        row_names_gp = row_names_gp,
+                        row_dend_width = unit(5, "cm"),
+                        column_split = NULL, 
+                        row_split = NULL, 
+                        row_gap = unit(2, "mm"),
+                        cluster_columns = F,
+                        column_gap = unit(8, "mm"),
+                        show_column_dend = F,
+                        show_row_dend = F,
+                        row_dend_side = "left",
+                        column_dend_side = "top",
+                        clustering_distance_rows = "euclidean",
+                        border = TRUE,
+                        column_dend_reorder = TRUE,
+                        width = width,
+                        height = height 
+)
+
+draw(heatmap_plot,
+     merge_legend = TRUE,
+     annotation_legend_side = "right", 
+     heatmap_legend_side = "right")
+dev.off()
+
+```
+
+
 
 ## Overlapping genes
 
@@ -31562,7 +31766,7 @@ all_together = gsea_l2fc_tbl_2 %>%
                                 "SARS-COV-2/I-I" = "purple",
                                 "SARS-COV-2/BNT-I" = "pink",
                                 "SARS-COV-2/BNT-I Hospital" = "pink",
-                                "SARS-COV-2/I-BNT" = "#Af101e"
+                                "SARS-COV-2/I-BNT" = "#Af101e")) + 
   # Manual shape scale
     scale_shape_manual(values = c("0" = 15, 
                                 "1" = 16, 
@@ -31723,7 +31927,7 @@ time_bytype_main %>%
 # all_together_sarsfocus %>% ggplotly()
 ```
 
-Subprocesses
+Subprocesses - Vertical
 ```{r fig.height=25, fig.width=15}
 process_filter = c(
   "ANTIMICROBIAL",
@@ -31848,10 +32052,225 @@ time_bytype_sub %>%
          height = 20)
 ```
 
+Subprocesses - Horizontal
+```{r fig.height=10, fig.width=25}
+process_filter = c(
+  "ANTIMICROBIAL",
+  "LEUKOCYTES",
+  "INFLAMMATION",
+  "SIGNALING",
+  "ANTIVIRAL & IFN",
+  "NEUTROPHIL",
+  "ARPP",
+  "MONOCYTE",
+  "MACROPHAGE",
+  "DENDRITIC CELL",
+  "NK CELL",
+  "T CELL",
+  "B CELL"
+)
+
+day_filter = 30
+time_bytype_sub = gsea_l2fc_tbl_2 %>%
+  filter(day <= day_filter, 
+         type != "IN/SU",
+         id %in% process_filter) %>% 
+  mutate(id = fct_relevel(id, c(idorder)),
+         dose = as.factor(dose),
+         dose = fct_relevel(dose, "0", "1", "2", "3")) %>% 
+  mutate(type_grouped = str_to_upper(type_grouped),
+         type_grouped = as.factor(type_grouped),
+         type_grouped = fct_relevel(type_grouped, 
+                            "INFECTION",
+                            "LIVE ATTENUATED",
+                            "INACTIVATED",
+                            "CONJUGATED/PS",
+                            "SUBUNIT",
+                            "GENETIC")) %>% 
+  arrange(condition) %>% 
+  distinct() %>% 
+  ggplot() +
+  aes(x = day, 
+      y = nes, 
+     # label = condition,
+    group = pathogen
+      ) +
+  geom_line(
+  aes(color = pathogen,
+      group = pathogen
+    ),
+  size = 0.7) +
+  geom_point(aes(shape = dose,
+                 color = pathogen),
+             size = 3.5,
+             color = "black",
+             alpha = 1) +
+  geom_point(aes(shape = dose,
+                 color = pathogen),             
+             size = 3,
+             alpha = 0.7) +
+  geom_hline(yintercept = 0, linetype = 1, alpha = 1) +
+  scale_color_manual(values = c(ann_vaxsig_colors$type, 
+                                ann_vaxsig_colors$target_pathogen_disease,
+                                ann_vaxsig_colors$dose,
+                                "SARS-COV-2/BBIBP" = "#00A087FF",
+                                "SARS-COV-2/ZF2001" = "#8491B4FF",
+                                "SARS-COV-2/BNT" = "#4DBBD5FF",
+                                "SARS-COV-2/MO" = "#72ddf7",
+                                "SARS-COV-2/CHAD" = "#3C5488FF",
+                                "SARS-COV-2/I" = "red",
+                                "SARS-COV-2/I Hospital" = "red",
+                                "SARS-COV-2/I-I" = "purple",
+                                "SARS-COV-2/BNT-I" = "pink",
+                                "SARS-COV-2/BNT-I Hospital" = "pink",
+                                "SARS-COV-2/I-BNT" = "#Af101e"
+                                
+                                )) +
+  scale_shape_manual(values = c("0" = 15, 
+                                "1" = 16, 
+                                "2" = 17, 
+                                "3" = 18)) +
+  scale_alpha_manual(values = c("COVID-19" = 1, "13Vax Atlas" = 1), guide = "none") +
+  scale_x_continuous(breaks = c(0, 3, 7, 14, 21, 28, 30)) +
+  theme_minimal() +
+
+  labs(x = "Day",
+       y = "NES",
+       color = "Pathogen",
+       shape = "Dose",
+       alpha = "COVID-19 or Other",
+       title = "Temporal dynamics of immunization", 
+       subtitle = "Other processes",
+       linetype = "Set") +
+  facet_grid(~type_grouped~id, scales = "free") +
+  theme(legend.position = "right",
+        strip.text.x = element_text(color = "black", 
+                                    size = 10,
+                                    face = "bold"), 
+        strip.text.y = element_text(color = "black", 
+                                    size = 10, 
+                                    hjust = 0,
+                                    angle = 360,
+                                    face = "bold"), 
+        axis.text.x = element_text(color = "black", size = 10),
+        axis.text.y = element_text(vjust = 0.5, size = 10, color = "black"),
+        axis.line = element_line(size = 1, colour = "black", linetype=1),
+        axis.ticks = element_line(size = 0.5, color = "black"),
+        panel.grid.major.y = element_line(size = 0.5, 
+                                    linetype = 2,
+                                    color = "gray75"),
+        panel.grid.minor.y = element_line(size = 0, 
+                                    linetype = 2,
+                                    color = "gray75"),
+        panel.grid.major.x = element_line(size = 0.5, 
+                                    linetype = 2,
+                                    color = "gray75"),
+        panel.grid.minor.x = element_line(size = 0, 
+                                    linetype = 2,
+                                    color = "gray75"))  
+
+time_bytype_sub 
+
+time_bytype_sub %>%
+  ggsave(filename = here("Figures", "GSEA_Linechart_SubProcesses_AllVaccines_Infection_FacetByType_Horizontal.png"),
+         width = 25,
+         height = 10)
+```
+
+
+
+
 ###### COVID-19 ONLY
-Separated
+
+```{r}
+ann_vaccines = ann_vaccines_covid_other_conditions
+
+gsea_l2fc_tbl = All_covid_13VaxImmune_GO_T2G_general_GSEA_ALL %>% 
+  inner_join(ann_vaccines, by = "condition")  %>% 
+  filter(!condition %in% c("ChAd-BNT (V2, D0)",
+                           "BNT-I-BNT (D51, hospital)")) %>% 
+  select(condition, type, dose, day, pathogen, everything())  %>% 
+  select(-delete) %>% 
+  filter(set == "COVID-19")
+
+gsea_l2fc_BNT_MO_before <- gsea_l2fc_tbl %>%
+  filter(condition %in% c("BNT (V2, D1)", "BNT (V1, D6)")) %>% 
+  mutate(condition = if_else(condition == "BNT (V1, D6)", "BNT-MO (V1, D6)", "BNT-MO (V2, D1)"),
+         vaccine = "MO")
+
+gsea_l2fc_I <- gsea_l2fc_tbl %>%
+  filter(disease_vac == "I") %>% 
+  select(condition, pathogen, everything())
+
+gsea_l2fc_tbl = gsea_l2fc_tbl %>% 
+  filter(!condition %in% c(gsea_l2fc_I$condition %>% unique()))
+
+gsea_l2fc_tbl_2 = bind_rows(gsea_l2fc_tbl,
+            gsea_l2fc_BNT_MO_before,
+            gsea_l2fc_I) %>% 
+    mutate(day = as.character(day),
+           day = as.numeric(day),
+         pathogen = if_else(disease_vac == "V", 
+                            paste0("SARS-CoV-2/", vaccine), 
+                            pathogen),
+         pathogen = str_to_upper(pathogen),
+         pathogen = case_when(str_detect(condition, "BNT-I.*hospital") ~ "SARS-COV-2/BNT-I Hospital",
+                              str_detect(condition, "I.*hospital") ~ "SARS-COV-2/I Hospital", 
+                              condition == "BNT-I (D0-5)" ~ "SARS-COV-2/BNT-I", 
+                              condition == "I (D0-4)" ~ "SARS-COV-2/I", 
+                              condition == "I-BNT (D5)" ~ "SARS-COV-2/I-BNT", 
+                              condition == "I-I (D0-5)" ~ "SARS-COV-2/I-I", 
+                              .default = pathogen)) %>% 
+    arrange(day) %>% 
+    mutate(type_grouped = case_when(type == "CONJ" ~ "Conjugated/PS",
+                                 type == "PS" ~ "Conjugated/PS",
+                                 type == "VV" ~ "Genetic",
+                                 type == "RNA" ~ "Genetic",
+                                 type == "LA" ~ "Live attenuated",
+                                 type == "IN" ~ "Inactivated",
+                                 type == "SU" ~ "Subunit",
+                                 disease_vac == "I" ~ "Infection",
+                                 TRUE ~ type),
+         type = case_when(disease_vac == "I" ~ "I",
+                                 TRUE ~ type),
+         type_grouped = as.factor(type_grouped),
+         type_grouped = fct_relevel(type_grouped, 
+                            "Infection",
+                            "Live Attenuated",
+                            "Inactivated",
+                            "Conjugated/PS",
+                            "Subunit",
+                            "Genetic"),
+         id = case_when(id == "HUMORAL ADAPTIVE IMMUNE SYSTEM" ~ "HUMORAL ADAP.",
+                        id == "CELLULAR ADAPTIVE IMMUNE SYSTEM" ~ "CELULLAR ADAP.",
+                        id == "ADAPTIVE IMMUNE SYSTEM" ~ "ADAPTIVE",
+                        id == "INNATE IMMUNE SYSTEM" ~ "INNATE",
+                        id == "IMMUNOGLOBULIN MEDIATED RESPONSE" ~ "IMMUNOGLOBULIN\nMEDIATED RESPONSE",
+                        TRUE ~ id)) %>% 
+  select(condition, type, type_grouped, dose, day, pathogen, everything()) 
+
+gsea_l2fc_day0 <- gsea_l2fc_tbl_2 %>%
+  select(condition, type, type_grouped, dose, pathogen, day, id) %>% 
+  mutate(day = 0, 
+         nes = 0, 
+         dose = "0",
+         condition = paste0(pathogen, " D(0)")) %>% 
+  distinct()
+
+gsea_l2fc_tbl_2 = gsea_l2fc_tbl_2 %>% 
+  bind_rows(gsea_l2fc_day0) %>% 
+  arrange(condition)
+
+gsea_l2fc_tbl_2 %>% 
+  # select(condition, type, type_grouped, dose, pathogen, day) %>% 
+  distinct() %>% 
+  arrange(pathogen, day)
+```
+
+
+
 All processes
-```{r fig.height=17, fig.width=12}
+```{r fig.height=10, fig.width=20}
 
 process_filter = c("IMMUNE SYSTEM",
                    "COMPLEMENT",
@@ -31863,9 +32282,7 @@ process_filter = c("IMMUNE SYSTEM",
 day_filter = 30
 time_bytype_all_COVID = gsea_l2fc_tbl_2 %>%
   filter(day <= day_filter, 
-         type != "IN/SU",
-         # id %in% process_filter,
-         str_detect(pathogen, "SARS")) %>% 
+         type != "IN/SU") %>% 
   mutate(id = fct_relevel(id, c(idorder)),
          dose = as.factor(dose),
          dose = fct_relevel(dose, "0", "1", "2", "3")) %>%
@@ -31941,7 +32358,7 @@ time_bytype_all_COVID = gsea_l2fc_tbl_2 %>%
        subtitle = "Immune System process",
        linetype = "Set") +
   facet_wrap(~id, scales = "free",
-             ncol = 4) +
+             ncol = 6) +
   theme(legend.position = "right",
         strip.text.x = element_text(color = "black", 
                                     size = 10,
@@ -31972,8 +32389,8 @@ time_bytype_all_COVID
 
 time_bytype_all_COVID %>%
   ggsave(filename = here("Figures", "GSEA_Linechart_AllProcesses_COVID_Infection_FacetByType.png"),
-         width = 12,
-         height = 17)
+         width = 20,
+         height = 10)
 
 # all_together_sarsfocus %>% ggplotly()
 ```
@@ -32367,399 +32784,6 @@ unique_processes <- immunego_btm_genes %>%
 
 purrr::walk(unique_processes, generate_correlation_for_process)
 ```
-
-
-By genes
-```{r fig.height=20, fig.width=15}
-library(corrplot)
-
-genes_ImmuneSystem = degs_covid_vax %>%
-  inner_join(immunego_btm_genes %>% 
-               select(genes) %>% 
-               distinct(), by = "genes") %>% 
-  select(condition, genes, log2fold_change) %>% 
-  distinct() %>% 
-  pivot_wider(names_from = "condition",
-              values_from = "log2fold_change", values_fn = mean) %>% 
-  column_to_rownames("genes") %>% 
-  mutate_all(~ replace_na(., 0)) %>% 
-  select(any_of(c(ann_vaccines_covid_other_conditions %>% 
-                    arrange(day)  %>% 
-                    pull(condition) %>% 
-                    as.character())))
-
-correlation_genes_ImmuneSystem = genes_ImmuneSystem %>% 
-  cor(method = "spearman") %>% 
-  as.data.frame() %>% 
-  select(any_of(c(ann_vaccines_conditions_ordered %>% 
-                  filter(disease_vac == "V") %>% 
-                  arrange(condition, day) %>% 
-                  pull(condition_grouped) %>% 
-                  as.character(),
-                ann_vaccines_conditions_ordered %>% 
-                  filter(disease_vac == "I") %>% 
-                  arrange(condition, day) %>% 
-                  pull(condition_grouped) %>% 
-                  as.character()))) %>% 
-  rownames_to_column("condition") %>% 
-  filter(!condition %in% c(ann_vaccines_conditions_ordered %>% 
-                  arrange(condition, day) %>% 
-                  pull(condition_grouped) %>% 
-                  as.character())) %>% 
-  inner_join(ann_vaccines_covid_other_conditions %>%
-                select(condition, day) %>%
-                mutate(day_numeric = as.numeric(gsub("D", "", day))) %>%  # Convert "D1" to 1, "D10" to 10, etc.
-                arrange(condition, day_numeric) %>%
-                mutate(day = factor(day, levels = unique(day[order(day_numeric)]))) %>%  # Re-level `day` based on sorted numeric days
-                select(-day), 
-                           by = "condition") %>% 
-  arrange(day_numeric) %>% 
-  select(-day_numeric) %>%
-  column_to_rownames("condition") %>% 
-  as.matrix()
-  
-
-col<- colorRampPalette(c("#4DBBD5FF", "white", "#DC0000FF"))(11)
-correlation_genes_ImmuneSystem_plot = corrplot(correlation_genes_ImmuneSystem, 
-         # p.mat = p.mat,
-         title = "All immune genes",
-         # sig.level = 0.10,
-         pch.col = "gray80",
-         # insig = "blank",
-         diag = F,
-         col = col,
-         method= c("color"),
-         # type="upper",
-         # order="hclust",
-         tl.col="black",
-         mar=c(0,0,5,0),
-         tl.cex = 1,
-         tl.srt = 45)
-
-```
-
-
-Clustered
-```{r}
-# INPUT ------
-correlation_genes_ImmuneSystem
-
-table = degs_all_updown_covid_other_immune_shared
-filename = "ImmuneGO_Genes_CorrelationAnalysis_COVID_Other" 
-
-# Matrix ------
-matrix = correlation_genes_ImmuneSystem
-
-# Annotations -------
-ann_vaccines_covid = ann_vaccines_covid_other_conditions %>% 
-  filter(set == "COVID-19")
-ann_vaccines_other = ann_vaccines_covid_other_conditions %>% 
-  filter(set == "13Vax Atlas")
-
-# Columns
-ann_cols_heatmap = matrix %>% 
-  colnames() %>% 
-  data.frame() %>% 
-  rename(vac_condition = '.') %>% 
-  merge(ann_vaccines_covid, by.x = "vac_condition", by.y = "condition", all.y = F) %>% 
-  mutate(day = as.character(day) %>% 
-           as.numeric(),
-         pathogen = if_else(is.na(pathogen),"SARS-COV-2", pathogen) %>% 
-           str_to_upper()) %>% 
-  select(vac_condition, type, pathogen, day) %>% 
-  distinct() %>% 
-  column_to_rownames(var = "vac_condition") %>% 
-  arrange(day) %>% 
-  mutate(day = as.character(day) %>% fct_reorder(., day))
-
-# Rows
-ann_rows_heatmap = matrix %>%  
-  as.data.frame() %>% 
-  rownames_to_column("condition") %>% 
-  distinct() %>% 
-  inner_join(ann_vaccines_other, by = "condition") %>% 
-  mutate(day = as.character(day) %>% 
-           as.numeric(),
-         pathogen = if_else(is.na(pathogen),"SARS-COV-2", pathogen) %>% 
-           str_to_upper()) %>% 
-  arrange(day) %>%
-  mutate(day = as.character(day) %>% fct_reorder(., day)) %>% 
-  distinct() %>% 
-  column_to_rownames(var= "condition") %>% 
-  select(type, pathogen, day)
-
-# Arrange cols and rows in matrix
-matrix_data = matrix %>% 
-  t() %>% 
-  as.data.frame() %>% 
-  rownames_to_column(var= "condition") %>% 
-  arrange(condition) %>% 
-  column_to_rownames("condition") %>% 
-  t() %>% 
-  as.data.frame() %>%
-  rownames_to_column("condition") %>% 
-  inner_join(ann_rows_heatmap %>% 
-               rownames_to_column("condition") %>% 
-               select(condition, day),
-             by = "condition") %>% 
-  arrange(day) %>% 
-  select(-day) %>% 
-  column_to_rownames("condition") %>% 
-  mutate_if(is.character, as.numeric) %>%
-  replace(is.na(.), 0) %>% 
-  as.matrix()
-
-#Check dimensions
-dim(matrix_data)
-dim(ann_rows_heatmap)
-dim(ann_cols_heatmap)
-
-col_fun <- colorRamp2(
-  breaks = c(-1, -0.5, 0,0.5, 1), 
-  colors = c("darkblue", "#4DBBD5FF", "white", "red", "#DC0000FF")
-)
-
-#Heatmap annotation
-ha = HeatmapAnnotation(df = ann_cols_heatmap, 
-                       col = ann_vaxsig_colors,
-                       annotation_name_side = "left")
-
-row_ha = HeatmapAnnotation(df = ann_rows_heatmap,
-                       col = ann_vaxsig_colors,
-                       which= "row",
-                       show_annotation_name = F,
-                       show_legend = T)
-
-
-mat = matrix_data
-width_image = 35
-height_image = 40
-width = unit(20, "cm")
-height = unit(25, "cm")
-column_names_gp = gpar(fontsize = 10)
-row_names_gp = gpar(fontsize = 10)
-file = paste0("Hagan_", filename)
-
-fileimageheatmap_grouped = paste0(filename, sep ="_", "Complexheatmap_ALL_CLUSTERED.png")
-
-png(file = here("Figures", fileimageheatmap_grouped), 
-    width = width_image, 
-    height = height_image,
-    units="cm", res=900)
-
-heatmap_plot = Heatmap(mat,
-                        top_annotation = ha,
-                        left_annotation = row_ha,
-                        show_row_names = TRUE,
-                        row_names_side = "left",
-                        show_heatmap_legend = TRUE,
-                        heatmap_legend_param = list(direction = "vertical"),
-                        name = "Spearman\ncorrelation", #Legend
-                        col = col_fun, #color
-cell_fun = function(j, i, x, y, width, height, fill) {
-  # Define um limite próximo de zero
-  if(abs(mat[i, j]) > 0.1) {
-    grid.text(sprintf("%.2f", mat[i, j]), 
-              x, y, 
-              gp = gpar(fontsize = 7))
-  }
-},
-                        row_title = "",
-                        show_column_names = TRUE,
-                        column_title = fileimageheatmap_grouped,
-                        column_title_gp = gpar(fontsize = 10, fontface = "bold"),
-                        column_names_rot = 45,
-                        column_names_gp = column_names_gp,
-                        rect_gp = gpar(col = "white", lwd = 2),
-                        cluster_rows = TRUE,
-                        row_names_gp = row_names_gp,
-                        row_dend_width = unit(5, "cm"),
-                        column_split = NULL, 
-                        row_split = NULL, 
-                        row_gap = unit(2, "mm"),
-                        cluster_columns = TRUE,
-                        column_gap = unit(8, "mm"),
-                        show_column_dend = F,
-                        show_row_dend = F,
-                        row_dend_side = "left",
-                        column_dend_side = "top",
-                        clustering_distance_rows = "euclidean",
-                        border = TRUE,
-                        column_dend_reorder = TRUE,
-                        width = width,
-                        height = height 
-)
-
-draw(heatmap_plot,
-     merge_legend = TRUE,
-     annotation_legend_side = "right", 
-     heatmap_legend_side = "right")
-dev.off()
-
-```
-
-```{r}
-# INPUT ------
-correlation_genes_ImmuneSystem
-
-table = degs_all_updown_covid_other_immune_shared
-filename = "ImmuneGO_Genes_CorrelationAnalysis_COVID_Other" 
-
-# Matrix ------
-matrix = correlation_genes_ImmuneSystem
-
-# Annotations -------
-ann_vaccines_covid = ann_vaccines_covid_other_conditions %>% 
-  filter(set == "COVID-19")
-ann_vaccines_other = ann_vaccines_covid_other_conditions %>% 
-  filter(set == "13Vax Atlas")
-
-# Columns
-ann_cols_heatmap = matrix %>% 
-  colnames() %>% 
-  data.frame() %>% 
-  rename(vac_condition = '.') %>% 
-  merge(ann_vaccines_covid, by.x = "vac_condition", by.y = "condition", all.y = F) %>% 
-  mutate(day = as.character(day) %>% 
-           as.numeric(),
-         pathogen = if_else(is.na(pathogen),"SARS-COV-2", pathogen) %>% 
-           str_to_upper()) %>% 
-  select(vac_condition, type, pathogen, day) %>% 
-  distinct() %>% 
-  column_to_rownames(var = "vac_condition") %>% 
-  arrange(day) %>% 
-  mutate(day = as.character(day) %>% fct_reorder(., day))
-
-# Rows
-ann_rows_heatmap = matrix %>%  
-  as.data.frame() %>% 
-  rownames_to_column("condition") %>% 
-  distinct() %>% 
-  inner_join(ann_vaccines_other, by = "condition") %>% 
-  mutate(day = as.character(day) %>% 
-           as.numeric(),
-         pathogen = if_else(is.na(pathogen),"SARS-COV-2", pathogen) %>% 
-           str_to_upper()) %>% 
-  arrange(day) %>%
-  mutate(day = as.character(day) %>% fct_reorder(., day)) %>% 
-  distinct() %>% 
-  column_to_rownames(var= "condition") %>% 
-  select(type, pathogen, day)
-
-# Arrange cols and rows in matrix
-matrix_data = matrix %>% 
-  t() %>% 
-  as.data.frame() %>% 
-  rownames_to_column(var= "condition") %>% 
-  inner_join(ann_cols_heatmap %>% 
-               rownames_to_column("condition") %>% 
-               select(condition, day),
-             by = "condition") %>% 
-  arrange(day) %>% 
-  select(-day) %>% 
-  column_to_rownames("condition") %>% 
-  t() %>% 
-  as.data.frame() %>%
-  rownames_to_column("condition") %>% 
-  inner_join(ann_rows_heatmap %>% 
-               rownames_to_column("condition") %>% 
-               select(condition, day),
-             by = "condition") %>% 
-  arrange(day) %>% 
-  select(-day) %>% 
-  column_to_rownames("condition") %>% 
-  mutate_if(is.character, as.numeric) %>%
-  replace(is.na(.), 0) %>% 
-  as.matrix()
-
-#Check dimensions
-dim(matrix_data)
-dim(ann_rows_heatmap)
-dim(ann_cols_heatmap)
-
-col_fun <- colorRamp2(
-  breaks = c(-1, -0.5, 0,0.5, 1), 
-  colors = c("darkblue", "#4DBBD5FF", "white", "red", "#DC0000FF")
-)
-
-#Heatmap annotation
-ha = HeatmapAnnotation(df = ann_cols_heatmap, 
-                       col = ann_vaxsig_colors,
-                       annotation_name_side = "right")
-
-row_ha = HeatmapAnnotation(df = ann_rows_heatmap,
-                       col = ann_vaxsig_colors,
-                       which= "row",
-                       show_annotation_name = F,
-                       show_legend = T)
-
-
-mat = matrix_data
-width_image = 35
-height_image = 40
-width = unit(20, "cm")
-height = unit(25, "cm")
-column_names_gp = gpar(fontsize = 10)
-row_names_gp = gpar(fontsize = 10)
-file = paste0("Hagan_", filename)
-
-fileimageheatmap_grouped = paste0(filename, sep ="_", "Complexheatmap_Days.png")
-
-png(file = here("Figures", fileimageheatmap_grouped), 
-    width = width_image, 
-    height = height_image,
-    units="cm", res=900)
-
-heatmap_plot = Heatmap(mat,
-                        top_annotation = ha,
-                        left_annotation = row_ha,
-                        show_row_names = TRUE,
-                        row_names_side = "left",
-                        show_heatmap_legend = TRUE,
-                        heatmap_legend_param = list(direction = "vertical"),
-                        name = "Spearman\ncorrelation", #Legend
-                        col = col_fun, #color
-cell_fun = function(j, i, x, y, width, height, fill) {
-  if(abs(mat[i, j]) > 0.05) {
-    grid.text(sprintf("%.2f", mat[i, j]), 
-              x, y, 
-              gp = gpar(fontsize = 7))
-  }
-},
-                        row_title = "",
-                        show_column_names = TRUE,
-                        column_title = fileimageheatmap_grouped,
-                        column_title_gp = gpar(fontsize = 10, fontface = "bold"),
-                        column_names_rot = 45,
-                        column_names_gp = column_names_gp,
-                        rect_gp = gpar(col = "white", lwd = 2),
-                        cluster_rows = F,
-                        row_names_gp = row_names_gp,
-                        row_dend_width = unit(5, "cm"),
-                        column_split = NULL, 
-                        row_split = NULL, 
-                        row_gap = unit(2, "mm"),
-                        cluster_columns = F,
-                        column_gap = unit(8, "mm"),
-                        show_column_dend = F,
-                        show_row_dend = F,
-                        row_dend_side = "left",
-                        column_dend_side = "top",
-                        clustering_distance_rows = "euclidean",
-                        border = TRUE,
-                        column_dend_reorder = TRUE,
-                        width = width,
-                        height = height 
-)
-
-draw(heatmap_plot,
-     merge_legend = TRUE,
-     annotation_legend_side = "right", 
-     heatmap_legend_side = "right")
-dev.off()
-
-```
-
 
 
 
@@ -35181,7 +35205,7 @@ gsea_l2fc_tbl_2 %>%
 ```
 
 
-```{r fig.height=20, fig.width=15}
+```{r fig.height=10, fig.width=20}
 idorder = c("immune score",
             "Neutrophil",
             "Macrophage",
@@ -35284,15 +35308,16 @@ all_together = gsea_l2fc_tbl_2 %>%
        shape = "Type",
        alpha = "COVID-19 or Other",
        title = "Temporal dynamics of immunization, GSEA of Immune processes (BTM + ImmuneGO)") +
-    facet_grid(~fct_rev(cell_type)~type_grouped, 
+    facet_grid(~type_grouped~fct_rev(cell_type), 
                scales = "free")
 
 all_together
 
 all_together %>%
-  ggsave(filename = here("Figures", "XCell_Linechart_ByImmuneProcess_AllVaccines_Infection_FacetByType.png"),
-         width = 15,
+  ggsave(filename = here("Figures", "XCell_Linechart_ByImmuneProcess_AllVaccines_Infection_FacetByType_Horizontal.png"),
+         width = 20,
          height = 10)
+
 
 ```
 
@@ -35405,7 +35430,7 @@ gsea_l2fc_tbl_2 %>%
 ```
 
 
-```{r fig.height=10, fig.width=10}
+```{r fig.height=5, fig.width=20}
 all_together = gsea_l2fc_tbl_2 %>%
   filter(cell_type %in% c(idorder)) %>% 
   filter(set == "COVID-19") %>% 
@@ -35491,15 +35516,16 @@ all_together = gsea_l2fc_tbl_2 %>%
        shape = "Dose",
        alpha = "COVID-19 or Other",
        title = "Temporal dynamics of immunization, GSEA of Immune processes (BTM + ImmuneGO)") +
-    facet_grid(~fct_rev(cell_type)~type_grouped, 
-               scales = "free")
+    facet_wrap(~fct_rev(cell_type), 
+               scales = "free",
+               ncol = 6)
 
 all_together
 
 all_together %>%
   ggsave(filename = here("Figures", "XCell_Linechart_ByImmuneProcess_COVID_Infection_FacetByType.png"),
-         width = 15,
-         height = 10)
+         width = 20,
+         height = 5)
 
 ```
 
