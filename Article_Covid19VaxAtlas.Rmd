@@ -22379,7 +22379,7 @@ row_names_gp = gpar(fontsize = 10)
 #Plot and save
 fileimageheatmap_ungrouped= here("Figures", paste0(file, sep ="_", "Ungrouped_Complexheatmap.png"))
 
-png(file = fileimageheatmap_ungrouped, width=width_image, height=height_image,units="cm",res=800)
+png(file = fileimageheatmap_ungrouped, width=width_image, height=height_image,units="cm",res=300)
 
 heatmap_plot_all = Heatmap(mat,
                         top_annotation = ha,
@@ -22525,7 +22525,7 @@ row_names_gp = gpar(fontsize = 3)
 #Plot and save
 fileimageheatmap_ungrouped= here("Figures", paste0(file, sep ="_", "Ungrouped_Complexheatmap.png"))
 
-png(file = fileimageheatmap_ungrouped, width=width_image, height=height_image,units="cm",res=800)
+png(file = fileimageheatmap_ungrouped, width=width_image, height=height_image,units="cm",res=300)
 
 heatmap_plot_all = Heatmap(mat,
                         top_annotation = ha,
@@ -22635,7 +22635,7 @@ column_names_gp = gpar(fontsize = 10)
 row_names_gp = gpar(fontsize = 10)
 
 fileimageheatmap_ungrouped = here("Figures", paste0(file, sep ="_", "Ungrouped_Complexheatmap.png"))
-png(file = fileimageheatmap_ungrouped, width=width_image, height=height_image,units="cm",res=800)
+png(file = fileimageheatmap_ungrouped, width=width_image, height=height_image,units="cm",res=300)
 heatmap_plot_all = Heatmap(mat,
                         top_annotation = ha,
                         show_row_names = TRUE,
@@ -22741,7 +22741,7 @@ column_names_gp = gpar(fontsize = 10)
 row_names_gp = gpar(fontsize = 10)
 
 fileimageheatmap_ungrouped= here("Figures", paste0(file, sep ="_", "Ungrouped_Complexheatmap.png"))
-png(file = fileimageheatmap_ungrouped, width=width_image, height=height_image,units="cm",res=800)
+png(file = fileimageheatmap_ungrouped, width=width_image, height=height_image,units="cm",res=300)
 heatmap_plot_all = Heatmap(mat,
                         top_annotation = ha,
                         show_row_names = TRUE,
@@ -22848,7 +22848,7 @@ row_names_gp = gpar(fontsize = 10)
 
 fileimageheatmap_ungrouped= here("Figures", paste0(file, sep ="_", "Ungrouped_Complexheatmap.png"))
 
-png(file = fileimageheatmap_ungrouped, width=width_image, height=height_image,units="cm",res=800)
+png(file = fileimageheatmap_ungrouped, width=width_image, height=height_image,units="cm",res=300)
 
 heatmap_plot_all = Heatmap(mat,
                         top_annotation = ha,
@@ -22972,7 +22972,7 @@ row_names_gp = gpar(fontsize = 10)
 #Plotar e salvar imagem
 fileimageheatmap_ungrouped= here("Figures", paste0(file, sep ="_", "Ungrouped_Complexheatmap.png"))
 
-png(file = fileimageheatmap_ungrouped, width=width_image, height=height_image,units="cm",res=800)
+png(file = fileimageheatmap_ungrouped, width=width_image, height=height_image,units="cm",res=300)
 
 heatmap_plot_all = Heatmap(mat,
                         top_annotation = ha,
@@ -23098,7 +23098,7 @@ row_names_gp = gpar(fontsize = 10)
 #Plotar e salvar imagem
 fileimageheatmap_ungrouped= here("Figures", paste0(file, sep ="_", "Ungrouped_Complexheatmap.png"))
 
-png(file = fileimageheatmap_ungrouped, width=width_image, height=height_image,units="cm",res=800)
+png(file = fileimageheatmap_ungrouped, width=width_image, height=height_image,units="cm",res=300)
 
 heatmap_plot_all = Heatmap(mat,
                         top_annotation = ha,
@@ -23224,7 +23224,7 @@ row_names_gp = gpar(fontsize = 10)
 #Plotar e salvar imagem
 fileimageheatmap_ungrouped = here("Figures", paste0(file, sep ="_", "Ungrouped_Complexheatmap.png"))
 
-png(file = fileimageheatmap_ungrouped, width=width_image, height=height_image,units="cm",res=800)
+png(file = fileimageheatmap_ungrouped, width=width_image, height=height_image,units="cm",res=300)
 
 heatmap_plot_all = Heatmap(mat,
                         top_annotation = ha,
@@ -23350,7 +23350,7 @@ row_names_gp = gpar(fontsize = 10)
 #Plotar e salvar imagem
 fileimageheatmap_ungrouped= here("Figures", paste0(file, sep ="_", "Ungrouped_Complexheatmap.png"))
 
-png(file = fileimageheatmap_ungrouped, width=width_image, height=height_image,units="cm",res=800)
+png(file = fileimageheatmap_ungrouped, width=width_image, height=height_image,units="cm",res=300)
 
 heatmap_plot_all = Heatmap(mat,
                         top_annotation = ha,
@@ -23476,7 +23476,7 @@ row_names_gp = gpar(fontsize = 10)
 #Plotar e salvar imagem
 fileimageheatmap_ungrouped= here("Figures", paste0(file, sep ="_", "Ungrouped_Complexheatmap.png"))
 
-png(file = fileimageheatmap_ungrouped, width=width_image, height=height_image,units="cm",res=800)
+png(file = fileimageheatmap_ungrouped, width=width_image, height=height_image,units="cm",res=300)
 
 heatmap_plot_all = Heatmap(mat,
                         top_annotation = ha,
@@ -23602,7 +23602,7 @@ row_names_gp = gpar(fontsize = 10)
 #Plotar e salvar imagem
 fileimageheatmap_ungrouped= here("Figures", paste0(file, sep ="_", "Ungrouped_Complexheatmap.png"))
 
-png(file = fileimageheatmap_ungrouped, width=width_image, height=height_image,units="cm",res=800)
+png(file = fileimageheatmap_ungrouped, width=width_image, height=height_image,units="cm",res=300)
 
 heatmap_plot_all = Heatmap(mat,
                         top_annotation = ha,
@@ -23728,7 +23728,7 @@ row_names_gp = gpar(fontsize = 10)
 #Plotar e salvar imagem
 fileimageheatmap_ungrouped= here("Figures", paste0(file, sep ="_", "Ungrouped_Complexheatmap.png"))
 
-png(file = fileimageheatmap_ungrouped, width=width_image, height=height_image,units="cm",res=800)
+png(file = fileimageheatmap_ungrouped, width=width_image, height=height_image,units="cm",res=300)
 
 heatmap_plot_all = Heatmap(mat,
                         top_annotation = ha,
@@ -23854,7 +23854,7 @@ row_names_gp = gpar(fontsize = 10)
 #Plotar e salvar imagem
 fileimageheatmap_ungrouped= here("Figures", paste0(file, sep ="_", "Ungrouped_Complexheatmap.png"))
 
-png(file = fileimageheatmap_ungrouped, width=width_image, height=height_image,units="cm",res=800)
+png(file = fileimageheatmap_ungrouped, width=width_image, height=height_image,units="cm",res=300)
 
 heatmap_plot_all = Heatmap(mat,
                         top_annotation = ha,
@@ -23980,7 +23980,7 @@ row_names_gp = gpar(fontsize = 10)
 #Plotar e salvar imagem
 fileimageheatmap_ungrouped= here("Figures", paste0(file, sep ="_", "Ungrouped_Complexheatmap.png"))
 
-png(file = fileimageheatmap_ungrouped, width=width_image, height=height_image,units="cm",res=800)
+png(file = fileimageheatmap_ungrouped, width=width_image, height=height_image,units="cm",res=300)
 
 heatmap_plot_all = Heatmap(mat,
                         top_annotation = ha,
@@ -24106,7 +24106,7 @@ row_names_gp = gpar(fontsize = 5)
 #Plotar e salvar imagem
 fileimageheatmap_ungrouped= here("Figures", paste0(file, sep ="_", "Ungrouped_Complexheatmap.png"))
 
-png(file = fileimageheatmap_ungrouped, width=width_image, height=height_image,units="cm",res=800)
+png(file = fileimageheatmap_ungrouped, width=width_image, height=height_image,units="cm",res=300)
 
 heatmap_plot_all = Heatmap(mat,
                         top_annotation = ha,
@@ -24221,7 +24221,7 @@ row_names_gp = gpar(fontsize = 10)
 #Plotar e salvar imagem
 fileimageheatmap_ungrouped= here("Figures", paste0(file, sep ="_", "Ungrouped_Complexheatmap.png"))
 
-png(file = fileimageheatmap_ungrouped, width=width_image, height=height_image,units="cm",res=800)
+png(file = fileimageheatmap_ungrouped, width=width_image, height=height_image,units="cm",res=300)
 
 heatmap_plot_all = Heatmap(mat,
                         top_annotation = ha,
@@ -24347,7 +24347,7 @@ row_names_gp = gpar(fontsize = 10)
 #Plotar e salvar imagem
 fileimageheatmap_ungrouped= here("Figures", paste0(file, sep ="_", "Ungrouped_Complexheatmap.png"))
 
-png(file = fileimageheatmap_ungrouped, width=width_image, height=height_image,units="cm",res=800)
+png(file = fileimageheatmap_ungrouped, width=width_image, height=height_image,units="cm",res=300)
 
 heatmap_plot_all = Heatmap(mat,
                         top_annotation = ha,
@@ -24473,7 +24473,7 @@ row_names_gp = gpar(fontsize = 10)
 #Plotar e salvar imagem
 fileimageheatmap_ungrouped= here("Figures", paste0(file, sep ="_", "Ungrouped_Complexheatmap.png"))
 
-png(file = fileimageheatmap_ungrouped, width=width_image, height=height_image,units="cm",res=800)
+png(file = fileimageheatmap_ungrouped, width=width_image, height=height_image,units="cm",res=300)
 
 heatmap_plot_all = Heatmap(mat,
                         top_annotation = ha,
@@ -24599,7 +24599,7 @@ row_names_gp = gpar(fontsize = 10)
 #Plotar e salvar imagem
 fileimageheatmap_ungrouped= here("Figures", paste0(file, sep ="_", "Ungrouped_Complexheatmap.png"))
 
-png(file = fileimageheatmap_ungrouped, width=width_image, height=height_image,units="cm",res=800)
+png(file = fileimageheatmap_ungrouped, width=width_image, height=height_image,units="cm",res=300)
 
 heatmap_plot_all = Heatmap(mat,
                         top_annotation = ha,
@@ -24725,7 +24725,7 @@ row_names_gp = gpar(fontsize = 10)
 #Plotar e salvar imagem
 fileimageheatmap_ungrouped= here("Figures", paste0(file, sep ="_", "Ungrouped_Complexheatmap.png"))
 
-png(file = fileimageheatmap_ungrouped, width=width_image, height=height_image,units="cm",res=800)
+png(file = fileimageheatmap_ungrouped, width=width_image, height=height_image,units="cm",res=300)
 
 heatmap_plot_all = Heatmap(mat,
                         top_annotation = ha,
@@ -33080,7 +33080,7 @@ dev.off()
 
 
 
-Function to plot all
+Function to plot all processes
 ```{r}
 generate_heatmap <- function(process_filter, filename_prefix = "All_covid_ImmuneGO_BTM_Correlation") {
   # Filtra os genes para o processo especificado
@@ -33145,8 +33145,10 @@ generate_heatmap <- function(process_filter, filename_prefix = "All_covid_Immune
   # Definição do nome do arquivo
   fileimageheatmap_grouped <- paste0(filename_prefix, "_", process_filter, "_Complexheatmap_ALL_CLUSTERED.png")
   
+  titleheatmap = process_filter
+  
   # Gera o arquivo de saída
-  png(file = here("Figures", fileimageheatmap_grouped), width = 50, height = 40, units = "cm", res = 900)
+  png(file = here("Figures", fileimageheatmap_grouped), width = 50, height = 40, units = "cm", res = 300)
   
   # Cria o heatmap
   heatmap_plot <- Heatmap(matrix_data,
@@ -33167,7 +33169,7 @@ generate_heatmap <- function(process_filter, filename_prefix = "All_covid_Immune
                           },
                           row_title = "",
                           show_column_names = TRUE,
-                          column_title = fileimageheatmap_grouped,
+                          column_title = titleheatmap,
                           column_names_gp = gpar(fontsize = 10, fontface = "bold"),
                           column_names_rot = 45,
                           rect_gp = gpar(col = "white", lwd = 2),
@@ -36475,7 +36477,7 @@ row_names_gp = gpar(fontsize = 10)
 #Plot and save
 fileimageheatmap_ungrouped= here("Figures", paste0(file, sep ="_", "Ungrouped_Complexheatmap_ByType.png"))
 
-png(file = fileimageheatmap_ungrouped, width=width_image, height=height_image,units="cm",res=800)
+png(file = fileimageheatmap_ungrouped, width=width_image, height=height_image,units="cm",res=300)
 
 heatmap_plot_all = Heatmap(mat,
                         top_annotation = ha,
@@ -36536,7 +36538,7 @@ row_names_gp = gpar(fontsize = 10)
 #Plot and save
 fileimageheatmap_ungrouped= here("Figures", paste0(file, sep ="_", "Ungrouped_Complexheatmap_ByDay.png"))
 
-png(file = fileimageheatmap_ungrouped, width=width_image, height=height_image,units="cm",res=800)
+png(file = fileimageheatmap_ungrouped, width=width_image, height=height_image,units="cm",res=300)
 
 heatmap_plot_all = Heatmap(mat,
                         top_annotation = ha,
@@ -36665,7 +36667,7 @@ row_names_gp = gpar(fontsize = 10)
 #Plot and save
 fileimageheatmap_ungrouped= here("Figures", paste0(file, sep ="_", "Ungrouped_Complexheatmap_DAY_OnlyInfection.png"))
 
-png(file = fileimageheatmap_ungrouped, width=width_image, height=height_image,units="cm",res=800)
+png(file = fileimageheatmap_ungrouped, width=width_image, height=height_image,units="cm",res=300)
 
 heatmap_plot_all = Heatmap(mat,
                         top_annotation = ha,
@@ -36729,7 +36731,7 @@ row_names_gp = gpar(fontsize = 10)
 #Plot and save
 fileimageheatmap_ungrouped= here("Figures", paste0(file, sep ="_", "Ungrouped_Complexheatmap_Type_OnlyInfection.png"))
 
-png(file = fileimageheatmap_ungrouped, width=width_image, height=height_image,units="cm",res=800)
+png(file = fileimageheatmap_ungrouped, width=width_image, height=height_image,units="cm",res=300)
 
 heatmap_plot_all = Heatmap(mat,
                         top_annotation = ha,
@@ -36838,7 +36840,7 @@ ann_vaccines_heatmap = matrix_data %>%
   filter(. != "genes") %>% 
   rename(condition = '.') %>% 
   merge(ann_vaccines_complex, by = "condition", all.x = TRUE) %>% 
-  arrange(condition) %>% 
+  arrange(day) %>% 
   column_to_rownames(var= "condition") 
 
 # Reorder columns (same order as lines in the annotation table)
@@ -36884,7 +36886,7 @@ row_names_gp = gpar(fontsize = 3)
 #Plot and save
 fileimageheatmap_ungrouped= here("Figures", paste0(file, sep ="_", "Ungrouped_Complexheatmap.png"))
 
-png(file = fileimageheatmap_ungrouped, width=width_image, height=height_image,units="cm",res=800)
+png(file = fileimageheatmap_ungrouped, width=width_image, height=height_image,units="cm",res=300)
 
 heatmap_plot_all = Heatmap(mat,
                         top_annotation = ha,
@@ -36994,7 +36996,7 @@ column_names_gp = gpar(fontsize = 10)
 row_names_gp = gpar(fontsize = 10)
 
 fileimageheatmap_ungrouped = here("Figures", paste0(file, sep ="_", "Ungrouped_Complexheatmap.png"))
-png(file = fileimageheatmap_ungrouped, width=width_image, height=height_image,units="cm",res=800)
+png(file = fileimageheatmap_ungrouped, width=width_image, height=height_image,units="cm",res=300)
 heatmap_plot_all = Heatmap(mat,
                         top_annotation = ha,
                         show_row_names = TRUE,
@@ -37100,7 +37102,7 @@ column_names_gp = gpar(fontsize = 10)
 row_names_gp = gpar(fontsize = 10)
 
 fileimageheatmap_ungrouped = here("Figures", paste0(file, sep ="_", "Ungrouped_Complexheatmap_Clustered.png"))
-png(file = fileimageheatmap_ungrouped, width=width_image, height=height_image,units="cm",res=800)
+png(file = fileimageheatmap_ungrouped, width=width_image, height=height_image,units="cm",res=300)
 heatmap_plot_all = Heatmap(mat,
                         top_annotation = ha,
                         show_row_names = TRUE,
@@ -37206,7 +37208,7 @@ column_names_gp = gpar(fontsize = 10)
 row_names_gp = gpar(fontsize = 10)
 
 fileimageheatmap_ungrouped= here("Figures", paste0(file, sep ="_", "Ungrouped_Complexheatmap.png"))
-png(file = fileimageheatmap_ungrouped, width=width_image, height=height_image,units="cm",res=800)
+png(file = fileimageheatmap_ungrouped, width=width_image, height=height_image,units="cm",res=300)
 heatmap_plot_all = Heatmap(mat,
                         top_annotation = ha,
                         show_row_names = TRUE,
@@ -37313,7 +37315,7 @@ row_names_gp = gpar(fontsize = 10)
 
 fileimageheatmap_ungrouped= here("Figures", paste0(file, sep ="_", "Ungrouped_Complexheatmap.png"))
 
-png(file = fileimageheatmap_ungrouped, width=width_image, height=height_image,units="cm",res=800)
+png(file = fileimageheatmap_ungrouped, width=width_image, height=height_image,units="cm",res=300)
 
 heatmap_plot_all = Heatmap(mat,
                         top_annotation = ha,
@@ -37437,7 +37439,7 @@ row_names_gp = gpar(fontsize = 5)
 #Plotar e salvar imagem
 fileimageheatmap_ungrouped= here("Figures", paste0(file, sep ="_", "Ungrouped_Complexheatmap.png"))
 
-png(file = fileimageheatmap_ungrouped, width=width_image, height=height_image,units="cm",res=800)
+png(file = fileimageheatmap_ungrouped, width=width_image, height=height_image,units="cm",res=300)
 
 heatmap_plot_all = Heatmap(mat,
                         top_annotation = ha,
@@ -37563,7 +37565,7 @@ row_names_gp = gpar(fontsize = 10)
 #Plotar e salvar imagem
 fileimageheatmap_ungrouped= here("Figures", paste0(file, sep ="_", "Ungrouped_Complexheatmap.png"))
 
-png(file = fileimageheatmap_ungrouped, width=width_image, height=height_image,units="cm",res=800)
+png(file = fileimageheatmap_ungrouped, width=width_image, height=height_image,units="cm",res=300)
 
 heatmap_plot_all = Heatmap(mat,
                         top_annotation = ha,
@@ -37689,7 +37691,7 @@ row_names_gp = gpar(fontsize = 5)
 #Plotar e salvar imagem
 fileimageheatmap_ungrouped = here("Figures", paste0(file, sep ="_", "Ungrouped_Complexheatmap.png"))
 
-png(file = fileimageheatmap_ungrouped, width=width_image, height=height_image,units="cm",res=800)
+png(file = fileimageheatmap_ungrouped, width=width_image, height=height_image,units="cm",res=300)
 
 heatmap_plot_all = Heatmap(mat,
                         top_annotation = ha,
@@ -37815,7 +37817,7 @@ row_names_gp = gpar(fontsize = 10)
 #Plotar e salvar imagem
 fileimageheatmap_ungrouped= here("Figures", paste0(file, sep ="_", "Ungrouped_Complexheatmap.png"))
 
-png(file = fileimageheatmap_ungrouped, width=width_image, height=height_image,units="cm",res=800)
+png(file = fileimageheatmap_ungrouped, width=width_image, height=height_image,units="cm",res=300)
 
 heatmap_plot_all = Heatmap(mat,
                         top_annotation = ha,
@@ -37941,7 +37943,7 @@ row_names_gp = gpar(fontsize = 5)
 #Plotar e salvar imagem
 fileimageheatmap_ungrouped= here("Figures", paste0(file, sep ="_", "Ungrouped_Complexheatmap.png"))
 
-png(file = fileimageheatmap_ungrouped, width=width_image, height=height_image,units="cm",res=800)
+png(file = fileimageheatmap_ungrouped, width=width_image, height=height_image,units="cm",res=300)
 
 heatmap_plot_all = Heatmap(mat,
                         top_annotation = ha,
@@ -38067,7 +38069,7 @@ row_names_gp = gpar(fontsize = 5)
 #Plotar e salvar imagem
 fileimageheatmap_ungrouped= here("Figures", paste0(file, sep ="_", "Ungrouped_Complexheatmap.png"))
 
-png(file = fileimageheatmap_ungrouped, width=width_image, height=height_image,units="cm",res=800)
+png(file = fileimageheatmap_ungrouped, width=width_image, height=height_image,units="cm",res=300)
 
 heatmap_plot_all = Heatmap(mat,
                         top_annotation = ha,
@@ -38193,7 +38195,7 @@ row_names_gp = gpar(fontsize = 10)
 #Plotar e salvar imagem
 fileimageheatmap_ungrouped= here("Figures", paste0(file, sep ="_", "Ungrouped_Complexheatmap.png"))
 
-png(file = fileimageheatmap_ungrouped, width=width_image, height=height_image,units="cm",res=800)
+png(file = fileimageheatmap_ungrouped, width=width_image, height=height_image,units="cm",res=300)
 
 heatmap_plot_all = Heatmap(mat,
                         top_annotation = ha,
@@ -38319,7 +38321,7 @@ row_names_gp = gpar(fontsize = 10)
 #Plotar e salvar imagem
 fileimageheatmap_ungrouped= here("Figures", paste0(file, sep ="_", "Ungrouped_Complexheatmap.png"))
 
-png(file = fileimageheatmap_ungrouped, width=width_image, height=height_image,units="cm",res=800)
+png(file = fileimageheatmap_ungrouped, width=width_image, height=height_image,units="cm",res=300)
 
 heatmap_plot_all = Heatmap(mat,
                         top_annotation = ha,
@@ -38445,7 +38447,7 @@ row_names_gp = gpar(fontsize = 10)
 #Plotar e salvar imagem
 fileimageheatmap_ungrouped= here("Figures", paste0(file, sep ="_", "Ungrouped_Complexheatmap.png"))
 
-png(file = fileimageheatmap_ungrouped, width=width_image, height=height_image,units="cm",res=800)
+png(file = fileimageheatmap_ungrouped, width=width_image, height=height_image,units="cm",res=300)
 
 heatmap_plot_all = Heatmap(mat,
                         top_annotation = ha,
@@ -38571,7 +38573,7 @@ row_names_gp = gpar(fontsize = 5)
 #Plotar e salvar imagem
 fileimageheatmap_ungrouped= here("Figures", paste0(file, sep ="_", "Ungrouped_Complexheatmap.png"))
 
-png(file = fileimageheatmap_ungrouped, width=width_image, height=height_image,units="cm",res=800)
+png(file = fileimageheatmap_ungrouped, width=width_image, height=height_image,units="cm",res=300)
 
 heatmap_plot_all = Heatmap(mat,
                         top_annotation = ha,
@@ -38686,7 +38688,7 @@ row_names_gp = gpar(fontsize = 5)
 #Plotar e salvar imagem
 fileimageheatmap_ungrouped= here("Figures", paste0(file, sep ="_", "Ungrouped_Complexheatmap.png"))
 
-png(file = fileimageheatmap_ungrouped, width=width_image, height=height_image,units="cm",res=800)
+png(file = fileimageheatmap_ungrouped, width=width_image, height=height_image,units="cm",res=300)
 
 heatmap_plot_all = Heatmap(mat,
                         top_annotation = ha,
@@ -38812,7 +38814,7 @@ row_names_gp = gpar(fontsize = 10)
 #Plotar e salvar imagem
 fileimageheatmap_ungrouped= here("Figures", paste0(file, sep ="_", "Ungrouped_Complexheatmap.png"))
 
-png(file = fileimageheatmap_ungrouped, width=width_image, height=height_image,units="cm",res=800)
+png(file = fileimageheatmap_ungrouped, width=width_image, height=height_image,units="cm",res=300)
 
 heatmap_plot_all = Heatmap(mat,
                         top_annotation = ha,
@@ -38938,7 +38940,7 @@ row_names_gp = gpar(fontsize = 10)
 #Plotar e salvar imagem
 fileimageheatmap_ungrouped= here("Figures", paste0(file, sep ="_", "Ungrouped_Complexheatmap.png"))
 
-png(file = fileimageheatmap_ungrouped, width=width_image, height=height_image,units="cm",res=800)
+png(file = fileimageheatmap_ungrouped, width=width_image, height=height_image,units="cm",res=300)
 
 heatmap_plot_all = Heatmap(mat,
                         top_annotation = ha,
@@ -39064,7 +39066,7 @@ row_names_gp = gpar(fontsize = 10)
 #Plotar e salvar imagem
 fileimageheatmap_ungrouped= here("Figures", paste0(file, sep ="_", "Ungrouped_Complexheatmap.png"))
 
-png(file = fileimageheatmap_ungrouped, width=width_image, height=height_image,units="cm",res=800)
+png(file = fileimageheatmap_ungrouped, width=width_image, height=height_image,units="cm",res=300)
 
 heatmap_plot_all = Heatmap(mat,
                         top_annotation = ha,
@@ -39190,7 +39192,7 @@ row_names_gp = gpar(fontsize = 10)
 #Plotar e salvar imagem
 fileimageheatmap_ungrouped= here("Figures", paste0(file, sep ="_", "Ungrouped_Complexheatmap.png"))
 
-png(file = fileimageheatmap_ungrouped, width=width_image, height=height_image,units="cm",res=800)
+png(file = fileimageheatmap_ungrouped, width=width_image, height=height_image,units="cm",res=300)
 
 heatmap_plot_all = Heatmap(mat,
                         top_annotation = ha,
@@ -39367,7 +39369,7 @@ row_names_gp = gpar(fontsize = 10)
 #Plot and save
 fileimageheatmap_ungrouped= here("Figures", paste0(file, sep ="_", "Ungrouped_Complexheatmap.png"))
 
-png(file = fileimageheatmap_ungrouped, width=width_image, height=height_image,units="cm",res=800)
+png(file = fileimageheatmap_ungrouped, width=width_image, height=height_image,units="cm",res=300)
 
 heatmap_plot_all = Heatmap(mat,
                         top_annotation = ha,
@@ -39556,7 +39558,7 @@ row_names_gp = gpar(fontsize = 10)
 #Plot and save
 fileimageheatmap_ungrouped= here("Figures", paste0(file, sep ="_", "Cluster1_BYDAY_Complexheatmap.png"))
 
-png(file = fileimageheatmap_ungrouped, width=width_image, height=height_image,units="cm",res=800)
+png(file = fileimageheatmap_ungrouped, width=width_image, height=height_image,units="cm",res=300)
 
 heatmap_plot_all = Heatmap(mat,
                         top_annotation = ha,
@@ -39698,7 +39700,7 @@ row_names_gp = gpar(fontsize = 10)
 #Plot and save
 fileimageheatmap_ungrouped= here("Figures", paste0(file, sep ="_", "Cluster1__BYType_Complexheatmap.png"))
 
-png(file = fileimageheatmap_ungrouped, width=width_image, height=height_image,units="cm",res=800)
+png(file = fileimageheatmap_ungrouped, width=width_image, height=height_image,units="cm",res=300)
 
 heatmap_plot_all = Heatmap(mat,
                         top_annotation = ha,
