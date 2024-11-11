@@ -36665,7 +36665,7 @@ row_names_gp = gpar(fontsize = 10)
 
 
 #Plot and save
-fileimageheatmap_ungrouped= here("Figures", paste0(file, sep ="_", "Ungrouped_Complexheatmap_DAY_OnlyInfection.png"))
+fileimageheatmap_ungrouped= here("Figures", paste0(file, sep ="_", "Ungrouped_Complexheatmap_DAY_NoInfection.png"))
 
 png(file = fileimageheatmap_ungrouped, width=width_image, height=height_image,units="cm",res=300)
 
@@ -36677,8 +36677,9 @@ heatmap_plot_all = Heatmap(mat,
                         name = "L2FC", #Legend
                         col = col_fun, 
                         cluster_columns = F,
+
                         column_names_rot = 45,
-                        show_row_dend = T,
+                        show_row_dend = F,
                         row_split = NULL, #Split group clusters
                         show_row_names = F,
                         column_names_gp = column_names_gp,
