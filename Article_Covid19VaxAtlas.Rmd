@@ -4271,7 +4271,8 @@ all_degs = bind_rows(gse199750_DEGs,
                      gse201533_DEGs,
                      gse206023_DEGs,
                      infection_DEGs) %>% 
-  mutate(condition = if_else(condition == "ChAd (V3, D1)", "BNT (V3, D1)", condition))
+  mutate(condition = if_else(condition == "ChAd (V3, D1)", "BNT (V3, D1)", condition)) %>% 
+  filter(condition != "ChAd-BNT (V2, D0)")
 
 
 all_degs %>% 
@@ -5490,76 +5491,9 @@ main_go_2 = degs_GO %>%
 write_csv(main_go_2, file = here("DGE analysis", "degs_annotated_mainGOs_stats.csv"))
 ```
 
-### Boxplot
-
-```{r fig.height=10, fig.width=15, warning=FALSE}
-degs_annotated_mainGOs_stats <- read_csv(here("DGE analysis", "degs_annotated_mainGOs_stats.csv"))
-main_go_2 = degs_annotated_mainGOs_stats
-
-# Table
-df_day =  degs_annotated_mainGOs_stats %>% 
-  inner_join(ann_vaccines, by = "condition") %>% 
-  select(condition, 
-         direction, 
-         term_ancestor, 
-         n_genes, 
-         n_genes_perc,
-         day,
-         disease_vac) %>% 
-  filter(!term_ancestor %in% c("Interspecies interaction","Not mapped", "Reg. of BP")) %>% 
-  mutate(day_f = as.factor(day),
-         day_f = fct_reorder(day_f, day),
-         day_dv = paste(day_f, sep = "",  " (", disease_vac, ")") %>% as.factor(),
-         day_dv = fct_reorder(day_dv, day),
-         term_ancestor = fct_relevel(term_ancestor, "Immune system", "Cellular", "Metabolism"),
-         direction = fct_relevel(direction, "UP", "DOWN"))
-df_day
-```
-
-```{r fig.height=10, fig.width=20}
-all_up_down_day = df_day %>% 
-  group_by(disease_vac) %>%
-  arrange(desc(n_genes_perc)) %>% 
-  ggplot() +
-  aes(
-    x = day_dv,
-    y = n_genes_perc
-  ) +
-  geom_jitter(aes(colour = disease_vac),
-              na.rm = TRUE,
-              size = 4) +
-  geom_boxplot(aes(fill = disease_vac, color = disease_vac),
-               outlier.shape = NA,
-               alpha = 0) +
-  theme_few() +
-  facet_grid(~direction~term_ancestor) +
-  theme(axis.text.x = element_text(size = 15, color = "black", angle = 90, vjust = 0.5),
-        axis.text.y = element_text(size = 15, color = "black"),
-        axis.title.x = element_text(size = 15, color = "black", vjust = -1),
-        axis.title.y = element_text(size = 15, color = "black"),
-        strip.text.x = element_text(size = 15, face = "bold"),
-        strip.text.y = element_text(size = 15, angle = 0,hjust = 0, face = "bold"),
-        legend.text = element_text(size = 15, color = "black"),
-        legend.title = element_text(size = 15, color = "black"),
-        plot.title = element_text(hjust = 0.5,
-                                  size = 15,
-                                  face = "bold")) +
-  labs(x = "Day",
-       y = "Number of genes (%)",
-       size = "Total number of genes",
-       shape = "Type") + 
-  scale_fill_npg() + 
-  scale_colour_npg() 
-
-all_up_down_day
-
-ggsave(all_up_down_day, width = 20, height = 10, file = here("Figures", "MainGOs_percgenes_boxplot_up_down_day.png"))
-```
-
 
 ### Barplot by term
 
-#### Up vs Down vs Neutral
 ```{r fig.height=30, fig.width=20, message=FALSE, warning=FALSE}
 main_go_2_plot_up_down = main_go_2 %>%
   inner_join(ann_vaccines_conditions, by = "condition") %>% 
