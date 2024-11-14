@@ -127,8 +127,7 @@ Read the recent version here:
 # install.packages("chorddiag")
 # devtools::install_github("cmartin/ggConvexHull")
 # install.packages("ggbeeswarm")
-# install.packages("ggbreak")
-library(ggbreak)
+
 library(maditr)
 library(readxl)
 library(ggConvexHull)
@@ -209,6 +208,8 @@ ann_vaxsig_colors = list(
            'IN'= "#00A087FF", #1st Gen  vaccines
            'VV' = "#3C5488FF", #3rd Gen vaccines
            'RNA' = "#4DBBD5FF",
+           "IN/SU" = "#8491B4FF",
+           "PS" = "#F39B7FFF",
            'SU' = "#8491B4FF",
            'I'= "#DC0000FF",
            "H" = "grey95"),
@@ -6004,7 +6005,7 @@ correlation_genes_ImmuneSystem = genes_ImmuneSystem %>%
                   as.character())))
 
 p.mat <- cor.mtest(genes_ImmuneSystem, method = 'spearman')
-p.mat_long = p.mat %>% 
+p.mat_long = p.mat$p %>% 
   as.data.frame() %>%
   rownames_to_column("condition") %>% 
   pivot_longer(cols = -condition,
@@ -6030,6 +6031,8 @@ correlation_genes_filtered_matrix = correlation_genes_long %>%
   column_to_rownames("condition") %>% 
   mutate_all(~ replace_na(., 0)) %>% 
   as.matrix()
+
+correlation_genes_filtered_matrix %>% dim()
 
   
 ```
@@ -6139,7 +6142,7 @@ heatmap_plot = Heatmap(mat,
                         row_names_side = "left",
                         show_heatmap_legend = TRUE,
                         heatmap_legend_param = list(direction = "vertical"),
-                        name = "Pearson\ncorrelation", #Legend
+                        name = "Spearman\ncorrelation", #Legend
                         col = col_fun, #color
 cell_fun = function(j, i, x, y, width, height, fill) {
   # Define um limite próximo de zero
@@ -6479,6 +6482,8 @@ draw(heatmap_plot,
 dev.off()
 
 ```
+
+
 ### Non-immune genes
 ```{r fig.height=20, fig.width=15}
 library(corrplot)
@@ -6514,7 +6519,7 @@ correlation_genes_nonImmuneSystem = genes_nonImmuneSystem %>%
                   as.character())))
 
 p.mat <- cor.mtest(genes_nonImmuneSystem, method = 'spearman')
-p.mat_long = p.mat %>% 
+p.mat_long = p.mat$p %>% 
   as.data.frame() %>%
   rownames_to_column("condition") %>% 
   pivot_longer(cols = -condition,
@@ -6649,7 +6654,7 @@ heatmap_plot = Heatmap(mat,
                         row_names_side = "left",
                         show_heatmap_legend = TRUE,
                         heatmap_legend_param = list(direction = "vertical"),
-                        name = "Pearson\ncorrelation", #Legend
+                        name = "Spearman\ncorrelation", #Legend
                         col = col_fun, #color
 cell_fun = function(j, i, x, y, width, height, fill) {
   # Define um limite próximo de zero
@@ -27530,7 +27535,7 @@ write_tsv(nodes, file = paste0(filename, "Network_Covid_Other_sharedgenes_nodes.
 
 
 
-# 12. 13 Vax Atlas
+# 12. COVID-19 and 13 Vax Atlas
 
 
 ## Standardize tables
@@ -35633,7 +35638,8 @@ immunego_genes = ImmuneGO %>%
 ann_vaccines = ann_vaccines_covid_other_conditions
 
 # DEGs table
-data = degs_covid_vax %>% arrange(condition)
+data = degs_covid_vax %>% arrange(condition) %>% 
+  filter(!condition == "ChAd-BNT (V2, D0)")
 
 #Colors
 ann_colors = ann_vaxsig_colors 
@@ -35837,7 +35843,7 @@ column_split = ann_vaccines_heatmap$type %>% as.character()
 
 dend1 = cluster_between_groups(matrix_data_ordered, column_split)
 
-
+ann_colors = ann_vaxsig_colors
 #Create heatmap annotation
 ha = HeatmapAnnotation(df = ann_vaccines_heatmap, 
                        col = ann_colors, 
@@ -35938,7 +35944,7 @@ heatmap_plot_all = Heatmap(mat,
                         col = col_fun, 
                         cluster_columns = F,
                         column_names_rot = 45,
-                        show_row_dend = T,
+                        show_row_dend = F,
                         row_split = 2, #Split group clusters
                         show_row_names = F,
                         column_names_gp = column_names_gp,
@@ -36285,7 +36291,7 @@ heatmap_plot_all = Heatmap(mat,
                         heatmap_legend_param = list(direction = "horizontal"),
                         name = "L2FC", #Legend
                         col = col_fun, #color
-                        column_title = fileimageheatmap_ungrouped,
+                        column_title = "General immune system",
                         column_title_gp = gpar(fontsize = 15, fontface = "bold"),
                         column_names_rot = 45,
                         column_names_gp = gpar(fontsize = 10),
@@ -36374,7 +36380,7 @@ ha = HeatmapAnnotation(df = ann_vaccines_heatmap,
                        annotation_name_side = "left")
 
 
-col_fun <- colorRamp2(c(-1, 0, 1), 
+col_fun <- colorRamp2(c(-2, 0, 2), 
                       c("#4DBBD5FF", "white", "#DC0000FF"))
 
 mat = matrix_data_ordered
@@ -36394,7 +36400,7 @@ heatmap_plot_all = Heatmap(mat,
                         heatmap_legend_param = list(direction = "vertical"),
                         name = "L2FC", #Legend
                         col = col_fun, #color
-                        column_title = fileimageheatmap_ungrouped,
+                        column_title = "Antimicrobial response",
                         column_title_gp = gpar(fontsize = 15, fontface = "bold"),
                         column_names_rot = 45,
                         column_names_gp = gpar(fontsize = 10),
@@ -36404,112 +36410,6 @@ heatmap_plot_all = Heatmap(mat,
                         row_split = NULL, 
                         row_gap = unit(2, "mm"),
                         cluster_columns = F,
-                        column_gap = unit(8, "mm"),
-                        show_column_dend = F,
-                        show_row_dend = F,
-                        row_dend_side = "left",
-                        column_dend_side = "top",
-                        clustering_distance_rows = "euclidean",
-                        border = TRUE,
-                        column_dend_reorder = TRUE,
-                        width = width, 
-                        height = height
-)
-
-draw(heatmap_plot_all, annotation_legend_side = "right", heatmap_legend_side = "right")
-
-dev.off()
-```
-
-Clustered all
-```{r}
-####### Input
-
-heatmap_data = Immune_GO_genes_antimicrobial
-file = "Immune_GO_genes_antimicrobial"
-
-heatmap_data_l2fc= heatmap_data %>% 
-  filter(condition != "NA", 
-         process != "NA") %>% 
-  select(genes, condition, log2fold_change)
-
-matrix_data <- dcast(heatmap_data_l2fc, 
-                         genes ~ condition, 
-                         value.var = "log2fold_change", 
-                         fun.aggregate = mean) %>% 
-  column_to_rownames('genes') %>% 
-  mutate_if(is.character, as.numeric) %>% 
-  replace(is.na(.), 0)
-
-matrix_data_ready =  matrix_data %>% 
-  round(2)
-
-ann_vaccines_complex = heatmap_data %>% 
-  select(condition) %>% 
-  distinct() %>% 
-  inner_join(ann_vaccines %>% select(condition, set, disease_vac, type, day), by = "condition")
-
-ann_vaccines_heatmap = matrix_data %>% 
-  colnames() %>% 
-  data.frame() %>% 
-  filter(. != "genes") %>% 
-  rename(condition = '.') %>% 
-  merge(ann_vaccines_complex, by = "condition", all.x = TRUE) %>% 
-  arrange(day) %>% 
-  column_to_rownames(var= "condition") 
-
-matrix_data_ordered = matrix_data %>% 
-  t() %>% 
-  as.data.frame() %>% 
-  rownames_to_column(var= "condition") %>% 
-  merge(ann_vaccines_complex, by.y = "condition", all.x=TRUE) %>% 
-  arrange(day) %>% 
-  select(!c(set, disease_vac, type,  day)) %>% 
-  column_to_rownames("condition") %>% 
-  t() %>% 
-  as.data.frame() %>% 
-  mutate_if(is.character, as.numeric) %>% 
-  replace(is.na(.), 0) %>% 
-  as.matrix() 
-
-dim(matrix_data_ordered)
-dim(ann_vaccines_heatmap)
-
-ha = HeatmapAnnotation(df = ann_vaccines_heatmap, 
-                       col = ann_colors, 
-                       annotation_name_side = "left")
-
-
-col_fun <- colorRamp2(c(-2, 0, 2), 
-                      c("#4DBBD5FF", "white", "#DC0000FF"))
-
-mat = matrix_data_ordered
-width = unit(30, "cm")
-height = unit(20, "cm")
-width_image = 40
-height_image = 30
-column_names_gp = gpar(fontsize = 10)
-row_names_gp = gpar(fontsize = 10)
-
-fileimageheatmap_ungrouped = here("Figures", paste0(file, sep ="_", "Ungrouped_Complexheatmap_Clustered.png"))
-png(file = fileimageheatmap_ungrouped, width=width_image, height=height_image,units="cm",res=300)
-heatmap_plot_all = Heatmap(mat,
-                        top_annotation = ha,
-                        show_row_names = TRUE,
-                        show_heatmap_legend = TRUE,
-                        heatmap_legend_param = list(direction = "vertical"),
-                        name = "L2FC", #Legend
-                        col = col_fun, #color
-                        column_title = fileimageheatmap_ungrouped,
-                        column_title_gp = gpar(fontsize = 15, fontface = "bold"),
-                        column_names_rot = 45,
-                        column_names_gp = gpar(fontsize = 10),
-                        rect_gp = gpar(col = "gray90", lwd = 1),
-                        cluster_rows = TRUE,
-                        row_names_gp = row_names_gp,
-                        row_split = NULL, 
-                        row_gap = unit(2, "mm"),
-                        cluster_columns = T,
                         column_gap = unit(8, "mm"),
                         show_column_dend = F,
                         show_row_dend = F,
@@ -36606,7 +36506,7 @@ heatmap_plot_all = Heatmap(mat,
                         heatmap_legend_param = list(direction = "horizontal"),
                         name = "L2FC", #Legend
                         col = col_fun, #color
-                        column_title = fileimageheatmap_ungrouped,
+                        column_title = "Complement system",
                         column_title_gp = gpar(fontsize = 15, fontface = "bold"),
                         column_names_rot = 45,
                         column_names_gp = gpar(fontsize = 10),
@@ -36714,7 +36614,7 @@ heatmap_plot_all = Heatmap(mat,
                         heatmap_legend_param = list(direction = "horizontal"),
                         name = "L2FC", #Legend
                         col = col_fun, #color
-                        column_title = fileimageheatmap_ungrouped,
+                        column_title = "Inflammation",
                         column_title_gp = gpar(fontsize = 15, fontface = "bold"),
                         column_names_rot = 45,
                         column_names_gp = column_names_gp,
@@ -36838,7 +36738,7 @@ heatmap_plot_all = Heatmap(mat,
                         heatmap_legend_param = list(direction = "horizontal"),
                         name = "L2FC", #Legend
                         col = col_fun, #color
-                        column_title = fileimageheatmap_ungrouped,
+                        column_title = "Antigen Receptors, Processing, and Presentation (ARPP)",
                         column_title_gp = gpar(fontsize = 15, fontface = "bold"),
                         column_names_rot = 45,
                         column_names_gp = column_names_gp,
@@ -36964,7 +36864,7 @@ heatmap_plot_all = Heatmap(mat,
                         heatmap_legend_param = list(direction = "vertical"),
                         name = "L2FC", #Legend
                         col = col_fun, #color
-                        column_title = fileimageheatmap_ungrouped,
+                        column_title = "Antiviral and Interferon response",
                         column_title_gp = gpar(fontsize = 15, fontface = "bold"),
                         column_names_rot = 45,
                         column_names_gp = column_names_gp,
@@ -36977,8 +36877,8 @@ heatmap_plot_all = Heatmap(mat,
                         # column_split = 2, #Split group clusters
                         #column_km = 2,
                         column_gap = unit(8, "mm"),
-                        show_column_dend = TRUE,
-                        show_row_dend = TRUE,
+                        show_column_dend = F,
+                        show_row_dend = F,
                         row_dend_side = "left",
                         column_dend_side = "top",
                         clustering_distance_rows = "euclidean",
@@ -37075,7 +36975,7 @@ height = unit(40, "cm")
 width_image = 40
 height_image = 50
 column_names_gp = gpar(fontsize = 10)
-row_names_gp = gpar(fontsize = 5)
+row_names_gp = gpar(fontsize = 7)
 
 
 #Plotar e salvar imagem
@@ -37090,7 +36990,7 @@ heatmap_plot_all = Heatmap(mat,
                         heatmap_legend_param = list(direction = "vertical"),
                         name = "L2FC", #Legend
                         col = col_fun, #color
-                        column_title = fileimageheatmap_ungrouped,
+                        column_title = "Neutrophil",
                         column_title_gp = gpar(fontsize = 15, fontface = "bold"),
                         column_names_rot = 45,
                         column_names_gp = column_names_gp,
@@ -37216,7 +37116,7 @@ heatmap_plot_all = Heatmap(mat,
                         heatmap_legend_param = list(direction = "vertical"),
                         name = "L2FC", #Legend
                         col = col_fun, #color
-                        column_title = fileimageheatmap_ungrouped,
+                        column_title = "Eosinophil",
                         column_title_gp = gpar(fontsize = 15, fontface = "bold"),
                         column_names_rot = 45,
                         column_names_gp = column_names_gp,
@@ -37342,7 +37242,7 @@ heatmap_plot_all = Heatmap(mat,
                         heatmap_legend_param = list(direction = "vertical"),
                         name = "L2FC", #Legend
                         col = col_fun, #color
-                        column_title = fileimageheatmap_ungrouped,
+                        column_title =  "Monocyte",
                         column_title_gp = gpar(fontsize = 15, fontface = "bold"),
                         column_names_rot = 45,
                         column_names_gp = column_names_gp,
@@ -37468,7 +37368,7 @@ heatmap_plot_all = Heatmap(mat,
                         heatmap_legend_param = list(direction = "vertical"),
                         name = "L2FC", #Legend
                         col = col_fun, #color
-                        column_title = fileimageheatmap_ungrouped,
+                        column_title = "Dendritic cells",
                         column_title_gp = gpar(fontsize = 15, fontface = "bold"),
                         column_names_rot = 45,
                         column_names_gp = gpar(fontsize = 10),
@@ -37594,7 +37494,7 @@ heatmap_plot_all = Heatmap(mat,
                         heatmap_legend_param = list(direction = "vertical"),
                         name = "L2FC", #Legend
                         col = col_fun, #color
-                        column_title = fileimageheatmap_ungrouped,
+                        column_title = "Macrophage",
                         column_title_gp = gpar(fontsize = 15, fontface = "bold"),
                         column_names_rot = 45,
                         column_names_gp = gpar(fontsize = 10),
@@ -37720,7 +37620,7 @@ heatmap_plot_all = Heatmap(mat,
                         heatmap_legend_param = list(direction = "vertical"),
                         name = "L2FC", #Legend
                         col = col_fun, #color
-                        column_title = fileimageheatmap_ungrouped,
+                        column_title = "NK cells",
                         column_title_gp = gpar(fontsize = 15, fontface = "bold"),
                         column_names_rot = 45,
                         column_names_gp = gpar(fontsize = 10),
@@ -37846,7 +37746,7 @@ heatmap_plot_all = Heatmap(mat,
                         heatmap_legend_param = list(direction = "vertical"),
                         name = "L2FC", #Legend
                         col = col_fun, #color
-                        column_title = fileimageheatmap_ungrouped,
+                        column_title = "Mast cells",
                         column_title_gp = gpar(fontsize = 15, fontface = "bold"),
                         column_names_rot = 45,
                         column_names_gp = gpar(fontsize = 10),
@@ -37875,7 +37775,7 @@ draw(heatmap_plot_all, annotation_legend_side = "right", heatmap_legend_side = "
 dev.off()
 ```
 
-###Cellular adaptive immune system
+### Cellular adaptive immune system
 
 ```{r}
 ####### Input
@@ -37972,7 +37872,7 @@ heatmap_plot_all = Heatmap(mat,
                         heatmap_legend_param = list(direction = "vertical"),
                         name = "L2FC", #Legend
                         col = col_fun, #color
-                        column_title = fileimageheatmap_ungrouped,
+                        column_title = "Cellular adaptive immune system",
                         column_title_gp = gpar(fontsize = 15, fontface = "bold"),
                         column_names_rot = 45,
                         column_names_gp = gpar(fontsize = 10),
@@ -38001,7 +37901,7 @@ draw(heatmap_plot_all, annotation_legend_side = "right", heatmap_legend_side = "
 dev.off()
 ```
 
-###T Cell
+### T Cell
 
 ```{r}
 ####### Input
@@ -38087,7 +37987,7 @@ heatmap_plot_all = Heatmap(mat,
                         heatmap_legend_param = list(direction = "vertical"),
                         name = "L2FC", #Legend
                         col = col_fun, #color
-                        column_title = fileimageheatmap_ungrouped,
+                        column_title = "T cells",
                         column_title_gp = gpar(fontsize = 15, fontface = "bold"),
                         column_names_rot = 45,
                         column_names_gp = column_names_gp,
@@ -38213,7 +38113,7 @@ heatmap_plot_all = Heatmap(mat,
                         heatmap_legend_param = list(direction = "horizontal"),
                         name = "L2FC", #Legend
                         col = col_fun, #color
-                        column_title = fileimageheatmap_ungrouped,
+                        column_title = "Th cells",
                         column_title_gp = gpar(fontsize = 15, fontface = "bold"),
                         column_names_rot = 45,
                         column_names_gp = gpar(fontsize = 10),
@@ -38324,7 +38224,7 @@ height = unit(70, "cm")
 width_image = 40
 height_image = 80
 column_names_gp = gpar(fontsize = 10)
-row_names_gp = gpar(fontsize = 10)
+row_names_gp = gpar(fontsize = 5)
 
 
 #Plotar e salvar imagem
@@ -38339,7 +38239,7 @@ heatmap_plot_all = Heatmap(mat,
                         heatmap_legend_param = list(direction = "horizontal"),
                         name = "L2FC", #Legend
                         col = col_fun, #color
-                        column_title = fileimageheatmap_ungrouped,
+                        column_title = "Humoral adaptive immune system",
                         column_title_gp = gpar(fontsize = 15, fontface = "bold"),
                         column_names_rot = 45,
                         column_names_gp = gpar(fontsize = 10),
@@ -38352,8 +38252,8 @@ heatmap_plot_all = Heatmap(mat,
                         #column_split = 2, #Split group clusters
                         #column_km = 2,
                         column_gap = unit(8, "mm"),
-                        show_column_dend = TRUE,
-                        show_row_dend = TRUE,
+                        show_column_dend = F,
+                        show_row_dend = F,
                         row_dend_side = "left",
                         column_dend_side = "top",
                         clustering_distance_rows = "euclidean",
@@ -38445,12 +38345,12 @@ col_fun <- colorRamp2(c(-2, 0, 2), c("#4DBBD5FF", "white", "#DC0000FF"))
 
 #Parameters
 mat = matrix_data_ordered
-width = unit(30, "cm")
-height = unit(50, "cm")
-width_image = 40
-height_image = 60
+width = unit(35, "cm")
+height = unit(55, "cm")
+width_image = 45
+height_image = 65
 column_names_gp = gpar(fontsize = 10)
-row_names_gp = gpar(fontsize = 10)
+row_names_gp = gpar(fontsize = 5)
 
 
 #Plotar e salvar imagem
@@ -38465,7 +38365,7 @@ heatmap_plot_all = Heatmap(mat,
                         heatmap_legend_param = list(direction = "horizontal"),
                         name = "L2FC", #Legend
                         col = col_fun, #color
-                        column_title = fileimageheatmap_ungrouped,
+                        column_title = "B cells",
                         column_title_gp = gpar(fontsize = 15, fontface = "bold"),
                         column_names_rot = 45,
                         column_names_gp = gpar(fontsize = 10),
@@ -38478,8 +38378,8 @@ heatmap_plot_all = Heatmap(mat,
                         #column_split = 2, #Split group clusters
                         #column_km = 2,
                         column_gap = unit(8, "mm"),
-                        show_column_dend = TRUE,
-                        show_row_dend = TRUE,
+                        show_column_dend = F,
+                        show_row_dend = F,
                         row_dend_side = "left",
                         column_dend_side = "top",
                         clustering_distance_rows = "euclidean",
@@ -38591,7 +38491,7 @@ heatmap_plot_all = Heatmap(mat,
                         heatmap_legend_param = list(direction = "vertical"),
                         name = "L2FC", #Legend
                         col = col_fun, #color
-                        column_title = fileimageheatmap_ungrouped,
+                        column_title = "Immunoglobulin-mediated response"  ,
                         column_title_gp = gpar(fontsize = 15, fontface = "bold"),
                         column_names_rot = 45,
                         column_names_gp = column_names_gp,
@@ -38686,7 +38586,7 @@ ann_rows_immune = matrix_data %>%
   as.data.frame() %>%
   rownames_to_column("genes") %>%
   left_join(ImmuneGO_Annotated_Genes %>% select(genes) %>% distinct() %>% mutate(Immune = "ImmuneGO"), by = "genes") %>%
-  left_join(btm_annotation_genes_immune %>% select(genes) %>% distinct() %>% mutate(Immune2 = "BTM"), by = "genes") %>%
+  left_join(immunego_btm_genes %>% filter(immune_set == "BTM") %>% select(genes) %>% distinct() %>% mutate(Immune2 = "BTM"), by = "genes") %>%
   select(genes, Immune, Immune2) %>%
   distinct() %>%
   group_by(genes) %>%
@@ -38771,7 +38671,7 @@ heatmap_plot_all = Heatmap(mat,
                         column_names_rot = 45,
                         show_row_dend = F,
                         row_split = 2, #Split group clusters
-                        show_row_names = F,
+                        show_row_names = F, row
                         column_names_gp = column_names_gp,
                         width = width,
                         height = height,
