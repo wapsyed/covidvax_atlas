@@ -1,0 +1,59 @@
+day,pathogen,type,condition,vaccine,week,set,dose,disease_vac
+1,Yellow Fever,LA,Yellow Fever/LA (D1),Yellow Fever (LV),1,13Vax Atlas,1,V
+1,HIV,VV,HIV/VV (D1),HIV (RVV),1,13Vax Atlas,1,V
+1,Pneumococcus,PS,Pneumococcus/PS (D1),Pneumococcus (PS),1,13Vax Atlas,1,V
+1,Influenza,IN,Influenza/IN (D1),Influenza (IN),1,13Vax Atlas,1,V
+1,Ebola,VV,Ebola/VV (D1),Ebola (RVV),1,13Vax Atlas,1,V
+1,Malaria,SU,Malaria/SU (D1),Malaria (RP),1,13Vax Atlas,1,V
+1,Varicella Zoster,LA,Varicella Zoster/LA (D1),Varicella Zoster (LV),1,13Vax Atlas,1,V
+2,Tuberculosis,VV,Tuberculosis/VV (D2),Tuberculosis (RVV),1,13Vax Atlas,1,V
+2,Yellow Fever,LA,Yellow Fever/LA (D2),Yellow Fever (LV),1,13Vax Atlas,1,V
+2,Influenza,IN,Influenza/IN (D2),Influenza (IN),1,13Vax Atlas,1,V
+3,Ebola,VV,Ebola/VV (D3),Ebola (RVV),1,13Vax Atlas,1,V
+3,Yellow Fever,LA,Yellow Fever/LA (D3),Yellow Fever (LV),1,13Vax Atlas,1,V
+3,Smallpox,LA,Smallpox/LA (D3),Smallpox (LV),1,13Vax Atlas,1,V
+3,Malaria,SU,Malaria/SU (D3),Malaria (RP),1,13Vax Atlas,1,V
+3,Influenza,IN,Influenza/IN (D3),Influenza (IN),1,13Vax Atlas,1,V
+3,Influenza,LA,Influenza/LA (D3),Influenza (LV),1,13Vax Atlas,1,V
+3,Pneumococcus,PS,Pneumococcus/PS (D3),Pneumococcus (PS),1,13Vax Atlas,1,V
+3,HIV,VV,HIV/VV (D3),HIV (RVV),1,13Vax Atlas,1,V
+3,Meningococcus,PS,Meningococcus/PS (D3),Meningococcus (PS),1,13Vax Atlas,1,V
+3,Meningococcus,CONJ,Meningococcus/CONJ (D3),Meningococcus (CJ),1,13Vax Atlas,1,V
+3,Varicella Zoster,LA,Varicella Zoster/LA (D3),Varicella Zoster (LV),1,13Vax Atlas,1,V
+4,Influenza,IN,Influenza/IN (D4),Influenza (IN),1,13Vax Atlas,1,V
+5,Yellow Fever,LA,Yellow Fever/LA (D5),Yellow Fever (LV),1,13Vax Atlas,1,V
+5,Influenza,IN,Influenza/IN (D5),Influenza (IN),1,13Vax Atlas,1,V
+6,Influenza,IN,Influenza/IN (D6),Influenza (IN),1,13Vax Atlas,1,V
+7,Ebola,VV,Ebola/VV (D7),Ebola (RVV),1,13Vax Atlas,1,V
+7,Yellow Fever,LA,Yellow Fever/LA (D7),Yellow Fever (LV),1,13Vax Atlas,1,V
+7,Smallpox,LA,Smallpox/LA (D7),Smallpox (LV),1,13Vax Atlas,1,V
+7,Tuberculosis,VV,Tuberculosis/VV (D7),Tuberculosis (RVV),1,13Vax Atlas,1,V
+7,Hepatitis A/B,IN/SU,Hepatitis A/B/IN/SU (D7),Hepatitis A/B (IN/RP),1,13Vax Atlas,1,V
+7,Influenza,IN,Influenza/IN (D7),Influenza (IN),1,13Vax Atlas,1,V
+7,Influenza,LA,Influenza/LA (D7),Influenza (LV),1,13Vax Atlas,1,V
+7,Pneumococcus,PS,Pneumococcus/PS (D7),Pneumococcus (PS),1,13Vax Atlas,1,V
+7,HIV,VV,HIV/VV (D7),HIV (RVV),1,13Vax Atlas,1,V
+7,Meningococcus,PS,Meningococcus/PS (D7),Meningococcus (PS),1,13Vax Atlas,1,V
+7,Meningococcus,CONJ,Meningococcus/CONJ (D7),Meningococcus (CJ),1,13Vax Atlas,1,V
+7,Varicella Zoster,LA,Varicella Zoster/LA (D7),Varicella Zoster (LV),1,13Vax Atlas,1,V
+8,Influenza,IN,Influenza/IN (D8),Influenza (IN),2,13Vax Atlas,1,V
+9,Influenza,IN,Influenza/IN (D9),Influenza (IN),2,13Vax Atlas,1,V
+10,Smallpox,LA,Smallpox/LA (D10),Smallpox (LV),2,13Vax Atlas,1,V
+10,Influenza,IN,Influenza/IN (D10),Influenza (IN),2,13Vax Atlas,1,V
+10,Pneumococcus,PS,Pneumococcus/PS (D10),Pneumococcus (PS),2,13Vax Atlas,1,V
+10,Yellow Fever,LA,Yellow Fever/LA (D10),Yellow Fever (LV),2,13Vax Atlas,1,V
+13,Smallpox,LA,Smallpox/LA (D13),Smallpox (LV),2,13Vax Atlas,1,V
+14,Yellow Fever,LA,Yellow Fever/LA (D14),Yellow Fever (LV),2,13Vax Atlas,1,V
+14,Malaria,SU,Malaria/SU (D14),Malaria (RP),2,13Vax Atlas,1,V
+14,Pneumococcus,PS,Pneumococcus/PS (D14),Pneumococcus (PS),2,13Vax Atlas,1,V
+14,Influenza,IN,Influenza/IN (D14),Influenza (IN),2,13Vax Atlas,1,V
+21,Smallpox,LA,Smallpox/LA (D21),Smallpox (LV),3,13Vax Atlas,1,V
+21,Pneumococcus,PS,Pneumococcus/PS (D21),Pneumococcus (PS),3,13Vax Atlas,1,V
+21,Influenza,IN,Influenza/IN (D21),Influenza (IN),3,13Vax Atlas,1,V
+21,Yellow Fever,LA,Yellow Fever/LA (D21),Yellow Fever (LV),3,13Vax Atlas,1,V
+28,Yellow Fever,LA,Yellow Fever/LA (D28),Yellow Fever (LV),4,13Vax Atlas,1,V
+28,Influenza,IN,Influenza/IN (D28),Influenza (IN),4,13Vax Atlas,1,V
+28,Pneumococcus,PS,Pneumococcus/PS (D28),Pneumococcus (PS),4,13Vax Atlas,1,V
+60,Yellow Fever,LA,Yellow Fever/LA (D60),Yellow Fever (LV),9,13Vax Atlas,1,V
+70,Influenza,IN,Influenza/IN (D70),Influenza (IN),10,13Vax Atlas,1,V
+84,Yellow Fever,LA,Yellow Fever/LA (D84),Yellow Fever (LV),12,13Vax Atlas,1,V
