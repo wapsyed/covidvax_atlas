@@ -1,7 +1,0 @@
-mtry,min_n,.metric,.estimator,mean,n,std_err,.config
-36,3,accuracy,multiclass,0.7180827067669173,10,0.03204331984603373,Preprocessor1_Model1
-36,3,pr_auc,macro,0.8692708316528452,5,0.05895787326914054,Preprocessor1_Model1
-36,3,precision,macro,0.7381018593334769,10,0.055166770994679065,Preprocessor1_Model1
-36,3,recall,macro,0.6240865384615385,10,0.044995949335652714,Preprocessor1_Model1
-36,3,roc_auc,hand_till,0.9292290695415696,10,0.037023709704782554,Preprocessor1_Model1
-36,3,specificity,macro,0.8849807896781581,10,0.014968609161401102,Preprocessor1_Model1
