@@ -130,6 +130,7 @@ Read the recent version here:
 
 library(maditr)
 library(readxl)
+library(ggpubr)
 library(ggConvexHull)
 library(randomForest)
 library(ranger)
@@ -149,7 +150,6 @@ library(workflowsets)
 library(glmnet)
 library(kknn)
 library(edgeR)
-library(nnet)
 library(ggthemes)
 library(readr)
 library(qvalue)
@@ -4338,6 +4338,7 @@ all_degs_p_05_vac_infected = read_rds(file = here("DGE analysis", "all_studies_d
   filter(if_else(n >= 5, fdr <= 0.05, fdr <= (0.05 * 6/n))) 
 
 ann_vaccines_conditions = read_csv(here("Annotations and metadata", "ann_vaccines_conditions.csv"))
+
 ann_vaccines_conditions_ordered = read_rds(here("Annotations and metadata", "ann_vaccines_conditions_ordered.rds"))
 
 ann_vaccines = ann_vaccines_conditions
@@ -4355,6 +4356,8 @@ all_degs_total = all_degs %>%
   distinct()
 
 all_degs_total
+
+degs_covid_vax = all_degs_p_05_vac_infected 
 ```
 
 Horizontal
@@ -5904,6 +5907,53 @@ ggplot_degs_bars_directions_biotype_bps %>%
 
 ## Correlation analysis - Genes and processes
 
+
+
+### Distribution
+```{r}
+
+immunego_btm_genes <- read_csv("VaxGO gene sets/ImmuneGO_BTM_grouped_genes.csv") %>% 
+  filter(is.na(immune_system)) 
+
+degs_covid_vax %>%
+  filter(condition %in% c("ChAd (V1, D3)", "I (D0-4)")) %>% 
+  select(genes, condition, log2fold_change) %>%
+  pivot_wider(names_from = "condition",
+              values_from = "log2fold_change") %>%
+  left_join(ImmuneGO_BTM_genes_manual %>% 
+               select(genes, process) %>% 
+               mutate(process = "Immune") %>% 
+               distinct(), by = "genes") %>% 
+  mutate(process = if_else(is.na(process), "Not immune", "Immune")) %>% 
+  drop_na(.) %>%
+  ggplot() +
+  aes(x = `I (D0-4)`,
+    y = `ChAd (V1, D3)`) +
+  geom_point(color = NA,
+             fill = NA,
+             size = NA) +
+  stat_cor(method="pearson", color = "black") +
+  geom_point(aes(color = process),
+             alpha = 0.5) +
+    geom_smooth(method = "lm",
+                 color = "black", 
+                size = 0.5) +
+  theme_minimal() +
+  theme(axis.title =  element_text(size = 10, color = "black"),
+        axis.text = element_text(size = 10, color = "black"),
+        plot.title = element_text(size = 15, hjust = 0.5),
+        axis.line = element_line(size = 0.5, color ="black"),
+        strip.text = element_text(size = 12),
+        legend.text = element_text(size = 10),
+        legend.title = element_text(size = 10),
+        panel.grid = element_line(color = "gray90",
+                                  linetype = 2),
+        legend.position = "top") +
+  scale_color_npg() +
+  labs(color = "")
+```
+
+
 ### Immune genes
 ```{r fig.height=20, fig.width=15}
 library(corrplot)
@@ -5971,11 +6021,21 @@ correlation_genes_filtered_matrix %>% dim()
   
 ```
 
+K means
+```{r}
+fviz_nbclust(correlation_genes_filtered_matrix, kmeans, method = "wss")
+fviz_nbclust(correlation_genes_filtered_matrix, kmeans, method = "silhouette")
+```
+
+
+
+
+
 Clustered
 ```{r}
 # INPUT ------
 correlation_genes_filtered_matrix
-filename = "ImmuneGenes_CorrelationAnalysis_COVID" 
+filename = "ImmuneGenes_CorrelationAnalysis_COVID_Spearman" 
 
 # Matrix ------
 matrix = correlation_genes_filtered_matrix
@@ -6098,9 +6158,11 @@ cell_fun = function(j, i, x, y, width, height, fill) {
                         row_dend_width = unit(5, "cm"),
                         column_split = NULL, 
                         row_split = NULL, 
+                        row_km = 4, 
+                        column_km = 4,
                         row_gap = unit(2, "mm"),
                         cluster_columns = TRUE,
-                        column_gap = unit(8, "mm"),
+                        column_gap = unit(2, "mm"),
                         show_column_dend = F,
                         show_row_dend = F,
                         row_dend_side = "left",
@@ -6225,7 +6287,7 @@ heatmap_plot = Heatmap(mat,
                         row_names_side = "left",
                         show_heatmap_legend = TRUE,
                         heatmap_legend_param = list(direction = "vertical"),
-                        name = "Pearson\ncorrelation", #Legend
+                        name = "Spearman\ncorrelation", #Legend
                         col = col_fun, #color
 cell_fun = function(j, i, x, y, width, height, fill) {
   # Define um limite próximo de zero
@@ -6242,14 +6304,14 @@ cell_fun = function(j, i, x, y, width, height, fill) {
                         column_names_rot = 45,
                         column_names_gp = column_names_gp,
                         rect_gp = gpar(col = "white", lwd = 2),
-                        cluster_rows = F,
+                        cluster_rows = F, row_km = 2, column_km = 2,
                         row_names_gp = row_names_gp,
                         row_dend_width = unit(5, "cm"),
                         column_split = NULL, 
                         row_split = NULL, 
-                        row_gap = unit(2, "mm"),
+                        row_gap = unit(4, "mm"),
                         cluster_columns = F,
-                        column_gap = unit(8, "mm"),
+                        column_gap = unit(4, "mm"),
                         show_column_dend = F,
                         show_row_dend = F,
                         row_dend_side = "left",
@@ -6419,7 +6481,7 @@ dev.off()
 
 
 ### Non-immune genes
-```{r fig.height=20, fig.width=15}
+```{r}
 library(corrplot)
 
 genes_nonImmuneSystem = degs_covid_vax %>%
@@ -6461,8 +6523,6 @@ p.mat_long = p.mat$p %>%
                values_to =  "pvalue") %>% 
   filter(pvalue < 0.05)
 
-
-
 correlation_genes_long = correlation_genes_nonImmuneSystem %>% 
   as.data.frame() %>% 
   rownames_to_column("condition") %>% 
@@ -6480,11 +6540,11 @@ correlation_genes_filtered_matrix = correlation_genes_long %>%
   mutate_all(~ replace_na(., 0)) %>% 
   as.matrix()
 
-  
+fviz_nbclust(correlation_genes_filtered_matrix, kmeans, method = "wss")
 ```
 
-Clustered
-```{r}
+
+```{r fig.height=20, fig.width=15}
 # INPUT ------
 correlation_genes_filtered_matrix
 filename = "NonImmuneGenes_CorrelationAnalysis_COVID" 
@@ -6609,10 +6669,11 @@ cell_fun = function(j, i, x, y, width, height, fill) {
                         row_names_gp = row_names_gp,
                         row_dend_width = unit(5, "cm"),
                         column_split = NULL, 
+                        row_km = 4, column_km = 4,
                         row_split = NULL, 
-                        row_gap = unit(2, "mm"),
+                        row_gap = unit(1, "mm"),
                         cluster_columns = TRUE,
-                        column_gap = unit(8, "mm"),
+                        column_gap = unit(1, "mm"),
                         show_column_dend = F,
                         show_row_dend = F,
                         row_dend_side = "left",
@@ -10966,7 +11027,7 @@ circle_contrib= fviz_pca_var(pca_res,
                               # select.var= list(cos2 = 20), 
                               select.var = list(name = c(PC1_top20_pos, PC1_top20_neg, PC2_top20_pos, PC2_top20_neg)),
                               repel = T, 
-                              labelsize = 5, 
+                              labelsize = 5, fill.var = "white",
                               col.circle = "gray90") +
   labs(title = "",
        x = "PC1",
@@ -10988,7 +11049,7 @@ circle_contrib
 
 ```
 
-KNN
+KMeans
 
 ```{r}
 #KNN classification -----
@@ -11058,14 +11119,16 @@ pca_plot_knn_cluster_labels = autoplot(pca_res,
   theme_few() +
   theme(axis.text = element_text(size = 10, color = "black"),
       panel.grid.minor = element_blank(),
-      panel.grid.major = element_line(size = 1, 
-                                    linetype = 1,
+      panel.grid.major = element_line(size = 0.5, 
+                                    linetype = 2,
                                     color = "gray90"),
         axis.line = element_line(size = 0, colour = "black", linetype=1),
         # axis.line = element_line(size = 1, colour = "black", linetype=1),
-        text = element_text(color = "black", size = 10),
-        panel.border = element_rect(fill = NA, color = "gray90", size = 2))   +
-  geom_label_repel(aes(label = if_else(disease_vac == "I" | cluster == "2", condition, NA)),
+        text = element_text(color = "black", size = 10), axis.ticks = element_blank(),
+        panel.border = element_rect(fill = NA, 
+                                    color = "gray90", 
+                                    size = 1))   +
+  geom_label_repel(aes(label = if_else(disease_vac == "I" | cluster == "1", condition, NA)),
                   segment.colour="black",
                   box.padding = 0.5, 
                   # fill = "gray60",
@@ -24379,6 +24442,9 @@ Clustered
 # INPUT ------
 correlation_genes_ImmuneSystem
 
+degs_all_updown_covid_other_immune_shared <- read_csv("VaxGO gene sets/degs_all_updown_covid_other_immune_shared.csv")
+
+
 table = degs_all_updown_covid_other_immune_shared
 filename = "ImmuneGO_Genes_CorrelationAnalysis_COVID_Other" 
 
@@ -24449,6 +24515,13 @@ dim(matrix_data)
 dim(ann_rows_heatmap)
 dim(ann_cols_heatmap)
 
+
+fviz_nbclust(matrix_data, kmeans, method = "wss")
+fviz_nbclust(matrix_data %>% t(), kmeans, method = "wss")
+```
+
+
+```{r}
 col_fun <- colorRamp2(
   breaks = c(-1, -0.5, 0,0.5, 1), 
   colors = c("darkblue", "#4DBBD5FF", "white", "red", "#DC0000FF")
@@ -24509,11 +24582,11 @@ cell_fun = function(j, i, x, y, width, height, fill) {
                         cluster_rows = TRUE,
                         row_names_gp = row_names_gp,
                         row_dend_width = unit(5, "cm"),
-                        column_split = NULL, 
+                        column_split = NULL, row_km = 3, column_km = 3,
                         row_split = NULL, 
                         row_gap = unit(2, "mm"),
                         cluster_columns = TRUE,
-                        column_gap = unit(8, "mm"),
+                        column_gap = unit(2, "mm"),
                         show_column_dend = F,
                         show_row_dend = F,
                         row_dend_side = "left",
