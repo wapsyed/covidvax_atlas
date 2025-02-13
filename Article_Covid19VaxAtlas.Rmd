@@ -3884,10 +3884,15 @@ Serology_data %>%
 
 # 5. Differential Gene Expression Analysis
 
-
+Import files
 ```{r}
+all_matrices_counts <- readRDS(here("DGE analysis", "all_matrices_counts.rds"))
+
 all_matrices_counts = all_matrices_counts %>% 
   column_to_rownames("genes")
+
+ann_vaccines_samples <- read_csv(here("Annotations and metadata", "ann_vaccines_samples.csv"))
+
 ```
 
 
@@ -3929,7 +3934,8 @@ countData <- gse206023_counts_ready %>%
       rename(sample = ".") %>%
       arrange(sample) %>%
       pull()
-  )
+  ) %>% 
+  drop_na(.)
 
 
 colData <- gse206023_metadata %>% 
@@ -3937,15 +3943,27 @@ colData <- gse206023_metadata %>%
                                condition == "ZF2001 (V3, D0)" ~ "H (D0)",.default = condition),
          condition = as.factor(condition),
          condition = fct_relevel(condition, "H (D0)"),
-         participant_id = as_factor(participant_id)) %>% 
+         ind.n = as_factor(participant_id) %>% as.numeric(),
+         sex = as_factor(sex),
+         participant_id = as_factor(participant_id),
+         # age = scale(age, center = T, scale = T)
+         ) %>% 
   arrange(sample) %>% 
   select(sample, everything())
 
 
 # DESeq2
+# dds <- DESeqDataSetFromMatrix(countData = countData, 
+#                               colData = colData, 
+#                               design = ~ age + sex + condition)
+
+#Repetitive measures
+model.matrix(~ age + sex + condition + condition*participant_id, colData)
 dds <- DESeqDataSetFromMatrix(countData = countData, 
                               colData = colData, 
-                              design = ~ age + sex + condition)
+                              design = ~ age + sex + condition + condition:ind.n)
+
+dds
 
 keep <- rowSums(counts(dds)) >= 10
 dds <- dds[keep,]
@@ -3972,12 +3990,28 @@ gse206023_DEGs %>%
   distinct()
 
 
-gse206023_DEGs %>% 
-  write_csv(file = here("DGE analysis", "gse206023_DEGs_wald.csv"))
+# gse206023_DEGs %>% 
+#   write_csv(file = here("DGE analysis", "gse206023_DEGs_wald.csv"))
 
 gse206023_DEGs
 
 ```
+
+```{r}
+gse206023_DEGs %>% 
+  filter(padj <= 0.05,
+         condition %in% c(
+           "BBIBP (V3, D07)",
+           "BBIBP (V3, D14)",
+           "BBIBP (V3, D28)",
+           "ZF2001 (V3, D07)",
+           "ZF2001 (V3, D14)",
+           "ZF2001 (V3, D28)"
+         )) %>% 
+  esquisser()
+  
+```
+
 
 ## GSE201533
 
@@ -25557,8 +25591,6 @@ All_covid_13VaxImmune_GO_T2G_specfic_GSEA_ALL <- read_csv("Gene set enrichment a
   filter(condition != "ChAd-BNT (V2, D0)")
 
 
-
-
 All_covid_13VaxImmune_GO_T2G_specfic_GSEA_ALL$id %>% unique()
 
 ann_vaccines_covid_other_conditions = ann_vaccines_conditions %>%
@@ -25844,7 +25876,7 @@ patch_immune_main
 ```
 
 
-###### Main Processes GSEA Timeline
+###### Timeline Main Processes GSEA 
 
 ```{r fig.height=10, fig.width=10}
 
@@ -26037,21 +26069,20 @@ all_together_table = gsea_l2fc_tbl_2 %>%
 all_together = all_together_table %>% 
   ggplot() +
   aes(x = day, y = nes, group = vaccine) +
-  geom_line(
-  aes(color = pathogen,
-      group = pathogen
-    ),
-  size = 1,
-  alpha = 1
-  ) +
+  geom_line(aes(color = pathogen,
+                group = pathogen),
+            size = 1,
+            alpha = 1) +
   geom_point(aes(shape = dose,
                  color = pathogen,
-                 alpha = if_else(set == "COVID-19", 0.5, 0)),
+                 # alpha = if_else(set == "COVID-19", 0.5, 0)
+                 ),
              size = 2.5,
              color = "black") +
   geom_point(aes(shape = dose,
                  color = pathogen,
-                 alpha = if_else(set == "COVID-19", 0.5, 0)),             
+                 # alpha = if_else(set == "COVID-19", 0.5, 0)
+                 ),             
              size = 2
             ) +
   geom_hline(yintercept = 0, linetype = 1, alpha = 1) +
@@ -26110,7 +26141,7 @@ all_together = all_together_table %>%
   labs(x = "Day",
        y = "NES",
        color = "Pathogen",
-       shape = "Type",
+       shape = "Dose",
        alpha = "COVID-19 or Other",
        title = "Temporal dynamics of immunization, GSEA of Immune processes (BTM + ImmuneGO)") +
     facet_grid(~id~type_grouped, 
@@ -26118,10 +26149,10 @@ all_together = all_together_table %>%
 
 all_together
 
-all_together %>%
-  ggsave(filename = here("Figures", "GSEA_Linechart_ByImmuneProcess_AllVaccines_Infection.png"),
-         width = 15,
-         height = 20)
+# all_together %>%
+#   ggsave(filename = here("Figures", "GSEA_Linechart_ByImmuneProcess_AllVaccines_Infection.png"),
+#          width = 15,
+#          height = 20)
 ```
 
 
@@ -26691,6 +26722,10 @@ time_bytype_all_COVID = gsea_l2fc_tbl_2 %>%
      # label = condition,
     group = pathogen
       ) +
+    geom_line(aes(color = pathogen,
+                group = pathogen),
+            size = 1,
+            alpha = 1) +
   geom_point(aes(shape = dose,
                  color = pathogen,
                  alpha = if_else(set == "COVID-19", 0.5, 0)),
