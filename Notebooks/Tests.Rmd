@@ -6,6 +6,8 @@ library(edgeR)
 library(MASS)
 library(here)
 library(tidyverse)
+library(ggsci)
+library(paletteer)
 
 ```
 
@@ -40,34 +42,33 @@ gse206023_metadata = ann_vaccines_samples %>%
 
 # Variance stabilization
 counts_tpm <- all_matrices_counts_tpm_normalized %>% 
-  select(c(gse206023_metadata$sample)) %>% 
+  dplyr::select(c(gse206023_metadata$sample)) %>% 
   t() %>% 
   as.data.frame() %>% 
-   drop_na(.) %>%
+  drop_na(.) %>%
   mutate(across(where(is.numeric), ~ log2(.x + 1))) %>% 
   rownames_to_column("sample") %>% 
-  inner_join(colData %>% select(sample, condition, participant_id, age, sex),
+  inner_join(ann_vaccines_samples %>% dplyr::select(sample, condition, participant_id, age, sex),
              by = "sample") %>% 
-  select(sample, condition, participant_id, age, sex, everything()) %>% 
+  dplyr::select(sample, condition, participant_id, age, sex, everything()) %>% 
   column_to_rownames("sample")
 
 
 raw_counts <- all_matrices_counts %>% 
-  select(c(gse206023_metadata$sample)) %>% 
+  dplyr::select(c(gse206023_metadata$sample)) %>% 
   t() %>% 
   as.data.frame() %>% 
    drop_na(.) %>%
   rownames_to_column("sample") %>% 
-  inner_join(colData %>% select(sample, condition, participant_id, age, sex),
+  inner_join(ann_vaccines_samples %>% dplyr::select(sample, day, condition, participant_id, age, sex),
              by = "sample") %>% 
-  select(sample, condition, participant_id, age, sex, everything()) %>% 
+  dplyr::select(sample, condition, day, participant_id, age, sex, everything()) %>% 
   column_to_rownames("sample")
 
 counts_tpm
 
 raw_counts
 
-genes
 ```
 
 
@@ -131,4 +132,131 @@ resultados_glm <- resultados_glm %>%
 genes_significativos <- resultados_glm %>%
   filter(p_adj < 0.05 & abs(log2FC) > 1)  # Usa os mesmos critérios do DESeq2
 ```
+
+
+# Visualization
+```{r}
+counts <- all_matrices_counts %>% 
+  dplyr::select(c(gse206023_metadata$sample)) %>% 
+  t() %>% 
+  as.data.frame() %>% 
+   drop_na(.) %>%
+  rownames_to_column("sample") %>% 
+  inner_join(ann_vaccines_samples %>% dplyr::select(sample, vaccine, day, condition, participant_id, age, sex),
+             by = "sample") %>% 
+  dplyr::select(sample, condition, vaccine, day, participant_id, age, sex, everything()) %>% 
+  column_to_rownames("sample") %>% 
+  mutate(day = as.factor(day))
+
+# Definir cores para cada vacina
+colors_vaccines <- c(
+  "BBIBP" = "#E64B35FF",
+  "ZF2001" = "#4DBBD5FF"
+)
+
+# Criar um vetor nomeado onde cada amostra recebe a cor da vacina correspondente
+colors_vaccines_samples <- ann_vaccines_samples %>%
+  mutate(color = colors_vaccines[vaccine]) %>%
+  dplyr::select(participant_id, color) %>%
+  deframe()
+
+counts %>% 
+  ggplot() +
+  aes(x = day, y = TLR4) + 
+  geom_point(aes(fill = participant_id), pch = 21,
+             alpha = 0.5) +
+  geom_line(aes(color = participant_id),
+            alpha = 0.5) +
+  stat_summary(aes(group = vaccine, color = vaccine), 
+               fun.y = mean, 
+               geom = "line", 
+               size = 2.2, 
+               alpha = 1.2, 
+               width = 0.25, 
+               position = position_dodge(width = 0.3)) +
+  stat_summary(aes(group = vaccine, color = vaccine), 
+               fun.data = mean_se, geom = "errorbar",
+               # size = 3, 
+               # alpha = 1.2, 
+               # width = 0.25, 
+               position = position_dodge(width = 0.3)) +
+  stat_summary(aes(group = vaccine, fill = vaccine), 
+               fun.y = mean, 
+               pch = 21,
+               geom = "point", 
+               size = 3, 
+               alpha = 1.2, 
+               width = 0.25, 
+               position = position_dodge(width = 0.3)) +
+  scale_color_manual(values = c(colors_vaccines_samples, colors_vaccines)) + 
+  scale_fill_manual(values = c(colors_vaccines_samples, colors_vaccines)) + 
+  # scale_x_continuous(breaks = c(0, 7, 14, 28),
+  #                    expand = c(0.01, 0.01)) +
+  theme_minimal()+
+  theme(axis.text = element_text(color = "black", size = 10),
+        legend.text = element_text(color = "black", size = 10),
+        axis.line.x  = element_line(size = 1, color ="black"),
+        axis.line.y  = element_line(size = 1, color ="black"),
+        axis.text.x = element_text(angle = 0, vjust = 1, hjust=0.5),
+        axis.ticks = element_line(size = 1, color ="black"),
+        panel.grid.major = element_line(linetype = 2, color = "gray75"),
+        panel.grid.minor = element_line(linetype = 2, size = 0, color = "gray75"),
+        # panel.grid.x = element_line(linetype = 2, color = "gray75"),
+        # panel.grid.y = element_line(linetype = 2, color = "gray75"),
+        strip.text = element_text(size = 10, color = "black"),
+        legend.direction = "vertical",
+        legend.position = "right") +
+  facet_wrap(~sex~vaccine, scales = "free_y")
+  # labs(fill = "Participant and vaccine")
+
+library(lme4)
+library(emmeans)
+library(tidymodels)
+
+modelo_lme2 <- glmer(TLR4 ~ day * vaccine + age + sex + (1 | participant_id), 
+                    data = counts,
+                    family = poisson)
+
+summary(modelo_lme2)
+
+pairwise_lme2 = emmeans(modelo_lme2, pairwise ~ day:vaccine, adjust = "BH") 
+pairwise_lme2$contrasts %>% 
+  as_data_frame() %>% 
+  filter(str_starts(contrast, "day0"),
+         str_detect(contrast, "BBIBP.*BBIBP|ZF2001.*ZF2001")) %>% 
+  mutate(padj = p.adjust(p.value, "BH"),
+         log2fc = estimate / log2(exp(1)))
+
+```
+
+
+```{r}
+library(glmmTMB)
+# BiocManager::install("apeglm")
+library(apeglm)
+
+genes_filtered = counts %>%
+  dplyr::select(!condition:sex) %>%
+  filter(rowMeans(across(everything())) > 10)
+
+counts_filtered = counts %>% 
+  dplyr::select(condition:sex, colnames(genes_filtered))
+
+modelo <- glmmTMB(TLR4 ~ day * vaccine + sex + age + (1 | participant_id), 
+                  data = counts_filtered , family = nbinom2)
+
+summary(modelo)
+
+# Extrair coeficientes do modelo
+coeficientes <- fixef(modelo)$cond
+
+# Aplicar shrinkage usando apeglm
+shrinkage <- apeglm::apeglm(Y = counts_filtered$TLR4, x = modelo, coef = 2)  # Ajuste o índice 'coef' conforme necessário
+log2fc_shrunk <- shrinkage$map
+
+
+
+
+```
+
 
