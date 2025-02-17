@@ -3892,6 +3892,8 @@ all_matrices_counts = all_matrices_counts %>%
   column_to_rownames("genes")
 
 ann_vaccines_samples <- read_csv(here("Annotations and metadata", "ann_vaccines_samples.csv"))
+ann_vaccines_conditions <- read_csv(here("Annotations and metadata", "ann_vaccines_conditions.csv"))
+
 
 ```
 
@@ -3921,7 +3923,6 @@ generate_all_DESeq2_results <- function(dds) {
 ## GSE206023
 
 ```{r}
-
 gse206023_metadata = ann_vaccines_samples %>% 
   filter(gse_id == "GSE206023")
 
@@ -3943,25 +3944,26 @@ colData <- gse206023_metadata %>%
                                condition == "ZF2001 (V3, D0)" ~ "H (D0)",.default = condition),
          condition = as.factor(condition),
          condition = fct_relevel(condition, "H (D0)"),
-         ind.n = as_factor(participant_id) %>% as.numeric(),
          sex = as_factor(sex),
          participant_id = as_factor(participant_id),
-         # age = scale(age, center = T, scale = T)
+         age = scale(age, center = T, scale = T)
          ) %>% 
+  #Create factors for each individual by group
+  group_by(vaccine) %>%
+  mutate(ind.n = as.factor(as.numeric(factor(participant_id)))) %>%
+  ungroup() %>% 
   arrange(sample) %>% 
   select(sample, everything())
 
 
-# DESeq2
-# dds <- DESeqDataSetFromMatrix(countData = countData, 
-#                               colData = colData, 
-#                               design = ~ age + sex + condition)
+#Repeated measures
+# dds <- DESeqDataSetFromMatrix(countData = countData,
+#                               colData = colData,
+#                               design = ~ age + sex + ind.n + condition)
 
-#Repetitive measures
-model.matrix(~ age + sex + condition + condition*participant_id, colData)
-dds <- DESeqDataSetFromMatrix(countData = countData, 
-                              colData = colData, 
-                              design = ~ age + sex + condition + condition:ind.n)
+dds <- DESeqDataSetFromMatrix(countData = countData,
+                              colData = colData,
+                              design = ~ age + sex + condition)
 
 dds
 
@@ -3990,15 +3992,18 @@ gse206023_DEGs %>%
   distinct()
 
 
-# gse206023_DEGs %>% 
-#   write_csv(file = here("DGE analysis", "gse206023_DEGs_wald.csv"))
+gse206023_DEGs %>%
+  write_csv(file = here("DGE analysis", "gse206023_DEGs_wald.csv"))
 
 gse206023_DEGs
 
 ```
 
 ```{r}
-gse206023_DEGs %>% 
+gse206023_DEGs_bubble = gse206023_DEGs %>% 
+  mutate(direction = case_when(log2FoldChange >= 1 ~ "Up",
+                               log2FoldChange <= -1 ~ "Down",
+                               T ~ "Neutral")) %>% 
   filter(padj <= 0.05,
          condition %in% c(
            "BBIBP (V3, D07)",
@@ -4008,9 +4013,65 @@ gse206023_DEGs %>%
            "ZF2001 (V3, D14)",
            "ZF2001 (V3, D28)"
          )) %>% 
-  esquisser()
+  inner_join(ann_vaccines_conditions %>% select(condition, vaccine),
+             by = "condition") %>% 
+  ggplot() +
+  aes(x = condition,
+      y = log2FoldChange) +
+  # geom_jitter(aes(fill = direction,
+  #                 size = -log10(padj)),
+  #             pch = 21,
+  #             color = "black",
+  #             stroke = 0.5,
+  #             alpha = 0.1,
+  #             width = 0.1) +
+    geom_point(aes(fill = direction,
+                  size = -log10(padj)),
+              pch = 21,
+              color = "black",
+              stroke = 0.5,
+              alpha = 0.1,
+              # width = 0.1
+              ) +
+    geom_violin(color = "black",
+              alpha = 0) +
+  geom_hline(yintercept = 0, size = 0.5, alpha = 0.5) +
+  scale_fill_manual(values = c("Up" = "red",
+                                "Neutral" = "white",
+                                "Down" = "blue")) +
+  facet_wrap(~vaccine, scales = "free_x") +
+  theme_light()
+
+
+gse206023_DEGs_bubble
   
 ```
+
+```{r}
+GSE206023 Ages %>% 
+  gse206023_DEGs %>% 
+  mutate(direction = case_when(log2FoldChange >= 1 ~ "Up",
+                               log2FoldChange <= -1 ~ "Down",
+                               T ~ "Neutral")) %>% 
+  filter(padj <= 0.05,
+         condition %in% c(
+           "BBIBP (V3, D07)",
+           "BBIBP (V3, D14)",
+           "BBIBP (V3, D28)",
+           "ZF2001 (V3, D07)",
+           "ZF2001 (V3, D14)",
+           "ZF2001 (V3, D28)"
+         )) %>% 
+  inner_join(ann_vaccines_conditions %>% select(condition, vaccine),
+             by = "condition") %>% 
+  ggplot() +
+  aes(x = condition,
+      y = log2FoldChange) +
+```
+
+
+
+
 
 
 ## GSE201533
@@ -4038,7 +4099,6 @@ saveRDS(gse201533_metadata, file="gse201533_metadata_ready.rds")
 
 DESeq2
 ```{r}
-
 gse201533_metadata_ready = ann_vaccines_samples %>% 
   filter(gse_id == "GSE201533") 
 gse201533_counts_ready <- all_matrices_counts %>% 
@@ -4054,15 +4114,34 @@ colData <- gse201533_metadata_ready %>%
     age <= 24 ~ "Young",
     age >= 25 & age <= 64 ~ "Adult",
     age >= 65 ~ "Elderly",
-    TRUE ~ NA)) %>% 
-  select(sample, everything()) 
+    TRUE ~ NA),
+    participant_id = as_factor(participant_id),
+    age = scale(age, center = T, scale = T)) %>% 
+  #Create factors for each individual by group
+  group_by(vaccine) %>%
+  mutate(ind.n = as.factor(as.numeric(factor(participant_id)))) %>%
+  ungroup() %>% 
+  arrange(sample) %>% 
+  select(sample, participant_id, age, sex, ind.n, condition) 
 
-# DESeqDataSet
-dds <- DESeqDataSetFromMatrix(countData = countData, 
-                              colData = colData, 
-                              design = ~ age + 
-                                # sex + (all samples are Female)
-                                condition)
+m1 <- model.matrix(~ ind.n*condition, colData)
+unname(m1)
+all.zero <- apply(m1, 2, function(x) all(x==0))
+all.zero
+idx <- which(all.zero)
+m1 <- m1[,-idx]
+dds <- DESeqDataSetFromMatrix(countData = countData, colData = colData, design = ~ 1)
+dds <- DESeq(dds, full = m1, betaPrior = FALSE)
+```
+
+
+```{r}
+# # DESeqDataSet
+# dds <- DESeqDataSetFromMatrix(countData = countData, 
+#                               colData = colData, 
+#                               design = ~ age + condition)
+
+
 keep <- rowSums(counts(dds)) >= 10
 dds <- dds[keep,]
 

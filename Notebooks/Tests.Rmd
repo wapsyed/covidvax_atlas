@@ -1,0 +1,134 @@
+```{r}
+library(tidymodels)
+library(purrr)
+library(broom)
+library(edgeR)
+library(MASS)
+library(here)
+library(tidyverse)
+
+```
+
+```{r}
+all_matrices_counts <- readRDS(here("DGE analysis", "all_matrices_counts.rds"))
+all_matrices_counts = all_matrices_counts %>% 
+  column_to_rownames("genes")
+
+all_matrices_counts_tpm_normalized <- readRDS(here("DGE analysis", "all_matrices_counts_tpm_normalized.rds"))
+
+ann_vaccines_samples <- read_csv(here("Annotations and metadata", "ann_vaccines_samples.csv"))
+ann_vaccines_conditions <- read_csv(here("Annotations and metadata", "ann_vaccines_conditions.csv"))
+```
+
+
+```{r}
+gse206023_metadata = ann_vaccines_samples %>% 
+  filter(gse_id == "GSE206023") %>% 
+  mutate(condition = case_when(condition == "BBIBP (V3, D0)" ~ "H (D0)",
+                               condition == "ZF2001 (V3, D0)" ~ "H (D0)",.default = condition),
+         condition = as.factor(condition),
+         condition = fct_relevel(condition, "H (D0)"),
+         sex = as_factor(sex),
+         participant_id = as_factor(participant_id),
+         age = scale(age, center = T, scale = T)
+         ) %>% 
+  #Create factors for each individual by group
+  group_by(vaccine) %>%
+  mutate(ind.n = as.factor(as.numeric(factor(participant_id)))) %>%
+  ungroup() %>% 
+  arrange(sample)
+
+# Variance stabilization
+counts_tpm <- all_matrices_counts_tpm_normalized %>% 
+  select(c(gse206023_metadata$sample)) %>% 
+  t() %>% 
+  as.data.frame() %>% 
+   drop_na(.) %>%
+  mutate(across(where(is.numeric), ~ log2(.x + 1))) %>% 
+  rownames_to_column("sample") %>% 
+  inner_join(colData %>% select(sample, condition, participant_id, age, sex),
+             by = "sample") %>% 
+  select(sample, condition, participant_id, age, sex, everything()) %>% 
+  column_to_rownames("sample")
+
+
+raw_counts <- all_matrices_counts %>% 
+  select(c(gse206023_metadata$sample)) %>% 
+  t() %>% 
+  as.data.frame() %>% 
+   drop_na(.) %>%
+  rownames_to_column("sample") %>% 
+  inner_join(colData %>% select(sample, condition, participant_id, age, sex),
+             by = "sample") %>% 
+  select(sample, condition, participant_id, age, sex, everything()) %>% 
+  column_to_rownames("sample")
+
+counts_tpm
+
+raw_counts
+
+genes
+```
+
+
+```{r}
+# install.packages("glmmTMB")
+# install.packages("broom.mixed")
+library(glmmTMB)
+library(broom.mixed)
+
+genes <- setdiff(names(raw_counts), c("sex", "age", "condition"
+                                      # "participant_id"
+                                      ))
+
+results <- lapply(genes, function(gene) {
+  modelo <- glmmTMB(as.formula(paste(gene, "~ sex + age + condition ")), 
+                    family = nbinom2, data = raw_counts)
+  tidy(modelo)
+})
+
+# Nomear os elementos com os nomes dos genes
+names(results) <- genes
+
+# Transformar lista em dataframe
+resultados_df <- bind_rows(results, .id = "Gene")
+
+
+genes
+```
+
+
+
+```{r}
+
+modelo_nb <- glm.nb(
+  condition ~ tempo * vacina + sexo + idade,
+  data = counts_tpm
+)
+
+summary(modelo_nb)  # Ver os coeficientes (log2FC)
+
+
+# Criar função para rodar GLM por gene
+ajustar_glm <- function(gene) {
+  modelo <- modelo_glm %>%
+    fit(as.formula(paste(gene, "~ tempo * vacina + sexo + idade")), data = dados_norm)
+  
+  tidy(modelo) %>% mutate(gene = gene)  # Extrai coeficientes e adiciona nome do gene
+}
+
+# Aplicar modelo a cada gene
+resultados_glm <- map_dfr(names(dados_norm)[-c(1:2)], ajustar_glm)
+
+resultados_glm <- resultados_glm %>%
+  mutate(log2FC = estimate / log(2)) %>%  # Converte coeficientes para log2FC
+  filter(term == "tempo:vacina")  # Foca na interação tempo * vacina
+
+resultados_glm <- resultados_glm %>%
+  mutate(p_adj = p.adjust(p.value, method = "BH"))
+
+
+genes_significativos <- resultados_glm %>%
+  filter(p_adj < 0.05 & abs(log2FC) > 1)  # Usa os mesmos critérios do DESeq2
+```
+
