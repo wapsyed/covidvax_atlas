@@ -275,10 +275,10 @@ counts_glmmseq = counts_filtered %>%
   as.data.frame() %>%
   filter(rowMeans(across(everything())) > 10)
 
-# counts_glmmseq = counts_glmmseq %>% 
-#   rownames_to_column("genes") %>% 
-#   slice_sample(n = 100) %>%
-#   column_to_rownames("genes")
+counts_glmmseq = counts_glmmseq %>%
+  rownames_to_column("genes") %>%
+  slice_sample(n = 100) %>%
+  column_to_rownames("genes")
 
 metadata_glmmseq = gse206023_metadata %>%
   mutate(day = as.factor(day)) %>%
@@ -356,24 +356,85 @@ emmeans_results_filtered
 
 
 ```{r}
-emmeans_results_filtered %>% 
+facetted = emmeans_results_filtered %>% 
   filter(gene == "PAM16") %>% 
   ggplot() +
   aes(x = day,
       y = log2fc,
       color = vaccine,
       fill = vaccine) +
-  geom_errorbar(aes(ymin = lower, ymax = upper), width = 0.1,
+  geom_errorbar(aes(ymin = lower, ymax = upper), width = 0.1, size = 1,
                 position = position_dodge(width = 0.5)) +
   geom_line(aes(group = vaccine), position = position_dodge(width = 0.5)) +
-    geom_point(size = 2,
+    geom_point(size = 3,
              pch = 21,
              color = "black",
              position = position_dodge(width = 0.5)) +
   geom_hline(yintercept = 0, alpha = 0.5, linetype = 2) +
-  theme_bw() +
+  theme_minimal() +
   scale_color_aaas() +
-  scale_fill_aaas()
+  scale_fill_aaas() +
+  theme(axis.text = element_text(color = "black", size = 10),
+        legend.text = element_text(color = "black", size = 10),
+        axis.line.x  = element_line(size = 0.5, color ="black"),
+        axis.line.y  = element_line(size = 0.5, color ="black"),
+        axis.text.x = element_text(angle = 0, vjust = 1, hjust=0.5),
+        axis.ticks = element_line(size = 0.5, color ="black"),
+        panel.grid.major = element_line(linetype = 0, color = "gray75"),
+        panel.grid.minor = element_line(linetype = 0, size = 0, color = "gray75"),
+        # panel.grid.x = element_line(linetype = 2, color = "gray75"),
+        # panel.grid.y = element_line(linetype = 2, color = "gray75"),
+        strip.text = element_text(size = 10, color = "black"), 
+        strip.text.y = element_text(size = 10, color = "black", angle = 0), 
+        panel.spacing = unit(0, "lines"),
+        legend.direction = "vertical",
+        legend.position = "none") +
+  facet_grid(~gene~vaccine) +
+  labs(x = "Day",
+       y = "Log2-fold Change")
+
+
+together = emmeans_results_filtered %>% 
+  filter(gene == "PAM16") %>% 
+  ggplot() +
+  aes(x = day,
+      y = log2fc,
+      color = vaccine,
+      fill = vaccine) +
+  geom_errorbar(aes(ymin = lower, ymax = upper), width = 0.1, size = 1,
+                position = position_dodge(width = 0.5)) +
+  geom_line(aes(group = vaccine), position = position_dodge(width = 0.5)) +
+    geom_point(size = 3,
+             pch = 21,
+             color = "black",
+             position = position_dodge(width = 0.5)) +
+  geom_hline(yintercept = 0, alpha = 0.5, linetype = 2) +
+  theme_minimal() +
+  scale_color_aaas() +
+  scale_fill_aaas() +
+  theme(axis.text = element_text(color = "black", size = 10),
+        legend.text = element_text(color = "black", size = 10),
+        axis.line.x  = element_line(size = 0.5, color ="black"),
+        axis.line.y  = element_line(size = 0.5, color ="black"),
+        axis.text.x = element_text(angle = 0, vjust = 1, hjust=0.5),
+        axis.ticks = element_line(size = 0.5, color ="black"),
+        panel.grid.major = element_line(linetype = 0, color = "gray75"),
+        panel.grid.minor = element_line(linetype = 0, size = 0, color = "gray75"),
+        # panel.grid.x = element_line(linetype = 2, color = "gray75"),
+        # panel.grid.y = element_line(linetype = 2, color = "gray75"),
+        strip.text = element_text(size = 10, color = "black"), 
+        strip.text.y = element_text(size = 10, color = "black", angle = 0), 
+        panel.spacing = unit(0, "lines"),
+        legend.direction = "horizontal",
+        legend.position = "top") +
+  facet_grid(~gene) +
+  labs(x = "Day",
+       y = "Log2-fold Change",
+       fill = "Vaccine",
+       color = "Vaccine")
+
+together
+facetted
 
 ```
 
