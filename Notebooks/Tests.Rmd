@@ -9,7 +9,14 @@ library(tidyverse)
 library(ggsci)
 library(paletteer)
 library(janitor)
-
+library(lme4)
+library(emmeans)
+library(moderndive)
+library(glmmTMB)
+# BiocManager::install("apeglm")
+library(apeglm)
+library(glmmSeq)
+library(DESeq2)
 ```
 
 ```{r}
@@ -264,10 +271,6 @@ summary(modelo)
 
 ## GLMMSEQ
 ```{r}
-library(glmmSeq)
-library(DESeq2)
-library(emmeans)
-
 set.seed(1)
 counts_glmmseq = counts_filtered %>% 
   dplyr::select(!condition:sex) %>% 
@@ -297,11 +300,15 @@ dispersions <- setNames(dispersions(dds), rownames(counts_glmmseq))
 sizeFactors <- estimateSizeFactorsForMatrix(counts_glmmseq)
 
 #Fit model
-results <- glmmSeq(~ sex + age + vaccine*day + (1 | participant_id),
+results <- glmmSeq(modelFormula = 
+                     ~ sex + age + #Fixed-effects
+                     vaccine*day + #Fixed-effects interactions
+                     (day | participant_id), #Random-effects. Inds respond differently during time
                    countdata = counts_glmmseq,
                    metadata = metadata_glmmseq,
                    dispersion = dispersions, 
-                   sizeFactors = sizeFactors, cores = 8,
+                   sizeFactors = sizeFactors, 
+                   cores = 8,
                    progress = TRUE)
 
 # #Fit model
@@ -319,10 +326,8 @@ results <- glmmSeq(~ sex + age + vaccine*day + (1 | participant_id),
 #Assess
 stats = summary(results) %>% 
   as.data.frame()
-```
 
-
-```{r}
+#Get pairwise comparisons
 genes = rownames(results@countdata)
 
 emmeans_genes <- function(gene) {
@@ -336,25 +341,29 @@ emmeans_genes <- function(gene) {
   return(emmeans_fit)
 }
 
-# Aplicar a função para todos os genes
 emmeans_results <- map_df(genes, emmeans_genes) %>%
   mutate(p_adj = p.adjust(p.value, method = "BH"))
 
 emmeans_results_filtered = emmeans_results %>% 
   clean_names() %>% 
   filter(str_starts(contrast, "day0")) %>% 
-  mutate(upper = (estimate + 1.96 * se) / log2(exp(1)),
-         lower = (estimate - 1.96 * se) / log2(exp(1))) %>% 
+  mutate(l2fc_upper = (estimate + 1.96 * se) / log2(exp(1)),
+         l2fc_lower = (estimate - 1.96 * se) / log2(exp(1)),
+         estimate_upper = (estimate + 1.96 * se),
+         estimate_lower = (estimate - 1.96 * se)) %>% 
   separate(contrast, into = c("day_ref", "day")) %>% 
   mutate(day_ref = str_remove(day_ref, "day"),
          day = str_remove(day, "day"),
          day = fct_relevel(day, c(metadata_glmmseq$day %>% levels()))) %>% 
-  dplyr::select(gene, vaccine, day_ref, day, estimate, log2fc, se, upper, lower, everything())
+  dplyr::select(gene, vaccine, day_ref, day, estimate, se, estimate_upper, estimate_lower, log2fc, l2fc_upper, l2fc_lower, everything())
 
 emmeans_results_filtered
+
+emmeans_results_filtered %>% 
+  saveRDS(file = here("Notebooks", "Random_effects", "GSE206023_DGE_random_fix_sex-age_interac-dayvaccine_rand-daybyparticipant.rds"))
 ```
 
-
+Visualization
 ```{r}
 facetted = emmeans_results_filtered %>% 
   filter(gene == "PAM16") %>% 
@@ -363,10 +372,10 @@ facetted = emmeans_results_filtered %>%
       y = log2fc,
       color = vaccine,
       fill = vaccine) +
-  geom_errorbar(aes(ymin = lower, ymax = upper), width = 0.1, size = 1,
+  geom_errorbar(aes(ymin = l2fc_lower, ymax = l2fc_upper), width = 0.1, size = 1,
                 position = position_dodge(width = 0.5)) +
   geom_line(aes(group = vaccine), position = position_dodge(width = 0.5)) +
-    geom_point(size = 3,
+  geom_point(size = 3,
              pch = 21,
              color = "black",
              position = position_dodge(width = 0.5)) +
@@ -401,7 +410,7 @@ together = emmeans_results_filtered %>%
       y = log2fc,
       color = vaccine,
       fill = vaccine) +
-  geom_errorbar(aes(ymin = lower, ymax = upper), width = 0.1, size = 1,
+  geom_errorbar(aes(ymin = l2fc_lower, ymax = l2fc_upper), width = 0.1, size = 1,
                 position = position_dodge(width = 0.5)) +
   geom_line(aes(group = vaccine), position = position_dodge(width = 0.5)) +
     geom_point(size = 3,
