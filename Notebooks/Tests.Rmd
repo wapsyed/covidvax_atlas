@@ -17,8 +17,11 @@ library(glmmTMB)
 library(apeglm)
 library(glmmSeq)
 library(DESeq2)
+library(broom.mixed)
 ```
 
+
+# Files
 ```{r}
 all_matrices_counts <- readRDS(here("DGE analysis", "all_matrices_counts.rds"))
 all_matrices_counts = all_matrices_counts %>% 
@@ -28,10 +31,7 @@ all_matrices_counts_tpm_normalized <- readRDS(here("DGE analysis", "all_matrices
 
 ann_vaccines_samples <- read_csv(here("Annotations and metadata", "ann_vaccines_samples.csv"))
 ann_vaccines_conditions <- read_csv(here("Annotations and metadata", "ann_vaccines_conditions.csv"))
-```
 
-
-```{r}
 gse206023_metadata = ann_vaccines_samples %>% 
   filter(gse_id == "GSE206023") %>% 
   mutate(condition = case_when(condition == "BBIBP (V3, D0)" ~ "H (D0)",
@@ -40,7 +40,7 @@ gse206023_metadata = ann_vaccines_samples %>%
          condition = fct_relevel(condition, "H (D0)"),
          sex = as_factor(sex),
          participant_id = as_factor(participant_id),
-         age = scale(age, center = T, scale = T)
+         # age = scale(age, center = T, scale = T)
          ) %>% 
   #Create factors for each individual by group
   group_by(vaccine) %>%
@@ -48,7 +48,32 @@ gse206023_metadata = ann_vaccines_samples %>%
   ungroup() %>% 
   arrange(sample)
 
-# Variance stabilization
+#Raw counts
+raw_counts <- all_matrices_counts %>% 
+  dplyr::select(c(gse206023_metadata$sample)) %>% 
+  t() %>% 
+  as.data.frame() %>% 
+   drop_na(.) %>%
+  rownames_to_column("sample") %>% 
+  inner_join(ann_vaccines_samples %>% dplyr::select(sample, day, condition, participant_id, age, sex),
+             by = "sample") %>% 
+  dplyr::select(sample, condition, day, participant_id, age, sex, everything()) %>% 
+  column_to_rownames("sample")
+
+#Raw counts with other variables
+counts <- all_matrices_counts %>% 
+  dplyr::select(c(gse206023_metadata$sample)) %>% 
+  t() %>% 
+  as.data.frame() %>% 
+   drop_na(.) %>%
+  rownames_to_column("sample") %>% 
+  inner_join(ann_vaccines_samples %>% dplyr::select(sample, vaccine, day, condition, participant_id, age, sex),
+             by = "sample") %>% 
+  dplyr::select(sample, condition, vaccine, day, participant_id, age, sex, everything()) %>% 
+  column_to_rownames("sample") %>% 
+  mutate(day = as.factor(day))
+
+# Variance stabilization for TPM counts
 counts_tpm <- all_matrices_counts_tpm_normalized %>% 
   dplyr::select(c(gse206023_metadata$sample)) %>% 
   t() %>% 
@@ -62,31 +87,14 @@ counts_tpm <- all_matrices_counts_tpm_normalized %>%
   column_to_rownames("sample")
 
 
-raw_counts <- all_matrices_counts %>% 
-  dplyr::select(c(gse206023_metadata$sample)) %>% 
-  t() %>% 
-  as.data.frame() %>% 
-   drop_na(.) %>%
-  rownames_to_column("sample") %>% 
-  inner_join(ann_vaccines_samples %>% dplyr::select(sample, day, condition, participant_id, age, sex),
-             by = "sample") %>% 
-  dplyr::select(sample, condition, day, participant_id, age, sex, everything()) %>% 
-  column_to_rownames("sample")
-
-counts_tpm
-
-raw_counts
 
 ```
 
-
+#glmmTMB
 ```{r}
-# install.packages("glmmTMB")
-# install.packages("broom.mixed")
-library(glmmTMB)
-library(broom.mixed)
-
-genes <- setdiff(names(raw_counts), c("sex", "age", "condition"
+genes <- setdiff(names(raw_counts), c("sex", 
+                                      "age", 
+                                      "condition"
                                       # "participant_id"
                                       ))
 
@@ -96,16 +104,10 @@ results <- lapply(genes, function(gene) {
   tidy(modelo)
 })
 
-# Nomear os elementos com os nomes dos genes
 names(results) <- genes
-
-# Transformar lista em dataframe
 resultados_df <- bind_rows(results, .id = "Gene")
 
-
-genes
 ```
-
 
 
 ```{r}
@@ -144,17 +146,6 @@ genes_significativos <- resultados_glm %>%
 
 # Visualization
 ```{r}
-counts <- all_matrices_counts %>% 
-  dplyr::select(c(gse206023_metadata$sample)) %>% 
-  t() %>% 
-  as.data.frame() %>% 
-   drop_na(.) %>%
-  rownames_to_column("sample") %>% 
-  inner_join(ann_vaccines_samples %>% dplyr::select(sample, vaccine, day, condition, participant_id, age, sex),
-             by = "sample") %>% 
-  dplyr::select(sample, condition, vaccine, day, participant_id, age, sex, everything()) %>% 
-  column_to_rownames("sample") %>% 
-  mutate(day = as.factor(day))
 
 # Definir cores para cada vacina
 colors_vaccines <- c(
@@ -225,13 +216,22 @@ counts %>%
 
 
 #Modelling
-## Without glmmseq
-```{r}
-library(lme4)
-library(emmeans)
-library(tidymodels)
-library(moderndive)
 
+```{r}
+#Filter genes
+genes_filtered = counts %>%
+  dplyr::select(!condition:sex) %>%
+  filter(rowMeans(across(everything())) > 10)
+
+counts_filtered = counts %>% 
+  dplyr::select(condition:sex, colnames(genes_filtered))
+
+```
+
+## Without glmmseq
+
+Poisson distribution
+```{r}
 modelo_lme2 <- glmer(TLR4 ~ day * vaccine + age + sex + (1 | participant_id), 
                     data = counts,
                     family = poisson)
@@ -246,23 +246,11 @@ pairwise_lme2$contrasts %>%
          str_detect(contrast, "BBIBP.*BBIBP|ZF2001.*ZF2001")) %>% 
   mutate(padj = p.adjust(p.value, "BH"),
          log2fc = estimate / log2(exp(1)))
-
 ```
 
-
+Negative-binomial
 ```{r}
-library(glmmTMB)
-# BiocManager::install("apeglm")
-library(apeglm)
-
-genes_filtered = counts %>%
-  dplyr::select(!condition:sex) %>%
-  filter(rowMeans(across(everything())) > 10)
-
-counts_filtered = counts %>% 
-  dplyr::select(condition:sex, colnames(genes_filtered))
-
-modelo <- glmmTMB(TLR4 ~ day * vaccine + sex + age + (1 | participant_id), 
+modelo <- glmmTMB(TLR4 ~ day * vaccine + sex + age + (day | participant_id), 
                   data = counts_filtered , family = nbinom2)
 
 summary(modelo)
@@ -270,6 +258,7 @@ summary(modelo)
 ```
 
 ## GLMMSEQ
+### Time as factor
 ```{r}
 set.seed(1)
 counts_glmmseq = counts_filtered %>% 
@@ -548,6 +537,315 @@ plot_fc = fcPlot(results_q, x1var = "day",
        colours = c('grey', 'green3', 'gold3', 'blue'))
 
 plot_fc$data
+```
+
+
+
+### Time as numeric
+```{r}
+set.seed(1)
+counts_glmmseq = counts_filtered %>% 
+  dplyr::select(!condition:sex) %>% 
+  t() %>% 
+  as.data.frame() %>%
+  filter(rowMeans(across(everything())) > 10)
+
+counts_glmmseq = counts_glmmseq %>%
+  rownames_to_column("genes") %>%
+  slice_sample(n = 100) %>%
+  column_to_rownames("genes")
+
+metadata_glmmseq = gse206023_metadata %>%
+  # mutate(day = as.factor(day)) %>%
+  arrange(sample) %>% 
+  column_to_rownames("sample")
+
+# Set dispersions
+dds <- DESeqDataSetFromMatrix(countData = counts_glmmseq, 
+                              colData = metadata_glmmseq, 
+                              design = ~ 1)
+
+dds <- DESeq(dds)
+dispersions <- setNames(dispersions(dds), rownames(counts_glmmseq))
+
+#Size factors
+sizeFactors <- estimateSizeFactorsForMatrix(counts_glmmseq)
+
+#Fit model
+results <- glmmSeq(modelFormula = 
+                     ~ sex + age + #Fixed-effects
+                     vaccine*day + #Fixed-effects interactions
+                     (day | participant_id), #Random-effects. Inds respond differently during time
+                   countdata = counts_glmmseq,
+                   metadata = metadata_glmmseq,
+                   dispersion = dispersions, 
+                   sizeFactors = sizeFactors, 
+                   cores = 8,
+                   progress = TRUE)
+
+
+
+#Assess
+stats = summary(results) %>% 
+  as.data.frame()
+
+stats %>%
+  saveRDS(file = here("Notebooks", "Random_effects", "GSE206023_DGE_random_fix_sex-age_interac-dayvaccine_rand-daybyparticipant_TimeAsContinuous.rds"))
+```
+
+```{r message=FALSE, warning=FALSE}
+metadata_modeldata = results@metadata %>% 
+    rownames_to_column("sample_id_original") %>%  
+  mutate(sample_id = paste("y", sex, age, vaccine, day, sep = "_")) 
+
+counts_original = results@countdata %>% 
+  as.data.frame() %>% 
+  rownames_to_column("genes") %>% 
+  pivot_longer(-genes,
+               names_to = "sample_id_original",
+               values_to = "counts") %>% 
+  inner_join(metadata_modeldata, by = "sample_id_original")
+
+predictions = results@predict %>% 
+  as.data.frame() %>% 
+  rownames_to_column("genes") %>% 
+  pivot_longer(cols = starts_with("y"),
+               names_to = "sample_id",
+               values_to = "prediction") %>%
+  
+  mutate(sample_id = str_remove(sample_id, " ")) %>% 
+  inner_join(metadata_modeldata, by = "sample_id") %>% 
+  dplyr::select(genes, prediction, sample_id) %>% 
+  inner_join(counts_original, by = join_by("sample_id", "genes")) %>% 
+  inner_join(stats %>% rownames_to_column("genes") %>% 
+              dplyr::select(genes, meanExp, "se_vaccineZF2001:day", se_day), 
+             by = "genes")
+
+# Plotando expressão ao longo do tempo
+predictions %>% 
+  filter(genes == "PAM16") %>% 
+  ggplot(aes(x = day, y = prediction)) +
+  geom_line(aes(group = participant_id), alpha = 0.5, color = "red") + 
+  geom_point(aes(y = prediction), position = position_dodge(width = 0.5), color = "red") +
+  geom_point(aes(y = prediction), position = position_dodge(width = 0.5), color = "red") +
+  geom_point(aes(y = counts), position = position_dodge(width = 0.5), color = "black") +
+  geom_line(aes(group = participant_id, y = counts), alpha = 0.5, color = "black") + 
+  facet_wrap(~ vaccine) + 
+  theme_minimal() +
+  scale_x_continuous(breaks = c(0, 7, 14, 28)) +
+  labs(y = "Expressão estimada", x = "Dias pós-vacinação",
+       subtitle = "Red = Predicted; Black = Actual")
+```
+
+
+```{r message=FALSE, warning=FALSE}
+#Fit
+
+fit = glmmRefit(results, gene = "PAM16")  # Ajusta o modelo para um gene específico
+emmeans_fit <- emmeans(fit, ~ day | vaccine, 
+                       at = list(day = seq(0, 30, by = 1))) %>%
+  as_data_frame() %>% 
+  mutate(gene = "PAM16")
+
+contrast_day0 = emmeans_fit %>% 
+  filter(day == "0") %>% 
+  dplyr::select(day, vaccine, emmean_ref = emmean, gene)
+
+emmeans_fit_result = emmeans_fit %>% 
+  full_join(contrast_day0, 
+             by = join_by(day, vaccine, gene)) %>% 
+  fill(emmean_ref, .direction = "down") %>% 
+  clean_names() %>% 
+  mutate(l2fc = emmean/emmean_ref,
+         l2fc = log2(l2fc),
+         se_log2 = se / (emmean * log(2)),
+         l2fc_upper = (l2fc + 1.96 * se_log2),
+         l2fc_lower = (l2fc - 1.96 * se_log2),
+         z_score = l2fc / se_log2,
+         p_value = 2 * (1 - pnorm(abs(z_score))),
+         p_adj = p.adjust(p_value, method = "BH"),
+         signif = if_else(p_adj < 0.05, "*", "NS"))
+
+
+
+emmeans_fit_result
+
+library(performance)
+r2_nakagawa(fit)
+```
+
+
+
+
+Visualization
+```{r}
+facetted = emmeans_fit_result %>% 
+  # filter(gene == "PAM16") %>% 
+  ggplot() +
+  aes(x = day,
+      y = l2fc,
+      color = vaccine,
+      fill = vaccine) +
+  geom_errorbar(aes(ymin = l2fc_lower, ymax = l2fc_upper), 
+                width = 0.1,
+                position = position_dodge(width = 0.5)) +
+  geom_line(aes(group = vaccine), position = position_dodge(width = 0.5)) +
+  geom_point(aes(shape = signif),
+             # pch = 21,
+             # color = "black",
+             position = position_dodge(width = 0.5)) +
+  geom_hline(yintercept = 0, alpha = 0.5, linetype = 2) +
+  theme_minimal() +
+  scale_color_aaas() +
+  scale_fill_aaas() +
+  theme(axis.text = element_text(color = "black", size = 10),
+        legend.text = element_text(color = "black", size = 10),
+        axis.line.x  = element_line(size = 0.5, color ="black"),
+        axis.line.y  = element_line(size = 0.5, color ="black"),
+        axis.text.x = element_text(angle = 0, vjust = 1, hjust=0.5),
+        axis.ticks = element_line(size = 0.5, color ="black"),
+        panel.grid.major = element_line(linetype = 0, color = "gray75"),
+        panel.grid.minor = element_line(linetype = 0, size = 0, color = "gray75"),
+        # panel.grid.x = element_line(linetype = 2, color = "gray75"),
+        # panel.grid.y = element_line(linetype = 2, color = "gray75"),
+        strip.text = element_text(size = 10, color = "black"), 
+        strip.text.y = element_text(size = 10, color = "black", angle = 0), 
+        panel.spacing = unit(0, "lines"),
+        legend.direction = "vertical",
+        legend.position = "top") +
+  facet_grid(~gene~vaccine) +
+  labs(x = "Day",
+       y = "Log2-fold Change")
+facetted
+
+together = emmeans_fit_result %>% 
+  # filter(gene == "PAM16") %>% 
+  ggplot() +
+  aes(x = day,
+      y = l2fc,
+      color = vaccine,
+      fill = vaccine) +
+  geom_errorbar(aes(ymin = l2fc_lower, ymax = l2fc_upper), width = 0.1, size = 1,
+                position = position_dodge(width = 0.5)) +
+  geom_line(aes(group = vaccine), position = position_dodge(width = 0.5)) +
+    geom_point(size = 3,
+             pch = 21,
+             color = "black",
+             position = position_dodge(width = 0.5)) +
+  geom_hline(yintercept = 0, alpha = 0.5, linetype = 2) +
+  theme_minimal() +
+  scale_color_aaas() +
+  scale_fill_aaas() +
+  theme(axis.text = element_text(color = "black", size = 10),
+        legend.text = element_text(color = "black", size = 10),
+        axis.line.x  = element_line(size = 0.5, color ="black"),
+        axis.line.y  = element_line(size = 0.5, color ="black"),
+        axis.text.x = element_text(angle = 0, vjust = 1, hjust=0.5),
+        axis.ticks = element_line(size = 0.5, color ="black"),
+        panel.grid.major = element_line(linetype = 0, color = "gray75"),
+        panel.grid.minor = element_line(linetype = 0, size = 0, color = "gray75"),
+        # panel.grid.x = element_line(linetype = 2, color = "gray75"),
+        # panel.grid.y = element_line(linetype = 2, color = "gray75"),
+        strip.text = element_text(size = 10, color = "black"), 
+        strip.text.y = element_text(size = 10, color = "black", angle = 0), 
+        panel.spacing = unit(0, "lines"),
+        legend.direction = "horizontal",
+        legend.position = "top") +
+  facet_grid(~gene) +
+  labs(x = "Day",
+       y = "Log2-fold Change",
+       fill = "Vaccine",
+       color = "Vaccine",
+       title = "General Linear Mixed Model",
+       subtitle = "~ sex + age + vaccine*day + (day|participant_id)")
+
+together
+facetted
+
+
+
+```
+
+Avaliar modelo
+```{r}
+
+library(plotly)
+pred_obs = predictions %>% 
+  filter(vaccine == "BBIBP") %>%
+  ggplot(aes(x = counts, y = prediction, label = genes)) +
+  geom_point() +
+  geom_abline(slope = 1, intercept = 0, color = "red") +
+  theme_minimal() +
+  labs(title = "Predições vs. Observações", x = "Predito", y = "Observado")
+
+pred_obs
+
+```
+
+
+
+
+```{r}
+fit = glmmRefit(results, gene = "PAM16") 
+
+newdata <- expand.grid(
+  sex = unique(metadata_glmmseq$sex),
+  age = mean(metadata_glmmseq$age),
+  vaccine = unique(metadata_glmmseq$vaccine),
+  day = seq(min(metadata_glmmseq$day), max(metadata_glmmseq$day), length.out = 30),
+  participant_id = NA
+)
+
+
+preds_se <- predict(fit, newdata, type = "response", re.form = NA, se.fit = TRUE)
+newdata$pred = preds_se$fit
+newdata$se_fit = preds_se$se.fit
+
+newdata = newdata %>% 
+  mutate(upper = pred + 1.96*se_fit,
+         lower = pred - 1.96*se_fit)
+
+pred_obs = predictions %>% 
+  filter(genes == "PAM16") %>% 
+  select(genes, counts, prediction, sex, age, vaccine, day)
+
+ggplot(newdata, aes(x = day, y = pred)) +
+  geom_line(aes(color = vaccine)) +
+    geom_errorbar(aes(ymin = lower, ymax = upper, color = vaccine), 
+                  width = 0.1, size = 1,
+                position = position_dodge(width = 0.5),) +
+  geom_point(aes(x = day, y = counts, fill = vaccine), 
+             data = pred_obs,
+             position = position_dodge(width = 1),
+                          pch = 21,
+             color = "black") +
+  geom_point(aes(x = day, y = prediction), 
+             data = pred_obs, 
+             pch = 21,
+             color = "black", 
+             fill = NA,
+             alpha = 0.5,
+             position = position_dodge(width = 1)) +
+  scale_color_npg() +
+  labs(title = "Fitted line, predicted (transparent) and observed (filled)", x = "Day", y = "Counts") +
+  # facet_grid(~vaccine) + 
+  scale_x_continuous(breaks = c(0, 7, 14, 28)) +
+  theme_minimal() +
+  theme(axis.text = element_text(color = "black", size = 10),
+        legend.text = element_text(color = "black", size = 10),
+        axis.line.x  = element_line(size = 0.5, color ="black"),
+        axis.line.y  = element_line(size = 0.5, color ="black"),
+        axis.text.x = element_text(angle = 0, vjust = 1, hjust=0.5),
+        axis.ticks = element_line(size = 0.5, color ="black"),
+        # panel.grid.major = element_line(linetype = 0, color = "gray75"),
+        # panel.grid.minor = element_line(linetype = 0, size = 0, color = "gray75"),
+        panel.grid.x = element_line(linetype = 2, color = "gray75"),
+        panel.grid.y = element_line(linetype = 2, color = "gray75"),
+        strip.text = element_text(size = 10, color = "black"), 
+        strip.text.y = element_text(size = 10, color = "black", angle = 0), 
+        panel.spacing = unit(0, "lines"),
+        legend.direction = "horizontal",
+        legend.position = "top")
 ```
 
 
