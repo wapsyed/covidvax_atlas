@@ -786,7 +786,7 @@ pred_obs
 
 
 ```{r}
-fit = glmmRefit(results, gene = "PAM16") 
+fit = glmmRefit(results, gene = "CDC20B") 
 
 newdata <- expand.grid(
   sex = unique(metadata_glmmseq$sex),
@@ -806,26 +806,27 @@ newdata = newdata %>%
          lower = pred - 1.96*se_fit)
 
 pred_obs = predictions %>% 
-  filter(genes == "PAM16") %>% 
+  filter(genes == "CDC20B") %>% 
   select(genes, counts, prediction, sex, age, vaccine, day)
 
 ggplot(newdata, aes(x = day, y = pred)) +
   geom_line(aes(color = vaccine)) +
-    geom_errorbar(aes(ymin = lower, ymax = upper, color = vaccine), 
+  geom_errorbar(aes(ymin = lower, ymax = upper, color = vaccine), 
                   width = 0.1, size = 1,
                 position = position_dodge(width = 0.5),) +
   geom_point(aes(x = day, y = counts, fill = vaccine), 
              data = pred_obs,
+             size = 2,
              position = position_dodge(width = 1),
                           pch = 21,
              color = "black") +
-  geom_point(aes(x = day, y = prediction), 
+  geom_point(aes(x = day, y = prediction, color = vaccine), 
              data = pred_obs, 
              pch = 21,
-             color = "black", 
+             size = 2,
              fill = NA,
              alpha = 0.5,
-             position = position_dodge(width = 1)) +
+             position = position_dodge(width = 1.5)) +
   scale_color_npg() +
   labs(title = "Fitted line, predicted (transparent) and observed (filled)", x = "Day", y = "Counts") +
   # facet_grid(~vaccine) + 
@@ -837,8 +838,8 @@ ggplot(newdata, aes(x = day, y = pred)) +
         axis.line.y  = element_line(size = 0.5, color ="black"),
         axis.text.x = element_text(angle = 0, vjust = 1, hjust=0.5),
         axis.ticks = element_line(size = 0.5, color ="black"),
-        # panel.grid.major = element_line(linetype = 0, color = "gray75"),
-        # panel.grid.minor = element_line(linetype = 0, size = 0, color = "gray75"),
+        panel.grid.major = element_line(linetype = 0, color = "gray75"),
+        panel.grid.minor = element_line(linetype = 0, size = 0, color = "gray75"),
         panel.grid.x = element_line(linetype = 2, color = "gray75"),
         panel.grid.y = element_line(linetype = 2, color = "gray75"),
         strip.text = element_text(size = 10, color = "black"), 
