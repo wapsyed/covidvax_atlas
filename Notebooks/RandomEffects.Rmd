@@ -438,93 +438,6 @@ facetted
 
 
 
-
-```{r}
-
-res = results@stats$res %>% 
-  as.data.frame() %>% 
-  rownames_to_column("genes")
-
-coef = results@stats$coef %>% 
-  as.data.frame() %>% 
-  rownames_to_column("genes") %>% 
-  pivot_longer(-genes,
-               names_to = "coef",
-               values_to= "coef_value") 
-
-stdErr = results@stats$stdErr %>% 
-  as.data.frame() %>% 
-  rownames_to_column("genes") %>% 
-  pivot_longer(-genes,
-               names_to = "coef",
-               values_to= "std_error") 
-
-
-
-
-#General coefficients
-chi_sq  = results@stats$Chisq %>% 
-  as.data.frame() %>% 
-  rownames_to_column("genes") %>% 
-  pivot_longer(-genes,
-               names_to = "coef_general",
-               values_to= "chi_sq") 
-
-
-degrees_freedom  = results@stats$Df %>% 
-  as.data.frame() %>% 
-  rownames_to_column("genes") %>% 
-  pivot_longer(-genes,
-               names_to = "coef_general",
-               values_to= "degrees_freedom") 
-
-pvals  = results@stats$pvals %>% 
-  as.data.frame() %>% 
-  rownames_to_column("genes") %>% 
-  pivot_longer(-genes,
-               names_to = "coef_general",
-               values_to= "pvals")
-
-qvals = results@stats$qvals %>% 
-  as.data.frame() %>% 
-  rownames_to_column("genes") %>% 
-  pivot_longer(-genes,
-               names_to = "coef_general",
-               values_to = "qvals")
-
-
-```
-
-
-```{r}
-
-#Comparisons
-
-fit_PAM16 <- glmmRefit(results, "PAM16")
-
-emmeans(fit_PAM16, ~ vaccine | day)
-emmip(fit_PAM16, ~ vaccine | day)
-
-plotColours <- c("skyblue", "goldenrod1", "mediumseagreen")
-modColours <- c("dodgerblue3", "goldenrod3", "seagreen4")
-shapes <- c(17, 19)
-
-ggmodelPlot(results, 
-            geneName = "PAM16",
-            x1var = "day",
-            x2var="vaccine", 
-            xlab= "Time",
-            colours = plotColours,
-            shapes = shapes,
-            lineColours = plotColours,
-            modelColours = modColours,
-            modelSize = 0.1)
-
-
-
-```
-
-
 ```{r}
 results_q <- glmmQvals(results)
 # labels = c(..)  # Genes to label
@@ -537,6 +450,8 @@ plot_fc = fcPlot(results_q, x1var = "day",
        colours = c('grey', 'green3', 'gold3', 'blue'))
 
 plot_fc$data
+
+plot_fc
 ```
 
 
