@@ -181,6 +181,9 @@ library(tidymodels)
 library(purrr)
 # library(immunedeconv)
 tidymodels_prefer()
+library(gtable)
+library(gtExtras)
+library(gt)
 
 
 ```
@@ -2917,7 +2920,6 @@ ann_vaccines_conditions = ann_vaccines_conditions_1
 
 ### Reorder conditions as factors
 ```{r}
-
 #Group conditions
 ann_vaccines_conditions_grouped = ann_vaccines_conditions %>% 
   mutate(condition_grouped = condition) %>% 
@@ -2945,7 +2947,11 @@ ann_vaccines_conditions = ann_vaccines_conditions_grouped
 
 ann_vaccines_conditions %>%
   write_csv(file = here("Annotations and metadata", "ann_vaccines_conditions.csv"))
-  
+```
+
+
+```{r}
+
 
 #Reorder factors
 ann_vaccines_conditions_ordered = ann_vaccines_conditions %>% 
@@ -3099,7 +3105,7 @@ ann_vaccines_conditions_ordered %>%
 ```
 
 
-### Plot Samples by condition
+### Import metadata and plot Samples by condition
 
 
 Original conditions
@@ -3412,7 +3418,6 @@ sex_stats_nonumb
 
 ### Plot Participants by day
 ```{r cache = TRUE}
-
 #Participants by condition
 participants_condition = ann_vaccines_samples %>% 
   dplyr::select(participant_id, condition = condition_grouped, gse_id) %>% 
@@ -3467,6 +3472,47 @@ participants_condition_day = ann_vaccines_samples %>%
   relocate(.after = week, gse_id)
 ```
 
+### Summary table
+```{r cache = TRUE}
+summary_table_age_participants = ann_vaccines_samples %>% 
+  select(gse_id, age) %>% 
+  distinct() %>% 
+  group_by(gse_id) %>% 
+  arrange(-age, .by_group = T) %>% 
+  summarize(median_age = paste0(median(age), " (IQR: ", median(age) - iqr(age), "-", median(age) + iqr(age), ")"),
+            n_participants = n())
+
+
+summary_table_sex_participants = ann_vaccines_samples %>% 
+  janitor::tabyl(gse_id, sex) %>%
+  adorn_percentages() %>% 
+  adorn_pct_formatting() %>% 
+  adorn_ns(position = "front") %>% 
+  as.data.frame() %>% 
+  mutate(sex_n = paste0("F: ", Female, ", M: ", Male)) %>% 
+  select(gse_id, sex_n)
+
+summary_table_demographics = summary_table_sex_participants %>% 
+  inner_join(summary_table_age_participants, by = "gse_id") %>% 
+  rename("GSE ID" = gse_id, "Sex" = sex_n, "Median age" = median_age, "Participants" = n_participants) %>% 
+  gt() %>% 
+  gt_theme_538() %>% 
+  tab_style(
+    style = list(
+      cell_fill(color = "lightblue"),
+      cell_text(weight = "bold", color = "black")
+    ),
+    locations = cells_row_groups(groups = everything())
+  ) %>% 
+  tab_header(title = md("**Demographics of the selected studies**"))
+
+summary_table_demographics %>% 
+  gtsave(filename = here("Tables" , "summary_table_demographics.docx"))
+  
+summary_table_demographics
+  
+```
+
 ```{r fig.height=5, fig.width=8, cache = TRUE}
 #Conditions
 demographics_time_plot = demographics_time_grouped %>% 
@@ -3519,7 +3565,6 @@ demographics_time_plot = demographics_time_grouped %>%
 #          width = 8, height = 5)
 
 demographics_time_plot
-
 
 ```
 
@@ -29600,10 +29645,6 @@ PC1_2 %>% write_csv(file = here("PCA", paste(filename, "PC_1_2_cos2.csv")))
 ```{r}
 # install.packages("gtExtras")
 # install.packages("gt")
-
-library(gtable)
-library(gtExtras)
-library(gt)
 
 top20_PCA_table = PC1_2_top5 %>% inner_join(btm_annotation_genes_immune, by = "genes") %>% 
   dplyr::select(genes, dimension, immune_system:title) %>% 
