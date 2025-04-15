@@ -112,8 +112,7 @@ resultados_df <- bind_rows(results, .id = "Gene")
 
 ```{r}
 
-modelo_nb <- glm.nb(
-  condition ~ tempo * vacina + sexo + idade,
+modelo_nb <- glm.nb(formula = condition ~ tempo * vacina + sexo + idade,
   data = counts_tpm
 )
 
@@ -456,7 +455,7 @@ plot_fc
 
 
 
-### Time as numeric
+### (USE THIS) Time as numeric
 ```{r}
 set.seed(1)
 counts_glmmseq = counts_filtered %>% 
@@ -504,8 +503,8 @@ results <- glmmSeq(modelFormula =
 stats = summary(results) %>% 
   as.data.frame()
 
-stats %>%
-  saveRDS(file = here("Notebooks", "Random_effects", "GSE206023_DGE_random_fix_sex-age_interac-dayvaccine_rand-daybyparticipant_TimeAsContinuous.rds"))
+# stats %>%
+#   saveRDS(file = here("Notebooks", "Random_effects", "GSE206023_DGE_random_fix_sex-age_interac-dayvaccine_rand-daybyparticipant_TimeAsContinuous.rds"))
 ```
 
 ```{r message=FALSE, warning=FALSE}
@@ -763,5 +762,517 @@ ggplot(newdata, aes(x = day, y = pred)) +
         legend.direction = "horizontal",
         legend.position = "top")
 ```
+
+### Time as numeric, non-linear
+```{r}
+set.seed(1)
+counts_glmmseq = counts_filtered %>% 
+  dplyr::select(!condition:sex) %>% 
+  t() %>% 
+  as.data.frame() %>%
+  filter(rowMeans(across(everything())) > 10)
+
+counts_glmmseq = counts_glmmseq %>%
+  rownames_to_column("genes") %>%
+  slice_sample(n = 100) %>%
+  column_to_rownames("genes")
+
+metadata_glmmseq = gse206023_metadata %>%
+  # mutate(day = as.factor(day)) %>%
+  arrange(sample) %>% 
+  column_to_rownames("sample")
+
+# Set dispersions
+dds <- DESeqDataSetFromMatrix(countData = counts_glmmseq, 
+                              colData = metadata_glmmseq, 
+                              design = ~ 1)
+
+dds <- DESeq(dds)
+dispersions <- setNames(dispersions(dds), rownames(counts_glmmseq))
+
+#Size factors
+sizeFactors <- estimateSizeFactorsForMatrix(counts_glmmseq)
+
+
+library(gamm4)
+
+#Fit model
+
+counts_meta = counts_glmmseq %>% 
+  t() %>% 
+  as.data.frame() %>% 
+  rownames_to_column("sample_id") %>% 
+  inner_join(metadata_glmmseq %>% 
+               select(sample_id,sex, age, day, vaccine, participant_id), by = "sample_id") %>% 
+  select(sample_id,sex, age, day, vaccine,participant_id, PAM16) %>% 
+  mutate(vaccine = as.factor(vaccine))
+
+
+counts_meta %>% 
+  ggplot() +
+  aes(x = day,
+      y = PAM16,
+      group = participant_id,
+      color = vaccine) +
+  geom_point() +
+  geom_line() +
+  scale_color_aaas() +
+  scale_fill_aaas() +
+  theme_minimal()+
+  theme(axis.text = element_text(color = "black", size = 10),
+        legend.text = element_text(color = "black", size = 10),
+        axis.line.x  = element_line(size = 0.5, color ="black"),
+        axis.line.y  = element_line(size = 0.5, color ="black"),
+        axis.text.x = element_text(angle = 0, vjust = 1, hjust=0.5),
+        axis.ticks = element_line(size = 0.5, color ="black"),
+        panel.grid.major = element_line(linetype = 0, color = "gray75"),
+        panel.grid.minor = element_line(linetype = 0, size = 0, color = "gray75"),
+        # panel.grid.x = element_line(linetype = 2, color = "gray75"),
+        # panel.grid.y = element_line(linetype = 2, color = "gray75"),
+        strip.text = element_text(size = 10, color = "black"), 
+        strip.text.y = element_text(size = 10, color = "black", angle = 0), 
+        panel.spacing = unit(0, "lines"),
+        legend.direction = "horizontal",
+        legend.position = "top") +
+  theme(plot.title = element_text(size = 10)) 
+  
+```
+
+Day as numeric
+```{r}
+#Day as numeric
+dataframe = counts_meta %>%
+    select(sex, age, day, vaccine, participant_id, PAM16) %>% 
+    filter(vaccine == "ZF2001")
+
+results <- gamm(
+  PAM16 ~ s(day, k = 3) + age + sex,
+  data = dataframe,
+  random = list(participant_id = ~1)
+)
+summary(results$gam)
+# Diagnóstico dos ajustes dos splines
+mgcv::gam.check(results$gam)
+
+plot(results$gam, pages = 1, rug = TRUE, shade = TRUE)
+
+
+# Valores médios e sexo mais comum
+pred_data <- expand.grid(
+  day = sort(unique(counts_meta$day)),
+  age = mean(counts_meta$age, na.rm = TRUE),
+  sex = names(sort(table(counts_meta$sex), decreasing = TRUE))[1]
+)
+
+# Predição com intervalo de confiança
+pred_data$fit <- predict(results$gam, newdata = pred_data, se.fit = TRUE)$fit
+pred_data$se <- predict(results$gam, newdata = pred_data, se.fit = TRUE)$se.fit
+
+preds <- predict(results$gam, newdata = pred_data, se.fit = TRUE)
+
+# Intervalo de confiança 95%
+pred_data <- pred_data %>%
+  mutate(
+    lower = fit - 1.96 * se,
+    upper = fit + 1.96 * se
+  )
+
+gamm_plot = ggplot(pred_data, aes(x = day, y = fit)) +
+  geom_line(size = 1.2) +
+  geom_ribbon(aes(ymin = lower, ymax = upper), fill = "lightblue", alpha = 0.3) +
+  geom_errorbar(aes(ymin = lower, ymax = upper), 
+                data = pred_data %>% 
+                  filter(day %in% c(0, 7, 14, 28))) +
+  labs(
+    x = "Day",
+    y = "Predicted PAM16 expression",
+    title = "Predicted GAMM Fit for PAM16 over Time"
+  ) +
+  theme_minimal() +
+  geom_point(data = counts_meta %>% 
+               filter(vaccine == "ZF2001"), 
+             mapping = aes(x = day,
+              y = PAM16,
+              group = participant_id,
+              color = vaccine)) +
+    theme(legend.position = "none",
+        plot.title = element_text(size = 10)) +
+  scale_color_aaas() +
+  scale_fill_aaas() +
+  theme(axis.text = element_text(color = "black", size = 10),
+        legend.text = element_text(color = "black", size = 10),
+        axis.line.x  = element_line(size = 0.5, color ="black"),
+        axis.line.y  = element_line(size = 0.5, color ="black"),
+        axis.text.x = element_text(angle = 0, vjust = 1, hjust=0.5),
+        axis.ticks = element_line(size = 0.5, color ="black"),
+        panel.grid.major = element_line(linetype = 0, color = "gray75"),
+        panel.grid.minor = element_line(linetype = 0, size = 0, color = "gray75"),
+        # panel.grid.x = element_line(linetype = 2, color = "gray75"),
+        # panel.grid.y = element_line(linetype = 2, color = "gray75"),
+        strip.text = element_text(size = 10, color = "black"), 
+        strip.text.y = element_text(size = 10, color = "black", angle = 0), 
+        panel.spacing = unit(0, "lines"),
+        legend.direction = "horizontal",
+        legend.position = "top")
+
+gamm_plot
+```
+
+
+
+
+
+
+
+
+
+All genes
+```{r}
+df_allgenes <- counts_glmmseq %>%
+    as.data.frame() %>%
+    rownames_to_column("gene") %>%
+    pivot_longer(-gene, names_to = "sample_id", values_to = "value") %>%
+    inner_join(metadata_glmmseq, by = "sample_id") %>%
+    filter(vaccine == "ZF2001") %>%
+    arrange(day) 
+df_allgenes
+```
+
+Splines interpolation
+```{r}
+
+# Supondo que você quer interpolar os valores da vacina ZF2001
+df <- counts_glmmseq %>% 
+  t() %>% 
+  as.data.frame() %>% 
+  rownames_to_column("sample_id") %>% 
+  inner_join(metadata_glmmseq %>% 
+               select(sample_id,sex, age, day, vaccine, participant_id), by = "sample_id") %>% 
+  select(sample_id,sex, age, day, vaccine,participant_id, gene = PAM16) %>% 
+  mutate(vaccine = as.factor(vaccine)) %>% 
+  filter(vaccine == "ZF2001") %>%
+  select(day, gene) %>%
+  arrange(day)
+
+# Interpolação com spline base do R
+interp <- as.data.frame(spline(x = df$day, y = df$gene, n = 29))
+
+# Renomear colunas para consistência
+colnames(interp) <- c("day", "gene_interp")
+
+days = 0:29
+
+# Interpolação spline para média, lower e upper
+interp_full <- tibble(
+  day = days,
+  mean_interp  = spline(df_summary$day, df_summary$mean,  xout = days)$y,
+  lower_interp = spline(df_summary$day, df_summary$lower, xout = days)$y,
+  upper_interp = spline(df_summary$day, df_summary$upper, xout = days)$y
+)
+
+
+splines_plot = ggplot(interp_full, aes(x = day)) +
+  geom_ribbon(aes(ymin = lower_interp, ymax = upper_interp), fill = "lightblue", alpha = 0.3) +
+  geom_line(aes(y = mean_interp), color = "black", size = 1.2) +
+  labs(
+    title = "Spline interpolation: Mean ± 95% CI (0–28 days)",
+    x = "Day",
+    y = "Interpolated gene expression"
+  ) +
+  theme_minimal() +
+    geom_point(data = counts_meta %>% 
+               filter(vaccine == "ZF2001"), 
+             mapping = aes(x = day,
+              y = PAM16,
+              group = participant_id,
+              color = vaccine)) +
+    geom_errorbar(aes(ymin = lower_interp, ymax = upper_interp), 
+                data = interp_full %>% 
+                  filter(day %in% c(0, 7, 14, 28))) +
+    theme(legend.position = "none",
+        plot.title = element_text(size = 10)) +
+  scale_color_aaas() +
+  scale_fill_aaas() +
+  theme(axis.text = element_text(color = "black", size = 10),
+        legend.text = element_text(color = "black", size = 10),
+        axis.line.x  = element_line(size = 0.5, color ="black"),
+        axis.line.y  = element_line(size = 0.5, color ="black"),
+        axis.text.x = element_text(angle = 0, vjust = 1, hjust=0.5),
+        axis.ticks = element_line(size = 0.5, color ="black"),
+        panel.grid.major = element_line(linetype = 0, color = "gray75"),
+        panel.grid.minor = element_line(linetype = 0, size = 0, color = "gray75"),
+        # panel.grid.x = element_line(linetype = 2, color = "gray75"),
+        # panel.grid.y = element_line(linetype = 2, color = "gray75"),
+        strip.text = element_text(size = 10, color = "black"), 
+        strip.text.y = element_text(size = 10, color = "black", angle = 0), 
+        panel.spacing = unit(0, "lines"),
+        legend.direction = "horizontal",
+        legend.position = "top") 
+
+splines_plot
+```
+All genes
+```{r}
+# Dias interpolados
+days <- 0:28
+
+# Genes que você quer processar
+genes <- rownames(counts_glmmseq)
+
+# Função para um gene
+process_gene <- function(gene_name) {
+  df <- counts_glmmseq %>%
+    as.data.frame() %>%
+    rownames_to_column("gene") %>%
+    filter(gene == gene_name) %>%
+    pivot_longer(-gene, names_to = "sample_id", values_to = "value") %>%
+    select(-gene) %>%
+    inner_join(metadata_glmmseq, by = "sample_id") %>%
+    filter(vaccine == "ZF2001") %>%
+    select(day, value) %>%
+    arrange(day)
+
+  # Agrupar por dia para calcular média e SE
+  df_summary <- df %>%
+    group_by(day) %>%
+    summarise(
+      mean = mean(value, na.rm = TRUE),
+      se = sd(value, na.rm = TRUE) / sqrt(n()),
+      lower = mean - 1.96 * se,
+      upper = mean + 1.96 * se
+    )
+
+  # Spline para média e IC
+  interp_full <- tibble(
+    day = days,
+    mean_interp = spline(df_summary$day, df_summary$mean, xout = days)$y,
+    lower_interp = spline(df_summary$day, df_summary$lower, xout = days)$y,
+    upper_interp = spline(df_summary$day, df_summary$upper, xout = days)$y,
+    gene = gene_name
+  )
+
+  return(interp_full)
+}
+
+# Aplicar a função a todos os genes
+interp_all_genes <- map_dfr(genes, process_gene)
+
+
+highest_genes = interp_all_genes %>% 
+  arrange(-mean_interp) %>% 
+  select(gene) %>%  
+  distinct() %>% 
+  pull() %>% 
+  .[1:3]
+
+
+highest_splines = ggplot(interp_all_genes %>% filter(gene %in% highest_genes), aes(x = day, y = mean_interp)) +
+  geom_ribbon(aes(ymin = lower_interp, ymax = upper_interp), fill = "lightblue", alpha = 0.3) +
+  geom_line(color = "black", size = 1.2) +
+  facet_wrap(~ gene, scales = "free_y") +
+  theme_minimal() +
+  labs(title = "Spline Interpolation: Mean ± 95% CI", x = "Day", y = "Expression") +
+  geom_point(color = "black",
+             mapping = aes(x = day, y = value),
+             data = df_allgenes %>% 
+               filter(gene %in% highest_genes)) +
+    geom_errorbar(aes(ymin = lower_interp, ymax = upper_interp), 
+                data = interp_all_genes %>% 
+                  filter(day %in% c(0, 7, 14, 28),
+                          gene %in% highest_genes)) +
+  scale_color_aaas() +
+  scale_fill_aaas() +
+  theme(axis.text = element_text(color = "black", size = 10),
+        legend.text = element_text(color = "black", size = 10),
+        axis.line.x  = element_line(size = 0.5, color ="black"),
+        axis.line.y  = element_line(size = 0.5, color ="black"),
+        axis.text.x = element_text(angle = 0, vjust = 1, hjust=0.5),
+        axis.ticks = element_line(size = 0.5, color ="black"),
+        panel.grid.major = element_line(linetype = 0, color = "gray75"),
+        panel.grid.minor = element_line(linetype = 0, size = 0, color = "gray75"),
+        # panel.grid.x = element_line(linetype = 2, color = "gray75"),
+        # panel.grid.y = element_line(linetype = 2, color = "gray75"),
+        strip.text = element_text(size = 10, color = "black"), 
+        strip.text.y = element_text(size = 10, color = "black", angle = 0), 
+        panel.spacing = unit(0, "lines"),
+        legend.direction = "horizontal",
+        legend.position = "top") 
+highest_splines
+```
+
+
+Linear interpolation
+```{r}
+# Interpolação linear para todos os 29 dias
+linear_interp <- as.data.frame(approx(x = df$day, y = df$gene, xout = 0:28))
+
+# Renomear colunas
+colnames(linear_interp) <- c("day", "gene_interp")
+
+df_summary = df %>%
+  group_by(day) %>%
+  summarise(
+    mean = mean(gene, na.rm = TRUE),
+    se = sd(gene, na.rm = TRUE) / sqrt(n()),  # calcula SE
+    lower = mean - 1.96 * se,
+    upper = mean + 1.96 * se
+  )
+
+days = 0:29
+# Interpolação linear para média e ICs
+interp_full <- tibble(
+  day = days,
+  mean_interp  = approx(df_summary$day, df_summary$mean,  xout = days)$y,
+  lower_interp = approx(df_summary$day, df_summary$lower, xout = days)$y,
+  upper_interp = approx(df_summary$day, df_summary$upper, xout = days)$y
+)
+
+lines = ggplot(interp_full, aes(x = day)) +
+  geom_ribbon(aes(ymin = lower_interp, ymax = upper_interp), fill = "lightblue", alpha = 0.3) +
+  geom_line(aes(y = mean_interp), color = "black", size = 1.2) +
+  geom_errorbar(aes(ymin = lower_interp, ymax = upper_interp), 
+                data = interp_full %>% 
+                  filter(day %in% c(0, 7, 14, 28))) +
+  labs(
+    title = "Interpolated Mean ± 95% CI (0 to 28 days)",
+    x = "Day",
+    y = "Interpolated gene expression"
+  ) +
+  theme_minimal() +
+    geom_point(data = counts_meta %>% 
+               filter(vaccine == "ZF2001"), 
+             mapping = aes(x = day,
+              y = PAM16,
+              group = participant_id,
+              color = vaccine)) +
+  
+  theme(legend.position = "none",
+        plot.title = element_text(size = 10)) +
+  scale_color_aaas() +
+  scale_fill_aaas() +
+  theme(axis.text = element_text(color = "black", size = 10),
+        legend.text = element_text(color = "black", size = 10),
+        axis.line.x  = element_line(size = 0.5, color ="black"),
+        axis.line.y  = element_line(size = 0.5, color ="black"),
+        axis.text.x = element_text(angle = 0, vjust = 1, hjust=0.5),
+        axis.ticks = element_line(size = 0.5, color ="black"),
+        panel.grid.major = element_line(linetype = 0, color = "gray75"),
+        panel.grid.minor = element_line(linetype = 0, size = 0, color = "gray75"),
+        # panel.grid.x = element_line(linetype = 2, color = "gray75"),
+        # panel.grid.y = element_line(linetype = 2, color = "gray75"),
+        strip.text = element_text(size = 10, color = "black"), 
+        strip.text.y = element_text(size = 10, color = "black", angle = 0), 
+        panel.spacing = unit(0, "lines"),
+        legend.direction = "horizontal",
+        legend.position = "top")
+lines
+
+```
+All genes
+```{r}
+
+# Dias interpolados
+days <- 0:28
+
+# Genes que você quer processar
+genes <- rownames(counts_glmmseq)
+
+# Função para um gene
+process_gene <- function(gene_name) {
+  df <- counts_glmmseq %>%
+    as.data.frame() %>%
+    rownames_to_column("gene") %>%
+    filter(gene == gene_name) %>%
+    pivot_longer(-gene, names_to = "sample_id", values_to = "value") %>%
+    select(-gene) %>%
+    inner_join(metadata_glmmseq, by = "sample_id") %>%
+    filter(vaccine == "ZF2001") %>%
+    select(day, value) %>%
+    arrange(day)
+
+  # Agrupar por dia para calcular média e SE
+  df_summary <- df %>%
+    group_by(day) %>%
+    summarise(
+      mean = mean(value, na.rm = TRUE),
+      se = sd(value, na.rm = TRUE) / sqrt(n()),
+      lower = mean - 1.96 * se,
+      upper = mean + 1.96 * se
+    )
+
+  # Spline para média e IC
+  interp_full <- tibble(
+    day = days,
+    mean_interp = approx(df_summary$day, df_summary$mean, xout = days)$y,
+    lower_interp = approx(df_summary$day, df_summary$lower, xout = days)$y,
+    upper_interp = approx(df_summary$day, df_summary$upper, xout = days)$y,
+    gene = gene_name
+  )
+
+  return(interp_full)
+}
+
+# Aplicar a função a todos os genes
+interp_all_genes <- map_dfr(genes, process_gene)
+
+
+highest_genes = interp_all_genes %>% 
+  arrange(-mean_interp) %>% 
+  select(gene) %>%  
+  distinct() %>% 
+  pull() %>% 
+  .[1:3]
+
+
+highest_lines = ggplot(interp_all_genes %>% filter(gene %in% highest_genes), aes(x = day, y = mean_interp)) +
+  geom_ribbon(aes(ymin = lower_interp, ymax = upper_interp), fill = "lightblue", alpha = 0.3) +
+  geom_errorbar(aes(ymin = lower_interp, ymax = upper_interp), 
+                data = interp_all_genes %>% 
+                  filter(day %in% c(0, 7, 14, 28),
+                          gene %in% highest_genes)) +
+  geom_line(color = "black", size = 1.2) +
+  facet_wrap(~ gene, scales = "free_y") +
+  theme_minimal() +
+  labs(title = "Line Interpolation: Mean ± 95% CI", x = "Day", y = "Expression") +
+  geom_point(color = "black",
+             mapping = aes(x = day, y = value),
+             data = df_allgenes %>% 
+               filter(gene %in% highest_genes)) +
+  scale_color_aaas() +
+  scale_fill_aaas() +
+  theme(axis.text = element_text(color = "black", size = 10),
+        legend.text = element_text(color = "black", size = 10),
+        axis.line.x  = element_line(size = 0.5, color ="black"),
+        axis.line.y  = element_line(size = 0.5, color ="black"),
+        axis.text.x = element_text(angle = 0, vjust = 1, hjust=0.5),
+        axis.ticks = element_line(size = 0.5, color ="black"),
+        panel.grid.major = element_line(linetype = 0, color = "gray75"),
+        panel.grid.minor = element_line(linetype = 0, size = 0, color = "gray75"),
+        # panel.grid.x = element_line(linetype = 2, color = "gray75"),
+        # panel.grid.y = element_line(linetype = 2, color = "gray75"),
+        strip.text = element_text(size = 10, color = "black"), 
+        strip.text.y = element_text(size = 10, color = "black", angle = 0), 
+        panel.spacing = unit(0, "lines"),
+        legend.direction = "horizontal",
+        legend.position = "top")
+
+highest_lines
+
+```
+
+
+PAM16
+```{r fig.height=3, fig.width=10}
+library(patchwork)
+gamm_plot+lines+splines_plot +
+  patchwork::plot_layout(axes = "collect")
+```
+
+Highest scores
+```{r fig.height=5, fig.width=8}
+highest_lines/highest_splines +
+  patchwork::plot_layout(axes = "collect")
+```
+
 
 
