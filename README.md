@@ -59,7 +59,7 @@ The complete analysis is organized into **13 steps**, implemented in the main R 
 
 ```         
 covidvax_atlas/
-├── Article_Covid19VaxAtlas.Rmd        # Main analysis notebook (40k+ lines)
+├── Article_Covid19VaxAtlas.Rmd        # Main analysis notebook (~40.5k lines, fully commented in English)
 ├── ML_Covid19VaxAtlas.Rmd             # Machine learning-focused notebook
 ├── 13VaxAtlas/                        # Hagan et al. vaccine atlas integration data
 ├── Annotations and metadata/          # Sample annotations, vaccine conditions, demographics, color palettes

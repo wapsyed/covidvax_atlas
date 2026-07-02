@@ -239,8 +239,18 @@ To account for repeated measures and individual-level variation:
 
 | File | Description | Lines |
 |------|-------------|-------|
-| `Article_Covid19VaxAtlas.Rmd` | Main analysis notebook: complete pipeline (sections 1–13) | ~40,000 |
+| `Article_Covid19VaxAtlas.Rmd` | Main analysis notebook: complete pipeline (sections 1–13), fully commented in English | ~40,500 |
 | `ML_Covid19VaxAtlas.Rmd` | Machine learning-focused analysis (RF, hyperparameter tuning, VIP genes) | ~5,600 |
+
+### Code Documentation
+
+All code in `Article_Covid19VaxAtlas.Rmd` is fully documented with:
+- **Markdown headers** (`##`, `###`, `####`) describing each section and subsection
+- **Explanatory text** before each code chunk describing the analysis purpose
+- **Inline comments** (`#`) for key operations within code chunks
+- **Plot annotations:** `# Save plot`, `# Print plot` for all graphic outputs
+- **Heatmap annotations:** `# Save heatmap to PNG`, `# Build heatmap object`, `# Print heatmap`
+- **Data save annotations:** `# Save data` before file writes
 
 ### Supplementary Notebooks
 
