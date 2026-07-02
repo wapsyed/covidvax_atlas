@@ -12395,7 +12395,7 @@ row_names_gp = gpar(fontsize = 10)
 rect_gp = gpar(col = "black", lwd = 0.5)
 
 fileimageheatmap_grouped = paste0(file, sep ="_", "Complexheatmap.png")
-
+# Save heatmap to PNG
 png(file = here("Figures", fileimageheatmap_grouped), 
     width = width_image, 
     height = height_image, 
@@ -12583,7 +12583,7 @@ row_names_gp = gpar(fontsize = 10)
 rect_gp = gpar(col = "black", lwd = 0.5)
 
 fileimageheatmap_grouped = paste0(file, sep ="_", "Complexheatmap.png")
-
+# Save heatmap to PNG
 png(file = here("Figures", fileimageheatmap_grouped), 
     width = width_image, 
     height = height_image, 
@@ -12651,7 +12651,7 @@ width = unit(15, "cm")
 height = unit(5, "cm")
 
 fileimageheatmap_grouped = paste0(file, sep ="_", "Complexheatmap_ForPCA.png")
-
+# Save heatmap to PNG
 png(file = here("Figures", fileimageheatmap_grouped), 
     width = width_image, 
     height = height_image, 
@@ -13594,7 +13594,7 @@ row_names_gp = gpar(fontsize = 10)
 rect_gp = gpar(col = "gray80", lwd = 0.5)
 
 fileimageheatmap_grouped = paste0(file, sep ="_", "Complexheatmap.png")
-
+# Save heatmap to PNG
 png(file = fileimageheatmap_grouped, 
     width = width_image, 
     height = height_image, 
@@ -14184,7 +14184,7 @@ row_names_gp = gpar(fontsize = 10)
 rect_gp = gpar(col = "gray80", lwd = 0.5)
 
 fileimageheatmap_grouped = paste0(file, sep ="_", "Complexheatmap.png")
-
+# Save heatmap to PNG
 png(file = here("Figures", fileimageheatmap_grouped), 
     width = width_image, 
     height = height_image, 
@@ -14541,7 +14541,7 @@ row_names_gp = gpar(fontsize = 10)
 rect_gp = gpar(col = "gray80", lwd = 0.5)
 
 fileimageheatmap_grouped = paste0(file, sep ="_", "Complexheatmap.png")
-
+# Save heatmap to PNG
 png(file = here("Figures", fileimageheatmap_grouped), 
     width = width_image, 
     height = height_image, 
@@ -15425,7 +15425,7 @@ row_names_gp = gpar(fontsize = 10)
 rect_gp = gpar(col = "gray80", lwd = 0.5)
 
 fileimageheatmap_grouped = paste0(file, sep ="_", "Complexheatmap.png")
-
+# Save heatmap to PNG
 png(file = fileimageheatmap_grouped, 
     width = width_image, 
     height = height_image, 
@@ -16019,7 +16019,7 @@ row_names_gp = gpar(fontsize = 10)
 rect_gp = gpar(col = "gray80", lwd = 0.5)
 
 fileimageheatmap_grouped = paste0(file, sep ="_", "Complexheatmap.png")
-
+# Save heatmap to PNG
 png(file = here("Figures", fileimageheatmap_grouped), 
     width = width_image, 
     height = height_image, 
@@ -16376,7 +16376,7 @@ row_names_gp = gpar(fontsize = 10)
 rect_gp = gpar(col = "gray80", lwd = 0.5)
 
 fileimageheatmap_grouped = paste0(file, sep ="_", "Complexheatmap.png")
-
+# Save heatmap to PNG
 png(file = here("Figures", fileimageheatmap_grouped), 
     width = width_image, 
     height = height_image, 
@@ -17248,7 +17248,7 @@ row_names_gp = gpar(fontsize = 10)
 rect_gp = gpar(col = "white", lwd = 2)
 
 fileimageheatmap_grouped = paste0(file, sep ="_", "Complexheatmap.png")
-
+# Save heatmap to PNG
 png(file = here("Figures", fileimageheatmap_grouped), 
     width = width_image, 
     height = height_image, 
@@ -17450,7 +17450,7 @@ row_names_gp = gpar(fontsize = 10)
 rect_gp = gpar(col = "white", lwd = 2)
 
 fileimageheatmap_grouped = paste0(file, sep ="_", "Complexheatmap.png")
-
+# Save heatmap to PNG
 png(file = here("Figures", fileimageheatmap_grouped), 
     width = width_image, 
     height = height_image, 
@@ -17515,7 +17515,7 @@ row_names_gp = gpar(fontsize = 10)
 rect_gp = gpar(col = "white", lwd = 2)
 
 fileimageheatmap_grouped = paste0(file, sep ="_", "Complexheatmap_Clustered.png")
-
+# Save heatmap to PNG
 png(file = here("Figures", fileimageheatmap_grouped), 
     width = width_image, 
     height = height_image, 
@@ -17578,7 +17578,7 @@ row_names_gp = gpar(fontsize = 10)
 rect_gp = gpar(col = "white", lwd = 2)
 
 fileimageheatmap_grouped = paste0(file, sep ="_", "Complexheatmap_Clustered_all.png")
-
+# Save heatmap to PNG
 png(file = here("Figures", fileimageheatmap_grouped), 
     width = width_image, 
     height = height_image, 
@@ -18676,7 +18676,7 @@ row_names_gp = gpar(fontsize = 10)
 rect_gp = gpar(col = "white", lwd = 2)
 
 fileimageheatmap_grouped = paste0(file, sep ="_", "Complexheatmap.png")
-
+# Save heatmap to PNG
 png(file = here("Figures", fileimageheatmap_grouped), 
     width = width_image, 
     height = height_image, 
@@ -18878,7 +18878,7 @@ row_names_gp = gpar(fontsize = 10)
 rect_gp = gpar(col = "white", lwd = 2)
 
 fileimageheatmap_grouped = paste0(file, sep ="_", "Complexheatmap.png")
-
+# Save heatmap to PNG
 png(file = here("Figures", fileimageheatmap_grouped), 
     width = width_image, 
     height = height_image, 
@@ -18943,7 +18943,7 @@ row_names_gp = gpar(fontsize = 10)
 rect_gp = gpar(col = "white", lwd = 2)
 
 fileimageheatmap_grouped = paste0(file, sep ="_", "Complexheatmap_Clustered.png")
-
+# Save heatmap to PNG
 png(file = here("Figures", fileimageheatmap_grouped), 
     width = width_image, 
     height = height_image, 
@@ -19006,7 +19006,7 @@ row_names_gp = gpar(fontsize = 10)
 rect_gp = gpar(col = "white", lwd = 2)
 
 fileimageheatmap_grouped = paste0(file, sep ="_", "Complexheatmap_Clustered_all.png")
-
+# Save heatmap to PNG
 png(file = here("Figures", fileimageheatmap_grouped), 
     width = width_image, 
     height = height_image, 
@@ -20363,7 +20363,7 @@ row_names_gp = gpar(fontsize = 10)
 rect_gp = gpar(col = "white", lwd = 2)
 
 fileimageheatmap_grouped = paste0(file, sep ="_", "Complexheatmap.png")
-
+# Save heatmap to PNG
 png(file = here("Figures", fileimageheatmap_grouped), 
     width = width_image, 
     height = height_image, 
@@ -20565,7 +20565,7 @@ row_names_gp = gpar(fontsize = 10)
 rect_gp = gpar(col = "white", lwd = 2)
 
 fileimageheatmap_grouped = paste0(file, sep ="_", "Complexheatmap.png")
-
+# Save heatmap to PNG
 png(file = here("Figures", fileimageheatmap_grouped), 
     width = width_image, 
     height = height_image, 
@@ -20630,7 +20630,7 @@ row_names_gp = gpar(fontsize = 10)
 rect_gp = gpar(col = "white", lwd = 2)
 
 fileimageheatmap_grouped = paste0(file, sep ="_", "Complexheatmap_Clustered.png")
-
+# Save heatmap to PNG
 png(file = here("Figures", fileimageheatmap_grouped), 
     width = width_image, 
     height = height_image, 
@@ -20693,7 +20693,7 @@ row_names_gp = gpar(fontsize = 10)
 rect_gp = gpar(col = "white", lwd = 2)
 
 fileimageheatmap_grouped = paste0(file, sep ="_", "Complexheatmap_Clustered_all.png")
-
+# Save heatmap to PNG
 png(file = here("Figures", fileimageheatmap_grouped), 
     width = width_image, 
     height = height_image, 
@@ -21206,7 +21206,7 @@ row_names_gp = gpar(fontsize = 10)
 
 #Plot and save
 fileimageheatmap_ungrouped= here("Figures", paste0(file, sep ="_", "Ungrouped_Complexheatmap.png"))
-
+# Save heatmap to PNG
 png(file = fileimageheatmap_ungrouped, width=width_image, height=height_image,units="cm",res=300)
 
 # Build heatmap object
@@ -21357,7 +21357,7 @@ row_names_gp = gpar(fontsize = 3)
 
 #Plot and save
 fileimageheatmap_ungrouped= here("Figures", paste0(file, sep ="_", "Ungrouped_Complexheatmap.png"))
-
+# Save heatmap to PNG
 png(file = fileimageheatmap_ungrouped, width=width_image, height=height_image,units="cm",res=300)
 
 # Build heatmap object
@@ -21470,6 +21470,7 @@ column_names_gp = gpar(fontsize = 10)
 row_names_gp = gpar(fontsize = 10)
 
 fileimageheatmap_ungrouped = here("Figures", paste0(file, sep ="_", "Ungrouped_Complexheatmap.png"))
+# Save heatmap to PNG
 png(file = fileimageheatmap_ungrouped, width=width_image, height=height_image,units="cm",res=300)
 # Build heatmap object
 heatmap_plot_all = Heatmap(mat,
@@ -21578,6 +21579,7 @@ column_names_gp = gpar(fontsize = 10)
 row_names_gp = gpar(fontsize = 10)
 
 fileimageheatmap_ungrouped= here("Figures", paste0(file, sep ="_", "Ungrouped_Complexheatmap.png"))
+# Save heatmap to PNG
 png(file = fileimageheatmap_ungrouped, width=width_image, height=height_image,units="cm",res=300)
 # Build heatmap object
 heatmap_plot_all = Heatmap(mat,
@@ -21686,7 +21688,7 @@ column_names_gp = gpar(fontsize = 10)
 row_names_gp = gpar(fontsize = 10)
 
 fileimageheatmap_ungrouped= here("Figures", paste0(file, sep ="_", "Ungrouped_Complexheatmap.png"))
-
+# Save heatmap to PNG
 png(file = fileimageheatmap_ungrouped, width=width_image, height=height_image,units="cm",res=300)
 
 # Build heatmap object
@@ -21812,7 +21814,7 @@ row_names_gp = gpar(fontsize = 10)
 
 #Plotar e salvar imagem
 fileimageheatmap_ungrouped= here("Figures", paste0(file, sep ="_", "Ungrouped_Complexheatmap.png"))
-
+# Save heatmap to PNG
 png(file = fileimageheatmap_ungrouped, width=width_image, height=height_image,units="cm",res=300)
 
 # Build heatmap object
@@ -21940,7 +21942,7 @@ row_names_gp = gpar(fontsize = 10)
 
 #Plotar e salvar imagem
 fileimageheatmap_ungrouped= here("Figures", paste0(file, sep ="_", "Ungrouped_Complexheatmap.png"))
-
+# Save heatmap to PNG
 png(file = fileimageheatmap_ungrouped, width=width_image, height=height_image,units="cm",res=300)
 
 # Build heatmap object
@@ -22068,7 +22070,7 @@ row_names_gp = gpar(fontsize = 10)
 
 #Plotar e salvar imagem
 fileimageheatmap_ungrouped = here("Figures", paste0(file, sep ="_", "Ungrouped_Complexheatmap.png"))
-
+# Save heatmap to PNG
 png(file = fileimageheatmap_ungrouped, width=width_image, height=height_image,units="cm",res=300)
 
 # Build heatmap object
@@ -22196,7 +22198,7 @@ row_names_gp = gpar(fontsize = 10)
 
 #Plotar e salvar imagem
 fileimageheatmap_ungrouped= here("Figures", paste0(file, sep ="_", "Ungrouped_Complexheatmap.png"))
-
+# Save heatmap to PNG
 png(file = fileimageheatmap_ungrouped, width=width_image, height=height_image,units="cm",res=300)
 
 # Build heatmap object
@@ -22323,7 +22325,7 @@ row_names_gp = gpar(fontsize = 10)
 
 #Plotar e salvar imagem
 fileimageheatmap_ungrouped= here("Figures", paste0(file, sep ="_", "Ungrouped_Complexheatmap.png"))
-
+# Save heatmap to PNG
 png(file = fileimageheatmap_ungrouped, width=width_image, height=height_image,units="cm",res=300)
 
 # Build heatmap object
@@ -22450,7 +22452,7 @@ row_names_gp = gpar(fontsize = 10)
 
 #Plotar e salvar imagem
 fileimageheatmap_ungrouped= here("Figures", paste0(file, sep ="_", "Ungrouped_Complexheatmap.png"))
-
+# Save heatmap to PNG
 png(file = fileimageheatmap_ungrouped, width=width_image, height=height_image,units="cm",res=300)
 
 # Build heatmap object
@@ -22577,7 +22579,7 @@ row_names_gp = gpar(fontsize = 10)
 
 #Plotar e salvar imagem
 fileimageheatmap_ungrouped= here("Figures", paste0(file, sep ="_", "Ungrouped_Complexheatmap.png"))
-
+# Save heatmap to PNG
 png(file = fileimageheatmap_ungrouped, width=width_image, height=height_image,units="cm",res=300)
 
 # Build heatmap object
@@ -22704,7 +22706,7 @@ row_names_gp = gpar(fontsize = 10)
 
 #Plotar e salvar imagem
 fileimageheatmap_ungrouped= here("Figures", paste0(file, sep ="_", "Ungrouped_Complexheatmap.png"))
-
+# Save heatmap to PNG
 png(file = fileimageheatmap_ungrouped, width=width_image, height=height_image,units="cm",res=300)
 
 # Build heatmap object
@@ -22831,7 +22833,7 @@ row_names_gp = gpar(fontsize = 10)
 
 #Plotar e salvar imagem
 fileimageheatmap_ungrouped= here("Figures", paste0(file, sep ="_", "Ungrouped_Complexheatmap.png"))
-
+# Save heatmap to PNG
 png(file = fileimageheatmap_ungrouped, width=width_image, height=height_image,units="cm",res=300)
 
 # Build heatmap object
@@ -22958,7 +22960,7 @@ row_names_gp = gpar(fontsize = 5)
 
 #Plotar e salvar imagem
 fileimageheatmap_ungrouped= here("Figures", paste0(file, sep ="_", "Ungrouped_Complexheatmap.png"))
-
+# Save heatmap to PNG
 png(file = fileimageheatmap_ungrouped, width=width_image, height=height_image,units="cm",res=300)
 
 # Build heatmap object
@@ -23074,7 +23076,7 @@ row_names_gp = gpar(fontsize = 10)
 
 #Plotar e salvar imagem
 fileimageheatmap_ungrouped= here("Figures", paste0(file, sep ="_", "Ungrouped_Complexheatmap.png"))
-
+# Save heatmap to PNG
 png(file = fileimageheatmap_ungrouped, width=width_image, height=height_image,units="cm",res=300)
 
 heatmap_plot_all = Heatmap(mat,
@@ -23200,7 +23202,7 @@ row_names_gp = gpar(fontsize = 10)
 
 #Plotar e salvar imagem
 fileimageheatmap_ungrouped= here("Figures", paste0(file, sep ="_", "Ungrouped_Complexheatmap.png"))
-
+# Save heatmap to PNG
 png(file = fileimageheatmap_ungrouped, width=width_image, height=height_image,units="cm",res=300)
 
 heatmap_plot_all = Heatmap(mat,
@@ -23326,7 +23328,7 @@ row_names_gp = gpar(fontsize = 10)
 
 #Plotar e salvar imagem
 fileimageheatmap_ungrouped= here("Figures", paste0(file, sep ="_", "Ungrouped_Complexheatmap.png"))
-
+# Save heatmap to PNG
 png(file = fileimageheatmap_ungrouped, width=width_image, height=height_image,units="cm",res=300)
 
 heatmap_plot_all = Heatmap(mat,
@@ -23452,7 +23454,7 @@ row_names_gp = gpar(fontsize = 10)
 
 #Plotar e salvar imagem
 fileimageheatmap_ungrouped= here("Figures", paste0(file, sep ="_", "Ungrouped_Complexheatmap.png"))
-
+# Save heatmap to PNG
 png(file = fileimageheatmap_ungrouped, width=width_image, height=height_image,units="cm",res=300)
 
 heatmap_plot_all = Heatmap(mat,
@@ -23578,7 +23580,7 @@ row_names_gp = gpar(fontsize = 10)
 
 #Plotar e salvar imagem
 fileimageheatmap_ungrouped= here("Figures", paste0(file, sep ="_", "Ungrouped_Complexheatmap.png"))
-
+# Save heatmap to PNG
 png(file = fileimageheatmap_ungrouped, width=width_image, height=height_image,units="cm",res=300)
 
 heatmap_plot_all = Heatmap(mat,
