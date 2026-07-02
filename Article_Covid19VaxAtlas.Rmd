@@ -6372,6 +6372,7 @@ file = paste0("Hagan_", filename)
 
 fileimageheatmap_grouped = paste0(filename, sep ="_", "Complexheatmap_ALL_CLUSTERED.png")
 
+# Save heatmap to PNG
 png(file = here("Figures", fileimageheatmap_grouped), 
     width = width_image, 
     height = height_image,
@@ -6525,6 +6526,7 @@ file = paste0("Hagan_", filename)
 
 fileimageheatmap_grouped = paste0(filename, sep ="_", "Complexheatmap_Days.png")
 
+# Save heatmap to PNG
 png(file = here("Figures", fileimageheatmap_grouped), 
     width = width_image, 
     height = height_image,
@@ -6675,6 +6677,7 @@ file = paste0("Hagan_", filename)
 
 fileimageheatmap_grouped = paste0(filename, sep ="_", "Complexheatmap_Condition.png")
 
+# Save heatmap to PNG
 png(file = here("Figures", fileimageheatmap_grouped), 
     width = width_image, 
     height = height_image,
@@ -6890,6 +6893,7 @@ file = paste0("Hagan_", filename)
 
 fileimageheatmap_grouped = paste0(filename, sep ="_", "Complexheatmap_ALL_CLUSTERED.png")
 
+# Save heatmap to PNG
 png(file = here("Figures", fileimageheatmap_grouped), 
     width = width_image, 
     height = height_image,
@@ -7757,6 +7761,7 @@ rect_gp = gpar(col = "gray1", lwd = 0)
 
 fileimageheatmap_grouped = paste0(filename, sep ="_", "Shared_Heatmap.png")
 
+# Save heatmap to PNG
 png(
   file = here("Figures", fileimageheatmap_grouped),
   width = width_image,
@@ -7903,6 +7908,7 @@ rect_gp = gpar(col = "white", lwd = 2)
 
 fileimageheatmap_grouped = paste0(filename, sep ="_", "Jaccard_Heatmap.png")
 
+# Save heatmap to PNG
 png(
   file = here("Figures", fileimageheatmap_grouped),
   width = width_image,
@@ -8056,6 +8062,7 @@ rect_gp = gpar(col = "white", lwd = 2)
 
 fileimageheatmap_grouped = paste0(filename, sep ="_", "Jaccard_Heatmap_ByDay.png")
 
+# Save heatmap to PNG
 png(
   file = here("Figures", fileimageheatmap_grouped),
   width = width_image,
@@ -8207,6 +8214,7 @@ rect_gp = gpar(col = "white", lwd = 2)
 
 fileimageheatmap_grouped = paste0(filename, sep ="_", "Jaccard_Heatmap_ByCondition.png")
 
+# Save heatmap to PNG
 png(
   file = here("Figures", fileimageheatmap_grouped),
   width = width_image,
@@ -8358,6 +8366,7 @@ rect_gp = gpar(col = "white", lwd = 2)
 
 fileimageheatmap_grouped = paste0(filename, sep ="_", "Jaccard_Heatmap_ByCondition_Colclustered.png")
 
+# Save heatmap to PNG
 png(
   file = here("Figures", fileimageheatmap_grouped),
   width = width_image,
@@ -8654,7 +8663,7 @@ group_w7 = ann_vaccines %>%
 Plot
 
 ```{r fig.height= 5, fig.width=10}
-#Plot
+# Save heatmap to PNG
 png(filename = here("Figures","ChordDiagram_Covid19_Weeks_1-2-4-7.png"), 
     width = 12, height = 14, units = "in", res = 300)
 
@@ -8903,6 +8912,7 @@ Plot All conditions and stats
 
 #Types
 
+# Save heatmap to PNG
 png(filename = here("Figures","ChordDiagram_Covid19_Types_All.png"), 
     width = 5, height = 5, units = "in", res = 300)
 
@@ -8941,6 +8951,7 @@ By state
 
 ```{r fig.height= 5, fig.width=15}
 
+# Save heatmap to PNG
 png(filename = here("Figures","ChordDiagram_Covid19_Types_Inf_Vac.png"), 
     width = 6, height = 12, units = "in", res = 300)
 
@@ -9239,7 +9250,7 @@ group_w7 = ann_vaccines %>%
 Plot
 
 ```{r fig.height= 5, fig.width=10}
-#Plot
+# Save heatmap to PNG
 png(filename = here("Figures","ChordDiagram_Covid19_Weeks_1-2-4-7_jaccard.png"), 
     width = 12, height = 14, units = "in", res = 300)
 
@@ -9488,6 +9499,7 @@ Plot All conditions and stats
 
 #Types
 
+# Save heatmap to PNG
 png(filename = here("Figures","ChordDiagram_Covid19_Types_All_jaccard_distance.png"), 
     width = 5, height = 5, units = "in", res = 300)
 
@@ -9526,6 +9538,7 @@ By state
 
 ```{r fig.height= 5, fig.width=15}
 
+# Save heatmap to PNG
 png(filename = here("Figures","ChordDiagram_Covid19_Types_Inf_Vac_jaccard_distance.png"), 
     width = 6, height = 12, units = "in", res = 300)
 
@@ -9772,6 +9785,7 @@ row_names_gp = gpar(fontsize = 10)
 #Plot
 fileimageheatmap_ungrouped= paste0(file, sep ="_", "Ungrouped_Complexheatmap.png")
 
+# Save heatmap to PNG
 png(file = fileimageheatmap_ungrouped, width= width_image, height=height_image ,units="cm",res=800)
 
 # Build heatmap object
@@ -11613,6 +11627,7 @@ rect_gp = gpar(col = "black", lwd = 0.5)
 
 fileimageheatmap_grouped = paste0(file, sep ="_", "Complexheatmap.png")
 
+# Save heatmap to PNG
 png(file = here("Figures", fileimageheatmap_grouped), 
     width = width_image, 
     height = height_image, 
@@ -11801,6 +11816,7 @@ rect_gp = gpar(col = "black", lwd = 0.5)
 
 fileimageheatmap_grouped = paste0(file, sep ="_", "Complexheatmap.png")
 
+# Save heatmap to PNG
 png(file = here("Figures", fileimageheatmap_grouped), 
     width = width_image, 
     height = height_image, 
@@ -11869,6 +11885,7 @@ height = unit(5, "cm")
 
 fileimageheatmap_grouped = paste0(file, sep ="_", "Complexheatmap_ForPCA.png")
 
+# Save heatmap to PNG
 png(file = here("Figures", fileimageheatmap_grouped), 
     width = width_image, 
     height = height_image, 
