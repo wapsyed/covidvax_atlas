@@ -1350,6 +1350,7 @@ ImmuneGO_Annotated_Genes %>% dplyr::select(process, genes, immune_system) %>% an
 
 #Salvar
 write.csv(ImmuneGO_Annotated_GO, file = paste0("ImmuneGO_Annotated_GO_", today(), ".csv"), row.names = F)
+# Save data
 saveRDS(ImmuneGO_Annotated_GO, file = paste0("ImmuneGO_Annotated_GO_", today(), ".rds"))
 saveRDS(ImmuneGO_Annotated_Genes, file = paste0("ImmuneGO_Annotated_Genes_", today(), ".rds"))
 
@@ -1443,6 +1444,7 @@ immunego_btm_specific_grouped = btm_annotation_grouped %>%
   bind_rows(ImmuneGO_annotation_modules)
   
 immunego_btm_specific_grouped %>% 
+# Save data
   write_csv(file = here("VaxGO gene sets", "ImmuneGO_BTM_grouped_genesets_specific.csv"))
 
   
@@ -1559,9 +1561,11 @@ immunego_btm_manual_grouped_genes = immunego_btm_manual_grouped_genes %>%
   
   
 immunego_btm_manual_grouped %>% 
+# Save data
   write_csv(file = here("VaxGO gene sets", "ImmuneGO_BTM_grouped_genesets.csv"))
 
 immunego_btm_manual_grouped_genes %>% 
+# Save data
   write_csv(file = here("VaxGO gene sets", "ImmuneGO_BTM_grouped_genes.csv"))
   
 ```
@@ -1849,6 +1853,7 @@ GSE189039_metadata = GSE189039 %>%
     subject_id = "title", age = "age:ch1", 
     sex = "gender:ch1", disease_state = "diseas state:ch1", 
     severity = "severity:ch1") 
+# Save data
 write_csv(GSE189039_metadata, file = here("raw_data", "GSE189039_metadata.csv"))
 
 #Counts matrix
@@ -1863,6 +1868,7 @@ counts_GSE189039 <- list_data_GSE189039 %>%
   purrr::discard(is.null) %>%
   reduce(full_join, by = "genes")
 colnames(counts_GSE189039)[-1] <- gsub("^[^_]+_(.*)", "\\1", colnames(counts_GSE189039)[-1])
+# Save data
 write_csv(counts_GSE189039, file = here("raw_data", "gse189039_counts.csv"))
 ```
 
@@ -1892,6 +1898,7 @@ GSE201533_metadata = GSE201533_metadata %>%
          condition = paste0(vaccine, " (V", dose, ", D", time, ")"),
          geo = "GSE201533") 
 
+# Save data
 write_csv(GSE201533_metadata, file = here("raw_data", "GSE201533_metadata.csv"))
 
 ##### Counts matrix
@@ -1918,6 +1925,7 @@ counts_gse201533 <- list_data_gse201533 %>%
   relocate(geneid) %>%
   replace(is.na(.), 0)
 
+# Save data
 saveRDS(counts_gse201533, file = here("raw_data", "gse201533_counts.rds"))
 write.csv(counts_gse201533, file=here("raw_data", "gse201533_counts.csv"))
 ```
@@ -1966,6 +1974,7 @@ counts_gse201530 <- list_data_GSE201530 %>%
   reduce(full_join, by = "genes")
 colnames(counts_gse201530)[-1] <- gsub("^[^_]+_(.*)", "\\1", colnames(counts_gse201530)[-1])
 
+# Save data
 saveRDS(counts_gse201530, file = here("raw_data", "gse201530_counts_ready.rds"))
 
 counts_gse201530 = read_rds(file = here("raw_data", "gse201530_counts.rds"))
@@ -2019,6 +2028,7 @@ gse199750_metadata <- gse199750_metadata %>%
   column_to_rownames("Subject_Timepoint")
 
 write.csv(gse199750_metadata, file =here("raw_data", "metadata_gse199750.csv"))
+# Save data
 saveRDS(gse199750_metadata, file = here("raw_data", "gse199750_metadata.rds"))
 
 # Counts matrix
@@ -2046,7 +2056,7 @@ raw_RNASeq_counts_ann <- raw_RNASeq_counts %>%
   dplyr::select(genes = hgnc_symbol, ensembl_gene_id, everything()) %>% 
   arrange(genes)
 
-#Save
+# Save data
 write_csv(raw_RNASeq_counts_ann, file= here("raw_data", "raw_RNASeq_counts_annGenes.csv"))
 
 #Filter duplicated genes. Get only the older ensembl ids
@@ -2091,6 +2101,7 @@ colnames(gse206023_metadata) <-
     "Vaccine")
 
 write.csv(gse206023_metadata, file= here("raw_data","gse206023_metadata.csv"))
+# Save data
 saveRDS(gse206023_metadata, file=here("raw_data","gse206023_metadata.rds"))
 
 #### Import matrix.
@@ -2111,8 +2122,10 @@ gse206023_counts_ready = gse206023_counts %>%
   round(., 0)
 
 gse206023_counts_ready %>% 
+# Save data
   saveRDS(file = here("raw_data", "gse206023_counts_ready.rds"))
 gse206023_counts_ready %>% 
+# Save data
   write_csv(file = here("raw_data", "gse206023_counts_ready.csv"))
 
 #General statistics
@@ -2144,6 +2157,7 @@ all_matrices_counts = gse189039 %>%
 
 
 all_matrices_counts
+# Save data
 saveRDS(all_matrices_counts, file = here("DGE analysis", "all_matrices_counts_raw.rds"))
 
 #Get genes present in all matrices
@@ -2162,6 +2176,7 @@ genes_not_shared = all_matrices_counts %>%
 all_matrices_counts_filtered = all_matrices_counts %>% 
   filter(!genes %in% c(genes_not_shared %>% pull(genes)))
 
+# Save data
 saveRDS(all_matrices_counts_filtered, file = here("DGE analysis", "all_matrices_counts.rds"))
 
 ```
@@ -2179,6 +2194,7 @@ all_matrices_counts_long = all_matrices_counts %>%
 all_matrices_counts_long_annotated = all_matrices_counts_long %>% 
   inner_join(ann_vaccines_samples, by = "sample")
 
+# Save data
 all_matrices_counts_long_annotated %>% saveRDS(here("DGE analysis", "all_matrices_counts_long_annotated.rds"))
 ```
 
@@ -2234,6 +2250,7 @@ tpm = tpm %>%
   as.data.frame()
 
 tpm %>% 
+# Save data
   saveRDS(here("DGE analysis", "all_matrices_counts_tpm_normalized.rds"))
 
 
@@ -2247,6 +2264,7 @@ all_matrices_counts_tpm_normalized_long = all_matrices_counts_tpm_normalized %>%
 all_matrices_counts_tpm_normalized_long_annotated = all_matrices_counts_tpm_normalized_long %>% 
   inner_join(ann_vaccines_samples, by = "sample")
 
+# Save data
 all_matrices_counts_tpm_normalized_long_annotated %>% saveRDS(here("DGE analysis", "all_matrices_counts_tpm_normalized_long_annotated.rds"))
 
 ```
@@ -2264,6 +2282,7 @@ cpm_counts <- cpm(all_matrices_counts %>%
 print(cpm_counts)
 
 cpm_counts %>% 
+# Save data
   saveRDS(here("DGE analysis", "all_matrices_cpm_normalized.rds"))
 
 cpm_counts = readRDS(here("DGE analysis", "all_matrices_cpm_normalized.rds"))
@@ -2369,6 +2388,7 @@ all_samples_l2fc = bind_rows(counts_gse206023_samples_l2fc,
 all_samples_l2fc
 
 all_samples_l2fc %>% 
+# Save data
   saveRDS(file = here("DGE analysis", "all_samples_l2fc.rds"))
 ```
 
@@ -2430,6 +2450,7 @@ assay(vsd) <- mat
 counts_batch_corrected <- assay(vsd)
 
 
+# Save data
 saveRDS(normalized_counts, file = here("DGE analysis", "all_matrices_normalized_counts.rds"))
 
 normalized_counts = read_rds(here("DGE analysis", "all_matrices_normalized_counts.rds"))
@@ -2537,6 +2558,7 @@ pvca_df = pvca$dat %>%
          batch = fct_relevel(batch, after = Inf)) %>% 
   arrange(batch)
 
+# Save data
 pvca_df %>% saveRDS(here("DGE analysis", "pvca_results_immunegenes.rds"))
 
 pvca_df
@@ -2912,6 +2934,7 @@ ann_vaccines_conditions_1 = demographics %>%
   mutate(week = ceiling(day / 7),
          week = as.factor(week))
 
+# Save data
 write_csv(ann_vaccines_conditions_1, file = here("Annotations and metadata", "ann_vaccines_conditions_23-10-24.csv"))
 
 
@@ -2941,11 +2964,13 @@ ann_vaccines_conditions_grouped = ann_vaccines_conditions %>%
 
 
 ann_vaccines_conditions_grouped %>% 
+# Save data
   write_csv(file = here("Annotations and metadata", "ann_vaccines_conditions_grouped.csv"))
   
 ann_vaccines_conditions = ann_vaccines_conditions_grouped
 
 ann_vaccines_conditions %>%
+# Save data
   write_csv(file = here("Annotations and metadata", "ann_vaccines_conditions.csv"))
 ```
 
@@ -3100,6 +3125,7 @@ ann_vaccines_conditions_ordered = ann_vaccines_conditions_ordered %>%
                                            unique())))
 
 ann_vaccines_conditions_ordered %>%
+# Save data
   saveRDS(file = here("Annotations and metadata", "ann_vaccines_conditions_ordered.rds"))
 
 ```
@@ -4179,6 +4205,7 @@ GSE206023 Ages %>%
 gse201533_counts <- as.data.frame(counts_gse201533)
 rownames(gse201533_counts) <- gse201533_counts$geneid 
 gse201533_counts <- gse201533_counts[, -1]
+# Save data
 saveRDS(gse201533_counts, file="gse201533_counts_ready.rds")
 
 ########## Metadata #############
@@ -4192,6 +4219,7 @@ head(gse201533_metadata)
 gse201533_metadata <- gse201533_metadata[, -2]
 gse201533_metadata <- gse201533_metadata[, -1]
 
+# Save data
 saveRDS(gse201533_metadata, file="gse201533_metadata_ready.rds")
 ```
 
@@ -4268,6 +4296,7 @@ gse201533_DEGs %>%
 
 
 gse201533_DEGs %>% 
+# Save data
   write_csv(here("DGE analysis", "gse201533_DEGs_wald.csv"))
 
 gse201533_DEGs
@@ -4331,6 +4360,7 @@ gse199750_DEGs =  gse199750_dds %>%
 
 
 gse199750_DEGs %>% 
+# Save data
   write_csv(file = here("DGE analysis", "gse199750_DEGs_wald.csv"))
 
 gse199750_DEGs$condition %>% unique()
@@ -4465,6 +4495,7 @@ infection_DEGs$condition %>% unique()
 #   filter(!condition %in% c("Intercept"))
 
 infection_DEGs %>% 
+# Save data
   write_csv(file = here("DGE analysis", "infection_DEGs_wald_grouped.csv"))
 ```
 
@@ -4492,6 +4523,7 @@ all_degs %>%
 
 #Save
 all_degs %>% 
+# Save data
   saveRDS(file = here("DGE analysis", "all_studies_degs_wald.rds"))
 
 all_degs
@@ -4533,6 +4565,7 @@ all_studies_degs_weighted = all_studies_degs_weighted %>%
 
 
 all_studies_degs_weighted %>% 
+# Save data
   saveRDS(file = here("DGE analysis", "all_studies_degs_weighted.rds"))
 ```
 
@@ -5622,6 +5655,7 @@ go_bp_child = go_bp_main %>%
 
 go_bp_all = bind_rows(go_bp_main_2, go_bp_child)
 
+# Save data
 write_csv(go_bp_all, file = here("VaxGO gene sets", "OtherGOs_Annotated_Genes.csv"))
 
 # Collapse rows 
@@ -5633,6 +5667,7 @@ go_bp_all_comma = go_bp_all %>%
   distinct() %>% 
   arrange(desc(set_size))
 
+# Save data
 write_csv(go_bp_all_comma, file = here("VaxGO gene sets","OtherGOs_Annotated_GOs.csv"))
 ```
 
@@ -5656,6 +5691,7 @@ degs_GO_comma = degs_GO %>%
   summarize(genes = paste0(genes, collapse = ",")) %>% 
   inner_join(ann_vaccines, by = "condition")
 
+# Save data
 write_csv(degs_GO_comma, file = here("DGE analysis", "degs_annotated_allGOs.csv"))
 
 
@@ -5702,6 +5738,7 @@ main_go_2 = degs_GO %>%
          term_ancestor = fct_relevel(term_ancestor, "Not mapped", after = Inf),
          direction = fct_relevel(direction, "UP", "DOWN"))
   
+# Save data
 write_csv(main_go_2, file = here("DGE analysis", "degs_annotated_mainGOs_stats.csv"))
 ```
 
@@ -6340,6 +6377,7 @@ png(file = here("Figures", fileimageheatmap_grouped),
     height = height_image,
     units="cm", res=900)
 
+# Build heatmap object
 heatmap_plot = Heatmap(mat,
                         top_annotation = ha,
                         left_annotation = row_ha,
@@ -6385,6 +6423,7 @@ cell_fun = function(j, i, x, y, width, height, fill) {
                         height = height 
 )
 
+# Print heatmap
 draw(heatmap_plot,
      merge_legend = TRUE,
      annotation_legend_side = "right", 
@@ -6491,6 +6530,7 @@ png(file = here("Figures", fileimageheatmap_grouped),
     height = height_image,
     units="cm", res=900)
 
+# Build heatmap object
 heatmap_plot = Heatmap(mat,
                         top_annotation = ha,
                         left_annotation = row_ha,
@@ -6534,6 +6574,7 @@ cell_fun = function(j, i, x, y, width, height, fill) {
                         height = height 
 )
 
+# Print heatmap
 draw(heatmap_plot,
      merge_legend = TRUE,
      annotation_legend_side = "right", 
@@ -6639,6 +6680,7 @@ png(file = here("Figures", fileimageheatmap_grouped),
     height = height_image,
     units="cm", res=900)
 
+# Build heatmap object
 heatmap_plot = Heatmap(mat,
                         top_annotation = ha,
                         left_annotation = row_ha,
@@ -6682,6 +6724,7 @@ cell_fun = function(j, i, x, y, width, height, fill) {
                         height = height 
 )
 
+# Print heatmap
 draw(heatmap_plot,
      merge_legend = TRUE,
      annotation_legend_side = "right", 
@@ -6852,6 +6895,7 @@ png(file = here("Figures", fileimageheatmap_grouped),
     height = height_image,
     units="cm", res=900)
 
+# Build heatmap object
 heatmap_plot = Heatmap(mat,
                         top_annotation = ha,
                         left_annotation = row_ha,
@@ -6896,6 +6940,7 @@ cell_fun = function(j, i, x, y, width, height, fill) {
                         height = height 
 )
 
+# Print heatmap
 draw(heatmap_plot,
      merge_legend = TRUE,
      annotation_legend_side = "right", 
@@ -6967,6 +7012,7 @@ shared_genes_comparisons = bind_rows(shared_genes_infection,
                                      shared_genes_vaccines, 
                                      shared_genes_vaccines_infection)
 
+# Save data
 write_csv(shared_genes_comparisons, file = here("Figures", "ImmuneGO_BTM_shared_genes_infection_vaccination_comparisons.csv"))
 
 ```
@@ -7340,6 +7386,7 @@ shared_genes_comparisons = bind_rows(shared_genes_infection,
                                      shared_genes_vaccines_infection) %>% 
   arrange(desc(n_conditions))
 
+# Save data
 write_csv(shared_genes_comparisons, file = here("DGE analysis", "non_Immune_shared_genes_infection_vaccination_comparisons.csv"))
 
 shared_genes_comparisons
@@ -7606,7 +7653,7 @@ shared_genes_df_mirror = jaccard.matrix %>%
   inner_join(shared_genes_df_mirror, by = join_by(Cond1, Cond2)) %>% 
   mutate(jaccard_distance = round(jaccard_distance, 3))
 
-#Save
+# Save data
 write_csv(shared_genes_df_mirror, 
           file = here("DGE analysis", paste0(filename, "_sharedgenes_Fisher_Jaccard.csv")))
 
@@ -7718,6 +7765,7 @@ png(
   res = 900
 )
 
+# Build heatmap object
 heatmap_plot_all = Heatmap(mat,
                         top_annotation = ha,
                         left_annotation = row_ha,
@@ -7756,6 +7804,7 @@ heatmap_plot_all = Heatmap(mat,
                         height = height
 )
 
+# Print heatmap
 draw(heatmap_plot_all, annotation_legend_side = "left")
 
 dev.off()
@@ -7862,6 +7911,7 @@ png(
   res = 900
 )
 
+# Build heatmap object
 heatmap_plot_all = Heatmap(mat,
                         top_annotation = ha,
                         left_annotation = row_ha,
@@ -7900,6 +7950,7 @@ heatmap_plot_all = Heatmap(mat,
                         height = height
 )
 
+# Print heatmap
 draw(heatmap_plot_all, annotation_legend_side = "left")
 
 dev.off()
@@ -8013,6 +8064,7 @@ png(
   res = 900
 )
 
+# Build heatmap object
 heatmap_plot_all = Heatmap(mat,
                         top_annotation = ha,
                         left_annotation = row_ha,
@@ -8051,6 +8103,7 @@ heatmap_plot_all = Heatmap(mat,
                         height = height
 )
 
+# Print heatmap
 draw(heatmap_plot_all, annotation_legend_side = "left")
 
 dev.off()
@@ -8162,6 +8215,7 @@ png(
   res = 900
 )
 
+# Build heatmap object
 heatmap_plot_all = Heatmap(mat,
                         top_annotation = ha,
                         left_annotation = row_ha,
@@ -8200,6 +8254,7 @@ heatmap_plot_all = Heatmap(mat,
                         height = height
 )
 
+# Print heatmap
 draw(heatmap_plot_all, annotation_legend_side = "left")
 
 dev.off()
@@ -8311,6 +8366,7 @@ png(
   res = 900
 )
 
+# Build heatmap object
 heatmap_plot_all = Heatmap(mat,
                         top_annotation = ha,
                         left_annotation = row_ha,
@@ -8349,6 +8405,7 @@ heatmap_plot_all = Heatmap(mat,
                         height = height
 )
 
+# Print heatmap
 draw(heatmap_plot_all, annotation_legend_side = "left")
 
 dev.off()
@@ -9717,6 +9774,7 @@ fileimageheatmap_ungrouped= paste0(file, sep ="_", "Ungrouped_Complexheatmap.png
 
 png(file = fileimageheatmap_ungrouped, width= width_image, height=height_image ,units="cm",res=800)
 
+# Build heatmap object
 heatmap_plot_all = Heatmap(mat,
                         top_annotation = ha,
                         show_row_names = TRUE,
@@ -9751,6 +9809,7 @@ heatmap_plot_all = Heatmap(mat,
                         height = height
 )
 
+# Print heatmap
 draw(heatmap_plot_all, annotation_legend_side = "right", heatmap_legend_side = "right")
 
 dev.off()
@@ -9830,7 +9889,7 @@ all_degs_p_05_vac_infected_GSEA = all_degs_p_05_vac_infected_GSEA_ALL %>%
 
 all_degs_p_05_vac_infected_GSEA
 
-#Save
+# Save data
 write_csv(all_degs_p_05_vac_infected_GSEA, 
           file = here("Gene set enrichment analysis", paste0("all_degs_p_05_vac_infected_", geneset_name, "_GSEA_ALL", ".csv")))
 
@@ -9856,7 +9915,7 @@ all_degs_p_05_vac_infected_GSEA = all_degs_p_05_vac_infected_GSEA_ALL %>%
 
 all_degs_p_05_vac_infected_GSEA
 
-#Save
+# Save data
 write_csv(all_degs_p_05_vac_infected_GSEA, 
           file = here("Gene set enrichment analysis", paste0("all_degs_p_05_vac_infected_", geneset_name, "_GSEA_ALL", ".csv")))
 
@@ -10577,7 +10636,7 @@ nesmat_result_CellMarker =  nesmat_result %>%
 
 
 
-#save
+# Save data
 write_csv(nesmat_result_CellMarker, file = here("Gene set enrichment analysis", paste0(filename, sep = "_", go_dataset, "_ssgsea_results.csv")))
 
 head(nesmat_result_CellMarker)
@@ -11560,6 +11619,7 @@ png(file = here("Figures", fileimageheatmap_grouped),
     units="cm", 
     res=900)
 
+# Build heatmap object
 heatmap_plot = Heatmap(mat,
                         top_annotation = ha,
                         name = "L2FC",
@@ -11594,6 +11654,7 @@ heatmap_plot = Heatmap(mat,
                         height = height 
 )
 
+# Print heatmap
 draw(heatmap_plot, 
      annotation_legend_side = "right", 
      heatmap_legend_side = "bottom")
@@ -11746,6 +11807,7 @@ png(file = here("Figures", fileimageheatmap_grouped),
     units="cm", 
     res=900)
 
+# Build heatmap object
 heatmap_plot = Heatmap(mat,
                         top_annotation = ha,
                         name = "L2FC",
@@ -11780,6 +11842,7 @@ heatmap_plot = Heatmap(mat,
                         height = height 
 )
 
+# Print heatmap
 draw(heatmap_plot, 
      annotation_legend_side = "right", 
      heatmap_legend_side = "bottom")
@@ -11812,6 +11875,7 @@ png(file = here("Figures", fileimageheatmap_grouped),
     units="cm", 
     res=900)
 
+# Build heatmap object
 heatmap_plot_2 = Heatmap(mat_2,
                         # top_annotation = ha,
                         name = "L2FC",
@@ -11847,6 +11911,7 @@ heatmap_plot_2 = Heatmap(mat_2,
                         height = height 
 )
 
+# Print heatmap
 draw(heatmap_plot_2, 
      annotation_legend_side = "right", 
      heatmap_legend_side = "bottom")
@@ -12320,6 +12385,7 @@ png(file = here("Figures", fileimageheatmap_grouped),
     units="cm", 
     res=900)
 
+# Build heatmap object
 heatmap_plot = Heatmap(mat,
                         top_annotation = ha,
                         name = "L2FC",
@@ -12354,6 +12420,7 @@ heatmap_plot = Heatmap(mat,
                         height = height 
 )
 
+# Print heatmap
 draw(heatmap_plot, 
      annotation_legend_side = "right", 
      heatmap_legend_side = "bottom")
@@ -12506,6 +12573,7 @@ png(file = here("Figures", fileimageheatmap_grouped),
     units="cm", 
     res=900)
 
+# Build heatmap object
 heatmap_plot = Heatmap(mat,
                         top_annotation = ha,
                         name = "L2FC",
@@ -12540,6 +12608,7 @@ heatmap_plot = Heatmap(mat,
                         height = height 
 )
 
+# Print heatmap
 draw(heatmap_plot, 
      annotation_legend_side = "right", 
      heatmap_legend_side = "bottom")
@@ -12572,6 +12641,7 @@ png(file = here("Figures", fileimageheatmap_grouped),
     units="cm", 
     res=900)
 
+# Build heatmap object
 heatmap_plot_2 = Heatmap(mat_2,
                         # top_annotation = ha,
                         name = "L2FC",
@@ -12607,6 +12677,7 @@ heatmap_plot_2 = Heatmap(mat_2,
                         height = height 
 )
 
+# Print heatmap
 draw(heatmap_plot_2, 
      annotation_legend_side = "right", 
      heatmap_legend_side = "bottom")
@@ -13513,6 +13584,7 @@ png(file = fileimageheatmap_grouped,
     units="cm", 
     res=900)
 
+# Build heatmap object
 heatmap_plot = Heatmap(mat,
                         top_annotation = ha,
                         left_annotation = row_ha,
@@ -13546,6 +13618,7 @@ heatmap_plot = Heatmap(mat,
                         width = width,
                         height = height)
 
+# Print heatmap
 heatmap_plot = draw(heatmap_plot, 
      annotation_legend_side = "left", 
      heatmap_legend_side = "left")
@@ -14101,6 +14174,7 @@ png(file = here("Figures", fileimageheatmap_grouped),
     units="cm", 
     res=900)
 
+# Build heatmap object
 heatmap_plot = Heatmap(mat,
                         top_annotation = ha,
                         left_annotation = row_ha,
@@ -14134,6 +14208,7 @@ heatmap_plot = Heatmap(mat,
                         width = width,
                         height = height)
 
+# Print heatmap
 heatmap_plot = draw(heatmap_plot, 
      annotation_legend_side = "left", 
      heatmap_legend_side = "bottom")
@@ -14456,6 +14531,7 @@ png(file = here("Figures", fileimageheatmap_grouped),
     units="cm", 
     res=900)
 
+# Build heatmap object
 heatmap_plot = Heatmap(mat,
                         top_annotation = ha,
                         left_annotation = row_ha,
@@ -14489,6 +14565,7 @@ heatmap_plot = Heatmap(mat,
                         width = width,
                         height = height)
 
+# Print heatmap
 heatmap_plot = draw(heatmap_plot, 
      annotation_legend_side = "left", 
      heatmap_legend_side = "bottom")
@@ -15338,6 +15415,7 @@ png(file = fileimageheatmap_grouped,
     units="cm", 
     res=900)
 
+# Build heatmap object
 heatmap_plot = Heatmap(mat,
                         top_annotation = ha,
                         left_annotation = row_ha,
@@ -15371,6 +15449,7 @@ heatmap_plot = Heatmap(mat,
                         width = width,
                         height = height)
 
+# Print heatmap
 heatmap_plot = draw(heatmap_plot, 
      annotation_legend_side = "left", 
      heatmap_legend_side = "left")
@@ -15930,6 +16009,7 @@ png(file = here("Figures", fileimageheatmap_grouped),
     units="cm", 
     res=900)
 
+# Build heatmap object
 heatmap_plot = Heatmap(mat,
                         top_annotation = ha,
                         left_annotation = row_ha,
@@ -15963,6 +16043,7 @@ heatmap_plot = Heatmap(mat,
                         width = width,
                         height = height)
 
+# Print heatmap
 heatmap_plot = draw(heatmap_plot, 
      annotation_legend_side = "left", 
      heatmap_legend_side = "bottom")
@@ -16285,6 +16366,7 @@ png(file = here("Figures", fileimageheatmap_grouped),
     units="cm", 
     res=900)
 
+# Build heatmap object
 heatmap_plot = Heatmap(mat,
                         top_annotation = ha,
                         left_annotation = row_ha,
@@ -16318,6 +16400,7 @@ heatmap_plot = Heatmap(mat,
                         width = width,
                         height = height)
 
+# Print heatmap
 heatmap_plot = draw(heatmap_plot, 
      annotation_legend_side = "left", 
      heatmap_legend_side = "bottom")
@@ -17155,6 +17238,7 @@ png(file = here("Figures", fileimageheatmap_grouped),
     units="cm", 
     res=900)
 
+# Build heatmap object
 heatmap_plot = Heatmap(mat,
                         top_annotation = ha,
                         # left_annotation = row_ha,
@@ -17188,6 +17272,7 @@ heatmap_plot = Heatmap(mat,
                         width = width,
                         height = height)
 
+# Print heatmap
 heatmap_plot = draw(heatmap_plot, 
      annotation_legend_side = "right", 
      heatmap_legend_side = "right")
@@ -17355,6 +17440,7 @@ png(file = here("Figures", fileimageheatmap_grouped),
     units="cm", 
     res=900)
 
+# Build heatmap object
 heatmap_plot = Heatmap(mat,
                         top_annotation = ha,
                         # left_annotation = row_ha,
@@ -17391,6 +17477,7 @@ heatmap_plot = Heatmap(mat,
                         width = width,
                         height = height)
 
+# Print heatmap
 heatmap_plot = draw(heatmap_plot, 
      annotation_legend_side = "left", 
      heatmap_legend_side = "left")
@@ -17418,6 +17505,7 @@ png(file = here("Figures", fileimageheatmap_grouped),
     units="cm", 
     res=900)
 
+# Build heatmap object
 heatmap_plot = Heatmap(mat,
                         top_annotation = ha,
                         # left_annotation = row_ha,
@@ -17453,6 +17541,7 @@ heatmap_plot = Heatmap(mat,
                         width = width,
                         height = height)
 
+# Print heatmap
 heatmap_plot = draw(heatmap_plot, 
      annotation_legend_side = "left", 
      heatmap_legend_side = "left")
@@ -17479,6 +17568,7 @@ png(file = here("Figures", fileimageheatmap_grouped),
     units="cm", 
     res=900)
 
+# Build heatmap object
 heatmap_plot = Heatmap(mat,
                         top_annotation = ha,
                         # left_annotation = row_ha,
@@ -17514,6 +17604,7 @@ heatmap_plot = Heatmap(mat,
                         width = width,
                         height = height)
 
+# Print heatmap
 heatmap_plot = draw(heatmap_plot, 
      annotation_legend_side = "left", 
      heatmap_legend_side = "left")
@@ -18575,6 +18666,7 @@ png(file = here("Figures", fileimageheatmap_grouped),
     units="cm", 
     res=900)
 
+# Build heatmap object
 heatmap_plot = Heatmap(mat,
                         top_annotation = ha,
                         # left_annotation = row_ha,
@@ -18608,6 +18700,7 @@ heatmap_plot = Heatmap(mat,
                         width = width,
                         height = height)
 
+# Print heatmap
 heatmap_plot = draw(heatmap_plot, 
      annotation_legend_side = "right", 
      heatmap_legend_side = "right")
@@ -18775,6 +18868,7 @@ png(file = here("Figures", fileimageheatmap_grouped),
     units="cm", 
     res=900)
 
+# Build heatmap object
 heatmap_plot = Heatmap(mat,
                         top_annotation = ha,
                         # left_annotation = row_ha,
@@ -18811,6 +18905,7 @@ heatmap_plot = Heatmap(mat,
                         width = width,
                         height = height)
 
+# Print heatmap
 heatmap_plot = draw(heatmap_plot, 
      annotation_legend_side = "left", 
      heatmap_legend_side = "left")
@@ -18838,6 +18933,7 @@ png(file = here("Figures", fileimageheatmap_grouped),
     units="cm", 
     res=900)
 
+# Build heatmap object
 heatmap_plot = Heatmap(mat,
                         top_annotation = ha,
                         # left_annotation = row_ha,
@@ -18873,6 +18969,7 @@ heatmap_plot = Heatmap(mat,
                         width = width,
                         height = height)
 
+# Print heatmap
 heatmap_plot = draw(heatmap_plot, 
      annotation_legend_side = "left", 
      heatmap_legend_side = "left")
@@ -18899,6 +18996,7 @@ png(file = here("Figures", fileimageheatmap_grouped),
     units="cm", 
     res=900)
 
+# Build heatmap object
 heatmap_plot = Heatmap(mat,
                         top_annotation = ha,
                         # left_annotation = row_ha,
@@ -18934,6 +19032,7 @@ heatmap_plot = Heatmap(mat,
                         width = width,
                         height = height)
 
+# Print heatmap
 heatmap_plot = draw(heatmap_plot, 
      annotation_legend_side = "left", 
      heatmap_legend_side = "left")
@@ -20254,6 +20353,7 @@ png(file = here("Figures", fileimageheatmap_grouped),
     units="cm", 
     res=900)
 
+# Build heatmap object
 heatmap_plot = Heatmap(mat,
                         top_annotation = ha,
                         # left_annotation = row_ha,
@@ -20287,6 +20387,7 @@ heatmap_plot = Heatmap(mat,
                         width = width,
                         height = height)
 
+# Print heatmap
 heatmap_plot = draw(heatmap_plot, 
      annotation_legend_side = "right", 
      heatmap_legend_side = "right")
@@ -20454,6 +20555,7 @@ png(file = here("Figures", fileimageheatmap_grouped),
     units="cm", 
     res=900)
 
+# Build heatmap object
 heatmap_plot = Heatmap(mat,
                         top_annotation = ha,
                         # left_annotation = row_ha,
@@ -20490,6 +20592,7 @@ heatmap_plot = Heatmap(mat,
                         width = width,
                         height = height)
 
+# Print heatmap
 heatmap_plot = draw(heatmap_plot, 
      annotation_legend_side = "left", 
      heatmap_legend_side = "left")
@@ -20517,6 +20620,7 @@ png(file = here("Figures", fileimageheatmap_grouped),
     units="cm", 
     res=900)
 
+# Build heatmap object
 heatmap_plot = Heatmap(mat,
                         top_annotation = ha,
                         # left_annotation = row_ha,
@@ -20552,6 +20656,7 @@ heatmap_plot = Heatmap(mat,
                         width = width,
                         height = height)
 
+# Print heatmap
 heatmap_plot = draw(heatmap_plot, 
      annotation_legend_side = "left", 
      heatmap_legend_side = "left")
@@ -20578,6 +20683,7 @@ png(file = here("Figures", fileimageheatmap_grouped),
     units="cm", 
     res=900)
 
+# Build heatmap object
 heatmap_plot = Heatmap(mat,
                         top_annotation = ha,
                         # left_annotation = row_ha,
@@ -20613,6 +20719,7 @@ heatmap_plot = Heatmap(mat,
                         width = width,
                         height = height)
 
+# Print heatmap
 heatmap_plot = draw(heatmap_plot, 
      annotation_legend_side = "left", 
      heatmap_legend_side = "left")
@@ -21085,6 +21192,7 @@ fileimageheatmap_ungrouped= here("Figures", paste0(file, sep ="_", "Ungrouped_Co
 
 png(file = fileimageheatmap_ungrouped, width=width_image, height=height_image,units="cm",res=300)
 
+# Build heatmap object
 heatmap_plot_all = Heatmap(mat,
                         top_annotation = ha,
                         left_annotation = row_ha,
@@ -21101,11 +21209,13 @@ heatmap_plot_all = Heatmap(mat,
                         height = height,
                         row_names_gp = row_names_gp)
 
+# Print heatmap
 ht_list = draw(heatmap_plot_all, 
                annotation_legend_side = "right", 
                heatmap_legend_side = "right")
 
 
+# Print heatmap
 draw(heatmap_plot_all, annotation_legend_side = "right", heatmap_legend_side = "right")
 
 dev.off()
@@ -21122,6 +21232,7 @@ height = unit(80, "cm")
 column_names_gp = gpar(fontsize = 10)
 row_names_gp = gpar(fontsize = 10)
 
+# Build heatmap object
 heatmap_plot_all = Heatmap(mat,
                         top_annotation = ha,
                         left_annotation = row_ha,
@@ -21135,6 +21246,7 @@ heatmap_plot_all = Heatmap(mat,
                         column_names_gp = column_names_gp,
                         row_names_gp = row_names_gp)
 
+# Print heatmap
 ht_list = draw(heatmap_plot_all, 
                annotation_legend_side = "right", 
                heatmap_legend_side = "right")
@@ -21231,6 +21343,7 @@ fileimageheatmap_ungrouped= here("Figures", paste0(file, sep ="_", "Ungrouped_Co
 
 png(file = fileimageheatmap_ungrouped, width=width_image, height=height_image,units="cm",res=300)
 
+# Build heatmap object
 heatmap_plot_all = Heatmap(mat,
                         top_annotation = ha,
                         show_row_names = TRUE,
@@ -21262,6 +21375,7 @@ heatmap_plot_all = Heatmap(mat,
                         height = height
 )
 
+# Print heatmap
 draw(heatmap_plot_all, annotation_legend_side = "right", heatmap_legend_side = "right")
 
 dev.off()
@@ -21340,6 +21454,7 @@ row_names_gp = gpar(fontsize = 10)
 
 fileimageheatmap_ungrouped = here("Figures", paste0(file, sep ="_", "Ungrouped_Complexheatmap.png"))
 png(file = fileimageheatmap_ungrouped, width=width_image, height=height_image,units="cm",res=300)
+# Build heatmap object
 heatmap_plot_all = Heatmap(mat,
                         top_annotation = ha,
                         show_row_names = TRUE,
@@ -21369,6 +21484,7 @@ heatmap_plot_all = Heatmap(mat,
                         height = height
 )
 
+# Print heatmap
 draw(heatmap_plot_all, annotation_legend_side = "right", heatmap_legend_side = "right")
 
 dev.off()
@@ -21446,6 +21562,7 @@ row_names_gp = gpar(fontsize = 10)
 
 fileimageheatmap_ungrouped= here("Figures", paste0(file, sep ="_", "Ungrouped_Complexheatmap.png"))
 png(file = fileimageheatmap_ungrouped, width=width_image, height=height_image,units="cm",res=300)
+# Build heatmap object
 heatmap_plot_all = Heatmap(mat,
                         top_annotation = ha,
                         show_row_names = TRUE,
@@ -21477,6 +21594,7 @@ heatmap_plot_all = Heatmap(mat,
                         height = height
 )
 
+# Print heatmap
 draw(heatmap_plot_all, annotation_legend_side = "right", heatmap_legend_side = "right")
 
 dev.off()
@@ -21554,6 +21672,7 @@ fileimageheatmap_ungrouped= here("Figures", paste0(file, sep ="_", "Ungrouped_Co
 
 png(file = fileimageheatmap_ungrouped, width=width_image, height=height_image,units="cm",res=300)
 
+# Build heatmap object
 heatmap_plot_all = Heatmap(mat,
                         top_annotation = ha,
                         show_row_names = TRUE,
@@ -21583,6 +21702,7 @@ heatmap_plot_all = Heatmap(mat,
                         height = height
 )
 
+# Print heatmap
 draw(heatmap_plot_all, annotation_legend_side = "right", heatmap_legend_side = "right")
 
 dev.off()
@@ -21678,6 +21798,7 @@ fileimageheatmap_ungrouped= here("Figures", paste0(file, sep ="_", "Ungrouped_Co
 
 png(file = fileimageheatmap_ungrouped, width=width_image, height=height_image,units="cm",res=300)
 
+# Build heatmap object
 heatmap_plot_all = Heatmap(mat,
                         top_annotation = ha,
                         show_row_names = TRUE,
@@ -21709,6 +21830,7 @@ heatmap_plot_all = Heatmap(mat,
                         height = height
 )
 
+# Print heatmap
 draw(heatmap_plot_all, annotation_legend_side = "right", heatmap_legend_side = "right")
 
 dev.off()
@@ -21804,6 +21926,7 @@ fileimageheatmap_ungrouped= here("Figures", paste0(file, sep ="_", "Ungrouped_Co
 
 png(file = fileimageheatmap_ungrouped, width=width_image, height=height_image,units="cm",res=300)
 
+# Build heatmap object
 heatmap_plot_all = Heatmap(mat,
                         top_annotation = ha,
                         show_row_names = TRUE,
@@ -21835,6 +21958,7 @@ heatmap_plot_all = Heatmap(mat,
                         height = height
 )
 
+# Print heatmap
 draw(heatmap_plot_all, annotation_legend_side = "right", heatmap_legend_side = "right")
 
 dev.off()
@@ -21930,6 +22054,7 @@ fileimageheatmap_ungrouped = here("Figures", paste0(file, sep ="_", "Ungrouped_C
 
 png(file = fileimageheatmap_ungrouped, width=width_image, height=height_image,units="cm",res=300)
 
+# Build heatmap object
 heatmap_plot_all = Heatmap(mat,
                         top_annotation = ha,
                         show_row_names = TRUE,
@@ -21961,6 +22086,7 @@ heatmap_plot_all = Heatmap(mat,
                         height = height
 )
 
+# Print heatmap
 draw(heatmap_plot_all, annotation_legend_side = "right", heatmap_legend_side = "right")
 
 dev.off()
@@ -22056,6 +22182,7 @@ fileimageheatmap_ungrouped= here("Figures", paste0(file, sep ="_", "Ungrouped_Co
 
 png(file = fileimageheatmap_ungrouped, width=width_image, height=height_image,units="cm",res=300)
 
+# Build heatmap object
 heatmap_plot_all = Heatmap(mat,
                         top_annotation = ha,
                         show_row_names = TRUE,
@@ -22182,6 +22309,7 @@ fileimageheatmap_ungrouped= here("Figures", paste0(file, sep ="_", "Ungrouped_Co
 
 png(file = fileimageheatmap_ungrouped, width=width_image, height=height_image,units="cm",res=300)
 
+# Build heatmap object
 heatmap_plot_all = Heatmap(mat,
                         top_annotation = ha,
                         show_row_names = TRUE,
@@ -22308,6 +22436,7 @@ fileimageheatmap_ungrouped= here("Figures", paste0(file, sep ="_", "Ungrouped_Co
 
 png(file = fileimageheatmap_ungrouped, width=width_image, height=height_image,units="cm",res=300)
 
+# Build heatmap object
 heatmap_plot_all = Heatmap(mat,
                         top_annotation = ha,
                         show_row_names = TRUE,
@@ -22434,6 +22563,7 @@ fileimageheatmap_ungrouped= here("Figures", paste0(file, sep ="_", "Ungrouped_Co
 
 png(file = fileimageheatmap_ungrouped, width=width_image, height=height_image,units="cm",res=300)
 
+# Build heatmap object
 heatmap_plot_all = Heatmap(mat,
                         top_annotation = ha,
                         show_row_names = TRUE,
@@ -22560,6 +22690,7 @@ fileimageheatmap_ungrouped= here("Figures", paste0(file, sep ="_", "Ungrouped_Co
 
 png(file = fileimageheatmap_ungrouped, width=width_image, height=height_image,units="cm",res=300)
 
+# Build heatmap object
 heatmap_plot_all = Heatmap(mat,
                         top_annotation = ha,
                         show_row_names = TRUE,
@@ -22686,6 +22817,7 @@ fileimageheatmap_ungrouped= here("Figures", paste0(file, sep ="_", "Ungrouped_Co
 
 png(file = fileimageheatmap_ungrouped, width=width_image, height=height_image,units="cm",res=300)
 
+# Build heatmap object
 heatmap_plot_all = Heatmap(mat,
                         top_annotation = ha,
                         show_row_names = TRUE,
@@ -22812,6 +22944,7 @@ fileimageheatmap_ungrouped= here("Figures", paste0(file, sep ="_", "Ungrouped_Co
 
 png(file = fileimageheatmap_ungrouped, width=width_image, height=height_image,units="cm",res=300)
 
+# Build heatmap object
 heatmap_plot_all = Heatmap(mat,
                         top_annotation = ha,
                         show_row_names = TRUE,
